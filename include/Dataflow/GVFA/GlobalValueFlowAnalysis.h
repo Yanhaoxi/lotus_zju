@@ -88,6 +88,9 @@ public:
     
     /// Performance monitoring
     void printOnlineQueryTime(llvm::raw_ostream &O, const char *Title = "[Online]") const;
+    
+    /// Get vulnerability checker
+    VulnerabilityChecker* getVulnerabilityChecker() const { return VulnChecker.get(); }
 
 private:
     /// Analysis algorithms

@@ -7,8 +7,10 @@
 #include <llvm/Support/ManagedStatic.h>
 #include <llvm/Support/PrettyStackTrace.h>
 #include <llvm/Support/Signals.h>
+#include <llvm/IR/LegacyPassManager.h>
 
 #include <string>
+#include <memory>
 
 #include "Dataflow/GVFA/GlobalValueFlowAnalysis.h"
 #include "Alias/DyckAA/DyckAliasAnalysis.h"
@@ -55,21 +57,28 @@ int main(int argc, char **argv) {
     outs() << "Loaded module: " << M->getModuleIdentifier() << "\n";
     outs() << "Functions: " << M->getFunctionList().size() << "\n";
     
-    // Create analysis passes
-    outs() << "Running Dyck Alias Analysis...\n";
-    DyckAliasAnalysis DyckAA;
-    DyckAA.runOnModule(*M);
+    // Create PassManager and run analysis passes
+    legacy::PassManager PM;
     
+    // Add DyckAliasAnalysis first
+    outs() << "Running Dyck Alias Analysis...\n";
+    auto *DyckAAPass = new DyckAliasAnalysis();
+    PM.add(DyckAAPass);
+    
+    // Add DyckModRefAnalysis (depends on DyckAliasAnalysis)
     outs() << "Running Dyck ModRef Analysis...\n";
-    DyckModRefAnalysis DyckMRA;
-    DyckMRA.runOnModule(*M);
+    auto *DyckMRAPass = new DyckModRefAnalysis();
+    PM.add(DyckMRAPass);
+    
+    // Run the passes
+    PM.run(*M);
     
     outs() << "Creating Dyck Value Flow Graph...\n";
-    DyckVFG VFG(&DyckAA, &DyckMRA, M.get());
+    DyckVFG VFG(DyckAAPass, DyckMRAPass, M.get());
     
     // Create Global Value Flow Analysis
     outs() << "Creating Global Value Flow Analysis...\n";
-    DyckGlobalValueFlowAnalysis GVFA(M.get(), &VFG, &DyckAA, &DyckMRA);
+    DyckGlobalValueFlowAnalysis GVFA(M.get(), &VFG, DyckAAPass, DyckMRAPass);
     
     // Set vulnerability checker based on command line option
     std::unique_ptr<VulnerabilityChecker> checker;
@@ -89,6 +98,54 @@ int main(int argc, char **argv) {
     // Run the analysis
     outs() << "Running Global Value Flow Analysis...\n";
     GVFA.run();
+    
+    // Perform vulnerability detection by querying reachability
+    outs() << "Performing vulnerability detection...\n";
+    int vulnerabilitiesFound = 0;
+    
+    // Get sources and sinks for querying
+    VulnerabilitySourcesType QuerySources;
+    VulnerabilitySinksType QuerySinks;
+    GVFA.getVulnerabilityChecker()->getSources(M.get(), QuerySources);
+    GVFA.getVulnerabilityChecker()->getSinks(M.get(), QuerySinks);
+    
+    // Check reachability from each source to each sink
+    for (const auto &SinkPair : QuerySinks) {
+        const Value *SinkValue = SinkPair.first;
+        const std::set<const Value *> *SinkInsts = SinkPair.second;
+        
+        for (const auto &SourcePair : QuerySources) {
+            const Value *SourceValue = SourcePair.first.first;
+            int SourceMask = SourcePair.second;
+            
+            // Query if sink is reachable from source
+            if (GVFA.reachable(SinkValue, SourceMask)) {
+                vulnerabilitiesFound++;
+                outs() << "VULNERABILITY FOUND: ";
+                outs() << GVFA.getVulnerabilityChecker()->getCategory() << " vulnerability detected!\n";
+                outs() << "  Source: ";
+                SourceValue->print(outs());
+                outs() << "\n  Sink: ";
+                SinkValue->print(outs());
+                outs() << "\n";
+                
+                // Show associated sink instructions
+                for (const Value *SinkInst : *SinkInsts) {
+                    outs() << "  At instruction: ";
+                    SinkInst->print(outs());
+                    outs() << "\n";
+                }
+                outs() << "\n";
+            }
+        }
+        
+        // Also check backward reachability for sinks
+        if (GVFA.backwardReachable(SinkValue)) {
+            // This sink is reachable from some source
+        }
+    }
+    
+    outs() << "Vulnerability detection completed. Found " << vulnerabilitiesFound << " potential vulnerabilities.\n";
     
     // Print statistics if requested
     if (DumpStats) {

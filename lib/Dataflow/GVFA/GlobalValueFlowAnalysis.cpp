@@ -165,11 +165,11 @@ int DyckGlobalValueFlowAnalysis::reachable(const Value *V, int Mask) {
                                 .count();
         std::lock_guard<std::mutex> L(ClearMutex);
         SnapshotedOnlineTime += elapsed_time;
-        if (!res) {
+        if (res) {
             SuccsQueryCounter++;
-            return 0;
-        } else {
             return 1;
+        } else {
+            return 0;
         }
     } else {
         int UncoveredMask = countConst(V, Mask);
@@ -198,11 +198,11 @@ bool DyckGlobalValueFlowAnalysis::backwardReachable(const Value *V) {
                                 .count();
         std::lock_guard<std::mutex> L(ClearMutex);
         SnapshotedOnlineTime += elapsed_time;
-        if (!res) {
+        if (res) {
             SuccsQueryCounter++;
-            return false;
-        } else {
             return true;
+        } else {
+            return false;
         }
     } else {
         if (!backwardCountConst(V)) {
@@ -225,11 +225,11 @@ bool DyckGlobalValueFlowAnalysis::backwardReachableSink(const Value *V) {
                                 .count();
         std::lock_guard<std::mutex> L(ClearMutex);
         SnapshotedOnlineTime += elapsed_time;
-        if (!res) {
+        if (res) {
             SuccsQueryCounter++;
-            return false;
-        } else {
             return true;
+        } else {
+            return false;
         }
     } else {
         auto It = AllBackwardReachabilityMap.find(V);
