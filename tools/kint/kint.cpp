@@ -1,3 +1,5 @@
+// Kint: A Bug-Finding Tool for C Programs (Originally from OSDI 12.)
+
 #include "Support/Log.h"
 #include "Support/range.h"
 

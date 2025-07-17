@@ -1,3 +1,6 @@
+// A Bug-Finding Tool for C Programs
+
+
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Bitcode/BitcodeWriter.h"

@@ -12,4 +12,3 @@ add_subdirectory(CFL/CSIndex)
 
 
 #add_subdirectory(Pestrie)
-#add_subdirectory(NullPointer)

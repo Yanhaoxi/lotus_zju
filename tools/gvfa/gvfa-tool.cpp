@@ -1,3 +1,5 @@
+// Global Value Flow Analysis Tool (for Null Pointer Analysis, Taint Analysis, etc.)
+
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IRReader/IRReader.h>

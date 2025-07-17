@@ -30,6 +30,7 @@ add_library(GVFA STATIC ${GVFA_SOURCES})
 target_link_libraries(GVFA CanaryDyckAA CanarySupport CanaryTaint) 
 
 
+# based on LLVM 3.8; to be upgraded
 set(RANGE_ANALYSIS_SOURCES
     Range/vSSA.cpp
     Range/RangeAnalysis.cpp
