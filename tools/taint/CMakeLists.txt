@@ -7,5 +7,4 @@ add_executable(taint-analyzer taint-analyzer.cpp)
 target_link_libraries(taint-analyzer PRIVATE
         CanaryTaint
         ${LLVM_LINK_COMPONENTS}
-        z ncurses pthread dl
 ) 

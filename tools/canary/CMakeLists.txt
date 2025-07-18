@@ -11,5 +11,4 @@ target_link_libraries(canary PRIVATE
         CanaryTransform 
         CanarySupport
         ${LLVM_LINK_COMPONENTS}
-        z ncurses pthread dl
 )
