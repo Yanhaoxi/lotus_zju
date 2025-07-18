@@ -1,3 +1,4 @@
+// This is a naive implementation of taint analysis.
 #include "Checker/Taint/TaintAnalysis.h"
 #include <llvm/IR/InlineAsm.h>
 #include <llvm/IR/InstIterator.h>

@@ -11,7 +11,6 @@
 #include "Dataflow/NullPointer/ContextSensitiveNullCheckAnalysis.h"
 #include "Dataflow/NullPointer/ContextSensitiveNullFlowAnalysis.h"
 #include "Support/RecursiveTimer.h"
-#include "Support/ThreadPool.h"
 
 using namespace llvm;
 

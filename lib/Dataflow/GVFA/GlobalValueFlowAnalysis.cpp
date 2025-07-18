@@ -3,11 +3,9 @@
 #include <llvm/IR/InstIterator.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/Debug.h>
-#include <stack>
-#include <queue>
 #include <algorithm>
 #include <unordered_map>
-#include <unordered_set>
+
 
 #include "Dataflow/GVFA/GlobalValueFlowAnalysis.h"
 #include "Checker/Taint/TaintUtils.h"
@@ -361,7 +359,9 @@ void DyckGlobalValueFlowAnalysis::extendSources(std::vector<std::pair<const Valu
     
     // Process work queue iteratively
     while (!WorkQueue.empty()) {
-        auto [CurrentValue, CurrentMask] = WorkQueue.front();
+        auto front = WorkQueue.front();
+        const Value *CurrentValue = front.first;
+        int CurrentMask = front.second;
         WorkQueue.pop();
         
         if (count_lambda(CurrentValue, CurrentMask) == 0) {
@@ -550,7 +550,9 @@ void DyckGlobalValueFlowAnalysis::forwardSlicing(const Value *V, int Mask) {
     WorkQueue.emplace(V, Mask);
     
     while (!WorkQueue.empty()) {
-        auto [CurrentValue, CurrentMask] = WorkQueue.front();
+        auto front = WorkQueue.front();
+        const Value *CurrentValue = front.first;
+        int CurrentMask = front.second;
         WorkQueue.pop();
         
         // Skip if already processed with this mask
@@ -965,7 +967,9 @@ bool DyckGlobalValueFlowAnalysis::cflReachabilityQuery(const Value *From, const 
     workQueue.push(std::make_pair(From, std::vector<int>()));
     
     while (!workQueue.empty()) {
-        auto [current, callStack] = workQueue.front();
+        auto front = workQueue.front();
+        const Value *current = front.first;
+        std::vector<int> callStack = front.second;
         workQueue.pop();
         
         if (current == To) {

@@ -5,6 +5,7 @@ add_subdirectory(fpa)
 add_subdirectory(dynaa)
 add_subdirectory(taint)
 add_subdirectory(gvfa)
+add_subdirectory(conftainter)
 # add_subdirectory(z_solver)  # being developed in another repo; to be merged
 
 # Optional targets - OFF by default

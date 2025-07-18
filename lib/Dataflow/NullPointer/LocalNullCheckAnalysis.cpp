@@ -23,7 +23,6 @@
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Intrinsics.h>
 #include <llvm/IR/Type.h>
-#include <set>
 #include "Dataflow/NullPointer/LocalNullCheckAnalysis.h"
 #include "Support/API.h"
 
