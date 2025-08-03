@@ -48,7 +48,7 @@ Use VFG or PDG to answer slicing queries.
 
 (Maybe refer to the implementation in DG)
 
-### Bug
+### Bug Detection
 
 - Buffer overflow detection?
 - Memory leak detection?
@@ -61,11 +61,11 @@ Use VFG or PDG to answer slicing queries.
 
 ## 6. Data Flow Analysis
 
-* Revise the current data flow analysis module
+* Revise the monotone data flow analysis module
+* Let the WPDS engine work 
 
 
-
-## Invesgiate More Related Work
+## Investigate More Related Work
 
 - https://github.com/harp-lab/yapall
 - https://github.com/GaloisInc/cclyzerpp
