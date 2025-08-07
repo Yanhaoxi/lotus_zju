@@ -37,21 +37,8 @@ add_library(SeaDsaAnalysis
 
 # Link against LLVM libraries
 target_link_libraries(SeaDsaAnalysis PUBLIC
-  LLVMCore
-  LLVMAnalysis
-  LLVMSupport
   LLVMIRReader
-  LLVMBitWriter
   LLVMTransformUtils
-  LLVMTarget
-  LLVMPasses
-  LLVMInstCombine
-)
-
-# Set include directories
-target_include_directories(SeaDsaAnalysis PUBLIC
-  ${CMAKE_SOURCE_DIR}/include
-  ${CMAKE_BINARY_DIR}/include
 )
 
 # Set compile definitions

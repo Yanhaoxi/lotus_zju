@@ -2,11 +2,9 @@ add_subdirectory(canary)
 add_subdirectory(kint)
 add_subdirectory(seadsa)
 add_subdirectory(fpa)
-add_subdirectory(dynaa)
 add_subdirectory(taint)
 add_subdirectory(gvfa)
-add_subdirectory(conftainter)
-
+# add_subdirectory(dynaa)
 # Optional targets - OFF by default
 option(BUILD_OWL "Build Owl SMT solver" OFF)
 option(BUILD_HORN_ICE "Build ICE learning for CHC and Boogie" OFF)
