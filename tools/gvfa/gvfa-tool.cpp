@@ -14,7 +14,7 @@
 #include <string>
 #include <memory>
 
-#include "Dataflow/GVFA/GlobalValueFlowAnalysis.h"
+#include "Analysis/GVFA/GlobalValueFlowAnalysis.h"
 #include "Alias/DyckAA/DyckAliasAnalysis.h"
 #include "Alias/DyckAA/DyckModRefAnalysis.h"
 #include "Alias/DyckAA/DyckValueFlowAnalysis.h"

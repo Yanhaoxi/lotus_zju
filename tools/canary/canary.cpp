@@ -6,8 +6,8 @@
  * analysis, and optionally outputs statistics or the transformed module.
  */
 
-#include "Dataflow/NullPointer/NullCheckAnalysis.h"
-#include "Dataflow/NullPointer/ContextSensitiveNullCheckAnalysis.h"
+#include "Analysis/NullPointer/NullCheckAnalysis.h"
+#include "Analysis/NullPointer/ContextSensitiveNullCheckAnalysis.h"
 #include "Support/RecursiveTimer.h"
 #include "Support/Statistics.h"
 #include "Transform/LowerConstantExpr.h"
