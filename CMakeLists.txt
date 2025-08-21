@@ -27,12 +27,12 @@ endif()
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 
 # Set LLVM version-specific definitions
-if (LLVM_PACKAGE_VERSION VERSION_EQUAL "12.0.0")
+if (LLVM_PACKAGE_VERSION VERSION_GREATER_EQUAL "12.0.0" AND LLVM_PACKAGE_VERSION VERSION_LESS "13.0.0")
     add_definitions(-DLLVM12)
-elseif (LLVM_PACKAGE_VERSION VERSION_EQUAL "14.0.0")
+elseif (LLVM_PACKAGE_VERSION VERSION_GREATER_EQUAL "14.0.0" AND LLVM_PACKAGE_VERSION VERSION_LESS "15.0.0")
     add_definitions(-DLLVM14)
 else()
-    message(FATAL_ERROR "Unsupported or unknown LLVM version: ${LLVM_PACKAGE_VERSION}")
+    message(FATAL_ERROR "Unsupported LLVM version: ${LLVM_PACKAGE_VERSION}. Supported versions are 12.x and 14.x")
 endif()
 
 # Configure LLVM
