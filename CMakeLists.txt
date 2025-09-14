@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 project(canary C CXX)
 
 # Set C++14 standard and compiler flags
