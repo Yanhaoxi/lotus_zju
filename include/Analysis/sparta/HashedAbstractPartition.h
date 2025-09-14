@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include <sparta/AbstractPartition.h>
-#include <sparta/HashMap.h>
+#include <Analysis/sparta/AbstractPartition.h>
+#include <Analysis/sparta/HashMap.h>
 
 namespace sparta {
 

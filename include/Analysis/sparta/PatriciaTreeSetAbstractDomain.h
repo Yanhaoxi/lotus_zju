@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include <sparta/PatriciaTreeSet.h>
-#include <sparta/SetAbstractDomain.h>
+#include <Analysis/sparta/PatriciaTreeSet.h>
+#include <Analysis/sparta/SetAbstractDomain.h>
 
 namespace sparta {
 

@@ -14,9 +14,9 @@
 
 #include <boost/container/flat_set.hpp>
 
-#include <sparta/AbstractSet.h>
-#include <sparta/PatriciaTreeUtil.h>
-#include <sparta/PerfectForwardCapture.h>
+#include <Analysis/sparta/AbstractSet.h>
+#include <Analysis/sparta/PatriciaTreeUtil.h>
+#include <Analysis/sparta/PerfectForwardCapture.h>
 
 namespace sparta {
 

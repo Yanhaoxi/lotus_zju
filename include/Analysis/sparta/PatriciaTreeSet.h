@@ -15,10 +15,10 @@
 #include <type_traits>
 #include <utility>
 
-#include <sparta/AbstractSet.h>
-#include <sparta/Exceptions.h>
-#include <sparta/PatriciaTreeCore.h>
-#include <sparta/PatriciaTreeUtil.h>
+#include <Analysis/sparta/AbstractSet.h>
+#include <Analysis/sparta/Exceptions.h>
+#include <Analysis/sparta/PatriciaTreeCore.h>
+#include <Analysis/sparta/PatriciaTreeUtil.h>
 
 namespace sparta {
 

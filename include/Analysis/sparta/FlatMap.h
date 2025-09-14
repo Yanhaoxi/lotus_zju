@@ -14,10 +14,10 @@
 
 #include <boost/container/flat_map.hpp>
 
-#include <sparta/AbstractMap.h>
-#include <sparta/AbstractMapValue.h>
-#include <sparta/PatriciaTreeCore.h>
-#include <sparta/PerfectForwardCapture.h>
+#include <Analysis/sparta/AbstractMap.h>
+#include <Analysis/sparta/AbstractMapValue.h>
+#include <Analysis/sparta/PatriciaTreeCore.h>
+#include <Analysis/sparta/PerfectForwardCapture.h>
 
 namespace sparta {
 namespace fm_impl {

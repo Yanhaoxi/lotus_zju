@@ -15,13 +15,13 @@
 
 #include <boost/container/small_vector.hpp>
 
-#include <sparta/AbstractMap.h>
-#include <sparta/AbstractMapValue.h>
-#include <sparta/Exceptions.h>
-#include <sparta/FlatMap.h>
-#include <sparta/FlattenIterator.h>
-#include <sparta/PatriciaTreeMap.h>
-#include <sparta/PerfectForwardCapture.h>
+#include <Analysis/sparta/AbstractMap.h>
+#include <Analysis/sparta/AbstractMapValue.h>
+#include <Analysis/sparta/Exceptions.h>
+#include <Analysis/sparta/FlatMap.h>
+#include <Analysis/sparta/FlattenIterator.h>
+#include <Analysis/sparta/PatriciaTreeMap.h>
+#include <Analysis/sparta/PerfectForwardCapture.h>
 
 namespace sparta {
 namespace pthm_impl {

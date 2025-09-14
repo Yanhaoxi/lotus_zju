@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include <sparta/HashSet.h>
-#include <sparta/SetAbstractDomain.h>
+#include <Analysis/sparta/HashSet.h>
+#include <Analysis/sparta/SetAbstractDomain.h>
 
 namespace sparta {
 

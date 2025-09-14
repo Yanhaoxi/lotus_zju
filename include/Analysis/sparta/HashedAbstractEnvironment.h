@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include <sparta/AbstractEnvironment.h>
-#include <sparta/HashMap.h>
+#include <Analysis/sparta/AbstractEnvironment.h>
+#include <Analysis/sparta/HashMap.h>
 
 namespace sparta {
 

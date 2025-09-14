@@ -26,6 +26,8 @@ set(GVFA_SOURCES
 add_library(GVFA STATIC ${GVFA_SOURCES})
 target_link_libraries(GVFA CanaryDyckAA CanarySupport CanaryTaint)
 
+add_subdirectory(sparta)
+
 
 
 

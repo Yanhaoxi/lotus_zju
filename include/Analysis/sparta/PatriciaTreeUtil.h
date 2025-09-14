@@ -11,7 +11,7 @@
 #include <type_traits>
 #include <utility>
 
-#include <sparta/PatriciaTreeKeyTrait.h>
+#include <Analysis/sparta/PatriciaTreeKeyTrait.h>
 
 namespace sparta {
 

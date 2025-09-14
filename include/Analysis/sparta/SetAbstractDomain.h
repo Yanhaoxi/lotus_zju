@@ -10,8 +10,8 @@
 #include <cstddef>
 #include <initializer_list>
 
-#include <sparta/AbstractSet.h>
-#include <sparta/PowersetAbstractDomain.h>
+#include <Analysis/sparta/AbstractSet.h>
+#include <Analysis/sparta/PowersetAbstractDomain.h>
 
 namespace sparta {
 

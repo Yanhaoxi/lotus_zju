@@ -15,8 +15,8 @@
 #include <tuple>
 #include <type_traits>
 
-#include <sparta/AbstractDomain.h>
-#include <sparta/PerfectForwardCapture.h>
+#include <Analysis/sparta/AbstractDomain.h>
+#include <Analysis/sparta/PerfectForwardCapture.h>
 
 // Forward declarations.
 namespace sparta {

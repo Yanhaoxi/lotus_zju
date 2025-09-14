@@ -19,9 +19,9 @@
 #include <thread>
 #include <utility>
 
-#include <sparta/Arity.h>
-#include <sparta/Exceptions.h>
-#include <sparta/ThreadPool.h>
+#include <Analysis/sparta/Arity.h>
+#include <Analysis/sparta/Exceptions.h>
+#include <Analysis/sparta/ThreadPool.h>
 
 namespace sparta {
 

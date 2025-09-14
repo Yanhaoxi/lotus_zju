@@ -14,9 +14,9 @@
 #include <ostream>
 #include <unordered_map>
 
-#include <sparta/AbstractMap.h>
-#include <sparta/AbstractMapValue.h>
-#include <sparta/PatriciaTreeCore.h>
+#include <Analysis/sparta/AbstractMap.h>
+#include <Analysis/sparta/AbstractMapValue.h>
+#include <Analysis/sparta/PatriciaTreeCore.h>
 
 namespace sparta {
 namespace hm_impl {

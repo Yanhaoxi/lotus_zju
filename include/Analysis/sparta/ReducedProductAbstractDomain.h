@@ -15,7 +15,7 @@
 #include <tuple>
 #include <type_traits>
 
-#include <sparta/DirectProductAbstractDomain.h>
+#include <Analysis/sparta/DirectProductAbstractDomain.h>
 
 namespace sparta {
 namespace rpad_impl {

@@ -21,11 +21,11 @@
 #include <boost/intrusive_ptr.hpp>
 #include <boost/optional.hpp>
 
-#include <sparta/AbstractDomain.h>
-#include <sparta/AbstractMapValue.h>
-#include <sparta/Exceptions.h>
-#include <sparta/PatriciaTreeUtil.h>
-#include <sparta/PerfectForwardCapture.h>
+#include <Analysis/sparta/AbstractDomain.h>
+#include <Analysis/sparta/AbstractMapValue.h>
+#include <Analysis/sparta/Exceptions.h>
+#include <Analysis/sparta/PatriciaTreeUtil.h>
+#include <Analysis/sparta/PerfectForwardCapture.h>
 
 namespace sparta {
 

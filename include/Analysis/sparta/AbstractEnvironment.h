@@ -13,10 +13,10 @@
 #include <sstream>
 #include <utility>
 
-#include <sparta/AbstractDomain.h>
-#include <sparta/AbstractMap.h>
-#include <sparta/AbstractMapValue.h>
-#include <sparta/PerfectForwardCapture.h>
+#include <Analysis/sparta/AbstractDomain.h>
+#include <Analysis/sparta/AbstractMap.h>
+#include <Analysis/sparta/AbstractMapValue.h>
+#include <Analysis/sparta/PerfectForwardCapture.h>
 
 namespace sparta {
 

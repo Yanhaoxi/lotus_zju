@@ -14,8 +14,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include <sparta/AbstractDomain.h>
-#include <sparta/TypeTraits.h>
+#include <Analysis/sparta/AbstractDomain.h>
+#include <Analysis/sparta/TypeTraits.h>
 
 namespace sparta {
 

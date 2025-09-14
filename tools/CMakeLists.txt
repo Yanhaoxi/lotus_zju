@@ -3,7 +3,7 @@ add_subdirectory(kint)
 add_subdirectory(seadsa)
 add_subdirectory(fpa)
 add_subdirectory(taint)
-add_subdirectory(sparta-ai)
+add_subdirectory(llvm-ai)
 # add_subdirectory(dynaa)
 # Optional targets - OFF by default
 option(BUILD_OWL "Build Owl SMT solver" OFF)

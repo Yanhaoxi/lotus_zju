@@ -13,8 +13,8 @@
 #include <ostream>
 #include <unordered_set>
 
-#include <sparta/AbstractSet.h>
-#include <sparta/PatriciaTreeUtil.h>
+#include <Analysis/sparta/AbstractSet.h>
+#include <Analysis/sparta/PatriciaTreeUtil.h>
 
 namespace sparta {
 

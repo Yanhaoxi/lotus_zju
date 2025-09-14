@@ -12,8 +12,8 @@
 
 #include <boost/functional/hash.hpp>
 
-#include <sparta/AbstractDomain.h>
-#include <sparta/Exceptions.h>
+#include <Analysis/sparta/AbstractDomain.h>
+#include <Analysis/sparta/Exceptions.h>
 
 namespace sparta {
 

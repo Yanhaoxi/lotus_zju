@@ -20,13 +20,18 @@ set(EXAMPLES_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
 llvm_map_components_to_libnames(llvm_libs irreader analysis)
 
 # Add executables and include directories
-foreach(idx RANGE 0 4)
-  add_executable(${EXAMPLES_NAMES[idx]} ${EXAMPLES[idx]})
-  target_include_directories(${EXAMPLES_NAMES[idx]} PUBLIC ${EXAMPLES_INCLUDE_DIR})
+foreach(idx RANGE 0 3)
+  list(GET EXAMPLES_NAMES ${idx} example_name)
+  list(GET EXAMPLES ${idx} example_file)
+  add_executable(${example_name} ${example_file})
+  target_include_directories(${example_name} PUBLIC ${EXAMPLES_INCLUDE_DIR})
 endforeach()
 
-# AndersenExample needs AndersenStatic and LLVM libs
- target_link_libraries(AndersenExample PRIVATE AndersenStatic ${llvm_libs})
+# ModelCheckingExample needs BDD and LLVM libs
+ target_link_libraries(ModelCheckingExample PRIVATE BDD ${llvm_libs})
+
+# AndersenExample needs Andersen and LLVM libs
+ target_link_libraries(AndersenExample PRIVATE Andersen ${llvm_libs})
 
 # PDGExample needs CanaryPDG and LLVM libs
- target_link_libraries(PDGExample PRIVATE CanaryPDG ${llvm_libs}) 
+ target_link_libraries(PDGExample PRIVATE CanaryPDG ${llvm_libs})

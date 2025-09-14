@@ -23,8 +23,8 @@
 #include <boost/integer.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 
-#include <sparta/AbstractDomain.h>
-#include <sparta/Exceptions.h>
+#include <Analysis/sparta/AbstractDomain.h>
+#include <Analysis/sparta/Exceptions.h>
 
 namespace sparta {
 

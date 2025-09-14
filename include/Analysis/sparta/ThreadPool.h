@@ -13,7 +13,7 @@
 #include <queue>
 #include <thread>
 
-#include <sparta/Exceptions.h>
+#include <Analysis/sparta/Exceptions.h>
 
 namespace sparta {
 

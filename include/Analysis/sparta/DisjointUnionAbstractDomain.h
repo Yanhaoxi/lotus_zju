@@ -12,7 +12,7 @@
 #include <sstream>
 #include <type_traits>
 
-#include <sparta/AbstractDomain.h>
+#include <Analysis/sparta/AbstractDomain.h>
 
 // Forward declarations.
 namespace sparta {

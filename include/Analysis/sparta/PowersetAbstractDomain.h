@@ -12,8 +12,8 @@
 #include <ostream>
 #include <type_traits>
 
-#include <sparta/AbstractDomain.h>
-#include <sparta/Exceptions.h>
+#include <Analysis/sparta/AbstractDomain.h>
+#include <Analysis/sparta/Exceptions.h>
 
 namespace sparta {
 namespace pad_impl {

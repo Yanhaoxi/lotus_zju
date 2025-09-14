@@ -32,7 +32,7 @@
 #include <utility>
 #include <vector>
 
-#include <sparta/Exceptions.h>
+#include <Analysis/sparta/Exceptions.h>
 
 namespace sparta {
 

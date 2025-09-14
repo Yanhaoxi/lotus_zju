@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <sparta/AbstractDomain.h>
+#include <Analysis/sparta/AbstractDomain.h>
 
 namespace sparta {
 
