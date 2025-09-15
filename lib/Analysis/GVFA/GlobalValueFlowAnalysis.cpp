@@ -8,7 +8,7 @@
 
 
 #include "Analysis/GVFA/GlobalValueFlowAnalysis.h"
-#include "Checker/Taint/TaintUtils.h"
+#include "Analysis/GVFA/TaintUtils.h"
 #include "Support/RecursiveTimer.h"
 
 using namespace llvm;
@@ -888,7 +888,7 @@ void TaintVulnerabilityChecker::getSources(Module *M, VulnerabilitySourcesType &
                 if (auto *Call = dyn_cast<CallInst>(&I)) {
                     if (auto *CalledF = Call->getCalledFunction()) {
                         std::string FuncName = CalledF->getName().str();
-                        if (taint::TaintUtils::isKnownSourceFunction(FuncName)) {
+                        if (gvfa::TaintUtils::isKnownSourceFunction(FuncName)) {
                             Sources[{Call, 1}] = 1;
                         }
                     }
@@ -906,7 +906,7 @@ void TaintVulnerabilityChecker::getSinks(Module *M, VulnerabilitySinksType &Sink
                 if (auto *Call = dyn_cast<CallInst>(&I)) {
                     if (auto *CalledF = Call->getCalledFunction()) {
                         std::string FuncName = CalledF->getName().str();
-                        if (taint::TaintUtils::isKnownSinkFunction(FuncName)) {
+                        if (gvfa::TaintUtils::isKnownSinkFunction(FuncName)) {
                             for (unsigned i = 0; i < Call->arg_size(); ++i) {
                                 auto *Arg = Call->getArgOperand(i);
                                 Sinks[Arg] = new std::set<const Value *>();
@@ -925,7 +925,7 @@ bool TaintVulnerabilityChecker::isValidTransfer(const Value *From, const Value *
     if (auto *CI = dyn_cast<CallInst>(To)) {
         if (auto *F = CI->getCalledFunction()) {
             std::string FuncName = F->getName().str();
-            if (taint::TaintUtils::isKnownSanitizerFunction(FuncName)) {
+            if (gvfa::TaintUtils::isKnownSanitizerFunction(FuncName)) {
                 return false;
             }
         }
