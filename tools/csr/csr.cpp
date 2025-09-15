@@ -11,15 +11,15 @@
 #include <csignal>
 #include <unistd.h>
 
-#include "CSIndex/CSProgressBar.h"
-#include "CSIndex/Grail.h"
-#include "CSIndex/Graph.h"
-#include "CSIndex/GraphUtil.h"
-#include "CSIndex/PathtreeQuery.h"
-#include "CSIndex/PathTree.h"
-#include "CSIndex/Query.h"
-#include "CSIndex/ReachBackbone.h"
-#include "CSIndex/Tabulation.h"
+#include "CFL/CSIndex/CSProgressBar.h"
+#include "CFL/CSIndex/Grail.h"
+#include "CFL/CSIndex/Graph.h"
+#include "CFL/CSIndex/GraphUtil.h"
+#include "CFL/CSIndex/PathtreeQuery.h"
+#include "CFL/CSIndex/PathTree.h"
+#include "CFL/CSIndex/Query.h"
+#include "CFL/CSIndex/ReachBackbone.h"
+#include "CFL/CSIndex/Tabulation.h"
 
 static int query_num = 100;
 static int grail_dim = 2;

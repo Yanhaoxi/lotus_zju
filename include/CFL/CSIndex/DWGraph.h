@@ -4,13 +4,13 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <vector>
+//#include <vector>
 #include <set>
 #include <map>
 #include <list>
-#include <algorithm>
+//#include <algorithm>
 #include <utility>
-#include <cmath>
+//#include <cmath>
 #include <unordered_map>
 
 using namespace std;

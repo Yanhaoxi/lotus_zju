@@ -7,11 +7,9 @@
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/Support/ManagedStatic.h"
 #include "llvm/Support/PrettyStackTrace.h"
-#include "llvm/Support/ToolOutputFile.h"
 #include "llvm/IRReader/IRReader.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/Signals.h"
-#include "llvm/Support/Path.h"
 
 #include <memory>
 #include <iostream>

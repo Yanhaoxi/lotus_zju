@@ -1,7 +1,6 @@
-add_subdirectory(canary)
-add_subdirectory(kint)
-add_subdirectory(fpa)
-add_subdirectory(llvm-ai)
+
+add_subdirectory(alias)
+add_subdirectory(checker)
 
 option(BUILD_CSR "Build indexing context-sensitive reachability solver" OFF)
 option(BUILD_DYNAA "Build dynamic alias analyses" OFF)

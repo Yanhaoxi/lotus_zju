@@ -7,12 +7,12 @@
 #include <vector>
 #include <set>
 #include <map>
-#include <list>
-#include <deque>
-#include <algorithm>
-#include <utility>
-#include <cmath>
-#include <unordered_map>
+//#include <list>
+//#include <deque>
+//#include <algorithm>
+//#include <utility>
+//#include <cmath>
+//#include <unordered_map>
 
 using namespace std;
 

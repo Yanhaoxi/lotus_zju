@@ -37,17 +37,13 @@
 #include <llvm/Transforms/Utils/Mem2Reg.h>
 #include <llvm/IRReader/IRReader.h>
 
-#include <stdexcept>
 #include <z3++.h>
 
 #include <array>
-#include <cassert>
 #include <cctype>
 #include <cstddef>
 #include <cstdint>
-#include <limits>
 #include <map>
-#include <optional>
 #include <string>
 #include <type_traits>
 #include <utility>

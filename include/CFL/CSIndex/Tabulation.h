@@ -14,7 +14,6 @@
 #ifndef _TABULATION_H
 #define _TABULATION_H
 
-#include <map>
 #include <set>
 
 #include "AbstractQuery.h"
