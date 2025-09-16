@@ -18,6 +18,7 @@ The current version has been tested on x86 Linux and ARM Mac using LLVM-12 and L
 - **Andersen**: Context-insensitive points-to analysis implementation (without on-the-fly callgraph construction) (See `lib/Alias/Andersen`)
 - **FPA**: Function Pointer Analysis with multiple approaches (FLTA, MLTA, MLTADF, KELP) for resolving indirect function calls (See `lib/Alias/FPA`)
 - **DynAA**: Dynamic Alias Analysis Checker that validates static alias analysis results by observing pointer addresses at runtime (See `tools/dynaa`)
+- **OriginAA**: K-callsite sensitve and origin-sensitive (from https://github.com/bozhen-liu/AFG)
 
 ### Intermediate Representations
 
