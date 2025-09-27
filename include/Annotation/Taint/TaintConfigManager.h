@@ -6,12 +6,11 @@
 
 #pragma once
 
-#include "Checker/TaintConfigParser.h"
+#include "Annotation/Taint/TaintConfigParser.h"
 #include <llvm/IR/Instructions.h>
 #include <memory>
 #include <string>
 
-namespace checker {
 
 // Simple singleton manager
 class TaintConfigManager {
@@ -34,8 +33,28 @@ public:
         return config != nullptr;
     }
     
+    bool load_config_quiet(const std::string& config_file) {
+        config = TaintConfigParser::parse_file_quiet(config_file);
+        return config != nullptr;
+    }
+    
     bool load_default_config() {
-        return load_config("config/taint.spec");
+        // Try multiple possible paths for the config file
+        std::vector<std::string> possible_paths = {
+            "config/taint.spec",           // From project root
+            "../config/taint.spec",        // From build directory
+            "../../config/taint.spec",     // From build/bin directory
+            "../../../config/taint.spec"   // From build/tests directory
+        };
+        
+        for (const auto& path : possible_paths) {
+            if (load_config_quiet(path)) {
+                return true;
+            }
+        }
+        
+        llvm::errs() << "Error: Could not find taint config file in any of the expected locations\n";
+        return false;
     }
     
     bool is_source(const std::string& func_name) const {
@@ -137,5 +156,3 @@ namespace taint_config {
         return TaintConfigManager::getInstance().get_sink_count();
     }
 }
-
-} // namespace checker

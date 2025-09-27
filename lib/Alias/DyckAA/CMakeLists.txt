@@ -10,3 +10,5 @@ add_library(CanaryDyckAA STATIC
         DyckVFG.cpp
         MRAnalyzer.cpp
 )
+
+target_link_libraries(CanaryDyckAA CanarySupport)

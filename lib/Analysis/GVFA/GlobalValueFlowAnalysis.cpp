@@ -8,7 +8,7 @@
 
 
 #include "Analysis/GVFA/GlobalValueFlowAnalysis.h"
-#include "Checker/TaintConfigManager.h"
+#include "Annotation/Taint/TaintConfigManager.h"
 #include "Support/RecursiveTimer.h"
 
 using namespace llvm;
@@ -888,7 +888,7 @@ void TaintVulnerabilityChecker::getSources(Module *M, VulnerabilitySourcesType &
                 if (auto *Call = dyn_cast<CallInst>(&I)) {
                     if (auto *CalledF = Call->getCalledFunction()) {
                         std::string FuncName = CalledF->getName().str();
-                        if (checker::taint_config::is_source(FuncName)) {
+                        if (taint_config::is_source(FuncName)) {
                             Sources[{Call, 1}] = 1;
                         }
                     }
@@ -906,7 +906,7 @@ void TaintVulnerabilityChecker::getSinks(Module *M, VulnerabilitySinksType &Sink
                 if (auto *Call = dyn_cast<CallInst>(&I)) {
                     if (auto *CalledF = Call->getCalledFunction()) {
                         std::string FuncName = CalledF->getName().str();
-                        if (checker::taint_config::is_sink(FuncName)) {
+                        if (taint_config::is_sink(FuncName)) {
                             for (unsigned i = 0; i < Call->arg_size(); ++i) {
                                 auto *Arg = Call->getArgOperand(i);
                                 Sinks[Arg] = new std::set<const Value *>();

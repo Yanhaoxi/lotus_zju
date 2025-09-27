@@ -12,7 +12,6 @@
 #include <memory>
 #include <llvm/Support/raw_ostream.h>
 
-namespace checker {
 
 // Simple taint configuration
 class TaintConfig {
@@ -32,6 +31,7 @@ public:
 class TaintConfigParser {
 public:
     static std::unique_ptr<TaintConfig> parse_file(const std::string& filename);
+    static std::unique_ptr<TaintConfig> parse_file_quiet(const std::string& filename);
     static std::unique_ptr<TaintConfig> parse_string(const std::string& content);
     
 private:
@@ -39,5 +39,3 @@ private:
     static std::vector<std::string> split(const std::string& str);
     static std::string trim(const std::string& str);
 };
-
-} // namespace checker

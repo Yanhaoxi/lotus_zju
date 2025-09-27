@@ -26,7 +26,7 @@ set(GVFA_SOURCES
   GVFA/GlobalValueFlowAnalysis.cpp
 )
 add_library(GVFA STATIC ${GVFA_SOURCES})
-target_link_libraries(GVFA CanaryDyckAA CanarySupport Checker)
+target_link_libraries(GVFA CanaryDyckAA CanarySupport Annotation)
 
 add_subdirectory(sparta)
 add_subdirectory(IFDS)

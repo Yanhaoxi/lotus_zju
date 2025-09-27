@@ -19,7 +19,7 @@ set(COMMON_LIBS
     ${LLVM_LIBRARIES} 
     ${GTEST_LIBRARIES} 
     IFDS 
-    Checker 
+    Annotation 
     CanaryDyckAA
     LLVMCore
     LLVMIRReader
@@ -44,6 +44,7 @@ endfunction()
 
 # Create all tests
 add_lotus_test(taint_analysis_test unit/TaintAnalysisTest.cpp)
+add_lotus_test(ifds_solver_test unit/IFDSSolverTest.cpp)
 
 # Test discovery and execution
 enable_testing()
@@ -55,16 +56,22 @@ set_tests_properties(TaintAnalysisTest PROPERTIES
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
 
+add_test(NAME IFDSSolverTest COMMAND ifds_solver_test)
+set_tests_properties(IFDSSolverTest PROPERTIES
+    TIMEOUT 300
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)
+
 # Custom targets
 add_custom_target(run_all_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS taint_analysis_test
+    DEPENDS taint_analysis_test ifds_solver_test
     COMMENT "Running all Lotus IFDS tests"
 )
 
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} -R "Test$" --output-on-failure
-    DEPENDS taint_analysis_test 
+    DEPENDS taint_analysis_test ifds_solver_test
     COMMENT "Running unit tests"
 )
 

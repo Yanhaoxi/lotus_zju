@@ -2,13 +2,11 @@
  * Taint Configuration Parser Implementation
  */
 
-#include "Checker/TaintConfigParser.h"
+#include "Annotation/Taint/TaintConfigParser.h"
 #include <llvm/Support/raw_ostream.h>
 #include <fstream>
 #include <sstream>
 //#include <algorithm>
-
-namespace checker {
 
 void TaintConfig::dump(llvm::raw_ostream& OS) const {
     OS << "Sources: " << sources.size() << ", Sinks: " << sinks.size() 
@@ -19,6 +17,17 @@ std::unique_ptr<TaintConfig> TaintConfigParser::parse_file(const std::string& fi
     std::ifstream file(filename);
     if (!file.is_open()) {
         llvm::errs() << "Error: Could not open taint config file: " << filename << "\n";
+        return nullptr;
+    }
+    
+    std::string content((std::istreambuf_iterator<char>(file)),
+                       std::istreambuf_iterator<char>());
+    return parse_string(content);
+}
+
+std::unique_ptr<TaintConfig> TaintConfigParser::parse_file_quiet(const std::string& filename) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
         return nullptr;
     }
     
@@ -78,4 +87,3 @@ std::string TaintConfigParser::trim(const std::string& str) {
     return str.substr(start, end - start + 1);
 }
 
-} // namespace checker

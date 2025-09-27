@@ -2,10 +2,7 @@
  * Taint Configuration Manager Implementation
  */
 
-#include "Checker/TaintConfigManager.h"
-
-namespace checker {
+#include "Annotation/Taint/TaintConfigManager.h"
 
 std::unique_ptr<TaintConfigManager> TaintConfigManager::instance = nullptr;
 
-} // namespace checker

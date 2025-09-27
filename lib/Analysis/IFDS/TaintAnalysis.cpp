@@ -3,7 +3,7 @@
  */
 
 #include <Analysis/IFDS/TaintAnalysis.h>
-#include <Checker/TaintConfigManager.h>
+#include <Annotation/Taint/TaintConfigManager.h>
 
 #include <llvm/Support/raw_ostream.h>
 
@@ -97,14 +97,14 @@ std::ostream& operator<<(std::ostream& os, const TaintFact& fact) {
 
 TaintAnalysis::TaintAnalysis() {
     // Load the unified taint configuration
-    if (!checker::taint_config::load_default_config()) {
+    if (!taint_config::load_default_config()) {
         llvm::errs() << "Error: Could not load taint configuration\n";
         return;
     }
     
     // Load sources and sinks from configuration
-    auto sources = checker::TaintConfigManager::getInstance().get_all_source_functions();
-    auto sinks = checker::TaintConfigManager::getInstance().get_all_sink_functions();
+    auto sources = TaintConfigManager::getInstance().get_all_source_functions();
+    auto sinks = TaintConfigManager::getInstance().get_all_sink_functions();
     
     for (const auto& source : sources) {
         m_source_functions.insert(source);
