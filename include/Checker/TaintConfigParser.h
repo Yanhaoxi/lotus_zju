@@ -8,6 +8,7 @@
 
 #include <string>
 #include <unordered_set>
+#include <vector>
 #include <memory>
 #include <llvm/Support/raw_ostream.h>
 

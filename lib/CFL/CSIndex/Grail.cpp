@@ -6,6 +6,7 @@ or their institutions liable under any circumstances.
 */
 #include <queue>
 #include <random>
+#include <iostream>
 #include <cstdlib>
 #include "CFL/CSIndex/Grail.h"
 #include "CFL/CSIndex/TCSEstimator.h"
