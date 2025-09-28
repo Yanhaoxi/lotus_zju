@@ -5,9 +5,9 @@
 #include <Analysis/IFDS/TaintAnalysis.h>
 #include <Annotation/Taint/TaintConfigManager.h>
 
+#include <iostream>
 #include <llvm/Support/raw_ostream.h>
 
-namespace sparta {
 namespace ifds {
 
 // ============================================================================
@@ -96,23 +96,17 @@ std::ostream& operator<<(std::ostream& os, const TaintFact& fact) {
 // ============================================================================
 
 TaintAnalysis::TaintAnalysis() {
-    // Load the unified taint configuration
     if (!taint_config::load_default_config()) {
         llvm::errs() << "Error: Could not load taint configuration\n";
         return;
     }
     
-    // Load sources and sinks from configuration
-    auto sources = TaintConfigManager::getInstance().get_all_source_functions();
-    auto sinks = TaintConfigManager::getInstance().get_all_sink_functions();
+    auto& config = TaintConfigManager::getInstance();
+    auto sources = config.get_all_source_functions();
+    auto sinks = config.get_all_sink_functions();
     
-    for (const auto& source : sources) {
-        m_source_functions.insert(source);
-    }
-    
-    for (const auto& sink : sinks) {
-        m_sink_functions.insert(sink);
-    }
+    m_source_functions.insert(sources.begin(), sources.end());
+    m_sink_functions.insert(sinks.begin(), sinks.end());
     
     llvm::outs() << "Loaded " << sources.size() << " sources and " << sinks.size() << " sinks from configuration\n";
 }
@@ -127,18 +121,18 @@ TaintAnalysis::FactSet TaintAnalysis::normal_flow(const llvm::Instruction* stmt,
     // Always propagate zero fact
     if (fact.is_zero()) {
         result.insert(fact);
+        return result;
     }
     
+    // Helper to propagate existing facts
+    auto propagate_fact = [&]() { result.insert(fact); };
+    
     if (auto* store = llvm::dyn_cast<llvm::StoreInst>(stmt)) {
-        // Store: if storing tainted value, taint the memory location and all aliases
         const llvm::Value* value = store->getValueOperand();
         const llvm::Value* ptr = store->getPointerOperand();
         
         if (fact.is_tainted_var() && fact.get_value() == value) {
-            // Taint the direct pointer
             result.insert(TaintFact::tainted_memory(ptr));
-            
-            // Also taint all memory locations that may alias with ptr
             if (m_alias_analysis) {
                 auto alias_set = get_alias_set(ptr);
                 for (const llvm::Value* alias : alias_set) {
@@ -149,80 +143,48 @@ TaintAnalysis::FactSet TaintAnalysis::normal_flow(const llvm::Instruction* stmt,
             }
         }
         
-        // Check if we're storing to a memory location that's already tainted
         if (fact.is_tainted_memory() && may_alias(fact.get_memory_location(), ptr)) {
-            // The stored value becomes tainted
             result.insert(TaintFact::tainted_var(value));
         }
         
-        // Propagate existing facts
-        if (!fact.is_zero()) {
-            result.insert(fact);
-        }
+        propagate_fact();
         
     } else if (auto* load = llvm::dyn_cast<llvm::LoadInst>(stmt)) {
-        // Load: if loading from tainted memory, taint the result
         const llvm::Value* ptr = load->getPointerOperand();
         
-        // Check if loading from any tainted memory location
-        if (fact.is_tainted_memory() && may_alias(fact.get_memory_location(), ptr)) {
+        if ((fact.is_tainted_memory() && may_alias(fact.get_memory_location(), ptr)) ||
+            (fact.is_tainted_var() && fact.get_value() == ptr)) {
             result.insert(TaintFact::tainted_var(load));
         }
         
-        // Also check if the pointer itself is tainted (loading through tainted pointer)
-        if (fact.is_tainted_var() && fact.get_value() == ptr) {
-            result.insert(TaintFact::tainted_var(load));
-        }
-        
-        // Propagate existing facts
-        if (!fact.is_zero()) {
-            result.insert(fact);
-        }
+        propagate_fact();
         
     } else if (auto* binop = llvm::dyn_cast<llvm::BinaryOperator>(stmt)) {
-        // Binary operation: if any operand is tainted, result is tainted
         const llvm::Value* lhs = binop->getOperand(0);
         const llvm::Value* rhs = binop->getOperand(1);
         
-        if (fact.is_tainted_var() && 
-            (fact.get_value() == lhs || fact.get_value() == rhs)) {
+        if (fact.is_tainted_var() && (fact.get_value() == lhs || fact.get_value() == rhs)) {
             result.insert(TaintFact::tainted_var(binop));
         }
         
-        // Propagate existing facts
-        if (!fact.is_zero()) {
-            result.insert(fact);
-        }
+        propagate_fact();
         
     } else if (auto* cast = llvm::dyn_cast<llvm::CastInst>(stmt)) {
-        // Cast: propagate taint through casts
-        const llvm::Value* operand = cast->getOperand(0);
-        
-        if (fact.is_tainted_var() && fact.get_value() == operand) {
+        if (fact.is_tainted_var() && fact.get_value() == cast->getOperand(0)) {
             result.insert(TaintFact::tainted_var(cast));
         }
         
-        // Propagate existing facts
-        if (!fact.is_zero()) {
-            result.insert(fact);
-        }
+        propagate_fact();
         
     } else if (auto* gep = llvm::dyn_cast<llvm::GetElementPtrInst>(stmt)) {
-        // GEP: propagate pointer taint
-        const llvm::Value* ptr = gep->getPointerOperand();
-        
-        if (fact.is_tainted_var() && fact.get_value() == ptr) {
+        if (fact.is_tainted_var() && fact.get_value() == gep->getPointerOperand()) {
             result.insert(TaintFact::tainted_var(gep));
         }
         
-        // Propagate existing facts
-        if (!fact.is_zero()) {
-            result.insert(fact);
-        }
+        propagate_fact();
         
     } else {
-        // Default: just propagate existing facts
-        result.insert(fact);
+        propagate_fact();
     }
     
     return result;
@@ -232,9 +194,9 @@ TaintAnalysis::FactSet TaintAnalysis::call_flow(const llvm::CallInst* call, cons
                      const TaintFact& fact) {
     FactSet result;
     
-    // Always propagate zero fact
     if (fact.is_zero()) {
         result.insert(fact);
+        return result;
     }
     
     if (!callee || callee->isDeclaration()) {
@@ -242,39 +204,18 @@ TaintAnalysis::FactSet TaintAnalysis::call_flow(const llvm::CallInst* call, cons
     }
     
     // Map caller facts to callee facts
-    if (fact.is_tainted_var()) {
-        // Check if the tainted value is passed as an argument
-        for (unsigned i = 0; i < call->getNumOperands() - 1; ++i) {
-            const llvm::Value* arg = call->getOperand(i);
-            
-            // Direct match
-            if (arg == fact.get_value()) {
-                auto param_it = callee->arg_begin();
-                std::advance(param_it, i);
-                result.insert(TaintFact::tainted_var(&*param_it));
-            }
-            
-            // Also check for alias relationships
-            if (may_alias(arg, fact.get_value())) {
-                auto param_it = callee->arg_begin();
-                std::advance(param_it, i);
-                result.insert(TaintFact::tainted_var(&*param_it));
-            }
+    for (unsigned i = 0; i < call->getNumOperands() - 1; ++i) {
+        const llvm::Value* arg = call->getOperand(i);
+        auto param_it = callee->arg_begin();
+        std::advance(param_it, i);
+        
+        if (fact.is_tainted_var() && (arg == fact.get_value() || may_alias(arg, fact.get_value()))) {
+            result.insert(TaintFact::tainted_var(&*param_it));
         }
-    }
-    
-    // Handle memory taint propagation through pointer arguments
-    if (fact.is_tainted_memory()) {
-        for (unsigned i = 0; i < call->getNumOperands() - 1; ++i) {
-            const llvm::Value* arg = call->getOperand(i);
-            
-            if (arg->getType()->isPointerTy() && 
-                may_alias(arg, fact.get_memory_location())) {
-                // The memory location is accessible in the callee through this parameter
-                auto param_it = callee->arg_begin();
-                std::advance(param_it, i);
-                result.insert(TaintFact::tainted_memory(&*param_it));
-            }
+        
+        if (fact.is_tainted_memory() && arg->getType()->isPointerTy() && 
+            may_alias(arg, fact.get_memory_location())) {
+            result.insert(TaintFact::tainted_memory(&*param_it));
         }
     }
     
@@ -285,14 +226,13 @@ TaintAnalysis::FactSet TaintAnalysis::return_flow(const llvm::CallInst* call, co
                        const TaintFact& exit_fact, const TaintFact& call_fact) {
     FactSet result;
     
-    // Always propagate zero fact
     if (exit_fact.is_zero()) {
         result.insert(exit_fact);
+        return result;
     }
     
     // Map return values back to call site
     if (exit_fact.is_tainted_var()) {
-        // Check if the exit fact is about the return value
         for (const llvm::BasicBlock& bb : *callee) {
             for (const llvm::Instruction& inst : bb) {
                 if (auto* ret = llvm::dyn_cast<llvm::ReturnInst>(&inst)) {
@@ -304,7 +244,6 @@ TaintAnalysis::FactSet TaintAnalysis::return_flow(const llvm::CallInst* call, co
         }
     }
     
-    // Also propagate call site facts that weren't killed
     if (!call_fact.is_zero()) {
         result.insert(call_fact);
     }
@@ -315,17 +254,14 @@ TaintAnalysis::FactSet TaintAnalysis::return_flow(const llvm::CallInst* call, co
 TaintAnalysis::FactSet TaintAnalysis::call_to_return_flow(const llvm::CallInst* call, const TaintFact& fact) {
     FactSet result;
     
-    // Always propagate zero fact
     if (fact.is_zero()) {
         result.insert(fact);
+        return result;
     }
     
     const llvm::Function* callee = call->getCalledFunction();
     if (!callee) {
-        // Indirect call - be conservative
-        if (!fact.is_zero()) {
-            result.insert(fact);
-        }
+        result.insert(fact);
         return result;
     }
     
@@ -336,19 +272,8 @@ TaintAnalysis::FactSet TaintAnalysis::call_to_return_flow(const llvm::CallInst* 
         result.insert(TaintFact::tainted_var(call));
     }
     
-    // Handle sink functions - check for tainted arguments
-    if (m_sink_functions.count(func_name) && fact.is_tainted_var()) {
-        for (unsigned i = 0; i < call->getNumOperands() - 1; ++i) {
-            if (call->getOperand(i) == fact.get_value()) {
-                // Found tainted data flowing to sink - this is a potential vulnerability
-                // We'll report this in the main analysis loop instead of here
-                // to avoid duplicate reporting
-            }
-        }
-    }
-    
     // Propagate facts that are not killed by the call
-    if (!fact.is_zero() && !kills_fact(call, fact)) {
+    if (!kills_fact(call, fact)) {
         result.insert(fact);
     }
     
@@ -359,8 +284,7 @@ TaintAnalysis::FactSet TaintAnalysis::initial_facts(const llvm::Function* main) 
     FactSet result;
     result.insert(zero_fact());
     
-    // Add initial taint facts if needed
-    // For example, command line arguments could be considered tainted
+    // Taint command line arguments
     for (const llvm::Argument& arg : main->args()) {
         if (arg.getType()->isPointerTy()) {
             result.insert(TaintFact::tainted_var(&arg));
@@ -371,21 +295,15 @@ TaintAnalysis::FactSet TaintAnalysis::initial_facts(const llvm::Function* main) 
 }
 
 bool TaintAnalysis::is_source(const llvm::Instruction* inst) const {
-    if (auto* call = llvm::dyn_cast<llvm::CallInst>(inst)) {
-        if (const llvm::Function* callee = call->getCalledFunction()) {
-            return m_source_functions.count(callee->getName().str()) > 0;
-        }
-    }
-    return false;
+    auto* call = llvm::dyn_cast<llvm::CallInst>(inst);
+    return call && call->getCalledFunction() && 
+           m_source_functions.count(call->getCalledFunction()->getName().str()) > 0;
 }
 
 bool TaintAnalysis::is_sink(const llvm::Instruction* inst) const {
-    if (auto* call = llvm::dyn_cast<llvm::CallInst>(inst)) {
-        if (const llvm::Function* callee = call->getCalledFunction()) {
-            return m_sink_functions.count(callee->getName().str()) > 0;
-        }
-    }
-    return false;
+    auto* call = llvm::dyn_cast<llvm::CallInst>(inst);
+    return call && call->getCalledFunction() && 
+           m_sink_functions.count(call->getCalledFunction()->getName().str()) > 0;
 }
 
 void TaintAnalysis::add_source_function(const std::string& func_name) {
@@ -397,25 +315,17 @@ void TaintAnalysis::add_sink_function(const std::string& func_name) {
 }
 
 bool TaintAnalysis::kills_fact(const llvm::CallInst* call, const TaintFact& fact) const {
-    // Determine if a call kills a particular fact
-    // For taint analysis, most calls don't kill existing facts
-    
     const llvm::Function* callee = call->getCalledFunction();
-    if (!callee) return false;
+    if (!callee || !fact.is_tainted_var()) return false;
     
-    std::string func_name = callee->getName().str();
-    
-    // Some functions might "sanitize" taint
-    // Note: Sanitizer functions are not yet supported in the unified config
     static const std::unordered_set<std::string> sanitizers = {
         "strlen", "strcmp", "strncmp", "isdigit", "isalpha"
     };
     
-    if (sanitizers.count(func_name) && fact.is_tainted_var()) {
-        // Check if the tainted value is passed to a sanitizer
+    if (sanitizers.count(callee->getName().str())) {
         for (unsigned i = 0; i < call->getNumOperands() - 1; ++i) {
             if (call->getOperand(i) == fact.get_value()) {
-                return true; // This fact is sanitized
+                return true;
             }
         }
     }
@@ -423,12 +333,67 @@ bool TaintAnalysis::kills_fact(const llvm::CallInst* call, const TaintFact& fact
     return false;
 }
 
+void TaintAnalysis::report_vulnerabilities(const IFDSSolver<TaintAnalysis>& solver, 
+                                          llvm::raw_ostream& OS, 
+                                          size_t max_vulnerabilities) const {
+    OS << "\nTaint Flow Vulnerability Analysis:\n";
+    OS << "==================================\n";
+    
+    const auto& results = solver.get_all_results();
+    size_t vulnerability_count = 0;
+    
+    for (const auto& result : results) {
+        const auto& node = result.first;
+        const auto& facts = result.second;
+        
+        if (facts.empty() || !node.instruction) continue;
+        
+        auto* call = llvm::dyn_cast<llvm::CallInst>(node.instruction);
+        if (!call || !is_sink(call)) continue;
+        
+        std::string func_name = call->getCalledFunction()->getName().str();
+        std::string tainted_args;
+        
+        for (unsigned i = 0; i < call->getNumOperands() - 1; ++i) {
+            const llvm::Value* arg = call->getOperand(i);
+            
+            for (const auto& fact : facts) {
+                if (fact.is_tainted_var() && fact.get_value() == arg) {
+                    if (!tainted_args.empty()) tainted_args += ", ";
+                    tainted_args += "arg" + std::to_string(i);
+                    break;
+                }
+            }
+        }
+        
+        if (!tainted_args.empty()) {
+            vulnerability_count++;
+            if (vulnerability_count <= max_vulnerabilities) {
+                OS << "\n🚨 VULNERABILITY #" << vulnerability_count << ":\n";
+                OS << "  Sink: " << func_name << " at " << *call << "\n";
+                OS << "  Tainted arguments: " << tainted_args << "\n";
+                OS << "  Location: " << call->getDebugLoc() << "\n";
+            }
+        }
+    }
+    
+    if (vulnerability_count == 0) {
+        OS << "✅ No taint flow vulnerabilities detected.\n";
+        OS << "   (This means no tainted data reached dangerous sink functions)\n";
+    } else {
+        OS << "\n📊 Summary:\n";
+        OS << "  Total vulnerabilities found: " << vulnerability_count << "\n";
+        if (vulnerability_count > max_vulnerabilities) {
+            OS << "  (Showing first " << max_vulnerabilities << " vulnerabilities)\n";
+        }
+    }
+}
+
 } // namespace ifds
-} // namespace sparta
 
 // Hash function implementation
 namespace std {
-size_t hash<sparta::ifds::TaintFact>::operator()(const sparta::ifds::TaintFact& fact) const {
+size_t hash<ifds::TaintFact>::operator()(const ifds::TaintFact& fact) const {
     size_t h1 = std::hash<int>{}(static_cast<int>(fact.get_type()));
     size_t h2 = 0;
     if (fact.get_value()) {

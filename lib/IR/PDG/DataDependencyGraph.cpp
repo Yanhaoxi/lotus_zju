@@ -59,7 +59,7 @@ void pdg::DataDependencyGraph::addAliasEdges(Instruction &inst)
     if (&inst == &*inst_iter)
       continue;
     auto alias_result = queryAliasUnderApproximate(inst, *inst_iter);
-    if (alias_result != AliasResult::NoAlias)
+    if (alias_result != llvm::AliasResult::NoAlias)
     {
       Node* src = g.getNode(inst);
       Node* dst = g.getNode(*inst_iter);
@@ -109,16 +109,16 @@ void pdg::DataDependencyGraph::addRAWEdges(Instruction &inst)
   dst->addNeighbor(*src, EdgeType::DATA_RAW);
 }
 
-AliasResult pdg::DataDependencyGraph::queryAliasUnderApproximate(Value &v1, Value &v2)
+llvm::AliasResult pdg::DataDependencyGraph::queryAliasUnderApproximate(llvm::Value &v1, llvm::Value &v2)
 {
   // only check alias for pointer type variables
   if (!v1.getType()->isPointerTy() || !v2.getType()->isPointerTy())
-    return AliasResult::NoAlias;
+    return llvm::AliasResult::NoAlias;
   // check bit cast
   if (BitCastInst *bci = dyn_cast<BitCastInst>(&v1))
   {
     if (bci->getOperand(0) == &v2)
-      return AliasResult::MustAlias;
+      return llvm::AliasResult::MustAlias;
   }
   // handle load instruction
   if (LoadInst *li = dyn_cast<LoadInst>(&v1))
@@ -131,19 +131,26 @@ AliasResult pdg::DataDependencyGraph::queryAliasUnderApproximate(Value &v1, Valu
         if (si->getPointerOperand() == load_addr)
         {
           if (si->getValueOperand() == &v2)
-            return AliasResult::MustAlias;
+            return llvm::AliasResult::MustAlias;
         }
       }
       if (LoadInst *alias_load_inst = dyn_cast<LoadInst>(user))
       {
         if (alias_load_inst == &v2)
-          return AliasResult::MustAlias;
+          return llvm::AliasResult::MustAlias;
       }
     }
   }
   // Add return statement to prevent compiler warning
-  return AliasResult::NoAlias;
+  return llvm::AliasResult::NoAlias;
 }
+
+llvm::AliasResult pdg::DataDependencyGraph::queryAliasOverApproximate([[maybe_unused]] llvm::Value &v1, [[maybe_unused]] llvm::Value &v2)
+ {
+  // FIXME: integrate the pointer analyses in lib/Alias (also the alias analyses inside LLVM?)
+  // FIXME: also refer to the implementation of DDG in the DG tool.
+  return llvm::AliasResult::MayAlias;
+ }
 
   void pdg::DataDependencyGraph::getAnalysisUsage(AnalysisUsage & AU) const
   {

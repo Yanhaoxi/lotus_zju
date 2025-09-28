@@ -13,7 +13,6 @@
 #include <llvm/IR/Constants.h>
 #include <llvm/Support/raw_ostream.h>
 
-namespace sparta {
 namespace ifds {
 
 // ============================================================================
@@ -49,17 +48,15 @@ public:
 };
 
 } // namespace ifds
-} // namespace sparta
 
 // Hash function for DefinitionFact
 namespace std {
 template<>
-struct hash<sparta::ifds::DefinitionFact> {
-    size_t operator()(const sparta::ifds::DefinitionFact& fact) const;
+struct hash<ifds::DefinitionFact> {
+    size_t operator()(const ifds::DefinitionFact& fact) const;
 };
 }
 
-namespace sparta {
 namespace ifds {
 
 // ============================================================================
@@ -90,4 +87,3 @@ private:
 };
 
 } // namespace ifds
-} // namespace sparta

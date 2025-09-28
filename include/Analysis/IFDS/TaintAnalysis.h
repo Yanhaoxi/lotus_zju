@@ -15,7 +15,6 @@
 #include <string>
 #include <unordered_set>
 
-namespace sparta {
 namespace ifds {
 
 // ============================================================================
@@ -53,17 +52,15 @@ public:
 };
 
 } // namespace ifds
-} // namespace sparta
 
 // Hash function for TaintFact
 namespace std {
 template<>
-struct hash<sparta::ifds::TaintFact> {
-    size_t operator()(const sparta::ifds::TaintFact& fact) const;
+struct hash<ifds::TaintFact> {
+    size_t operator()(const ifds::TaintFact& fact) const;
 };
 }
 
-namespace sparta {
 namespace ifds {
 
 // ============================================================================
@@ -96,9 +93,13 @@ public:
     void add_source_function(const std::string& func_name);
     void add_sink_function(const std::string& func_name);
     
+    // Vulnerability detection and reporting
+    void report_vulnerabilities(const IFDSSolver<TaintAnalysis>& solver, 
+                               llvm::raw_ostream& OS, 
+                               size_t max_vulnerabilities = 10) const;
+    
 private:
     bool kills_fact(const llvm::CallInst* call, const TaintFact& fact) const;
 };
 
 } // namespace ifds
-} // namespace sparta

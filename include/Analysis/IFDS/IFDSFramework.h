@@ -18,10 +18,7 @@
 #include <llvm/Analysis/AliasAnalysis.h>
 #include <llvm/Analysis/CallGraph.h>
 
-#include <Analysis/sparta/AbstractDomain.h>
-#include <Analysis/sparta/FlatSet.h>
-#include <Analysis/sparta/MonotonicFixpointIterator.h>
-#include <Analysis/sparta/WeakTopologicalOrdering.h>
+#include <set>
 
 #include <boost/optional.hpp>
 
@@ -32,7 +29,6 @@
 #include <unordered_set>
 #include <vector>
 
-namespace sparta {
 namespace ifds {
 
 // ============================================================================
@@ -95,7 +91,7 @@ template<typename Fact>
 class IFDSProblem {
 public:
     using FactType = Fact;
-    using FactSet = sparta::FlatSet<Fact>;
+    using FactSet = std::set<Fact>;
     
     virtual ~IFDSProblem() = default;
     
@@ -315,7 +311,6 @@ private:
 };
 
 } // namespace ifds
-} // namespace sparta
 
 // ============================================================================
 // Template Implementation (moved to .cpp for explicit instantiation)

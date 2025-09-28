@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 add_definitions(${LLVM_DEFINITIONS})
 
 set(COMMON_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/utils ${CMAKE_CURRENT_SOURCE_DIR}/../include ${LLVM_INCLUDE_DIRS})
-set(COMMON_LIBS ${LLVM_LIBRARIES} GTest::gtest GTest::gtest_main IFDS Annotation CanaryDyckAA LLVMCore LLVMIRReader LLVMSupport)
+set(COMMON_LIBS ${LLVM_LIBRARIES} GTest::gtest GTest::gtest_main IFDS Annotation CanaryDyckAA LLVMIRReader)
 
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/tests/test_data)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_data/ DESTINATION ${CMAKE_BINARY_DIR}/tests/test_data/)

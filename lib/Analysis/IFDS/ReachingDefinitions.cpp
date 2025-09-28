@@ -4,9 +4,9 @@
 
 #include <Analysis/IFDS/ReachingDefinitions.h>
 
+#include <iostream>
 #include <llvm/Support/raw_ostream.h>
 
-namespace sparta {
 namespace ifds {
 
 // ============================================================================
@@ -309,11 +309,10 @@ bool ReachingDefinitionsAnalysis::is_killed_by_external_call(const DefinitionFac
 }
 
 } // namespace ifds
-} // namespace sparta
 
 // Hash function implementation
 namespace std {
-size_t hash<sparta::ifds::DefinitionFact>::operator()(const sparta::ifds::DefinitionFact& fact) const {
+size_t hash<ifds::DefinitionFact>::operator()(const ifds::DefinitionFact& fact) const {
     if (fact.is_zero()) return 0;
     
     size_t h1 = std::hash<const llvm::Value*>{}(fact.get_variable());

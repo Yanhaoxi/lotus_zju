@@ -8,7 +8,6 @@
 
 #include <Analysis/IFDS/IFDSFramework.h>
 #include <Analysis/IFDS/TaintAnalysis.h>
-#include <Analysis/IFDS/ReachingDefinitions.h>
 
 #include <Alias/DyckAA/DyckAliasAnalysis.h>
 
@@ -30,14 +29,14 @@
 #include <sstream>
 
 using namespace llvm;
-using namespace sparta::ifds;
+using namespace ifds;
 
 static cl::opt<std::string> InputFilename(cl::Positional, cl::desc("<input bitcode file>"),
                                           cl::Required);
 
 static cl::opt<bool> Verbose("verbose", cl::desc("Enable verbose output"), cl::init(false));
 
-static cl::opt<int> AnalysisType("analysis", cl::desc("Type of analysis to run: 0=taint, 1=reaching-defs"),
+static cl::opt<int> AnalysisType("analysis", cl::desc("Type of analysis to run: 0=taint"),
                                  cl::init(0));
 
 // Using Dyck alias analysis by default
@@ -127,103 +126,7 @@ int main(int argc, char **argv) {
                 solver.solve(*M);
                 
                 if (ShowResults) {
-                    outs() << "\nTaint Flow Vulnerability Analysis:\n";
-                    outs() << "==================================\n";
-                    
-                    const auto& results = solver.get_all_results();
-                    size_t vulnerability_count = 0;
-                    const size_t max_vulnerabilities = MaxDetailedResults.getValue();
-                    
-                    // Look for taint flow vulnerabilities (tainted data reaching sinks)
-                    for (const auto& result : results) {
-                        const auto& node = result.first;
-                        const auto& facts = result.second;
-                        
-                        if (facts.empty() || !node.instruction) continue;
-                        
-                        // Check if this is a sink instruction with tainted data
-                        if (auto* call = llvm::dyn_cast<llvm::CallInst>(node.instruction)) {
-                            if (const llvm::Function* callee = call->getCalledFunction()) {
-                                std::string func_name = callee->getName().str();
-                                
-                                // Check if this is a known sink function
-                                bool is_sink = (func_name == "system" || func_name == "exec" || 
-                                              func_name == "execl" || func_name == "execv" || 
-                                              func_name == "popen" || func_name == "printf" || 
-                                              func_name == "fprintf" || func_name == "sprintf" || 
-                                              func_name == "strcpy" || func_name == "strcat");
-                                
-                                if (is_sink) {
-                                    // Check if any arguments are tainted
-                                    bool has_tainted_args = false;
-                                    std::string tainted_args;
-                                    
-                                    for (unsigned i = 0; i < call->getNumOperands() - 1; ++i) {
-                                        const llvm::Value* arg = call->getOperand(i);
-                                        
-                                        // Check if this argument is tainted
-                                        for (const auto& fact : facts) {
-                                            if (fact.is_tainted_var() && fact.get_value() == arg) {
-                                                has_tainted_args = true;
-                                                if (!tainted_args.empty()) tainted_args += ", ";
-                                                tainted_args += "arg" + std::to_string(i);
-                                                break;
-                                            }
-                                        }
-                                    }
-                                    
-                                    if (has_tainted_args) {
-                                        vulnerability_count++;
-                                        if (vulnerability_count <= max_vulnerabilities) {
-                                            outs() << "\n🚨 VULNERABILITY #" << vulnerability_count << ":\n";
-                                            outs() << "  Sink: " << func_name << " at " << *call << "\n";
-                                            outs() << "  Tainted arguments: " << tainted_args << "\n";
-                                            outs() << "  Location: " << call->getDebugLoc() << "\n";
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    if (vulnerability_count == 0) {
-                        outs() << "✅ No taint flow vulnerabilities detected.\n";
-                        outs() << "   (This means no tainted data reached dangerous sink functions)\n";
-                    } else {
-                        outs() << "\n📊 Summary:\n";
-                        outs() << "  Total vulnerabilities found: " << vulnerability_count << "\n";
-                        if (vulnerability_count > max_vulnerabilities) {
-                            outs() << "  (Showing first " << max_vulnerabilities << " vulnerabilities)\n";
-                        }
-                    }
-                }
-                break;
-            }
-            case 1: { // Reaching definitions
-                outs() << "Running interprocedural reaching definitions analysis...\n";
-                
-                ReachingDefinitionsAnalysis reachingDefs;
-                
-                // Set up alias analysis
-                reachingDefs.set_alias_analysis(dyckAA);
-                
-                IFDSSolver<ReachingDefinitionsAnalysis> solver(reachingDefs);
-                solver.solve(*M);
-                
-                if (ShowResults) {
-                    outs() << "\nReaching Definitions Results:\n";
-                    outs() << "=============================\n";
-                    
-                    const auto& results = solver.get_all_results();
-                    for (const auto& result : results) {
-                        const auto& node = result.first;
-                        const auto& facts = result.second;
-                        
-                        if (!facts.empty()) {
-                            outs() << "At instruction: " << *node.instruction << "\n";
-                            outs() << "  Definition facts: [" << facts.size() << " facts]\n\n";
-                        }
-                    }
+                    taintAnalysis.report_vulnerabilities(solver, outs(), MaxDetailedResults.getValue());
                 }
                 break;
             }

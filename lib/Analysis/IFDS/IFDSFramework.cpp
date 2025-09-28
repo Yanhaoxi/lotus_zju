@@ -12,7 +12,6 @@
 #include <llvm/IR/CFG.h>
 #include <llvm/Support/raw_ostream.h>
 
-namespace sparta {
 namespace ifds {
 
 // Utility functions for debugging and analysis
@@ -39,4 +38,3 @@ void debug_print_summary_edges(const std::unordered_set<SummaryEdge<Fact>, Summa
 // template class IFDSSolver<ReachingDefinitionsAnalysis>;
 
 } // namespace ifds
-} // namespace sparta

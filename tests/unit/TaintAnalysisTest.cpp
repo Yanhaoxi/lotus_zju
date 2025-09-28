@@ -13,7 +13,7 @@
 #include <Analysis/IFDS/TaintAnalysis.h>
 #include <Analysis/IFDS/IFDSFramework.h>
 
-using namespace sparta::ifds;
+using namespace ifds;
 using namespace llvm;
 
 // ============================================================================

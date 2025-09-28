@@ -12,7 +12,6 @@
 #include <llvm/IR/CFG.h>
 #include <llvm/Support/raw_ostream.h>
 
-namespace sparta {
 namespace ifds {
 
 // ============================================================================
@@ -620,4 +619,3 @@ IDESolver<Problem>::get_all_values() const {
 }
 
 } // namespace ifds
-} // namespace sparta
