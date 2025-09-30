@@ -54,6 +54,10 @@ bool TaintFact::operator<(const TaintFact& other) const {
     return false;
 }
 
+bool TaintFact::operator!=(const TaintFact& other) const {
+    return !(*this == other);
+}
+
 TaintFact::Type TaintFact::get_type() const { 
     return m_type; 
 }
@@ -125,7 +129,7 @@ TaintAnalysis::FactSet TaintAnalysis::normal_flow(const llvm::Instruction* stmt,
     }
     
     // Helper to propagate existing facts
-    auto propagate_fact = [&]() { result.insert(fact); };
+    auto propagate_fact = [&result, &fact]() { result.insert(fact); };
     
     if (auto* store = llvm::dyn_cast<llvm::StoreInst>(stmt)) {
         const llvm::Value* value = store->getValueOperand();

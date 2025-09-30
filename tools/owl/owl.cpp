@@ -92,14 +92,14 @@ bool parse_arguments(int argc, char** argv) {
 }
 
 int solve_cnf(const string& filename) {
-    if (verbose) cout << "Solving CNF file: " << filename << endl;
+    if (verbose) cout << "Solving CNF file: " << filename << "\n";
 
     try {
         cnf* m_cnf = new cnf(const_cast<char*>(filename.c_str()));
         
         if (verbose) {
             cout << "CNF loaded: " << m_cnf->m_vc << " variables, " 
-                 << m_cnf->m_cc << " clauses" << endl;
+                 << m_cnf->m_cc << " clauses" << "\n";
         }
 
         sat_solver solver(*m_cnf);
@@ -110,62 +110,62 @@ int solve_cnf(const string& filename) {
         delete m_cnf;
 
         if (result) {
-            cout << "s SATISFIABLE" << endl;
+            cout << "s SATISFIABLE" << "\n";
             if (verbose) solver.print_solution(stdout);
             return 10;
         } else {
-            cout << "s UNSATISFIABLE" << endl;
+            cout << "s UNSATISFIABLE" << "\n";
             return 20;
         }
     } catch (const exception& e) {
-        cerr << "Error solving CNF: " << e.what() << endl;
+        cerr << "Error solving CNF: " << e.what() << "\n";
         return 1;
     }
 }
 
 int solve_smt(const string& filename) {
-    if (verbose) cout << "Solving SMT-LIB2 file: " << filename << endl;
+    if (verbose) cout << "Solving SMT-LIB2 file: " << filename << "\n";
 
     try {
         SMTFactory factory;
         SMTSolver solver = factory.createSMTSolver();
         
-        if (verbose) cout << "Parsing SMT-LIB2 file..." << endl;
+        if (verbose) cout << "Parsing SMT-LIB2 file..." << "\n";
 
         SMTExpr expr = factory.parseSMTLib2File(filename);
         solver.add(expr);
         
-        if (verbose) cout << "Checking satisfiability..." << endl;
+        if (verbose) cout << "Checking satisfiability..." << "\n";
 
         SMTSolver::SMTResultType result = solver.check();
         
         switch (result) {
             case SMTSolver::SMTRT_Sat:
-                cout << "s SATISFIABLE" << endl;
+                cout << "s SATISFIABLE" << "\n";
                 if (verbose) {
                     SMTModel model = solver.getSMTModel();
-                    cout << "Model: " << model << endl;
+                    cout << "Model: " << model << "\n";
                 }
                 return 10;
                 
             case SMTSolver::SMTRT_Unsat:
-                cout << "s UNSATISFIABLE" << endl;
+                cout << "s UNSATISFIABLE" << "\n";
                 return 20;
                 
             case SMTSolver::SMTRT_Unknown:
-                cout << "s UNKNOWN" << endl;
+                cout << "s UNKNOWN" << "\n";
                 return 30;
                 
             case SMTSolver::SMTRT_Uncheck:
-                cout << "s UNCHECKED" << endl;
+                cout << "s UNCHECKED" << "\n";
                 return 40;
                 
             default:
-                cerr << "Error: Unexpected solver result" << endl;
+                cerr << "Error: Unexpected solver result" << "\n";
                 return 1;
         }
     } catch (const exception& e) {
-        cerr << "Error solving SMT: " << e.what() << endl;
+        cerr << "Error solving SMT: " << e.what() << "\n";
         return 1;
     }
 }
@@ -178,7 +178,7 @@ int main(int argc, char** argv) {
     } else if (mode == "smt") {
         return solve_smt(input_file);
     } else {
-        cerr << "Error: Invalid mode '" << mode << "'" << endl;
+        cerr << "Error: Invalid mode '" << mode << "'" << "\n";
         return 1;
     }
 }

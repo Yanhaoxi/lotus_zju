@@ -36,6 +36,7 @@ public:
     
     bool operator==(const DefinitionFact& other) const;
     bool operator<(const DefinitionFact& other) const;
+    bool operator!=(const DefinitionFact& other) const;
     
     Type get_type() const;
     const llvm::Value* get_variable() const;

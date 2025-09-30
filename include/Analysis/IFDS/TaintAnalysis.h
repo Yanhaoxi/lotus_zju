@@ -39,6 +39,7 @@ public:
     
     bool operator==(const TaintFact& other) const;
     bool operator<(const TaintFact& other) const;
+    bool operator!=(const TaintFact& other) const;
     
     Type get_type() const;
     const llvm::Value* get_value() const;

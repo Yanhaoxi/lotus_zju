@@ -40,6 +40,10 @@ bool DefinitionFact::operator<(const DefinitionFact& other) const {
     return m_definition_site < other.m_definition_site;
 }
 
+bool DefinitionFact::operator!=(const DefinitionFact& other) const {
+    return !(*this == other);
+}
+
 DefinitionFact::Type DefinitionFact::get_type() const { 
     return m_type; 
 }

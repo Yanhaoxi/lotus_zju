@@ -316,5 +316,5 @@ private:
 // Template Implementation (moved to .cpp for explicit instantiation)
 // ============================================================================
 
-// Include template implementations for common types
-#include "IFDSFramework_impl.h"
+// Template implementations are now in IFDSFramework.cpp
+// This reduces compilation time and improves code organization

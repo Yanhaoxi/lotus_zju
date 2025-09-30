@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 find_package(LLVM REQUIRED CONFIG)
 find_package(GTest REQUIRED)
 
-set(CMAKE_CXX_STANDARD 17)
+#set(CMAKE_CXX_STANDARD 17)
 add_definitions(${LLVM_DEFINITIONS})
 
 set(COMMON_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/utils ${CMAKE_CURRENT_SOURCE_DIR}/../include ${LLVM_INCLUDE_DIRS})

@@ -2,6 +2,7 @@
 // Indexing Context-Sensitive Reachability Analysis
 //
 
+#include <cstddef>
 #include <iostream>
 #include <cstring>
 #include <ctime>
@@ -204,7 +205,7 @@ static double grail_index_size(Graph &ig) {
     double ret = 0;
     for (int i = 0; i < ig.num_vertices(); i++) {
         ret += sizeof(int); // ig[i].top_level
-        for (int j = 0; j < ig[i].pre->size(); ++j) {
+        for (size_t j = 0; j < ig[i].pre->size(); ++j) {
             ret += sizeof(int) * 3; // ig[i].pre[j], ig[i].middle[j], ig[i].post[j]
         }
     }
@@ -216,28 +217,28 @@ static double pt_index_size(Graph &bbgg, PathTree &pt, Query &pt_query) {
     // backbone graph itself
     for (int i = 0; i < bbgg.num_vertices(); i++) {
         EdgeList &succs = bbgg.out_edges(i);
-        for (int j = 0; j < succs.size(); ++j) {
+        for (size_t j = 0; j < succs.size(); ++j) {
             ret += sizeof(int); // succs[j]
         }
     }
 
     // pathtree labels
-    for (int vid = 0; vid < pt.out_uncover.size(); vid++) {
+    for (size_t vid = 0; vid < pt.out_uncover.size(); vid++) {
         vector<int> &si = pt.out_uncover[vid];
         ret += sizeof(int); // vid
-        for (int i = 0; i < si.size(); ++i) {
+        for (size_t i = 0; i < si.size(); ++i) {
             ret += sizeof(int); // si[i]
         }
     }
 
     for (int i = 0; i < pt.g.num_vertices(); i++) {
         ret += sizeof(int); // i
-        for (int j = 0; j < 3; j++) {
+        for (size_t j = 0; j < 3; j++) {
             ret += sizeof(int); // pt.labels[i][j]
         }
     }
 
-    for (int i = 0; i < pt_query.graillabels.size(); ++i) {
+    for (size_t i = 0; i < pt_query.graillabels.size(); ++i) {
         for (int j = 0; j < pt_query.grail_dim; ++j) {
             ret += sizeof(int) * 2; // pt_query.graillabels[i][j] -> pair<int, int>
         }
