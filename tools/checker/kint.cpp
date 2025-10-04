@@ -2,7 +2,7 @@
 
 #include "Checker/kint/MKintPass.h"
 #include "Checker/kint/Options.h"
-#include "Support/Log.h"
+#include "Checker/kint/Log.h"
 
 #include <llvm/IR/PassManager.h>
 #include <llvm/Passes/PassBuilder.h>

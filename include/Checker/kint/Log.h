@@ -96,7 +96,7 @@ namespace detail {
             (void)dummy; // Suppress unused variable warning
         }
 
-        log_wrapper(log_wrapper&& wrapper);
+        log_wrapper(log_wrapper&& wrapper) noexcept;
         log_wrapper(log_wrapper&) = delete;
 
         // Replace std::string_view with const std::string&

@@ -8,7 +8,6 @@ add_library(CanarySupport STATIC
         ThreadPool.cpp
         InstructionUtils.cpp
         Debug.cpp
-        Log.cpp
         StringUtils.cpp
         MultiThreading.cpp
         Timer.cpp

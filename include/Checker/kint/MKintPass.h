@@ -29,8 +29,8 @@ struct MKintPass : public PassInfoMixin<MKintPass> {
     MKintPass();
     MKintPass(const MKintPass&) = delete;
     MKintPass& operator=(const MKintPass&) = delete;
-    MKintPass(MKintPass&&) = default;
-    MKintPass& operator=(MKintPass&&) = default;
+    MKintPass(MKintPass&&) noexcept = default;
+    MKintPass& operator=(MKintPass&&) noexcept = default;
     ~MKintPass() = default;
 
     PreservedAnalyses run(Module& M, ModuleAnalysisManager& MAM);

@@ -5,5 +5,6 @@ add_library(CanaryKint STATIC
         BugDetection.cpp
         Utils.cpp
         Options.cpp
+        Log.cpp
 )
 

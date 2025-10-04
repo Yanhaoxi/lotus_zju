@@ -1,6 +1,6 @@
 #include "Checker/kint/KINTTaintAnalysis.h"
 #include "Checker/kint/Utils.h"
-#include "Support/Log.h"
+#include "Checker/kint/Log.h"
 
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Function.h>

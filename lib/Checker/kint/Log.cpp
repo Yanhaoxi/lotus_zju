@@ -1,7 +1,7 @@
-#include "Support/Log.h"
+#include "Checker/kint/Log.h"
 #include "Support/range.h"
 
-#include <cassert>
+//#include <cassert>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
@@ -64,8 +64,7 @@ Logger& Logger::getInstance()
 void Logger::configure(LogConfig config)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
-    m_config = config;
-    
+    m_config = std::move(config);
     // Close any existing file stream
     if (m_fileStream) {
         m_fileStream->close();
@@ -76,7 +75,7 @@ void Logger::configure(LogConfig config)
     if (!m_config.logFile.empty()) {
         m_fileStream = std::make_unique<std::ofstream>(m_config.logFile);
         if (!m_fileStream->is_open()) {
-            std::cerr << "Error: Unable to open log file: " << m_config.logFile << std::endl;
+            std::cerr << "Error: Unable to open log file: " << m_config.logFile << "\n";
             m_fileStream.reset();
         }
     }
@@ -114,7 +113,7 @@ std::ostream& Logger::getStream()
     return m_currentStream.get();
 }
 
-detail::log_wrapper::log_wrapper(log_wrapper&& wrapper)
+detail::log_wrapper::log_wrapper(log_wrapper&& wrapper) noexcept
     : m_stream(wrapper.m_stream)
     , m_last_was_newline(wrapper.m_last_was_newline)
     , m_abort_at_deconstruct(wrapper.m_abort_at_deconstruct)
@@ -149,7 +148,7 @@ detail::log_wrapper::~log_wrapper()
         return;
 
     if (!m_last_was_newline) {
-        m_stream << std::endl;
+        m_stream << "\n";
     }
 
     if (m_abort_at_deconstruct) {

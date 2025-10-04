@@ -1,14 +1,16 @@
 #include "Checker/kint/BugDetection.h"
 #include "Checker/kint/RangeAnalysis.h"
 #include "Checker/kint/Options.h"
-#include "Support/Log.h"
+#include "Checker/kint/Log.h"
+#include "Support/range.h"
 
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Metadata.h>
 #include <llvm/IR/Operator.h>
+
 #include <z3++.h>
-#include "Support/range.h"
+
 
 using namespace llvm;
 

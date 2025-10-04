@@ -1,7 +1,7 @@
 #include "Checker/kint/RangeAnalysis.h"
 #include "Checker/kint/KINTTaintAnalysis.h"
 #include "Checker/kint/Options.h"
-#include "Support/Log.h"
+#include "Checker/kint/Log.h"
 #include "Support/range.h"
 
 #include <llvm/IR/Instructions.h>

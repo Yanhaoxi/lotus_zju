@@ -1,6 +1,6 @@
 #include "Checker/kint/MKintPass.h"
 #include "Checker/kint/Options.h"
-#include "Support/Log.h"
+#include "Checker/kint/Log.h"
 
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Module.h>
