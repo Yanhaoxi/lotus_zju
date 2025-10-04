@@ -1,6 +1,12 @@
 #include "CFL/CSIndex/PathTree.h"
 #include <algorithm>
 
+/**
+ * @brief Constructor with graph reference.
+ * @param graph Reference to the main graph
+ * 
+ * Initializes a path tree with the given graph and allocates necessary data structures.
+ */
 PathTree::PathTree(Graph& graph): g(graph) {
 	int maxid = g.num_vertices();
 	labels = new int*[maxid];
@@ -18,6 +24,13 @@ PathTree::PathTree(Graph& graph): g(graph) {
 	}
 }
 
+/**
+ * @brief Constructor with graph reference and topological sort.
+ * @param graph Reference to the main graph
+ * @param ts Topological sort vector
+ * 
+ * Initializes a path tree with the given graph and topological sort information.
+ */
 PathTree::PathTree(Graph& graph, vector<int> ts): g(graph) {
 	grts = ts;
 	int maxid = g.num_vertices();
@@ -37,6 +50,11 @@ PathTree::PathTree(Graph& graph, vector<int> ts): g(graph) {
 	}
 }
 
+/**
+ * @brief Destructor.
+ * 
+ * Cleans up dynamically allocated memory for labels.
+ */
 PathTree::~PathTree() {
 	for (int i = 0; i < g.num_vertices(); i++)
 		delete []labels[i];

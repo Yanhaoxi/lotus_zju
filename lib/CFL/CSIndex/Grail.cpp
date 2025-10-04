@@ -11,18 +11,38 @@ or their institutions liable under any circumstances.
 #include "CFL/CSIndex/Grail.h"
 #include "CFL/CSIndex/TCSEstimator.h"
 
-vector<int> _index;
-vector<double> customIndex;
+vector<int> _index;           ///< Global index vector for labeling
+vector<double> customIndex;   ///< Global custom index vector
 
+/**
+ * @brief Comparator for index-based sorting.
+ * @tparam T Array type
+ */
 template<class T> struct index_cmp {
 index_cmp(const T arr) : arr(arr) {}
+/**
+ * @brief Compare two indices based on array values.
+ * @param a First index
+ * @param b Second index
+ * @return true if arr[a] < arr[b]
+ */
 bool operator()(const size_t a, const size_t b) const
 { return arr[a] < arr[b]; }
 const T arr;
 };
 
+/**
+ * @brief Custom comparator for sorting.
+ * @tparam T Array type
+ */
 template<class T> struct custom_cmp {
 custom_cmp(const T arr) : arr(arr) {}
+/**
+ * @brief Compare two indices based on array values (descending order).
+ * @param a First index
+ * @param b Second index
+ * @return true if arr[a] > arr[b]
+ */
 bool operator()(const size_t a, const size_t b) const
 { return arr[a] > arr[b]; }
 const T arr;
@@ -41,6 +61,16 @@ GRAIL LABELING :
 		8- mingapvisit - used by min gap labeling
 *******************************************************************************************/
 
+/**
+ * @brief Constructor with graph and parameters.
+ * @param graph Reference to the main graph
+ * @param Dim Dimension for labeling
+ * @param labelingType Type of labeling to use
+ * @param pool Pool usage flag
+ * @param poolsize Pool size
+ * 
+ * Initializes a GRAIL object with the specified parameters and performs labeling.
+ */
 Grail::Grail(Graph& graph, int Dim, int labelingType, bool pool, int poolsize): g(graph),dim(Dim), POOL(pool), POOLSIZE(poolsize) {
 	int i, maxid = g.num_vertices();
 	visited = new int[maxid];
@@ -69,11 +99,11 @@ Grail::Grail(Graph& graph, int Dim, int labelingType, bool pool, int poolsize): 
 							 Grail::customlabeling(graph,i);
 							 break;
 		}
-		cout << "Labeling " << i << " is completed" << endl;
+		cout << "Labeling " << i << " is completed\n";
 /*		for( int k = 0 ; k < maxid; k++){
 			cout << k << "["<<(graph[k].pre)->at(i) << ","<<(graph[k].post)->at(i) << "] ";
 		}
-		cout << endl;
+		cout << '\n';
 */
 	}
 	PositiveCut = NegativeCut = TotalCall = TotalDepth = CurrentDepth = 0;
@@ -142,7 +172,7 @@ void Grail::setCustomIndex(Graph& g, int traversal, int type){
 		for(int i=0; i<cnt; i++){
 			cout << customIndex[i] << " " ;
 		}
-		cout << endl;
+		cout << '\n';
 */
 }
 
@@ -173,7 +203,7 @@ void Grail::customlabeling(Graph& graph, int traversal) {
 /*	cout << " Sorting roots - before " ;
 	for (sit = roots.begin(); sit != roots.end(); sit++) {
 		cout << " customIndex[" << *sit<<"]=" << customIndex[*sit] << " " ;   
-	} cout << endl;
+	} cout << '\n';
 */
 	
 	sort(roots.begin(),roots.end(),custom_cmp<vector<double>&>(customIndex));
@@ -181,7 +211,7 @@ void Grail::customlabeling(Graph& graph, int traversal) {
 /*	cout << " Sorting roots - before " ;
 	for (sit = roots.begin(); sit != roots.end(); sit++) {
 		cout << " customIndex[" << *sit<<"]=" << customIndex[*sit] << " " ;   
-	} cout << endl;
+	} cout << '\n';
 */
 
 	for (sit = roots.begin(); sit != roots.end(); sit++) {
@@ -199,7 +229,7 @@ int Grail::customvisit(Graph& tree, int vid, int& pre_post, vector<bool>& visite
 /*	cout << " Sorting children of " << vid << "  - before " ;
 	for (eit = el.begin(); eit != el.end(); eit++) {
 		cout << " customIndex[" << *eit<<"]=" << customIndex[*eit] << " " ;   
-	} cout << endl;
+	} cout << '\n';
 */
 	sort(el.begin(),el.end(),custom_cmp<vector<double>&>(customIndex));
 	
@@ -207,7 +237,7 @@ int Grail::customvisit(Graph& tree, int vid, int& pre_post, vector<bool>& visite
 	cout << " Sorting children of " << vid << "  - after " ;
 	for (eit = el.begin(); eit != el.end(); eit++) {
 		cout << " customIndex[" << *eit<<"]=" << customIndex[*eit] << " " ;   
-	} cout << endl;
+	} cout << '\n';
 */
 	int pre_order = tree.num_vertices()+1;
 	tree[vid].middle->push_back(pre_post);

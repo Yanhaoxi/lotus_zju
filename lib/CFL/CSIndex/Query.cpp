@@ -2,7 +2,16 @@
 #include <cstdlib>
 #include <ctime>
 
-
+/**
+ * @brief Constructor with file stem, graph reference, radius, pre-selection ratio, and materialization flag.
+ * @param filestem File stem for I/O operations
+ * @param ig Reference to graph
+ * @param _r Radius parameter
+ * @param _ps Pre-selection ratio
+ * @param mat Materialization flag
+ * 
+ * Initializes a query object with the specified parameters and loads necessary data files.
+ */
 Query::Query(const char* filestem, Graph& ig, int _r, double _ps, bool mat) : g(ig) {
 	initFlags();
 	epsilon = _r;

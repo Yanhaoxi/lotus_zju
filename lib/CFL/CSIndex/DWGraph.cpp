@@ -1,27 +1,60 @@
 #include "CFL/CSIndex/DWGraph.h"
 #include <algorithm>
 
+/**
+ * @brief Default constructor.
+ * 
+ * Initializes an empty directed weighted graph with no vertices or edges.
+ */
 DWGraph::DWGraph() {
 	graph = DWGRA();
 	vl = DWVertexList();
 	maxEdgeId = 0;
 }
 
+/**
+ * @brief Constructor with existing graph data.
+ * @param g Graph adjacency structure
+ * @param vlist Vertex list
+ * 
+ * Creates a directed weighted graph from existing adjacency structure and vertex list.
+ */
 DWGraph::DWGraph(DWGRA& g, DWVertexList& vlist) {
 	graph = g;
 	vl = vlist;
 }
 
+/**
+ * @brief Constructor that reads graph from input stream.
+ * @param in Input stream containing graph data
+ * 
+ * Creates a directed weighted graph by reading data from the provided input stream.
+ */
 DWGraph::DWGraph(istream& in) {
 	readGraph1(in);
 }
 
+/**
+ * @brief Destructor.
+ * 
+ * Cleans up resources when the graph is destroyed.
+ */
 DWGraph::~DWGraph() {}
 
+/**
+ * @brief Print graph structure to standard output.
+ * 
+ * Delegates to writeGraph with cout as the output stream.
+ */
 void DWGraph::printGraph() {
 	writeGraph(cout);
 }
 
+/**
+ * @brief Clear all vertices and edges from the graph.
+ * 
+ * Resets the graph to an empty state with no vertices or edges.
+ */
 void DWGraph::clear() {
 	maxEdgeId = 0;
 	graph.clear();
@@ -29,6 +62,12 @@ void DWGraph::clear() {
 	edgeOpMap.clear();
 }
 
+/**
+ * @brief Trim whitespace from string.
+ * @param str String to trim
+ * 
+ * Removes trailing whitespace characters from the string.
+ */
 void DWGraph::strTrim(string& str) {
 	string whitespaces(" \t");
 	int index = str.find_last_not_of(whitespaces);

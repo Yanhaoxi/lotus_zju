@@ -3,39 +3,84 @@
 #include <algorithm>
 #include <cstring>
 
+/**
+ * @brief Default constructor.
+ * 
+ * Initializes an empty graph with no vertices or edges.
+ */
 Graph::Graph() {
     graph = GRA();
     vl = VertexList();
 }
 
+/**
+ * @brief Constructor with initial vertex count.
+ * @param size Initial number of vertices
+ * 
+ * Creates a graph with the specified number of vertices and empty edge lists.
+ */
 Graph::Graph(int size) {
     n_vertices = size;
     vl = VertexList(size);
     graph = GRA(size, In_OutList());
 }
 
+/**
+ * @brief Constructor with existing graph data.
+ * @param g Adjacency list representation
+ * @param vlist Vertex list
+ * 
+ * Creates a graph from existing adjacency list and vertex list data.
+ */
 Graph::Graph(GRA &g, VertexList &vlist) {
     n_vertices = vlist.size();
     graph = g;
     vl = vlist;
 }
 
+/**
+ * @brief Constructor that reads graph from input stream.
+ * @param in Input stream containing graph data
+ * 
+ * Creates a graph by reading data from the provided input stream.
+ */
 Graph::Graph(istream &in) {
     readGraph(in);
 }
 
+/**
+ * @brief Destructor.
+ * 
+ * Cleans up resources when the graph is destroyed.
+ */
 Graph::~Graph() = default;
 
+/**
+ * @brief Print graph structure to standard output.
+ * 
+ * Delegates to writeGraph with cout as the output stream.
+ */
 void Graph::printGraph() {
     writeGraph(cout);
 }
 
+/**
+ * @brief Clear all vertices and edges from the graph.
+ * 
+ * Resets the graph to an empty state with no vertices or edges.
+ */
 void Graph::clear() {
     n_vertices = 0;
     graph.clear();
     vl.clear();
 }
 
+/**
+ * @brief Trim whitespace from the right side of a string.
+ * @param str String to trim
+ * 
+ * Removes trailing whitespace characters from the string.
+ */
 void Graph::strTrimRight(string &str) {
     string whitespaces(" \t");
     int index = str.find_last_not_of(whitespaces);
