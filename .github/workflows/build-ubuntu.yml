@@ -28,15 +28,15 @@ jobs:
       - name: Build and install
         run: |
           mkdir build && cd build
-          cmake -DCMAKE_INSTALL_PREFIX="/opt/canary" \
+          cmake -DCMAKE_INSTALL_PREFIX="$HOME/canary" \
                 -DCMAKE_BUILD_TYPE="Debug" \
                 -DLLVM_BUILD_PATH="/usr/lib/llvm-14/lib/cmake/llvm" \
                 -DLLVM_CONFIG_PATH="/usr/bin/llvm-config-14" \
                 -DLLVM_DIR="/usr/lib/llvm-14/lib/cmake/llvm" \
                 -DZ3_DIR="/usr" ..
-          make && sudo make install
+          make && make install
       - name: Add Canary to the path
         run: |
-          echo "/opt/canary/bin" >> $GITHUB_PATH
+          echo "$HOME/canary/bin" >> $GITHUB_PATH
       - name: Test installation
         run: canary --version || echo "Canary built successfully"

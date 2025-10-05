@@ -1,5 +1,6 @@
 #include "Support/Timer.h"
 
+// Suspends the timer, recording the suspend time.
 void Timer::suspend() {
   if (!Suspended) {
     time(&SuspendStartTime);
@@ -7,6 +8,7 @@ void Timer::suspend() {
   }
 }
 
+// Resumes the timer, adding suspend time to total.
 void Timer::resume() {
   if (Suspended) {
     time_t CurrTime;
@@ -17,6 +19,7 @@ void Timer::resume() {
   }
 }
 
+// Returns true if the timer has exceeded its duration or step limit.
 bool Timer::isTimeOut() {
   if (StepsCounter == 0) {
     StepsCounter = Steps;
@@ -41,6 +44,7 @@ bool Timer::isTimeOut() {
   return false;
 }
 
+// Checks for timeout and executes callback if needed.
 void Timer::check() {
   if (isTimeOut()) {
     TaskAfterTimeout();

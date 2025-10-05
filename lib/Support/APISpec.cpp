@@ -7,6 +7,7 @@
 using namespace lotus;
 
 namespace {
+// Trims whitespace from both ends of a string.
 static inline std::string trim(const std::string &s) {
   size_t b = 0;
   while (b < s.size() && std::isspace(static_cast<unsigned char>(s[b]))) ++b;
@@ -15,6 +16,7 @@ static inline std::string trim(const std::string &s) {
   return s.substr(b, e - b);
 }
 
+// Returns true if the line is a comment (starts with #) or blank.
 static inline bool isCommentOrBlank(const std::string &line) {
   for (char c : line) {
     if (!std::isspace(static_cast<unsigned char>(c))) {
@@ -25,6 +27,7 @@ static inline bool isCommentOrBlank(const std::string &line) {
 }
 }
 
+// Converts a string token to a SpecOpKind enum value.
 static SpecOpKind toOpKind(const std::string &tok) {
   if (tok == "IGNORE") return SpecOpKind::Ignore;
   if (tok == "ALLOC") return SpecOpKind::Alloc;
@@ -36,6 +39,7 @@ static SpecOpKind toOpKind(const std::string &tok) {
   return SpecOpKind::Ignore;
 }
 
+// Converts a string to a QualifierKind enum value.
 static QualifierKind toQualifier(const std::string &q) {
   if (q == "V") return QualifierKind::Value;
   if (q == "R") return QualifierKind::Region;
@@ -43,6 +47,8 @@ static QualifierKind toQualifier(const std::string &q) {
   return QualifierKind::Unknown;
 }
 
+// Parses a line from the API specification file.
+// Returns true if parsing was successful, false otherwise.
 bool APISpec::parseLine(const std::string &line,
                         std::string &outFunc,
                         SpecOpKind &outOp,
@@ -65,6 +71,7 @@ bool APISpec::parseLine(const std::string &line,
   return true;
 }
 
+// Parses a value selector token (e.g., "Ret", "Arg0", "AfterArg2").
 ValueSelector APISpec::parseSelector(const std::string &token) {
   // Examples: Ret, Arg0, Arg1, AfterArg2, STATIC, NULL
   if (token == "Ret") return ValueSelector{SelectorKind::Ret, -1, true};
@@ -81,10 +88,12 @@ ValueSelector APISpec::parseSelector(const std::string &token) {
   return ValueSelector{SelectorKind::Ret, -1, false};
 }
 
+// Parses a qualifier token (V, R, D).
 QualifierKind APISpec::parseQualifier(const std::string &token) {
   return toQualifier(token);
 }
 
+// Applies ALLOC operation to a function specification.
 void APISpec::applyAlloc(FunctionSpec &spec, const std::vector<std::string> &tokens) {
   spec.isAllocator = true;
   AllocEffect eff;
@@ -100,6 +109,7 @@ void APISpec::applyAlloc(FunctionSpec &spec, const std::vector<std::string> &tok
   spec.allocs.push_back(eff);
 }
 
+// Applies COPY operation to a function specification.
 void APISpec::applyCopy(FunctionSpec &spec, const std::vector<std::string> &tokens) {
   // Expect pattern: COPY <DstSel> <DstQual> <SrcSel> <SrcQual>
   if (tokens.size() < 4) return;
@@ -111,10 +121,13 @@ void APISpec::applyCopy(FunctionSpec &spec, const std::vector<std::string> &toke
   spec.copies.push_back(CopyEffect{dstSel, dstQ, srcSel, srcQ});
 }
 
+// Marks a function as ignored in the specification.
 void APISpec::applyIgnore(FunctionSpec &spec) { spec.isIgnored = true; }
 
+// Marks a function as an exit function in the specification.
 void APISpec::applyExit(FunctionSpec &spec) { spec.isExit = true; }
 
+// Applies MOD or REF operation to a function specification.
 void APISpec::applyModRef(FunctionSpec &spec, SpecOpKind op, const std::vector<std::string> &tokens) {
   // Expect: (MOD|REF) <Sel> <Qual>
   if (tokens.size() < 2) return;
@@ -124,6 +137,7 @@ void APISpec::applyModRef(FunctionSpec &spec, SpecOpKind op, const std::vector<s
   spec.modref.push_back(ModRefEffect{op, sel, q});
 }
 
+// Loads API specification from a single file.
 bool APISpec::loadFile(const std::string &path, std::string &errorMessage) {
   errorMessage.clear();
   std::ifstream in(path);
@@ -161,6 +175,7 @@ bool APISpec::loadFile(const std::string &path, std::string &errorMessage) {
   return true;
 }
 
+// Loads API specifications from multiple files.
 bool APISpec::loadFiles(const std::vector<std::string> &paths, std::string &errorMessage) {
   for (const auto &p : paths) {
     std::string err;
@@ -172,33 +187,39 @@ bool APISpec::loadFiles(const std::vector<std::string> &paths, std::string &erro
   return true;
 }
 
+// Returns the function specification for the given function name.
 const FunctionSpec *APISpec::get(const std::string &functionName) const {
   auto it = nameToSpec.find(functionName);
   if (it == nameToSpec.end()) return nullptr;
   return &it->second;
 }
 
+// Returns true if the function is marked as ignored.
 bool APISpec::isIgnored(const std::string &functionName) const {
   auto *s = get(functionName);
   return s && s->isIgnored;
 }
 
+// Returns true if the function is marked as an exit function.
 bool APISpec::isExitLike(const std::string &functionName) const {
   auto *s = get(functionName);
   return s && s->isExit;
 }
 
+// Returns true if the function is marked as an allocator.
 bool APISpec::isAllocatorLike(const std::string &functionName) const {
   auto *s = get(functionName);
   return s && s->isAllocator;
 }
 
+// Returns the copy effects for the given function.
 std::vector<CopyEffect> APISpec::getCopies(const std::string &functionName) const {
   auto *s = get(functionName);
   if (!s) return {};
   return s->copies;
 }
 
+// Returns the mod/ref effects for the given function.
 std::vector<ModRefEffect> APISpec::getModRefs(const std::string &functionName) const {
   auto *s = get(functionName);
   if (!s) return {};

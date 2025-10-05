@@ -46,10 +46,12 @@
 
 
 /* initializes mt[N] with a seed */
+// Constructs an RNG with the given seed.
 RNG::RNG(unsigned int s) {
   seed(s);
 }
 
+// Seeds the random number generator with the given value.
 void RNG::seed(unsigned int s) {
   mt[0]= s & 0xffffffffUL;
   for (mti=1; mti<N; mti++) {
@@ -65,6 +67,7 @@ void RNG::seed(unsigned int s) {
 }
 
 /* generates a random number on [0,0xffffffff]-interval */
+// Returns a random 32-bit unsigned integer.
 unsigned int RNG::getInt32() {
   unsigned int y;
   static unsigned int mag01[2]={0x0UL, MATRIX_A};
@@ -99,41 +102,49 @@ unsigned int RNG::getInt32() {
 }
 
 /* generates a random number on [0,0x7fffffff]-interval */
+// Returns a random 31-bit signed integer.
 int RNG::getInt31() {
   return (int)(getInt32()>>1);
 }
 
 /* generates a random number on [0,1]-real-interval */
+// Returns a random double in [0,1] (inclusive).
 double RNG::getDoubleLR() {
   return getInt32()*(1.0/4294967295.0); 
   /* divided by 2^32-1 */ 
 }
 
 /* generates a random number on [0,1)-real-interval */
+// Returns a random double in [0,1) (exclusive).
 double RNG::getDoubleL() {
   return getInt32()*(1.0/4294967296.0); 
   /* divided by 2^32 */
 }
 
 /* generates a random number on (0,1)-real-interval */
+// Returns a random double in (0,1) (exclusive).
 double RNG::getDouble() {
   return (((double)getInt32()) + 0.5)*(1.0/4294967296.0); 
   /* divided by 2^32 */
 }
 
+// Returns a random float in [0,1] (inclusive).
 float RNG::getFloatLR() {
   return getInt32()*(1.0f/4294967295.0f); 
   /* divided by 2^32-1 */ 
 }
+// Returns a random float in [0,1) (exclusive).
 float RNG::getFloatL() {
   return getInt32()*(1.0f/4294967296.0f); 
   /* divided by 2^32 */
 }
+// Returns a random float in (0,1) (exclusive).
 float RNG::getFloat() {
   return (getInt32() + 0.5f)*(1.0f/4294967296.0f); 
   /* divided by 2^32 */
 }
 
+// Returns a random boolean value.
 bool RNG::getBool() {
   unsigned bits = getInt32();
   bits ^= bits >> 16;

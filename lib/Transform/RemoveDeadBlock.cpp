@@ -1,4 +1,8 @@
 
+// RemoveDeadBlock pass removes unreachable basic blocks that have no predecessors
+// (except for the entry block). This is a more aggressive dead code elimination
+// than the standard SimplifyCFG pass.
+
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Verifier.h>
@@ -14,6 +18,8 @@ static RegisterPass<RemoveDeadBlock> X(DEBUG_TYPE, "remove dead block, not sure 
 void RemoveDeadBlock::getAnalysisUsage(AnalysisUsage &AU) const {
 }
 
+// Main pass entry point. Identifies and removes dead blocks transitively.
+// A block is considered dead if it has no predecessors (except self-loops).
 bool RemoveDeadBlock::runOnModule(Module &M) {
     std::vector<BasicBlock *> Block2Remove;
     std::set<BasicBlock *> Visited;

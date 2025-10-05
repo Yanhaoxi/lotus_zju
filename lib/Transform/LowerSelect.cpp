@@ -1,3 +1,7 @@
+// LowerSelect pass converts select instructions to explicit if/else control flow.
+// This transformation can help with analysis passes that have difficulty
+// handling conditional expressions.
+
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Verifier.h>
@@ -12,6 +16,9 @@ static RegisterPass<LowerSelect> X(DEBUG_TYPE, "Converting select to if/else");
 void LowerSelect::getAnalysisUsage(AnalysisUsage &AU) const {
 }
 
+// Transform a select instruction into explicit if/else control flow.
+// Creates two new basic blocks for the true and false cases, connected by
+// a conditional branch from the original block.
 static void transform(Instruction *Select) {
     auto *Function = Select->getFunction();
     auto *BranchBB = Select->getParent();
@@ -38,6 +45,8 @@ static void transform(Instruction *Select) {
     Select->eraseFromParent();
 }
 
+// Main pass entry point. Finds all select instructions (excluding pointer selects)
+// and transforms them into explicit if/else control flow.
 bool LowerSelect::runOnModule(Module &M) {
     std::vector<SelectInst *> Selects;
     for (auto &F: M) {

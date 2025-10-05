@@ -1,3 +1,6 @@
+// NameBlock pass assigns names to unnamed basic blocks for debugging purposes.
+// This helps with debugging and analysis by ensuring all blocks have readable names.
+
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Verifier.h>
@@ -13,6 +16,8 @@ void NameBlock::getAnalysisUsage(AnalysisUsage &AU) const {
     AU.setPreservesAll();
 }
 
+// Main pass entry point. Assigns names to all unnamed basic blocks.
+// Returns false since this pass doesn't modify the module's semantics.
 bool NameBlock::runOnModule(Module &M) {
     for (auto &F: M) {
         unsigned BI = 0;

@@ -1,4 +1,7 @@
 
+// SimplifyLatch pass simplifies loop latches by making them unconditional.
+// This can help with loop analysis by ensuring latch blocks have predictable control flow.
+
 #include <llvm/Analysis/LoopInfo.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
@@ -15,6 +18,8 @@ void SimplifyLatch::getAnalysisUsage(AnalysisUsage &AU) const {
     AU.addRequired<LoopInfoWrapperPass>();
 }
 
+// Transform a latch block to make it unconditional by inserting a new latch block.
+// Updates PHI nodes in the header to point to the new latch block.
 static void transform(BasicBlock *Latch, unsigned ToHeader) {
     auto *NewLatch = BasicBlock::Create(Latch->getContext(), "", Latch->getParent(), Latch);
     auto *Term = Latch->getTerminator();
@@ -35,6 +40,8 @@ static void transform(BasicBlock *Latch, unsigned ToHeader) {
     }
 }
 
+// Main pass entry point. Identifies loops with conditional latches and transforms them
+// to have unconditional latches for easier loop analysis.
 bool SimplifyLatch::runOnModule(Module &M) {
     std::vector<std::pair<BasicBlock *, unsigned>> LatchVector;
     for (auto &F: M) {

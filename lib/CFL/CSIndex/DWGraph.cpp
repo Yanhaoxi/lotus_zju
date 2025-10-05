@@ -83,7 +83,7 @@ void DWGraph::readGraph(istream& in) {
 
 	strTrim(buf);
 	if (buf != "graph_for_greach") {
-		cout << "BAD FILE FORMAT!" << endl;
+		cout << "BAD FILE FORMAT!" << "\n";
 		exit(0);
 	}
 	
@@ -117,7 +117,7 @@ void DWGraph::readGraph1(istream& in) {
 
 	strTrim(buf);
 	if (buf != "graph_for_greach") {
-		cout << "BAD FILE FORMAT!" << endl;
+		cout << "BAD FILE FORMAT!" << "\n";
 	//	exit(0);
 	}
 	
@@ -157,8 +157,8 @@ void DWGraph::readGraph1(istream& in) {
 }	
 
 void DWGraph::writeGraph(ostream& out) {
-	out << "graph_for_greach" << endl;
-	out << vl.size() << endl;
+	out << "graph_for_greach" << "\n";
+	out << vl.size() << "\n";
 
 	DWGRA::iterator git;
 	DWEdgeList el;
@@ -170,7 +170,7 @@ void DWGraph::writeGraph(ostream& out) {
 			el = graph[vit->first].outList;
 			for (eit = el.begin(); eit != el.end(); eit++) {
 				if (edgeOpMap.find(*eit) == edgeOpMap.end()) {
-					cerr << "output error: edgeid " << *eit << " is not existed in edgeOpMap!" << endl;
+					cerr << "output error: edgeid " << *eit << " is not existed in edgeOpMap!" << "\n";
 					exit(1);
 					continue;
 				}
@@ -179,10 +179,10 @@ void DWGraph::writeGraph(ostream& out) {
 			}
 		}
 		else {
-			cerr << "output error: " << vit->first << " is not existed!" << endl;
+			cerr << "output error: " << vit->first << " is not existed!" << "\n";
 			exit(1);
 		}
-		out << "#" << endl;
+		out << "#" << "\n";
 	}
 }
 
@@ -199,15 +199,15 @@ void DWGraph::toGDL(ostream& out) {
 	DWEdgeOpMap::iterator eit;
 	for (eit = edgeOpMap.begin(); eit != edgeOpMap.end(); eit++) {
 		out << "edge: { sourcename: \"" << eit->second.src << "\""
-			<< " targetname: \"" << eit->second.trg << "\" }" << endl;
+			<< " targetname: \"" << eit->second.trg << "\" }" << "\n";
 	}
-	out << endl;
+	out << "\n";
 
 	for (vit = vl.begin(); vit != vl.end(); vit++) {
-		out << "node: { title: \"" << vit->first << "\"}" << endl;
+		out << "node: { title: \"" << vit->first << "\"}" << "\n";
 	}
-	out << endl;
-	out << "}" << endl;
+	out << "\n";
+	out << "}" << "\n";
 }	
 			
 	
@@ -323,11 +323,11 @@ void DWGraph::updateEdge(int sid, int tid, int weight) {
 
 void DWGraph::removeEdge(int sid, int tid) {
 	if (vl.find(sid) == vl.end()) {
-	//	cout << "Src [" << sid << "] is not existed!" << endl;
+	//	cout << "Src [" << sid << "] is not existed!" << "\n";
 		return;
 	}
 	if (vl.find(tid) == vl.end()) {
-	//	cout << "Trg [" << tid << "] is not existed!" << endl;
+		//	cout << "Trg [" << tid << "] is not existed!" << "\n";
 		return;
 	}
 	vector<int> id_list;
@@ -366,7 +366,7 @@ void DWGraph::removeEdge(int sid, int tid) {
 
 void DWGraph::removeEdge(int eid) {
 	if (edgeOpMap.find(eid) == edgeOpMap.end()) {
-		cerr << "Error: edgeid " << eid << " is not existed!" << endl;
+		cerr << "Error: edgeid " << eid << " is not existed!" << "\n";
 		exit(0);
 		return;
 	}
@@ -378,11 +378,11 @@ void DWGraph::removeEdge(int eid) {
 
 void DWGraph::removeEdgeWithID(int sid, int tid, int edgeid) {
 	if (vl.find(sid) == vl.end()) {
-		cout << "Src [" << sid << "] is not existed!" << endl;
+		cout << "Src [" << sid << "] is not existed!" << "\n";
 		return;
 	}
 	if (vl.find(tid) == vl.end()) {
-		cout << "Trg [" << tid << "] is not existed!" << endl;
+		cout << "Trg [" << tid << "] is not existed!" << "\n";
 		return;
 	}
 
@@ -410,11 +410,11 @@ void DWGraph::removeEdgeWithID(int sid, int tid, int edgeid) {
 
 void DWGraph::removeEdgeWithWeight(int sid, int tid, int weight) {
 	if (vl.find(sid) == vl.end()) {
-		cout << "Src [" << sid << "] is not existed!" << endl;
+		cout << "Src [" << sid << "] is not existed!" << "\n";
 		return;
 	}
 	if (vl.find(tid) == vl.end()) {
-		cout << "Trg [" << tid << "] is not existed!" << endl;
+		cout << "Trg [" << tid << "] is not existed!" << "\n";
 		return;
 	}
 	
@@ -599,7 +599,7 @@ int DWGraph::weight(int eid) {
 
 int DWGraph::source(int eid) {
 	if (edgeOpMap.find(eid) == edgeOpMap.end()) {
-		cerr << "Error on source: eid " << eid << " is not existed!" << endl;
+		cerr << "Error on source: eid " << eid << " is not existed!" << "\n";
 		exit(0);
 		return MAX_VAL;
 	}
@@ -608,7 +608,7 @@ int DWGraph::source(int eid) {
 
 int DWGraph::target(int eid) {
 	if (edgeOpMap.find(eid) == edgeOpMap.end()) {
-		cerr << "Error on target: eid " << eid << " is not existed!" << endl;
+		cerr << "Error on target: eid " << eid << " is not existed!" << "\n";
 		exit(0);
 		return MAX_VAL;
 	}

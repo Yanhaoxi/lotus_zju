@@ -5,6 +5,7 @@
 #include <llvm/IR/Instructions.h>
 #include "Support/Statistics.h"
 
+// Analyzes and prints statistics about the module's instructions.
 void Statistics::run(Module &M) {
     unsigned NumInstructions = 0;
     unsigned NumPointerInstructions = 0;

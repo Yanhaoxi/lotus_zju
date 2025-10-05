@@ -1,4 +1,8 @@
 
+// MergeReturn pass consolidates multiple return statements in a function
+// into a single unified return block. This simplifies control flow analysis
+// by ensuring each function has at most one exit point.
+
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Verifier.h>
@@ -13,6 +17,9 @@ static RegisterPass<MergeReturn> X(DEBUG_TYPE, "Merging multiple returns to one"
 void MergeReturn::getAnalysisUsage(AnalysisUsage &AU) const {
 }
 
+// Unify multiple return blocks in a function into a single return block.
+// Creates a new unified return block and redirects all existing returns to it.
+// Returns true if any transformation was performed.
 bool unifyReturnBlocks(Function &F) {
     std::vector<BasicBlock *> ReturningBlocks;
 
@@ -53,6 +60,7 @@ bool unifyReturnBlocks(Function &F) {
     return true;
 }
 
+// Main pass entry point. Applies return unification to all defined functions.
 bool MergeReturn::runOnModule(Module &M) {
     bool Changed = false;
     for (auto &F: M) {

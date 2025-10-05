@@ -1,6 +1,6 @@
-// The `--unroll-vectors` pass eliminates vector `load`, `store`, `phi`,
+// UnrollVectors pass eliminates vector `load`, `store`, `phi`,
 // `insertelement`, and `extractelement` instructions by expanding them into
-// sequences of scalar instructions.  This covers the remaining cases that may
+// sequences of scalar instructions. This covers the remaining cases that may
 // be left over after running the built-in `--scalarizer` pass.
 //
 // Note that the pass does not delete the vector operations on its own, but it
@@ -21,8 +21,8 @@ using namespace llvm;
 const int WORD_SIZE = 64;
 const size_t TRACE_NUM_ARGS = 8;
 
-/// Downcast `Ty` to `VectorType*`, but only if it's a vector that we know how
-/// to unroll.
+// Check if a type is a vector that can be unrolled by this pass.
+// Only fixed-size vectors with byte-aligned elements are supported.
 static VectorType* unrollableVectorType(Type* Ty, Module* M) {
   if (auto VecTy = dyn_cast<VectorType>(Ty)) {
     // LLVM 14 doesn't have isScalable() method

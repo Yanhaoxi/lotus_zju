@@ -1,3 +1,7 @@
+// LowerGlobalConstantArraySelect pass converts global constant array accesses
+// (G[a]) into switch statements that return the appropriate array element.
+// This helps simplify analysis by making array access patterns explicit.
+
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Verifier.h>
@@ -19,6 +23,8 @@ static RegisterPass<LowerGlobalConstantArraySelect> X(DEBUG_TYPE, "G[a] -> switc
 void LowerGlobalConstantArraySelect::getAnalysisUsage(AnalysisUsage &AU) const {
 }
 
+// Main pass entry point. Scans for GEP instructions that access global constant arrays
+// and replaces them with function calls that use switch statements for element selection.
 bool LowerGlobalConstantArraySelect::runOnModule(Module &M) {
     std::vector<Instruction *> ToRemoveLd;
     std::vector<Instruction *> ToRemoveGep;
@@ -71,6 +77,8 @@ bool LowerGlobalConstantArraySelect::runOnModule(Module &M) {
     return false;
 }
 
+// Check if an instruction is a GEP that accesses a global constant array with a variable index.
+// Returns true if the pattern matches: GEP accessing a global constant array followed by a load.
 bool LowerGlobalConstantArraySelect::isSelectGlobalConstantArray(Instruction &I) {
     auto *GEP = dyn_cast<GetElementPtrInst>(&I);
     if (!GEP) return false;
@@ -95,6 +103,8 @@ bool LowerGlobalConstantArraySelect::isSelectGlobalConstantArray(Instruction &I)
     return NextInst->getPointerOperand() == GEP;
 }
 
+// Initialize a function that implements array element selection using a switch statement.
+// Creates a switch on the index parameter that returns the corresponding array element.
 void LowerGlobalConstantArraySelect::initialize(Function *F, ConstantDataArray *CDA) {
     auto &Ctx = F->getContext();
     auto *Entry = BasicBlock::Create(Ctx, "", F, nullptr);

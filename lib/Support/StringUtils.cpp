@@ -2,6 +2,7 @@
 
 using namespace std;
 
+// Removes the given prefix from the string if present. Returns true if removed.
 bool remove_prefix(StringRef &str, StringRef prefix) {
   if (str.startswith(prefix)) {
     str = str.drop_front(prefix.size());
@@ -11,6 +12,7 @@ bool remove_prefix(StringRef &str, StringRef prefix) {
   return false;
 }
 
+// Draws a line of the given length using the specified character.
 static void draw_line_with(raw_ostream &O, int length, char sym) {
   const int BUF_SIZE = 64;
   char buf[BUF_SIZE];
@@ -31,12 +33,14 @@ static void draw_line_with(raw_ostream &O, int length, char sym) {
   O << buf;
 }
 
+// Draws a separator line with optional newline.
 void draw_separate_line(raw_ostream &O, int length, char sep, bool end_line) {
   draw_line_with(O, length, sep);
   if (end_line)
     O << "\n";
 }
 
+// Outputs text centered with padding characters.
 void output_padded_text(raw_ostream &O, StringRef text, int l, char padc,
                         bool end_line) {
   int padding_size = l - text.size();
@@ -52,6 +56,7 @@ void output_padded_text(raw_ostream &O, StringRef text, int l, char padc,
     O << "\n";
 }
 
+// Outputs text left-aligned with padding.
 void output_left_aligned_text(raw_ostream &O, StringRef text, int l, char padc,
                               bool end_line) {
   O << text;
@@ -62,6 +67,7 @@ void output_left_aligned_text(raw_ostream &O, StringRef text, int l, char padc,
     O << "\n";
 }
 
+// Outputs text right-aligned with padding.
 void output_right_aligned_text(raw_ostream &O, StringRef text, int l, char padc,
                                bool end_line) {
   int padding_size = l - text.size();
@@ -72,6 +78,7 @@ void output_right_aligned_text(raw_ostream &O, StringRef text, int l, char padc,
     O << "\n";
 }
 
+// Returns the ordinal suffix (st, nd, rd, th) for a number.
 const char *ordinal_suffix(int n) {
   // make n always positive. This is faster than having to check for
   // negative cases.
@@ -96,19 +103,22 @@ const char *ordinal_suffix(int n) {
   }
 }
 
+// Returns a number with its ordinal suffix as a string.
 std::string ordinal_string(int n) {
   return format_str("%d%s", n, ordinal_suffix(n));
 }
 
+// Converts an integer to its binary string representation.
 std::string to_binary_string(int n) {
   std::string r;
   while (n != 0) {
-    r = (n % 2 == 0 ? "0" : "1") + r;
+    r.insert(0, (n % 2 == 0 ? "0" : "1"));
     n /= 2;
   }
   return r;
 }
 
+// Escapes special characters in a string for HTML output.
 string html_escape_string(const string &data) {
   std::string buffer;
   buffer.reserve(data.size() * 1.5);

@@ -1,3 +1,7 @@
+// LowerConstantExpr pass converts constant expressions to regular instructions.
+// This is useful for simplifying analysis by eliminating complex constant expressions
+// that may be difficult to handle in downstream passes.
+
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Verifier.h>
@@ -15,6 +19,10 @@ static RegisterPass<LowerConstantExpr> X(DEBUG_TYPE, "Converting constant expr t
 void LowerConstantExpr::getAnalysisUsage(AnalysisUsage &AU) const {
 }
 
+// Transform an instruction by converting its constant expression operands to regular instructions.
+// For PHI nodes, inserts new instructions before the terminator of the incoming block.
+// For other instructions, inserts new instructions before the current instruction.
+// Returns true if any transformation was performed.
 static bool transform(Instruction &I) {
     try {
         bool Changed = false;
@@ -77,6 +85,9 @@ static bool transform(Instruction &I) {
     }
 }
 
+// Transform a call instruction with a constant expression callee into a direct function call.
+// Handles type casting for arguments and return values as needed.
+// Returns true if transformation was successful.
 static bool transformCall(Instruction &I, const DataLayout &DL) {
     try {
         auto *CI = dyn_cast<CallInst>(&I);
@@ -182,6 +193,10 @@ static bool transformCall(Instruction &I, const DataLayout &DL) {
     }
 }
 
+// Main pass entry point. Performs two passes over the module:
+// 1. Transform call instructions with constant expression callees
+// 2. Transform other instructions with constant expression operands
+// Returns true if any transformations were made.
 bool LowerConstantExpr::runOnModule(Module &M) {
     try {
         bool Changed = false;

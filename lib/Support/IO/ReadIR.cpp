@@ -15,6 +15,7 @@ namespace util
 namespace io
 {
 
+// Reads an LLVM module from a file.
 std::unique_ptr<Module> readModuleFromFile(const char* fileName)
 {
 	static LLVMContext context;
@@ -34,6 +35,7 @@ std::unique_ptr<Module> readModuleFromFile(const char* fileName)
 	return module;
 }
 
+// Parses an LLVM module from assembly text.
 std::unique_ptr<Module> parseAssembly(const char *assembly)
 {
 	static LLVMContext context;

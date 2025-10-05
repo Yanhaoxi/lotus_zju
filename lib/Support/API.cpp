@@ -3,6 +3,7 @@
 #include <set>
 #include <string>
 
+// Set of function names that perform heap allocation.
 std::set<std::string> API::HeapAllocFunctions = {
     "malloc",
     "calloc",
@@ -32,10 +33,12 @@ std::set<std::string> API::HeapAllocFunctions = {
     "getwdelim",
 };
 
+// Returns true if the instruction performs memory allocation (heap or stack).
 bool API::isMemoryAllocate(Instruction *I) {
   return isHeapAllocate(I) || isStackAllocate(I);
 }
 
+// Returns true if the instruction is a call to a heap allocation function.
 bool API::isHeapAllocate(Instruction *I) {
   if (auto CI = dyn_cast<CallInst>(I)) {
     if (auto Callee = CI->getCalledFunction()) {
@@ -45,4 +48,5 @@ bool API::isHeapAllocate(Instruction *I) {
   return false;
 }
 
+// Returns true if the instruction is a stack allocation (alloca).
 bool API::isStackAllocate(Instruction *I) { return isa<AllocaInst>(I); }

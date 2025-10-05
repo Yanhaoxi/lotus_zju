@@ -4,6 +4,7 @@
 
 using namespace llvm;
 
+// Returns true if the instruction operates on pointers.
 bool InstructionUtils::isPointerInstruction(Instruction *I) {
   bool retVal = false;
   LoadInst *LI = dyn_cast<LoadInst>(I);
@@ -21,6 +22,7 @@ bool InstructionUtils::isPointerInstruction(Instruction *I) {
   return retVal;
 }
 
+// Returns the line number of the instruction from debug info.
 unsigned InstructionUtils::getLineNumber(Instruction &I) {
 
   const DebugLoc &currDC = I.getDebugLoc();
@@ -30,6 +32,7 @@ unsigned InstructionUtils::getLineNumber(Instruction &I) {
   return -1;
 }
 
+// Returns the name of the instruction or "No Name" if unnamed.
 std::string InstructionUtils::getInstructionName(Instruction *I) {
   if (I->hasName()) {
     return I->getName().str();
@@ -38,6 +41,7 @@ std::string InstructionUtils::getInstructionName(Instruction *I) {
   }
 }
 
+// Returns the name of the value or "No Name" if unnamed.
 std::string InstructionUtils::getValueName(Value *v) {
   if (v->hasName()) {
     return v->getName().str();
@@ -46,6 +50,7 @@ std::string InstructionUtils::getValueName(Value *v) {
   }
 }
 
+// Escapes special characters in a string for JSON output.
 std::string InstructionUtils::escapeJsonString(const std::string &input) {
   std::ostringstream ss;
   for (std::string::const_iterator iter = input.begin(); iter != input.end(); iter++) {
@@ -82,6 +87,7 @@ std::string InstructionUtils::escapeJsonString(const std::string &input) {
   return ss.str();
 }
 
+// Escapes a Value as a string for JSON output.
 std::string InstructionUtils::escapeValueString(Value *currInstr) {
   std::string str;
   llvm::raw_string_ostream rso(str);
@@ -89,6 +95,7 @@ std::string InstructionUtils::escapeValueString(Value *currInstr) {
   return escapeJsonString(rso.str());
 }
 
+// Recursively searches for debug location in predecessor blocks.
 DILocation *getRecursiveDILoc(Instruction *currInst, std::string &funcFileName,
                               std::set<BasicBlock *> &visitedBBs) {
   DILocation *currIL = currInst->getDebugLoc().get();
@@ -127,6 +134,7 @@ DILocation *getRecursiveDILoc(Instruction *currInst, std::string &funcFileName,
   return nullptr;
 }
 
+// Returns the filename associated with the function from debug info.
 std::string getFunctionFileName(Function *F) {
   SmallVector<std::pair<unsigned, MDNode *>, 4> MDs;
   F->getAllMetadata(MDs);
@@ -140,6 +148,7 @@ std::string getFunctionFileName(Function *F) {
   return "";
 }
 
+// Returns the correct debug location for an instruction.
 DILocation *InstructionUtils::getCorrectInstrLocation(Instruction *I) {
   DILocation *instrLoc = I->getDebugLoc().get();
   // BasicBlock *firstBB = &(I->getFunction()->getEntryBlock());
@@ -167,6 +176,7 @@ DILocation *InstructionUtils::getCorrectInstrLocation(Instruction *I) {
   return instrLoc;
 }
 
+// Returns the line number for an instruction using correct location.
 int InstructionUtils::getInstrLineNumber(Instruction *I) {
   DILocation *targetLoc = InstructionUtils::getCorrectInstrLocation(I);
   if (targetLoc != nullptr) {

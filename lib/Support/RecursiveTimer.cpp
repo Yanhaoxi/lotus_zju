@@ -1,8 +1,10 @@
 
 #include "Support/RecursiveTimer.h"
 
+// Current depth of nested timers for indentation.
 static unsigned DepthOfTimeRecorder = 0;
 
+// Returns a string of N indentation spaces.
 static inline std::string Tab(unsigned N) {
   std::string Ret;
   while (N-- > 0)
@@ -10,16 +12,19 @@ static inline std::string Tab(unsigned N) {
   return Ret;
 }
 
+// Constructs a timer with a C-string prefix.
 RecursiveTimer::RecursiveTimer(const char *Prefix)
     : Begin(std::chrono::steady_clock::now()), Prefix(Prefix) {
   outs() << Tab(DepthOfTimeRecorder++) << Prefix << "...\n";
 }
 
+// Constructs a timer with a string prefix.
 RecursiveTimer::RecursiveTimer(const std::string &Prefix)
     : Begin(std::chrono::steady_clock::now()), Prefix(Prefix) {
   outs() << Tab(DepthOfTimeRecorder++) << Prefix << "...\n";
 }
 
+// Destructor prints the elapsed time.
 RecursiveTimer::~RecursiveTimer() {
   std::chrono::steady_clock::time_point End = std::chrono::steady_clock::now();
   auto Milli =
@@ -31,4 +36,5 @@ RecursiveTimer::~RecursiveTimer() {
          << "!\n";
 }
 
+// LLVM pass ID for RecursiveTimerPass.
 char RecursiveTimerPass::ID = 0;

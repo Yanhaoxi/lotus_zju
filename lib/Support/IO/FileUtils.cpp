@@ -8,6 +8,7 @@
 
 using namespace llvm;
 
+// Creates a directory and all parent directories if they don't exist.
 bool FileUtil::createDirectory(llvm::StringRef Directory) {
   if (llvm::sys::fs::create_directories(Directory)) {
     errs() << "\nFailed to create the directory: " << Directory << "\n";
@@ -16,6 +17,7 @@ bool FileUtil::createDirectory(llvm::StringRef Directory) {
   return true;
 }
 
+// Writes content to a file, optionally creating parent directories.
 bool FileUtil::writeToFile(llvm::StringRef Path, llvm::StringRef ContentToWrite,
                            bool IsCreateDir) {
   if (llvm::sys::path::has_parent_path(Path)) {
@@ -42,6 +44,7 @@ bool FileUtil::writeToFile(llvm::StringRef Path, llvm::StringRef ContentToWrite,
   return true;
 }
 
+// Gets all subdirectories of the given path.
 bool FileUtil::getSubDirectories(llvm::StringRef Path,
                                  std::vector<std::string> &SubDirectories) {
   bool IsDir;
@@ -72,6 +75,7 @@ bool FileUtil::getSubDirectories(llvm::StringRef Path,
   return true;
 }
 
+// Reads the entire contents of a file as a string.
 std::string FileUtil::readStringFromFile(llvm::StringRef Path,
                                          bool &IsSuccess) {
   int FD;
@@ -109,6 +113,7 @@ std::string FileUtil::readStringFromFile(llvm::StringRef Path,
   return std::string(Data);
 }
 
+// Reads the entire contents of a file as a vector of characters.
 bool FileUtil::readCharVectorFromFile(llvm::StringRef Path,
                                       std::vector<char> &CharVector) {
 
@@ -129,10 +134,12 @@ bool FileUtil::readCharVectorFromFile(llvm::StringRef Path,
   return true;
 }
 
+// Returns true if the file or directory exists.
 bool FileUtil::isFileExist(llvm::StringRef Path) {
   return llvm::sys::fs::exists(Path);
 }
 
+// Extracts the filename from a path using the given separator.
 std::string FileUtil::getFileNameFromPath(llvm::StringRef path,
                                           llvm::StringRef separator) {
   size_t found = path.find_last_of(separator);

@@ -1,5 +1,6 @@
-// The `--soft-float` pass replaces floating-point instructions with calls to
-// the corresponding libgcc library functions.
+// SoftFloat pass replaces floating-point instructions with calls to
+// the corresponding libgcc library functions. This is useful for targets
+// that don't have native floating-point support.
 #include "llvm/Pass.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
@@ -13,6 +14,8 @@ using namespace llvm;
 
 namespace {
 
+// Get the libgcc type suffix for a given LLVM type.
+// Returns a string identifier used in libgcc function names.
 const char* typeName(Type* T) {
   if (T->isFloatTy()) {
     return "sf";
@@ -29,9 +32,8 @@ const char* typeName(Type* T) {
   abort();
 }
 
-// Get the declaration of a function of type `ArgTy -> RetTy`.  The name will
-// consist of `Prefix`, the `libgcc` identifiers of `argTy` and `RetTy`, and
-// `Suffix`.
+// Get the declaration of a libgcc conversion function.
+// The name will consist of `Prefix`, the `libgcc` identifiers of `ArgTy` and `RetTy`, and `Suffix`.
 FunctionCallee getConvert(Module* M,
     StringRef Prefix, StringRef Suffix, Type* ArgTy, Type* RetTy) {
   std::string Name(Prefix);

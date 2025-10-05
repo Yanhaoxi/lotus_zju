@@ -12,6 +12,7 @@ namespace util
 namespace io
 {
 
+// Writes an LLVM module to a text file.
 void writeModuleToText(const Module& module, const char* fileName)
 {
 	std::error_code ec;
@@ -27,6 +28,7 @@ void writeModuleToText(const Module& module, const char* fileName)
 	out.keep();
 }
 
+// Writes an LLVM module to a bitcode file.
 void writeModuleToBitCode(const Module& module, const char* fileName)
 {
 	std::error_code ec;
@@ -42,6 +44,7 @@ void writeModuleToBitCode(const Module& module, const char* fileName)
 	out.keep();
 }
 
+// Writes an LLVM module to a file in the specified format.
 void writeModuleToFile(const Module& module, const char* fileName, bool isText)
 {
 	if (isText)

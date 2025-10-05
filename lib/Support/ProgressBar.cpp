@@ -6,6 +6,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
+// Constructs a progress bar with the given title, style, and update frequency.
 ProgressBar::ProgressBar(const std::string &Title, ProgressBarStyle Style,
                          float UpdateFrequency)
     : Title(Title), Style(Style), UpdateFrequency(UpdateFrequency) {
@@ -34,6 +35,7 @@ ProgressBar::ProgressBar(const std::string &Title, ProgressBarStyle Style,
   }
 }
 
+// Displays the current progress percentage.
 void ProgressBar::showProgress(float Percent) {
   if (Percent < 0)
     Percent = 0;
@@ -83,6 +85,7 @@ void ProgressBar::showProgress(float Percent) {
   fflush(stdout);
 }
 
+// Resizes the progress bar based on current terminal width.
 void ProgressBar::resize() {
   // clear the line.
   printf("\r\033[K");
@@ -119,6 +122,7 @@ void ProgressBar::resize() {
   }
 }
 
+// Resets the progress bar to 0%.
 void ProgressBar::reset() {
   LastUpdatePercent = 0;
   if (ProgressBuffer) {
@@ -131,6 +135,7 @@ void ProgressBar::reset() {
   }
 }
 
+// Destructor cleans up the progress buffer.
 ProgressBar::~ProgressBar() {
   if (ProgressBuffer) {
     free(ProgressBuffer);

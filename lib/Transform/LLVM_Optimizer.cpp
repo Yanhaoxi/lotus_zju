@@ -1,3 +1,4 @@
+// LLVM optimizer wrapper that provides a simple interface for applying optimization passes.
 // This file was based on another version of LLVM; to be fixed.
 
 #include "Transform/LLVM_Optimizer.h"
@@ -9,6 +10,8 @@
 using namespace llvm;
 using namespace std;
 
+// Initialize LLVM targets and codegen flags. This must be called before using
+// any target-specific functionality.
 static void init_llvm_targets() {
   static bool initialized = false;
   static codegen::RegisterCodeGenFlags CFG;
@@ -22,6 +25,9 @@ static void init_llvm_targets() {
 
 namespace llvm_util {
 
+// Apply optimization passes to an LLVM module based on the provided optimization level.
+// Supports standard optimization levels (O0, O1, O2, O3, Os, Oz) or custom pass pipelines.
+// Returns an error string if optimization fails, empty string on success.
 string optimize_module(llvm::Module &M, string_view optArgs) {
   init_llvm_targets();
 

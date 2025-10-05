@@ -6,27 +6,30 @@
 
 using namespace llvm;
 
+// Command line option for specifying the number of worker threads.
 static cl::opt<unsigned>
     NumWorkers("nworkers",
                cl::desc("Specify the number of workers to perform analysis. "
                         "Default is min(the number of hardware cores, 10)."),
                cl::value_desc("num of workers"), cl::init(0));
 
+// Global thread pool instance.
 static ThreadPool *Threads = nullptr;
 
-/// hook functions to run at the beginning and end of a thread
+/// Hook functions to run at the beginning and end of a thread
 /// @{
 void (*before_thread_start_hook)() = nullptr;
 void (*after_thread_complete_hook)() = nullptr;
 /// @}
 
+// Returns the global thread pool instance, creating it if necessary.
 ThreadPool *ThreadPool::get() {
   if (!Threads)
     Threads = new ThreadPool;
   return Threads;
 }
 
-// the constructor just launches the workers
+// Constructs the thread pool and launches worker threads.
 ThreadPool::ThreadPool() : IsStop(false) {
   unsigned NCores = std::thread::hardware_concurrency();
   if (NumWorkers == 0) {
@@ -81,6 +84,7 @@ ThreadPool::ThreadPool() : IsStop(false) {
   }
 }
 
+// Waits for all tasks to complete.
 void ThreadPool::wait() {
   while (true) {
     {
@@ -93,7 +97,8 @@ void ThreadPool::wait() {
   }
 }
 
-ThreadPool::~ThreadPool() { // the destructor shall join all threads
+// Destructor joins all worker threads.
+ThreadPool::~ThreadPool() {
   {
     std::unique_lock<std::mutex> Lock(QueueMutex);
     IsStop = true;
