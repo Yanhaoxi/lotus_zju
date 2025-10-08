@@ -58,6 +58,7 @@ PIPE strncpy Arg0 D Arg1 D
 PIPE strncpy Ret V Arg0 V
 PIPE strdup Ret D Arg0 D
 PIPE strdup Ret V Arg0 V
+PIPE strtok Ret V Arg0 D
 PIPE putchar Ret V Arg0 V
 PIPE sscanf Ret V Arg0 D
 PIPE sscanf AfterArg2 D Arg0 D
@@ -93,16 +94,16 @@ SINK vprintf Arg0 D
 SINK wprintf Arg0 D
 SINK system Arg0 D
 SOURCE __errno_location Ret V U
-SOURCE __isoc99_scanf AfterArg1 D T
+SOURCE __isoc99_scanf AfterArg0 D T
 SOURCE _IO_getc Ret V T
 SOURCE fgets Arg0 D T
 SOURCE getchar Ret V T
 SOURCE read Arg1 D T
 SOURCE read Ret V T
 SOURCE recv Arg1 D T
-SOURCE scanf AfterArg1 D T
-SOURCE fscanf AfterArg2 D T
-SOURCE __isoc99_fscanf AfterArg2 D T
+SOURCE scanf AfterArg0 D T
+SOURCE fscanf AfterArg1 D T
+SOURCE __isoc99_fscanf AfterArg1 D T
 SOURCE clock_gettime Arg1 R U
 SOURCE malloc Ret V U
 SOURCE _Znwm Ret V U

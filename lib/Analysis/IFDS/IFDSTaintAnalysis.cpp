@@ -258,26 +258,191 @@ TaintAnalysis::FactSet TaintAnalysis::return_flow(const llvm::CallInst* call, co
 TaintAnalysis::FactSet TaintAnalysis::call_to_return_flow(const llvm::CallInst* call, const TaintFact& fact) {
     FactSet result;
     
+    // Always propagate zero fact
     if (fact.is_zero()) {
         result.insert(fact);
-        return result;
     }
     
     const llvm::Function* callee = call->getCalledFunction();
     if (!callee) {
-        result.insert(fact);
+        if (!fact.is_zero() && !kills_fact(call, fact)) {
+            result.insert(fact);
+        }
         return result;
     }
     
-    std::string func_name = callee->getName().str();
+    std::string func_name = taint_config::normalize_name(callee->getName().str());
     
-    // Handle source functions
-    if (m_source_functions.count(func_name)) {
-        result.insert(TaintFact::tainted_var(call));
+    // Note: Source function handling is now done using config specifications below
+    // instead of this simple check that only handles return values
+    
+    // Handle taint propagation through string formatting functions (sprintf, snprintf)
+    // These functions take tainted input and write to an output buffer
+    // Note: Function names are already normalized, so no need to include _chk variants
+    static const std::unordered_set<std::string> format_functions = {
+        "sprintf", "snprintf", "vsprintf", "vsnprintf"
+    };
+    
+    if (format_functions.count(func_name)) {
+        // Check if any of the format arguments (after the format string) are tainted
+        bool has_tainted_input = false;
+        
+        // Determine where format arguments start based on function signature
+        unsigned format_arg_start = 1;  // After destination buffer
+        if (func_name == "snprintf" || func_name == "vsnprintf") {
+            // snprintf has size parameter: dest, size, format, ...
+            format_arg_start = 2;
+        }
+        // Note: sprintf/vsprintf are: dest, format, ...
+        // The normalization already handles fortified versions
+        
+        // Check if format arguments are tainted
+        for (unsigned i = format_arg_start + 1; i < call->getNumOperands() - 1; ++i) {
+            const llvm::Value* arg = call->getOperand(i);
+            if (fact.is_tainted_var() && fact.get_value() == arg) {
+                has_tainted_input = true;
+                break;
+            }
+            if (fact.is_tainted_memory() && arg->getType()->isPointerTy() && 
+                may_alias(arg, fact.get_memory_location())) {
+                has_tainted_input = true;
+                break;
+            }
+        }
+        
+        // If input is tainted, taint the output buffer
+        if (has_tainted_input) {
+            const llvm::Value* dest = call->getOperand(0);  // First arg is always destination
+            if (dest->getType()->isPointerTy()) {
+                result.insert(TaintFact::tainted_memory(dest));
+                
+                // Also handle aliasing
+                if (m_alias_analysis) {
+                    auto alias_set = get_alias_set(dest);
+                    for (const llvm::Value* alias : alias_set) {
+                        if (alias != dest && alias->getType()->isPointerTy()) {
+                            result.insert(TaintFact::tainted_memory(alias));
+                        }
+                    }
+                }
+            }
+        }
     }
     
+    // Handle source functions using config specifications
+    const FunctionTaintConfig* func_config = taint_config::get_function_config(func_name);
+    
+    if (func_config && func_config->has_source_specs()) {
+        // Use detailed specifications from config file
+        for (const auto& spec : func_config->source_specs) {
+            if (spec.location == TaintSpec::RET && spec.access_mode == TaintSpec::VALUE) {
+                // Return value is tainted
+                result.insert(TaintFact::tainted_var(call));
+            } else if (spec.location == TaintSpec::ARG && spec.access_mode == TaintSpec::DEREF) {
+                // Specific argument's memory is tainted
+                if (spec.arg_index >= 0 && spec.arg_index < (int)(call->getNumOperands() - 1)) {
+                    const llvm::Value* arg = call->getOperand(spec.arg_index);
+                    if (arg->getType()->isPointerTy()) {
+                        result.insert(TaintFact::tainted_memory(arg));
+                        
+                        // Also handle aliasing
+                        if (m_alias_analysis) {
+                            auto alias_set = get_alias_set(arg);
+                            for (const llvm::Value* alias : alias_set) {
+                                if (alias != arg && alias->getType()->isPointerTy()) {
+                                    result.insert(TaintFact::tainted_memory(alias));
+                                }
+                            }
+                        }
+                    }
+                }
+            } else if (spec.location == TaintSpec::AFTER_ARG && spec.access_mode == TaintSpec::DEREF) {
+                // All arguments after a specific index are tainted
+                unsigned start_arg = spec.arg_index + 1;
+                for (unsigned i = start_arg; i < call->getNumOperands() - 1; ++i) {
+                    const llvm::Value* arg = call->getOperand(i);
+                    if (arg->getType()->isPointerTy()) {
+                        result.insert(TaintFact::tainted_memory(arg));
+                        
+                        // Also handle aliasing
+                        if (m_alias_analysis) {
+                            auto alias_set = get_alias_set(arg);
+                            for (const llvm::Value* alias : alias_set) {
+                                if (alias != arg && alias->getType()->isPointerTy()) {
+                                    result.insert(TaintFact::tainted_memory(alias));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // Handle PIPE specifications for taint propagation
+    if (func_config && func_config->has_pipe_specs()) {
+        for (const auto& pipe_spec : func_config->pipe_specs) {
+            bool matches_from = false;
+            
+            // Check if current fact matches the 'from' spec
+            if (pipe_spec.from.location == TaintSpec::ARG) {
+                int from_arg_idx = pipe_spec.from.arg_index;
+                if (from_arg_idx >= 0 && from_arg_idx < (int)(call->getNumOperands() - 1)) {
+                    const llvm::Value* from_arg = call->getOperand(from_arg_idx);
+                    
+                    if (pipe_spec.from.access_mode == TaintSpec::VALUE) {
+                        if (fact.is_tainted_var() && fact.get_value() == from_arg) {
+                            matches_from = true;
+                        }
+                    } else {
+                        if (fact.is_tainted_memory() && from_arg->getType()->isPointerTy()) {
+                            if (may_alias(from_arg, fact.get_memory_location())) {
+                                matches_from = true;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // If from matches, propagate to 'to'
+            if (matches_from) {
+                if (pipe_spec.to.location == TaintSpec::RET) {
+                    if (pipe_spec.to.access_mode == TaintSpec::VALUE) {
+                        result.insert(TaintFact::tainted_var(call));
+                    } else {
+                        if (call->getType()->isPointerTy()) {
+                            result.insert(TaintFact::tainted_memory(call));
+                        }
+                    }
+                } else if (pipe_spec.to.location == TaintSpec::ARG) {
+                    int to_arg_idx = pipe_spec.to.arg_index;
+                    if (to_arg_idx >= 0 && to_arg_idx < (int)(call->getNumOperands() - 1)) {
+                        const llvm::Value* to_arg = call->getOperand(to_arg_idx);
+                        
+                        if (pipe_spec.to.access_mode == TaintSpec::VALUE) {
+                            result.insert(TaintFact::tainted_var(to_arg));
+                        } else {
+                            if (to_arg->getType()->isPointerTy()) {
+                                result.insert(TaintFact::tainted_memory(to_arg));
+                                
+                                if (m_alias_analysis) {
+                                    auto alias_set = get_alias_set(to_arg);
+                                    for (const llvm::Value* alias : alias_set) {
+                                        if (alias != to_arg && alias->getType()->isPointerTy()) {
+                                            result.insert(TaintFact::tainted_memory(alias));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+
     // Propagate facts that are not killed by the call
-    if (!kills_fact(call, fact)) {
+    if (!fact.is_zero() && !kills_fact(call, fact)) {
         result.insert(fact);
     }
     
@@ -300,14 +465,18 @@ TaintAnalysis::FactSet TaintAnalysis::initial_facts(const llvm::Function* main) 
 
 bool TaintAnalysis::is_source(const llvm::Instruction* inst) const {
     auto* call = llvm::dyn_cast<llvm::CallInst>(inst);
-    return call && call->getCalledFunction() && 
-           m_source_functions.count(call->getCalledFunction()->getName().str()) > 0;
+    if (!call || !call->getCalledFunction()) return false;
+    
+    std::string func_name = taint_config::normalize_name(call->getCalledFunction()->getName().str());
+    return m_source_functions.count(func_name) > 0;
 }
 
 bool TaintAnalysis::is_sink(const llvm::Instruction* inst) const {
     auto* call = llvm::dyn_cast<llvm::CallInst>(inst);
-    return call && call->getCalledFunction() && 
-           m_sink_functions.count(call->getCalledFunction()->getName().str()) > 0;
+    if (!call || !call->getCalledFunction()) return false;
+    
+    std::string func_name = taint_config::normalize_name(call->getCalledFunction()->getName().str());
+    return m_sink_functions.count(func_name) > 0;
 }
 
 void TaintAnalysis::add_source_function(const std::string& func_name) {
@@ -355,17 +524,33 @@ void TaintAnalysis::report_vulnerabilities(const IFDSSolver<TaintAnalysis>& solv
         auto* call = llvm::dyn_cast<llvm::CallInst>(node.instruction);
         if (!call || !is_sink(call)) continue;
         
-        std::string func_name = call->getCalledFunction()->getName().str();
+        std::string func_name = taint_config::normalize_name(call->getCalledFunction()->getName().str());
+        
         std::string tainted_args;
         
         for (unsigned i = 0; i < call->getNumOperands() - 1; ++i) {
             const llvm::Value* arg = call->getOperand(i);
             
             for (const auto& fact : facts) {
+                // Check if the argument itself is tainted
                 if (fact.is_tainted_var() && fact.get_value() == arg) {
                     if (!tainted_args.empty()) tainted_args += ", ";
                     tainted_args += "arg" + std::to_string(i);
                     break;
+                }
+                // Check if the argument points to tainted memory (direct match)
+                if (fact.is_tainted_memory() && arg->getType()->isPointerTy()) {
+                    if (fact.get_memory_location() == arg) {
+                        if (!tainted_args.empty()) tainted_args += ", ";
+                        tainted_args += "arg" + std::to_string(i) + "(mem)";
+                        break;
+                    }
+                    // Check if the argument may alias with tainted memory
+                    if (may_alias(arg, fact.get_memory_location())) {
+                        if (!tainted_args.empty()) tainted_args += ", ";
+                        tainted_args += "arg" + std::to_string(i) + "(alias)";
+                        break;
+                    }
                 }
             }
         }

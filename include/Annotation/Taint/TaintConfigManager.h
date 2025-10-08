@@ -18,6 +18,24 @@ private:
     static std::unique_ptr<TaintConfigManager> instance;
     std::unique_ptr<TaintConfig> config;
     
+    // Function name normalization: handles platform-specific prefixes and variants
+    static std::string normalize_function_name(const std::string& func_name) {
+        std::string normalized = func_name;
+        
+        // Strip platform-specific prefixes (e.g., "\01_" on macOS/Darwin)
+        if (normalized.length() > 2 && normalized[0] == 1 && normalized[1] == '_') {
+            normalized = normalized.substr(2);
+        }
+        
+        // Handle fortified versions (e.g., "__strcpy_chk" → "strcpy")
+        // These are security-hardened versions used on macOS and some Linux systems
+        if (normalized.find("__") == 0 && normalized.find("_chk") == normalized.length() - 4) {
+            normalized = normalized.substr(2, normalized.length() - 6);
+        }
+        
+        return normalized;
+    }
+    
 public:
     TaintConfigManager() {}
     
@@ -58,15 +76,21 @@ public:
     }
     
     bool is_source(const std::string& func_name) const {
-        return config && config->is_source(func_name);
+        if (!config) return false;
+        std::string normalized = normalize_function_name(func_name);
+        return config->is_source(normalized);
     }
     
     bool is_sink(const std::string& func_name) const {
-        return config && config->is_sink(func_name);
+        if (!config) return false;
+        std::string normalized = normalize_function_name(func_name);
+        return config->is_sink(normalized);
     }
     
     bool is_ignored(const std::string& func_name) const {
-        return config && config->is_ignored(func_name);
+        if (!config) return false;
+        std::string normalized = normalize_function_name(func_name);
+        return config->is_ignored(normalized);
     }
     
     bool is_source(const llvm::CallInst* call) const {
@@ -112,6 +136,17 @@ public:
         }
         return result;
     }
+    
+    const FunctionTaintConfig* get_function_config(const std::string& func_name) const {
+        if (!config) return nullptr;
+        std::string normalized = normalize_function_name(func_name);
+        return config->get_function_config(normalized);
+    }
+    
+    // Expose normalization for external use
+    static std::string get_normalized_name(const std::string& func_name) {
+        return normalize_function_name(func_name);
+    }
 };
 
 // Convenience namespace
@@ -154,5 +189,13 @@ namespace taint_config {
     
     inline size_t get_sink_count() {
         return TaintConfigManager::getInstance().get_sink_count();
+    }
+    
+    inline const FunctionTaintConfig* get_function_config(const std::string& func_name) {
+        return TaintConfigManager::getInstance().get_function_config(func_name);
+    }
+    
+    inline std::string normalize_name(const std::string& func_name) {
+        return TaintConfigManager::get_normalized_name(func_name);
     }
 }
