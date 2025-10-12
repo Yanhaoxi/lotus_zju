@@ -33,3 +33,8 @@ target_link_libraries(fpa PRIVATE
   CanaryFPA
   ${LLVM_LINK_COMPONENTS}
 )
+
+# Dynamic Alias Analysis tools (only built if BUILD_DYNAA is enabled)
+if(BUILD_DYNAA)
+  add_subdirectory(dynaa)
+endif()
