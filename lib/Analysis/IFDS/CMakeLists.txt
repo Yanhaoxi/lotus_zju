@@ -11,6 +11,8 @@ set(IFDS_FRAMEWORK_SOURCES
 set(IFDS_CLIENT_SOURCES
   Clients/IFDSTaintAnalysis.cpp
   Clients/IFDSReachingDefinitions.cpp
+  Clients/IDEConstantPropagation.cpp
+  Clients/IDETypeState.cpp
 )
 
 set(IFDS_SOURCES ${IFDS_FRAMEWORK_SOURCES} ${IFDS_CLIENT_SOURCES})

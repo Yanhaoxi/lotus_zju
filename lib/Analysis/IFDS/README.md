@@ -1,7 +1,28 @@
+# IFDS/IDE Dataflow Analysis
+
+## Writing An Analysis
+
+*Use IFDS**, if
+- your analysis is a plain reachability problem, that is, a data-flow fact can either hold, or not.
+- your analysis problem is distributive, that is, within a flow function the reachability of a successor fact may depend on at most one incoming fact.
+- your analysis problem is a may-analysis, since IFDS always uses set-union as merge operator
+
+All bit-vector problems fall into this category, including all classical gen-kill problems. Examples are taint analysis, uninitialized-variables analysis, constness analysis, etc.
 
 
+*Use IDE**, if
+
+- your analysis computes environments that associate the holding data-flow facts with an additional computed value
+- OR the set of holding data-flow facts is structured, i.e. some facts subsume other facts
+- OR your analysis is a must-analysis, since in contrast to IFDS the merge operator is customizable
+- your analysis problem is distributive, that is, within a flow function the reachability a of a successor fact as well as its associated value may depend on at most one incoming fact/value.
+
+Examples are linear constant-propagation, typestate analysis, type analysis, feature-taint analysis, etc.
 
 ## Related Work
+
+
+You may also refer to https://github.com/secure-software-engineering/phasar/wiki/Useful-Literature
 
 - ISSTA 23: Dongjie He, Yujiang Gui, Yaoqing Gao, and Jingling Xue. Reducing the Memory Footprint of
 IFDS-Based Data-Flow Analyses using Fine-Grained Garbage Collection.

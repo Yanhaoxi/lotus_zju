@@ -5,6 +5,8 @@
 pgm
 forwardSlice(pgm)
 backwardSlice(pgm)
+pgm.selectNodes(INST_FUNCALL)
+pgm.returnsOf("main")
 
 # Node and edge selection
 selectNodes(INST_FUNCALL)
@@ -12,6 +14,8 @@ selectNodes(INST_RET)
 selectNodes(PARAM_FORMALIN)
 selectEdges(DATA_DEF_USE)
 selectEdges(CONTROLDEP_BR)
+selectEdges(DATA_RAW)
+selectNodes(FUNC_ENTRY)
 
 # Function-specific queries
 returnsOf("main")
@@ -31,17 +35,26 @@ let dataNodes = selectNodes(INST_FUNCALL) in
 let controlNodes = selectNodes(INST_BR) in
 dataNodes ∩ controlNodes
 
+# Difference: function calls not control nodes
+let calls = selectNodes(INST_FUNCALL) in
+let pcs = selectNodes(INST_BR) in
+calls - pcs
+
 # Complex queries
 let input = returnsOf("getInput") in
 let output = formalsOf("print") in
 forwardSlice(input) ∩ backwardSlice(output)
+
+# Chaining examples
+pgm.selectNodes(INST_RET) U returnsOf("main")
+pgm.forwardSlice(returnsOf("getInput"))
 
 # Policy examples
 noExplicitFlows(returnsOf("secret"), formalsOf("output")) is empty
 between(returnsOf("input"), formalsOf("sink")) is empty
 
 # Access control policies
-let checks = findPCNodes(returnsOf("isAuthorized"), TRUE) in
+let checks = findPCNodes(returnsOf("isAuthorized"), CONTROLDEP_BR) in
 let sensitiveOps = selectNodes(INST_FUNCALL) in
 accessControlled(checks, sensitiveOps) is empty
 
@@ -50,3 +63,9 @@ let sources = returnsOf("userInput") in
 let sinks = formalsOf("networkSend") in
 let sanitizers = returnsOf("sanitize") in
 declassifies(sanitizers, sources, sinks) is empty
+
+# From the paper (adapted): secret does not influence output except by comparison
+let secret = returnsOf("getRandom") in
+let outputs = formalsOf("output") in
+let check = selectNodes(INST_BR) in
+removeControlDeps(check) is empty

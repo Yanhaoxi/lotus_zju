@@ -15,10 +15,92 @@
 
 #include "IR/PDG/QueryLanguage.h"
 #include <sstream>
+#include <unordered_map>
 
 using namespace llvm;
 
 namespace pdg {
+
+// Helpers: robust string-to-enum parsers for node/edge kinds
+static bool toUpperInPlace(std::string &s) {
+    bool changed = false; for (char &c : s) { char u = static_cast<char>(std::toupper(static_cast<unsigned char>(c))); if (u != c) { c = u; changed = true; } }
+    return changed;
+}
+
+static bool parseGraphNodeType(const std::string &raw, GraphNodeType &out) {
+    static const std::unordered_map<std::string, GraphNodeType> map = {
+        {"INST_FUNCALL", GraphNodeType::INST_FUNCALL},
+        {"INST_RET", GraphNodeType::INST_RET},
+        {"INST_BR", GraphNodeType::INST_BR},
+        {"INST_OTHER", GraphNodeType::INST_OTHER},
+        {"FUNC_ENTRY", GraphNodeType::FUNC_ENTRY},
+        {"PARAM_FORMALIN", GraphNodeType::PARAM_FORMALIN},
+        {"PARAM_FORMALOUT", GraphNodeType::PARAM_FORMALOUT},
+        {"PARAM_ACTUALIN", GraphNodeType::PARAM_ACTUALIN},
+        {"PARAM_ACTUALOUT", GraphNodeType::PARAM_ACTUALOUT},
+        {"VAR_STATICALLOCGLOBALSCOPE", GraphNodeType::VAR_STATICALLOCGLOBALSCOPE},
+        {"VAR_STATICALLOCMODULESCOPE", GraphNodeType::VAR_STATICALLOCMODULESCOPE},
+        {"VAR_STATICALLOCFUNCTIONSCOPE", GraphNodeType::VAR_STATICALLOCFUNCTIONSCOPE},
+        {"VAR_OTHER", GraphNodeType::VAR_OTHER},
+        {"FUNC", GraphNodeType::FUNC},
+        {"CLASS", GraphNodeType::CLASS},
+        {"ANNO_VAR", GraphNodeType::ANNO_VAR},
+        {"ANNO_GLOBAL", GraphNodeType::ANNO_GLOBAL},
+        {"ANNO_OTHER", GraphNodeType::ANNO_OTHER},
+        // aliases / shorthands used in docs
+        {"PC", GraphNodeType::INST_BR},
+        {"ENTRYPC", GraphNodeType::FUNC_ENTRY},
+        {"FORMAL", GraphNodeType::PARAM_FORMALIN},
+        {"FORMALIN", GraphNodeType::PARAM_FORMALIN},
+        {"FORMALOUT", GraphNodeType::PARAM_FORMALOUT},
+        {"ACTUAL", GraphNodeType::PARAM_ACTUALIN},
+        {"ACTUALIN", GraphNodeType::PARAM_ACTUALIN},
+        {"ACTUALOUT", GraphNodeType::PARAM_ACTUALOUT}
+    };
+    std::string key = raw; toUpperInPlace(key);
+    auto it = map.find(key);
+    if (it == map.end()) return false;
+    out = it->second; return true;
+}
+
+static bool parseEdgeType(const std::string &raw, EdgeType &out) {
+    static const std::unordered_map<std::string, EdgeType> map = {
+        {"IND_CALL", EdgeType::IND_CALL},
+        {"CONTROLDEP_CALLINV", EdgeType::CONTROLDEP_CALLINV},
+        {"CONTROLDEP_CALLRET", EdgeType::CONTROLDEP_CALLRET},
+        {"CONTROLDEP_ENTRY", EdgeType::CONTROLDEP_ENTRY},
+        {"CONTROLDEP_BR", EdgeType::CONTROLDEP_BR},
+        {"CONTROLDEP_IND_BR", EdgeType::CONTROLDEP_IND_BR},
+        {"DATA_DEF_USE", EdgeType::DATA_DEF_USE},
+        {"DATA_RAW", EdgeType::DATA_RAW},
+        {"DATA_READ", EdgeType::DATA_READ},
+        {"DATA_ALIAS", EdgeType::DATA_ALIAS},
+        {"DATA_RET", EdgeType::DATA_RET},
+        {"PARAMETER_IN", EdgeType::PARAMETER_IN},
+        {"PARAMETER_OUT", EdgeType::PARAMETER_OUT},
+        {"PARAMETER_FIELD", EdgeType::PARAMETER_FIELD},
+        {"GLOBAL_DEP", EdgeType::GLOBAL_DEP},
+        {"VAL_DEP", EdgeType::VAL_DEP},
+        {"CLS_MTH", EdgeType::CLS_MTH},
+        {"ANNO_VAR", EdgeType::ANNO_VAR},
+        {"ANNO_GLOBAL", EdgeType::ANNO_GLOBAL},
+        {"ANNO_OTHER", EdgeType::ANNO_OTHER},
+        {"TYPE_OTHEREDGE", EdgeType::TYPE_OTHEREDGE},
+        // aliases
+        {"CD", EdgeType::CONTROLDEP_BR},
+        {"CD_ENTRY", EdgeType::CONTROLDEP_ENTRY},
+        {"CD_BR", EdgeType::CONTROLDEP_BR},
+        {"CD_CALLINV", EdgeType::CONTROLDEP_CALLINV},
+        {"CD_CALLRET", EdgeType::CONTROLDEP_CALLRET},
+        {"CD_IND_BR", EdgeType::CONTROLDEP_IND_BR},
+        {"DD", EdgeType::DATA_DEF_USE},
+        {"RAW", EdgeType::DATA_RAW}
+    };
+    std::string key = raw; toUpperInPlace(key);
+    auto it = map.find(key);
+    if (it == map.end()) return false;
+    out = it->second; return true;
+}
 
 // ============================================================================
 // QueryAST implementations
@@ -261,6 +343,82 @@ std::unique_ptr<QueryResult> PrimitiveExprAST::evaluate(QueryExecutor& executor)
             return executor.backwardSlice(argResult->getNodes());
         }
         
+        case PrimitiveType::ENTRIES_OF: {
+            if (args_.size() < 2) {
+                if (args_.size() == 1) {
+                    auto argResult = args_[0]->evaluate(executor);
+                    if (argResult->getType() == QueryResult::Type::STRING) {
+                        auto stringResult = static_cast<const StringResult*>(argResult.get());
+                        return executor.entriesOf(stringResult->getValue());
+                    }
+                    return std::make_unique<NodeSetResult>();
+                }
+                return std::make_unique<NodeSetResult>();
+            }
+            auto argResult = args_[1]->evaluate(executor);
+            if (argResult->getType() == QueryResult::Type::STRING) {
+                auto stringResult = static_cast<const StringResult*>(argResult.get());
+                return executor.entriesOf(stringResult->getValue());
+            }
+            return std::make_unique<NodeSetResult>();
+        }
+
+        case PrimitiveType::FIND_PC_NODES: {
+            // findPCNodes(expr, EDGE_TYPE)
+            if (args_.size() < 2) {
+                return std::make_unique<NodeSetResult>();
+            }
+            auto exprRes = args_[0]->evaluate(executor);
+            auto edgeArg = args_[1]->evaluate(executor);
+            EdgeType edgeType = EdgeType::CONTROLDEP_BR;
+            if (edgeArg->getType() == QueryResult::Type::STRING) {
+                auto s = static_cast<const StringResult*>(edgeArg.get())->getValue();
+                // Accept common names
+                if (s == "CONTROLDEP_ENTRY") edgeType = EdgeType::CONTROLDEP_ENTRY;
+                else if (s == "CONTROLDEP_CALLINV") edgeType = EdgeType::CONTROLDEP_CALLINV;
+                else if (s == "CONTROLDEP_CALLRET") edgeType = EdgeType::CONTROLDEP_CALLRET;
+                else if (s == "CONTROLDEP_BR" || s == "CD") edgeType = EdgeType::CONTROLDEP_BR;
+                else if (s == "CONTROLDEP_IND_BR") edgeType = EdgeType::CONTROLDEP_IND_BR;
+            }
+            return executor.findPCNodes(exprRes->getNodes(), edgeType);
+        }
+
+        case PrimitiveType::REMOVE_CONTROL_DEPS: {
+            if (args_.empty()) return std::make_unique<NodeSetResult>();
+            auto exprRes = args_[0]->evaluate(executor);
+            return executor.removeControlDeps(exprRes->getNodes());
+        }
+
+        case PrimitiveType::NO_EXPLICIT_FLOWS: {
+            if (args_.size() < 2) return std::make_unique<NodeSetResult>();
+            auto srcRes = args_[0]->evaluate(executor);
+            auto sinkRes = args_[1]->evaluate(executor);
+            return executor.noExplicitFlows(srcRes->getNodes(), sinkRes->getNodes());
+        }
+
+        case PrimitiveType::DECLASSIFIES: {
+            if (args_.size() < 3) return std::make_unique<NodeSetResult>();
+            auto dec = args_[0]->evaluate(executor);
+            auto src = args_[1]->evaluate(executor);
+            auto sink = args_[2]->evaluate(executor);
+            return executor.declassifies(dec->getNodes(), src->getNodes(), sink->getNodes());
+        }
+
+        case PrimitiveType::FLOW_ACCESS_CONTROLLED: {
+            if (args_.size() < 3) return std::make_unique<NodeSetResult>();
+            auto checks = args_[0]->evaluate(executor);
+            auto src = args_[1]->evaluate(executor);
+            auto sink = args_[2]->evaluate(executor);
+            return executor.flowAccessControlled(checks->getNodes(), src->getNodes(), sink->getNodes());
+        }
+
+        case PrimitiveType::ACCESS_CONTROLLED: {
+            if (args_.size() < 2) return std::make_unique<NodeSetResult>();
+            auto checks = args_[0]->evaluate(executor);
+            auto ops = args_[1]->evaluate(executor);
+            return executor.accessControlled(checks->getNodes(), ops->getNodes());
+        }
+
         case PrimitiveType::SHORTEST_PATH: {
             // For method calls like pgm.shortestPath(from, to), args_[0] is pgm, args_[1] is from, args_[2] is to
             if (args_.size() < 3) {
@@ -279,86 +437,37 @@ std::unique_ptr<QueryResult> PrimitiveExprAST::evaluate(QueryExecutor& executor)
         
         case PrimitiveType::SELECT_EDGES: {
             // For method calls like pgm.selectEdges(edgeType), args_[0] is pgm, args_[1] is edgeType
-            if (args_.size() < 2) {
-                // Fallback for standalone calls: selectEdges(edgeType)
-                if (args_.size() == 1) {
-                    auto argResult = args_[0]->evaluate(executor);
-                    // Parse edge type from string
-                    if (argResult->getType() == QueryResult::Type::STRING) {
-                        auto stringResult = static_cast<const StringResult*>(argResult.get());
-                        std::string edgeTypeStr = stringResult->getValue();
-                        // Map string to EdgeType enum
-                        EdgeType edgeType = EdgeType::DATA_DEF_USE; // Default
-                        if (edgeTypeStr == "CD") edgeType = EdgeType::CONTROLDEP_BR;
-                        else if (edgeTypeStr == "EXP") edgeType = EdgeType::DATA_DEF_USE;
-                        else if (edgeTypeStr == "TRUE") edgeType = EdgeType::CONTROLDEP_BR;
-                        else if (edgeTypeStr == "FALSE") edgeType = EdgeType::CONTROLDEP_BR;
-                        return executor.selectEdges(edgeType);
-                    }
-                    return executor.selectEdges(EdgeType::DATA_DEF_USE);
+            auto parseOne = [&](const std::unique_ptr<ExpressionAST> &arg) -> std::unique_ptr<QueryResult> {
+                auto argResult = arg->evaluate(executor);
+                if (argResult->getType() == QueryResult::Type::STRING) {
+                    auto s = static_cast<const StringResult*>(argResult.get())->getValue();
+                    EdgeType t; if (parseEdgeType(s, t)) return executor.selectEdges(t);
                 }
+                // default fallback: DATA_DEF_USE
+                return executor.selectEdges(EdgeType::DATA_DEF_USE);
+            };
+            if (args_.size() < 2) {
+                if (args_.size() == 1) return parseOne(args_[0]);
                 return std::make_unique<EdgeSetResult>();
             }
-            auto argResult = args_[1]->evaluate(executor);
-            // Parse edge type from string
-            if (argResult->getType() == QueryResult::Type::STRING) {
-                auto stringResult = static_cast<const StringResult*>(argResult.get());
-                std::string edgeTypeStr = stringResult->getValue();
-                // Map string to EdgeType enum
-                EdgeType edgeType = EdgeType::DATA_DEF_USE; // Default
-                if (edgeTypeStr == "CD") edgeType = EdgeType::CONTROLDEP_BR;
-                else if (edgeTypeStr == "EXP") edgeType = EdgeType::DATA_DEF_USE;
-                else if (edgeTypeStr == "TRUE") edgeType = EdgeType::CONTROLDEP_BR;
-                else if (edgeTypeStr == "FALSE") edgeType = EdgeType::CONTROLDEP_BR;
-                return executor.selectEdges(edgeType);
-            }
-            return executor.selectEdges(EdgeType::DATA_DEF_USE);
+            return parseOne(args_[1]);
         }
         
         case PrimitiveType::SELECT_NODES: {
             // For method calls like pgm.selectNodes(nodeType), args_[0] is pgm, args_[1] is nodeType
-            if (args_.size() < 2) {
-                // Fallback for standalone calls: selectNodes(nodeType)
-                if (args_.size() == 1) {
-                    auto argResult = args_[0]->evaluate(executor);
-                    // Parse node type from string
-                    if (argResult->getType() == QueryResult::Type::STRING) {
-                        auto stringResult = static_cast<const StringResult*>(argResult.get());
-                        std::string nodeTypeStr = stringResult->getValue();
-                        // Map string to GraphNodeType enum
-                        GraphNodeType nodeType = GraphNodeType::INST_OTHER; // Default
-                        if (nodeTypeStr == "PC") nodeType = GraphNodeType::INST_BR;
-                        else if (nodeTypeStr == "ENTRYPC") nodeType = GraphNodeType::FUNC_ENTRY;
-                        else if (nodeTypeStr == "FORMAL") nodeType = GraphNodeType::PARAM_FORMALIN;
-                        else if (nodeTypeStr == "ACTUAL") nodeType = GraphNodeType::PARAM_ACTUALIN;
-                        else if (nodeTypeStr == "INST_FUNCALL") nodeType = GraphNodeType::INST_FUNCALL;
-                        else if (nodeTypeStr == "INST_RET") nodeType = GraphNodeType::INST_RET;
-                        else if (nodeTypeStr == "INST_BR") nodeType = GraphNodeType::INST_BR;
-                        else if (nodeTypeStr == "INST_OTHER") nodeType = GraphNodeType::INST_OTHER;
-                        return executor.selectNodes(nodeType);
-                    }
-                    return executor.selectNodes(GraphNodeType::INST_OTHER);
+            auto parseOne = [&](const std::unique_ptr<ExpressionAST> &arg) -> std::unique_ptr<QueryResult> {
+                auto argResult = arg->evaluate(executor);
+                if (argResult->getType() == QueryResult::Type::STRING) {
+                    auto s = static_cast<const StringResult*>(argResult.get())->getValue();
+                    GraphNodeType t; if (parseGraphNodeType(s, t)) return executor.selectNodes(t);
                 }
+                return executor.selectNodes(GraphNodeType::INST_OTHER);
+            };
+            if (args_.size() < 2) {
+                if (args_.size() == 1) return parseOne(args_[0]);
                 return std::make_unique<NodeSetResult>();
             }
-            auto argResult = args_[1]->evaluate(executor);
-            // Parse node type from string
-            if (argResult->getType() == QueryResult::Type::STRING) {
-                auto stringResult = static_cast<const StringResult*>(argResult.get());
-                std::string nodeTypeStr = stringResult->getValue();
-                // Map string to GraphNodeType enum
-                GraphNodeType nodeType = GraphNodeType::INST_OTHER; // Default
-                if (nodeTypeStr == "PC") nodeType = GraphNodeType::INST_BR;
-                else if (nodeTypeStr == "ENTRYPC") nodeType = GraphNodeType::FUNC_ENTRY;
-                else if (nodeTypeStr == "FORMAL") nodeType = GraphNodeType::PARAM_FORMALIN;
-                else if (nodeTypeStr == "ACTUAL") nodeType = GraphNodeType::PARAM_ACTUALIN;
-                else if (nodeTypeStr == "INST_FUNCALL") nodeType = GraphNodeType::INST_FUNCALL;
-                else if (nodeTypeStr == "INST_RET") nodeType = GraphNodeType::INST_RET;
-                else if (nodeTypeStr == "INST_BR") nodeType = GraphNodeType::INST_BR;
-                else if (nodeTypeStr == "INST_OTHER") nodeType = GraphNodeType::INST_OTHER;
-                return executor.selectNodes(nodeType);
-            }
-            return executor.selectNodes(GraphNodeType::INST_OTHER);
+            return parseOne(args_[1]);
         }
         
         case PrimitiveType::RETURNS_OF: {
