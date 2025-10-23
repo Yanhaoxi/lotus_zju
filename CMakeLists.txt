@@ -60,7 +60,7 @@ if(CUSTOM_BOOST_ROOT)
     set(Boost_NO_SYSTEM_PATHS "ON")
 endif()
 
-find_package(Boost 1.65)
+find_package(Boost 1.65 COMPONENTS system thread)
 
 if(NOT Boost_FOUND AND DOWNLOAD_BOOST)
     include(ExternalProject)
@@ -72,7 +72,7 @@ if(NOT Boost_FOUND AND DOWNLOAD_BOOST)
         GIT_TAG boost-1.65.0
         PREFIX ${CMAKE_BINARY_DIR}/deps
         CONFIGURE_COMMAND ./bootstrap.sh --prefix=${BOOST_INSTALL_DIR}
-        BUILD_COMMAND ./b2 --with-system --with-graph install
+        BUILD_COMMAND ./b2 --with-system --with-thread install
         BUILD_IN_SOURCE 1
         INSTALL_COMMAND ""
         INSTALL_DIR ${BOOST_INSTALL_DIR}

@@ -2,6 +2,7 @@
 add_subdirectory(alias)
 add_subdirectory(checker)
 add_subdirectory(csr)
+add_subdirectory(graspan)
 add_subdirectory(pdg-query)
 
 

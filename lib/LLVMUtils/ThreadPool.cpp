@@ -6,7 +6,7 @@
 
 using namespace llvm;
 
-// Command line option for specifying the number of worker threads.
+// Command line option for specifying the number of worker threads.tr
 static cl::opt<unsigned>
     NumWorkers("nworkers",
                cl::desc("Specify the number of workers to perform analysis. "

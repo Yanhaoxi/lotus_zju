@@ -39,8 +39,8 @@ bit_vector::bit_vector(int64_t num_bits)
 
   if ((_db = calloc(num_bytes, 1)) == NULL)
   {
-    cout << "calloc bit_vector()" << endl;
-    std::cout << "num_bytes " << num_bytes << "\n";
+    std::cerr << "calloc bit_vector()" << "\n";
+    std::cerr << "num_bytes " << num_bytes << "\n";
     exit(1);
   }
 }
