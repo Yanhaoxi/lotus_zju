@@ -20,7 +20,7 @@ Universal interface for the analyses in lib/Alias:
 
 - Basics: points-to, alias pair, alias set, pointed-by, callgraph, memory dependence, etc.
 - Pointer queries: points-to, alias pair, alias set, pointed-by set
-- Callgraph: callgraph edges, reachable methods
+- Callgraph: callgraph edges, reachable methods, etc.
 - Optimizations: devirtualization, dead code elimination, ...
 - Security: control-flow integrity, code pointer integrity, ...
 - IR: Memory SSA, DDG, PDG, SDG, SVFG, etc.
@@ -93,8 +93,8 @@ Some related publications
 
 ## Investigate More Related Work
 
-- [SFS]https://github.com/hotpeperoncino/sfs, Ben Hardekopf's CGO 11.
-- [ccylzer] https://github.com/GaloisInc/cclyzerpp, Yannis's SAS 16.
+- [SFS](https://github.com/hotpeperoncino/sfs), Ben Hardekopf's CGO 11.
+- [ccylzer](https://github.com/GaloisInc/cclyzerpp), Yannis's SAS 16.
 - [DG](https://github.com/mchalupa/dg) - Dependence Graph for analysis of LLVM bitcode ([paper1](https://www.fi.muni.cz/~xchalup4/dg_atva20_preprint.pdf), [paper2](https://www.sciencedirect.com/science/article/pii/S2665963820300294?via%3Dihub))
 - https://github.com/jumormt/PSTA-16 
 - [SVF] https://github.com/SVF-tools/SVF

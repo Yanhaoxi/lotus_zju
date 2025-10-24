@@ -1,3 +1,6 @@
+/*
+FIXME: this is a pretty much unfinished pass.
+*/
 #include "IR/SSI/SSI.h"
 
 using namespace llvm;

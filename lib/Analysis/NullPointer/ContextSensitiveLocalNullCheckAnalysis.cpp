@@ -10,7 +10,7 @@
 #include <llvm/Support/Debug.h>
 #include <llvm/IR/InstIterator.h>
 #include "Analysis/NullPointer/ContextSensitiveLocalNullCheckAnalysis.h"
-#include "Analysis/NullPointer/AliasAnalysisAdapter.h"
+//#include "Analysis/NullPointer/AliasAnalysisAdapter.h"
 #include "LLVMUtils/API.h"
 
 ContextSensitiveLocalNullCheckAnalysis::ContextSensitiveLocalNullCheckAnalysis(
