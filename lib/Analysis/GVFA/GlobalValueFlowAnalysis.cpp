@@ -16,6 +16,7 @@
 
 #include "Analysis/GVFA/GlobalValueFlowAnalysis.h"
 #include "Analysis/GVFA/ReachabilityAlgorithms.h"
+#include "Checker/gvfa/VulnerabilityChecker.h"
 #include "LLVMUtils/RecursiveTimer.h"
 
 using namespace llvm;
@@ -566,4 +567,117 @@ void DyckGlobalValueFlowAnalysis::detailedBackwardRun() {
     for (const auto &Sink : Sinks) {
         detailedBackwardReachability(Sink.first, Sink.first);
     }
+}
+
+/**
+ * Extract a witness path from source to target showing key propagation steps.
+ * 
+ * Returns a vector of key intermediate values (stores, loads, calls, returns, PHIs)
+ * that demonstrate how the value flows from source to target.
+ */
+std::vector<const Value *> DyckGlobalValueFlowAnalysis::getWitnessPath(
+    const Value *From, const Value *To) const {
+    
+    std::vector<const Value *> path;
+    
+    // Sanity checks
+    if (!From || !To || !VFG) {
+        return path;
+    }
+    
+    // BFS to find a path from From to To
+    std::queue<const Value *> worklist;
+    std::unordered_map<const Value *, const Value *> parent;
+    std::unordered_set<const Value *> visited;
+    
+    worklist.push(From);
+    visited.insert(From);
+    parent[From] = nullptr;
+    
+    // Limit BFS to avoid infinite loops or very long searches
+    const size_t MAX_ITERATIONS = 10000;
+    size_t iterations = 0;
+    
+    bool found = false;
+    while (!worklist.empty() && !found && iterations++ < MAX_ITERATIONS) {
+        const Value *current = worklist.front();
+        worklist.pop();
+        
+        if (current == To) {
+            found = true;
+            break;
+        }
+        
+        // Get successors through VFG
+        std::vector<const Value *> succs = getSuccessors(current);
+        for (const Value *succ : succs) {
+            if (!succ) continue; // Skip null successors
+            
+            if (visited.find(succ) == visited.end()) {
+                visited.insert(succ);
+                parent[succ] = current;
+                worklist.push(succ);
+                
+                if (succ == To) {
+                    found = true;
+                    break;
+                }
+            }
+        }
+    }
+    
+    if (!found) {
+        return path; // Empty path if not reachable
+    }
+    
+    // Reconstruct path from parent pointers
+    std::vector<const Value *> fullPath;
+    const Value *current = To;
+    while (current != nullptr) {
+        fullPath.push_back(current);
+        current = parent[current];
+    }
+    std::reverse(fullPath.begin(), fullPath.end());
+    
+    // Filter to keep only interesting propagation points:
+    // - StoreInst: value is stored to memory
+    // - LoadInst: value is loaded from memory
+    // - CallInst: value is passed as argument or is result
+    // - ReturnInst: value is returned from function
+    // - PHINode: value flows through control flow merge
+    // - GetElementPtrInst: pointer arithmetic
+    // - Always include source and sink
+    
+    for (const Value *V : fullPath) {
+        if (V == From || V == To) {
+            // Always include source and sink
+            path.push_back(V);
+        } else if (const Instruction *I = dyn_cast<Instruction>(V)) {
+            if (isa<StoreInst>(I) || isa<LoadInst>(I) || 
+                isa<CallInst>(I) || isa<ReturnInst>(I) || 
+                isa<PHINode>(I) || isa<GetElementPtrInst>(I)) {
+                path.push_back(V);
+            }
+        }
+    }
+    
+    // Limit path length to avoid overwhelming reports (keep first few and last few)
+    const size_t MAX_PATH_STEPS = 8;
+    if (path.size() > MAX_PATH_STEPS) {
+        std::vector<const Value *> truncated;
+        // Keep first 3 (including source)
+        for (size_t i = 0; i < 3 && i < path.size(); ++i) {
+            truncated.push_back(path[i]);
+        }
+        // Add ellipsis marker (null pointer)
+        truncated.push_back(nullptr);
+        // Keep last 3 (including sink)
+        size_t start = path.size() - 3;
+        for (size_t i = start; i < path.size(); ++i) {
+            truncated.push_back(path[i]);
+        }
+        path = truncated;
+    }
+    
+    return path;
 }

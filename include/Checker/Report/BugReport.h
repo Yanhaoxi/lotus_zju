@@ -21,7 +21,7 @@ struct BugDiagStep {
     llvm::Value* inst = nullptr;
     
     // Source file location
-    llvm::StringRef src_file;
+    std::string src_file;
     int src_line = 0;
     int src_column = 0;
     
@@ -29,7 +29,19 @@ struct BugDiagStep {
     std::string tip;
     
     // Function containing this instruction
-    llvm::StringRef func_name;
+    std::string func_name;
+    
+    // LLVM IR representation
+    std::string llvm_ir;
+    
+    // Variable/pointer name (if available from debug info or instruction name)
+    std::string var_name;
+    
+    // Type information for the value
+    std::string type_name;
+    
+    // Actual source code line (if available)
+    std::string source_code;
 };
 
 /**

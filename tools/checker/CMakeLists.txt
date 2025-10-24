@@ -1,24 +1,16 @@
-# Bug checking tools: canary, gvfa-tool, kint, and ifds-taint
+# Bug checking tools: gvfa, kint, ifds-taint, and concurrency-checker
 
 llvm_map_components_to_libnames(LLVM_LINK_COMPONENTS
   Coroutines
   Target
 )
 
-# Canary: Null Pointer Analysis Driver
-add_executable(canary-npa canary_npa.cpp)
-target_link_libraries(canary-npa PRIVATE
-  CanaryNullPointer 
-  CanaryDyckAA 
-  CanaryTransform 
-  CanaryLLVMUtils
-  ${LLVM_LINK_COMPONENTS}
-)
-
-# Global Value Flow Analysis Tool
+# Global Value Flow Analysis Tool (unified, includes null pointer analysis)
 add_executable(canary-gvfa canary_gvfa.cpp)
 target_link_libraries(canary-gvfa PRIVATE
   GVFA
+  GVFAChecker
+  CanaryReport
   Annotation
   ${LLVM_LINK_COMPONENTS}
 )

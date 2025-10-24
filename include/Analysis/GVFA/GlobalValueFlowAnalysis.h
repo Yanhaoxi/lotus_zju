@@ -17,9 +17,11 @@
 #include "Alias/DyckAA/DyckVFG.h"
 #include "Alias/DyckAA/DyckAliasAnalysis.h"
 #include "Alias/DyckAA/DyckModRefAnalysis.h"
-#include "Analysis/GVFA/VulnerabilityCheckers.h"
 
 using namespace llvm;
+
+// Forward declaration to avoid circular dependency
+class VulnerabilityChecker;
 
 // Hash function for pair<const CallInst *, const Function *>
 namespace std {
@@ -97,6 +99,9 @@ public:
     bool cflBackwardReachable(const Value *From, const Value *To) const;
     bool contextSensitiveReachable(const Value *From, const Value *To) const;
     bool contextSensitiveBackwardReachable(const Value *From, const Value *To) const;
+    
+    // Path extraction for bug reporting
+    std::vector<const Value *> getWitnessPath(const Value *From, const Value *To) const;
     
     // Utilities
     void printOnlineQueryTime(llvm::raw_ostream &O, const char *Title = "[Online]") const;
