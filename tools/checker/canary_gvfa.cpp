@@ -5,6 +5,9 @@
 #include "Analysis/GVFA/GlobalValueFlowAnalysis.h"
 #include "Checker/gvfa/NullPointerChecker.h"
 #include "Checker/gvfa/UseAfterFreeChecker.h"
+#include "Checker/gvfa/UseOfUninitializedVariableChecker.h"
+#include "Checker/gvfa/FreeOfNonHeapMemoryChecker.h"
+#include "Checker/gvfa/InvalidUseOfStackAddressChecker.h"
 #include "Checker/Report/BugReportMgr.h"
 #include "Analysis/NullPointer/NullCheckAnalysis.h"
 #include "Analysis/NullPointer/ContextSensitiveNullCheckAnalysis.h"
@@ -22,7 +25,14 @@
 using namespace llvm;
 
 static cl::opt<std::string> InputFilename(cl::Positional, cl::desc("<input bitcode file>"), cl::Required);
-static cl::opt<std::string> VulnType("vuln-type", cl::desc("Vulnerability type (nullpointer, useafterfree)"), cl::init("nullpointer"));
+static cl::opt<std::string> VulnType("vuln-type", 
+    cl::desc("Vulnerability type:\n"
+             "  nullpointer - Null pointer dereference\n"
+             "  useafterfree - Use after free\n"
+             "  uninitialized - Use of uninitialized variable\n"
+             "  freenonheap - Free of non-heap memory\n"
+             "  stackaddress - Invalid use of stack address"), 
+    cl::init("nullpointer"));
 static cl::opt<bool> UseNPA("use-npa", cl::desc("Use NullCheckAnalysis to improve precision"), cl::init(false));
 static cl::opt<bool> ContextSensitive("ctx", cl::desc("Use context-sensitive analysis"), cl::init(false));
 static cl::opt<bool> Verbose("verbose", cl::desc("Print detailed vulnerability information"), cl::init(false));
@@ -70,7 +80,7 @@ int main(int argc, char **argv) {
     DyckGlobalValueFlowAnalysis GVFA(M.get(), &VFG, DyckAA, DyckMRA);
     
     // Create and configure vulnerability checker
-    std::unique_ptr<VulnerabilityChecker> checker;
+    std::unique_ptr<GVFAVulnerabilityChecker> checker;
     if (VulnType == "nullpointer") {
         auto npChecker = std::make_unique<NullPointerChecker>();
         if (NCA) npChecker->setNullCheckAnalysis(NCA);
@@ -78,8 +88,15 @@ int main(int argc, char **argv) {
         checker = std::move(npChecker);
     } else if (VulnType == "useafterfree") {
         checker = std::make_unique<UseAfterFreeChecker>();
+    } else if (VulnType == "uninitialized") {
+        checker = std::make_unique<UseOfUninitializedVariableChecker>();
+    } else if (VulnType == "freenonheap") {
+        checker = std::make_unique<FreeOfNonHeapMemoryChecker>();
+    } else if (VulnType == "stackaddress") {
+        checker = std::make_unique<InvalidUseOfStackAddressChecker>();
     } else {
         errs() << "Unknown vulnerability type: " << VulnType << "\n";
+        errs() << "Available types: nullpointer, useafterfree, uninitialized, freenonheap, stackaddress\n";
         return 1;
     }
     

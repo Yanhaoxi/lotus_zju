@@ -21,7 +21,7 @@
 using namespace llvm;
 
 // Forward declaration to avoid circular dependency
-class VulnerabilityChecker;
+class GVFAVulnerabilityChecker;
 
 // Hash function for pair<const CallInst *, const Function *>
 namespace std {
@@ -75,7 +75,7 @@ private:
     VulnerabilitySinksType Sinks;
     
     // Vulnerability checker
-    std::unique_ptr<VulnerabilityChecker> VulnChecker;
+    std::unique_ptr<GVFAVulnerabilityChecker> VulnChecker;
 
 public:
     DyckGlobalValueFlowAnalysis(Module *M, DyckVFG *VFG, DyckAliasAnalysis *DyckAA, 
@@ -84,7 +84,7 @@ public:
     ~DyckGlobalValueFlowAnalysis();
     
     // Public interface
-    void setVulnerabilityChecker(std::unique_ptr<VulnerabilityChecker> checker);
+    void setVulnerabilityChecker(std::unique_ptr<GVFAVulnerabilityChecker> checker);
     void run();
     
     // Query interfaces
@@ -105,7 +105,7 @@ public:
     
     // Utilities
     void printOnlineQueryTime(llvm::raw_ostream &O, const char *Title = "[Online]") const;
-    VulnerabilityChecker* getVulnerabilityChecker() const { return VulnChecker.get(); }
+    GVFAVulnerabilityChecker* getVulnerabilityChecker() const { return VulnChecker.get(); }
 
 private:
     // Analysis algorithms

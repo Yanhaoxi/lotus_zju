@@ -1,7 +1,7 @@
 #ifndef CHECKER_GVFA_USEAFTERFREECHECKER_H
 #define CHECKER_GVFA_USEAFTERFREECHECKER_H
 
-#include "Checker/gvfa/VulnerabilityChecker.h"
+#include "Checker/gvfa/GVFAVulnerabilityChecker.h"
 
 /**
  * Use-after-free vulnerability checker
@@ -10,7 +10,7 @@
  * sources where memory is freed and sinks where that memory is subsequently
  * accessed through loads, stores, or other operations.
  */
-class UseAfterFreeChecker : public VulnerabilityChecker {
+class UseAfterFreeChecker : public GVFAVulnerabilityChecker {
 public:
     void getSources(Module *M, VulnerabilitySourcesType &Sources) override;
     void getSinks(Module *M, VulnerabilitySinksType &Sinks) override;

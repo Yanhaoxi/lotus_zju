@@ -16,7 +16,7 @@
 
 #include "Analysis/GVFA/GlobalValueFlowAnalysis.h"
 #include "Analysis/GVFA/ReachabilityAlgorithms.h"
-#include "Checker/gvfa/VulnerabilityChecker.h"
+#include "Checker/gvfa/GVFAVulnerabilityChecker.h"
 #include "LLVMUtils/RecursiveTimer.h"
 
 using namespace llvm;
@@ -63,7 +63,7 @@ DyckGlobalValueFlowAnalysis::~DyckGlobalValueFlowAnalysis() = default;
 
 // Set vulnerability checker
 
-void DyckGlobalValueFlowAnalysis::setVulnerabilityChecker(std::unique_ptr<VulnerabilityChecker> checker) {
+void DyckGlobalValueFlowAnalysis::setVulnerabilityChecker(std::unique_ptr<GVFAVulnerabilityChecker> checker) {
     VulnChecker = std::move(checker);
 }
 

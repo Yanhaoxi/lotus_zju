@@ -21,7 +21,7 @@ set(CanaryNullPointer_SOURCES
   NullPointer/AliasAnalysisAdapter.cpp
 )
 add_library(CanaryNullPointer STATIC ${CanaryNullPointer_SOURCES})
-target_link_libraries(CanaryNullPointer CanaryLLVMUtils)
+target_link_libraries(CanaryNullPointer CanaryLLVMUtils CanaryDyckAA)
 
 set(GVFA_SOURCES
   GVFA/GlobalValueFlowAnalysis.cpp

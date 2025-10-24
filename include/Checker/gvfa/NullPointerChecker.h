@@ -1,7 +1,7 @@
 #ifndef CHECKER_GVFA_NULLPOINTERCHECKER_H
 #define CHECKER_GVFA_NULLPOINTERCHECKER_H
 
-#include "Checker/gvfa/VulnerabilityChecker.h"
+#include "Checker/gvfa/GVFAVulnerabilityChecker.h"
 
 // Forward declarations
 class NullCheckAnalysis;
@@ -15,7 +15,7 @@ class ContextSensitiveNullCheckAnalysis;
  * pointer dereferences occur. Can optionally use NullCheckAnalysis to filter
  * out false positives by proving pointers are not null.
  */
-class NullPointerChecker : public VulnerabilityChecker {
+class NullPointerChecker : public GVFAVulnerabilityChecker {
 private:
     NullCheckAnalysis *NCA = nullptr;
     ContextSensitiveNullCheckAnalysis *CSNCA = nullptr;
