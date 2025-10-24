@@ -38,6 +38,42 @@ void forEachInstruction(Module *M, Func func) {
     }
 }
 
+/**
+ * Check if a library function dereferences its arguments.
+ * Returns true if the specified argument index is dereferenced by the function.
+ */
+bool libraryFunctionDereferencesArg(StringRef Name, unsigned ArgIdx) {
+    // Memory operations - dereference destination (arg 0) and sometimes source (arg 1)
+    if (Name == "memcpy" || Name.startswith("__memcpy_chk") ||
+        Name == "memmove" || Name.startswith("__memmove_chk")) {
+        return ArgIdx == 0 || ArgIdx == 1;  // Both src and dst are dereferenced
+    }
+    if (Name == "memset" || Name.startswith("__memset_chk")) {
+        return ArgIdx == 0;  // Destination is dereferenced
+    }
+    
+    // String operations - dereference string arguments
+    if (Name == "strcpy" || Name.startswith("__strcpy_chk") ||
+        Name == "strncpy" || Name.startswith("__strncpy_chk")) {
+        return ArgIdx == 0 || ArgIdx == 1;  // Both destination and source
+    }
+    if (Name == "strcat" || Name.startswith("__strcat_chk") ||
+        Name == "strncat" || Name.startswith("__strncat_chk")) {
+        return ArgIdx == 0 || ArgIdx == 1;  // Both destination and source
+    }
+    if (Name == "strcmp" || Name == "strncmp" ||
+        Name == "strlen" || Name == "strnlen") {
+        return ArgIdx < 2;  // First one or two arguments
+    }
+    
+    // Character search functions
+    if (Name == "strchr" || Name == "strrchr" || Name == "strstr") {
+        return ArgIdx == 0;  // First argument is dereferenced
+    }
+    
+    return false;
+}
+
 } // anonymous namespace
 
 //===----------------------------------------------------------------------===//
@@ -45,51 +81,101 @@ void forEachInstruction(Module *M, Func func) {
 //===----------------------------------------------------------------------===//
 
 void NullPointerChecker::getSources(Module *M, VulnerabilitySourcesType &Sources) {
-    // Find null pointer sources (e.g., null constants, failed allocations)
+    // Find null pointer sources:
+    // 1. NULL constants stored to variables
+    // 2. Memory allocation functions (can return NULL on failure)
+    
     forEachInstruction(M, [&Sources](const Instruction *I) {
-        // Null constants
-        if (auto *CI = dyn_cast<ConstantPointerNull>(I)) {
-            Sources[{CI, 1}] = 1;
+        // NULL constants stored to variables
+        if (auto *SI = dyn_cast<StoreInst>(I)) {
+            if (isa<ConstantPointerNull>(SI->getValueOperand())) {
+                Sources[{SI, 1}] = 1;
+            }
         }
-        // Failed malloc/calloc
+        // Memory allocation functions (can fail and return NULL)
         else if (auto *Call = dyn_cast<CallInst>(I)) {
             if (auto *CalledF = Call->getCalledFunction()) {
                 StringRef Name = CalledF->getName();
-                if (Name == "malloc" || Name == "calloc") {
+                
+                // Standard C allocation functions
+                if (Name == "malloc" || Name == "calloc" || 
+                    Name == "realloc" || Name == "reallocf") {
+                    Sources[{Call, 1}] = 1;
+                }
+                // C++ new operators (can return NULL with nothrow)
+                else if (Name == "_Znwm" || Name == "_Znam" ||           // new, new[]
+                         Name == "_ZnwmRKSt9nothrow_t" ||                // new(nothrow)
+                         Name == "_ZnamRKSt9nothrow_t") {                // new[](nothrow)
                     Sources[{Call, 1}] = 1;
                 }
             }
         }
     });
+    
+    llvm::outs() << "Found " << Sources.size() << " null pointer sources\n";
 }
 
 void NullPointerChecker::getSinks(Module *M, VulnerabilitySinksType &Sinks) {
     int filteredCount = 0;
     int totalCount = 0;
+    int libraryFuncCount = 0;
     
-    // Find null pointer sinks (e.g., dereferences, array accesses)
-    forEachInstruction(M, [&](const Instruction *I) {
-        const Value *PtrOp = nullptr;
-        if (auto *LI = dyn_cast<LoadInst>(I)) {
-            PtrOp = LI->getPointerOperand();
-        } else if (auto *SI = dyn_cast<StoreInst>(I)) {
-            PtrOp = SI->getPointerOperand();
-        } else if (auto *GEP = dyn_cast<GetElementPtrInst>(I)) {
-            PtrOp = GEP->getPointerOperand();
+    // Helper lambda to add a sink
+    auto addSink = [&](const Value *PtrOp, const Instruction *I) {
+        if (!PtrOp || !PtrOp->getType()->isPointerTy()) {
+            return;
         }
         
-        if (PtrOp) {
-            totalCount++;
-            // Filter out proven non-null pointers if NullCheckAnalysis is available
-            if (isProvenNonNull(PtrOp, I)) {
-                filteredCount++;
-                return; // Skip this sink
-            }
-            
+        totalCount++;
+        
+        // Filter out proven non-null pointers if NullCheckAnalysis is available
+        if (isProvenNonNull(PtrOp, I)) {
+            filteredCount++;
+            return;
+        }
+        
+        if (Sinks.find(PtrOp) == Sinks.end()) {
             Sinks[PtrOp] = new std::set<const Value *>();
-            Sinks[PtrOp]->insert(I);
+        }
+        Sinks[PtrOp]->insert(I);
+    };
+    
+    // Find null pointer sinks:
+    // 1. Direct dereferences (load, store, GEP)
+    // 2. Library function calls that dereference arguments
+    
+    forEachInstruction(M, [&](const Instruction *I) {
+        // Direct dereferences
+        if (auto *LI = dyn_cast<LoadInst>(I)) {
+            addSink(LI->getPointerOperand(), I);
+        } 
+        else if (auto *SI = dyn_cast<StoreInst>(I)) {
+            addSink(SI->getPointerOperand(), I);
+        } 
+        else if (auto *GEP = dyn_cast<GetElementPtrInst>(I)) {
+            addSink(GEP->getPointerOperand(), I);
+        }
+        // Library function calls that dereference their arguments
+        else if (auto *Call = dyn_cast<CallInst>(I)) {
+            if (auto *F = Call->getCalledFunction()) {
+                StringRef Name = F->getName();
+                
+                // Check each argument to see if it's dereferenced by this function
+                for (unsigned i = 0; i < Call->arg_size(); i++) {
+                    if (libraryFunctionDereferencesArg(Name, i)) {
+                        Value *Arg = Call->getArgOperand(i);
+                        if (Arg->getType()->isPointerTy()) {
+                            libraryFuncCount++;
+                            addSink(Arg, I);
+                        }
+                    }
+                }
+            }
         }
     });
+    
+    llvm::outs() << "Found " << totalCount << " sinks total "
+                 << "(including " << libraryFuncCount << " library function arguments)\n";
     
     if (NCA || CSNCA) {
         llvm::outs() << "NullCheckAnalysis filtered out " << filteredCount 
