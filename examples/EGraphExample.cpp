@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include <iostream>
-#include <variant>
 
 #include "Support/egraphs.h"
 
@@ -35,25 +34,26 @@ std::ostream& operator<<(std::ostream& stream, const NodeKind& node_kind) {
 class NodeData {
 private:
   NodeKind _kind;
-  std::variant<bool, std::string> _value;
+  bool _bool_value;
+  std::string _str_value;
 public:
-  NodeData(const NodeKind& kind): _kind(kind) {}
-  NodeData(bool value): _kind(NodeKind::Constant), _value(value) {}
-  NodeData(const std::string& value): _kind(NodeKind::Variable), _value(value) {}
-  NodeData(const char* value): _kind(NodeKind::Variable), _value(std::string(value)) {}
+  NodeData(const NodeKind& kind): _kind(kind), _bool_value(false) {}
+  NodeData(bool value): _kind(NodeKind::Constant), _bool_value(value) {}
+  NodeData(const std::string& value): _kind(NodeKind::Variable), _bool_value(false), _str_value(value) {}
+  NodeData(const char* value): _kind(NodeKind::Variable), _bool_value(false), _str_value(std::string(value)) {}
   
   NodeKind kind() const { return _kind; }
   
-  inline bool constant() const { return std::get<bool>(_value); }
-  inline std::string variable() const { return std::get<std::string>(_value); }
+  inline bool constant() const { return _bool_value; }
+  inline std::string variable() const { return _str_value; }
   
   bool operator==(const NodeData& other) const {
     if (_kind == other._kind) {
       switch (_kind) {
         case NodeKind::Constant:
-          return std::get<bool>(_value) == std::get<bool>(other._value);
+          return _bool_value == other._bool_value;
         case NodeKind::Variable:
-          return std::get<std::string>(_value) == std::get<std::string>(other._value);
+          return _str_value == other._str_value;
         default: return true;
       }
     }

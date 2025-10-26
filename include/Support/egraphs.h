@@ -628,7 +628,9 @@ namespace egraphs {
     bool merge(MergeQueue& queue) {
       bool changed = false;
       while (!queue.empty()) {
-        auto [a, b] = queue.pop();
+        std::pair<Node*, Node*> pair = queue.pop();
+        Node* a = pair.first;
+        Node* b = pair.second;
         
         a = a->root();
         b = b->root();
@@ -897,7 +899,9 @@ namespace egraphs {
         }
       }
       
-      for (const auto& [root, id] : ids) {
+      for (const auto& pair : ids) {
+        Node* root = pair.first;
+        size_t id = pair.second;
         for (Node* child : *extracted.at(root)) {
           stream << "node" << id << " -> node" << ids.at(child) << ";\n";
         }
