@@ -1,74 +1,72 @@
 name: Build Canary on CentOS
+
 on:
-  push:
-  pull_request:
+  push: {}
+  pull_request: {}
+
 jobs:
   build-centos:
     runs-on: ubuntu-latest
-    container:
-      image: ${{ matrix.centos-version }}
     strategy:
       matrix:
-        centos-version: ['quay.io/centos/centos:7', 'quay.io/centos/centos:stream8', 'quay.io/centos/centos:stream9']
+        centos_version: ['quay.io/centos/centos:stream8', 'quay.io/centos/centos:stream9']
+
+    container:
+      image: ${{ matrix['centos_version'] }}
 
     env:
       MAKEFLAGS: -j4
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Install dependencies and setup LLVM
+      - name: Install dependencies and set up LLVM
         run: |
-          # Enable EPEL and PowerTools/CRB repositories
-          if [ -f /etc/centos-release ]; then
-            CENTOS_VERSION=$(rpm -E %{rhel})
-            if [ "$CENTOS_VERSION" = "7" ]; then
-              yum install -y epel-release centos-release-scl
-              yum install -y llvm-toolset-7.0
-              source /opt/rh/llvm-toolset-7.0/enable
-            elif [ "$CENTOS_VERSION" = "8" ]; then
-              dnf install -y epel-release
-              dnf config-manager --set-enabled powertools
-              dnf install -y llvm-toolset
-            else
-              dnf install -y epel-release
-              dnf config-manager --set-enabled crb
-            fi
-          fi
-          
-          # Install build dependencies
-          if command -v dnf &> /dev/null; then
-            dnf install -y gcc gcc-c++ cmake ninja-build gmp-devel boost-devel \
-              z3-devel python3 python3-pip llvm llvm-devel llvm-static clang clang-devel
+          set -e
+          dnf install -y dnf-plugins-core
+
+          CENTOS_VERSION=$(rpm -E %{rhel})
+
+          if [ "$CENTOS_VERSION" = "8" ]; then
+            # 使用 vault 替换 mirrorlist
+            sed -i 's|mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/CentOS-Stream-*.repo
+            sed -i 's|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-Stream-*.repo
+            dnf clean all
+            dnf install -y \
+              https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+            dnf config-manager --set-enabled powertools
           else
-            yum install -y gcc gcc-c++ cmake3 ninja-build gmp-devel boost-devel \
-              z3-devel python3 python3-pip llvm-devel clang
+            dnf install -y \
+              https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+            dnf config-manager --set-enabled crb
           fi
-          
-          # Setup LLVM environment
-          LLVM_VERSION=$(llvm-config --version | cut -d. -f1)
-          echo "LLVM_CONFIG=$(which llvm-config)" >> $GITHUB_ENV
-          echo "CC=$(which clang)" >> $GITHUB_ENV
-          echo "CXX=$(which clang++)" >> $GITHUB_ENV
+
+          dnf install -y gcc gcc-c++ cmake ninja-build \
+            gmp-devel boost-devel z3-devel python3 python3-pip \
+            llvm llvm-devel llvm-static clang clang-devel
+
+          echo "LLVM_CONFIG=$(command -v llvm-config)" >> "$GITHUB_ENV"
+          echo "CC=$(command -v clang)"           >> "$GITHUB_ENV"
+          echo "CXX=$(command -v clang++)"        >> "$GITHUB_ENV"
 
       - name: Build and install
         run: |
           mkdir build && cd build
-          CMAKE_CMD=$(command -v cmake3 || command -v cmake)
           LLVM_CMAKE_DIR=$(llvm-config --cmakedir)
-          
-          $CMAKE_CMD -DCMAKE_INSTALL_PREFIX="$HOME/canary" \
-                -DCMAKE_BUILD_TYPE="Debug" \
-                -DLLVM_BUILD_PATH="$LLVM_CMAKE_DIR" \
-                -DLLVM_CONFIG_PATH="$(which llvm-config)" \
-                -DLLVM_DIR="$LLVM_CMAKE_DIR" \
-                -DZ3_DIR="/usr" ..
-          make && make install
 
-      - name: Add Canary to the path
-        run: |
-          echo "$HOME/canary/bin" >> $GITHUB_PATH
+          cmake -G Ninja .. \
+            -DCMAKE_INSTALL_PREFIX="$HOME/canary" \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DLLVM_BUILD_PATH="$LLVM_CMAKE_DIR" \
+            -DLLVM_CONFIG_PATH="$LLVM_CONFIG" \
+            -DLLVM_DIR="$LLVM_CMAKE_DIR" \
+            -DZ3_DIR="/usr"
+
+          ninja && ninja install
+
+      - name: Add Canary to PATH
+        run: echo "$HOME/canary/bin" >> "$GITHUB_PATH"
 
       - name: Test installation
         run: canary --version || echo "Canary built successfully"
