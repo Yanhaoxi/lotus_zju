@@ -8,13 +8,7 @@
 #include <llvm/Support/Debug.h>
 #include "Transform/LowerSelect.h"
 
-#define DEBUG_TYPE "LowerSelect"
-
-char LowerSelect::ID = 0;
-static RegisterPass<LowerSelect> X(DEBUG_TYPE, "Converting select to if/else");
-
-void LowerSelect::getAnalysisUsage(AnalysisUsage &AU) const {
-}
+#define DEBUG_TYPE "lower-select"
 
 // Transform a select instruction into explicit if/else control flow.
 // Creates two new basic blocks for the true and false cases, connected by
@@ -45,9 +39,9 @@ static void transform(Instruction *Select) {
     Select->eraseFromParent();
 }
 
-// Main pass entry point. Finds all select instructions (excluding pointer selects)
+// New Pass Manager entry point. Finds all select instructions (excluding pointer selects)
 // and transforms them into explicit if/else control flow.
-bool LowerSelect::runOnModule(Module &M) {
+PreservedAnalyses LowerSelectPass::run(Module &M, ModuleAnalysisManager &) {
     std::vector<SelectInst *> Selects;
     for (auto &F: M) {
         for (auto &B: F) {
@@ -59,7 +53,7 @@ bool LowerSelect::runOnModule(Module &M) {
             }
         }
     }
-    if (Selects.empty()) return false;
+    if (Selects.empty()) return PreservedAnalyses::all();
 
     for (auto *Select: Selects)
         transform(Select);
@@ -67,6 +61,7 @@ bool LowerSelect::runOnModule(Module &M) {
     if (verifyModule(M, &errs())) {
         llvm_unreachable("Error: Lowerselect fails...");
     }
-    return true;
+    // CFG is modified, invalidate most analyses
+    return PreservedAnalyses::none();
 }
 

@@ -9,14 +9,7 @@
 #include <llvm/Support/Debug.h>
 #include "Transform/SimplifyLatch.h"
 
-#define DEBUG_TYPE "SimplifyLatch"
-
-char SimplifyLatch::ID = 0;
-static RegisterPass<SimplifyLatch> X(DEBUG_TYPE, "Make latch unconditional");
-
-void SimplifyLatch::getAnalysisUsage(AnalysisUsage &AU) const {
-    AU.addRequired<LoopInfoWrapperPass>();
-}
+#define DEBUG_TYPE "simplify-latch"
 
 // Transform a latch block to make it unconditional by inserting a new latch block.
 // Updates PHI nodes in the header to point to the new latch block.
@@ -40,16 +33,19 @@ static void transform(BasicBlock *Latch, unsigned ToHeader) {
     }
 }
 
-// Main pass entry point. Identifies loops with conditional latches and transforms them
+// New Pass Manager entry point. Identifies loops with conditional latches and transforms them
 // to have unconditional latches for easier loop analysis.
-bool SimplifyLatch::runOnModule(Module &M) {
+PreservedAnalyses SimplifyLatchPass::run(Module &M, ModuleAnalysisManager &MAM) {
+    auto &FAM = MAM.getResult<FunctionAnalysisManagerModuleProxy>(M).getManager();
+    
     std::vector<std::pair<BasicBlock *, unsigned>> LatchVector;
     for (auto &F: M) {
         if (F.empty()) continue;
-        auto LI = &getAnalysis<LoopInfoWrapperPass>(F).getLoopInfo();
-        auto AllLoops = LI->getLoopsInPreorder();
+        auto &LI = FAM.getResult<LoopAnalysis>(F);
+        auto AllLoops = LI.getLoopsInPreorder();
         for (auto *Loop: AllLoops) {
             auto *Latch = Loop->getLoopLatch();
+            if (!Latch) continue;
             auto Term = Latch->getTerminator();
             if (Term->getNumSuccessors() > 1) {
                 for (unsigned K = 0; K < Term->getNumSuccessors(); ++K) {
@@ -62,6 +58,8 @@ bool SimplifyLatch::runOnModule(Module &M) {
         }
     }
 
+    if (LatchVector.empty()) return PreservedAnalyses::all();
+
     for (auto &It: LatchVector) {
         transform(It.first, It.second);
     }
@@ -69,5 +67,6 @@ bool SimplifyLatch::runOnModule(Module &M) {
     if (verifyModule(M, &errs())) {
         llvm_unreachable("Error: SimplifyLatch fails...");
     }
-    return false;
+    // Loop structure modified
+    return PreservedAnalyses::none();
 }

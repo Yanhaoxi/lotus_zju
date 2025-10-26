@@ -91,19 +91,9 @@ bool AndersenAAResult::pointsToConstantMemory(const MemoryLocation &loc,
 
 AndersenAAResult::AndersenAAResult(const Module &m) : anders(m) {}
 
-void AndersenAAWrapperPass::getAnalysisUsage(AnalysisUsage &AU) const {
-  AU.setPreservesAll();
+// New Pass Manager implementation
+AnalysisKey AndersenAA::Key;
+
+AndersenAAResult AndersenAA::run(Module &M, ModuleAnalysisManager &) {
+  return AndersenAAResult(M);
 }
-
-bool AndersenAAWrapperPass::runOnModule(Module &m) {
-  result.reset(new AndersenAAResult(m));
-
-  return false;
-}
-
-AndersenAAWrapperPass::AndersenAAWrapperPass() : ModulePass(ID) {}
-
-char AndersenAAWrapperPass::ID = 0;
-static RegisterPass<AndersenAAWrapperPass>
-    X("anders-aa", "Andersen Alias Analysis", true, true);
-// static RegisterAnalysisGroup<AliasAnalysis> Y(X);

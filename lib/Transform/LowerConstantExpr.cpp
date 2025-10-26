@@ -7,17 +7,9 @@
 #include <llvm/IR/Verifier.h>
 #include "Transform/LowerConstantExpr.h"
 
-
-//#include <set>
 #include <map>
 
-#define DEBUG_TYPE "LowerConstantExpr"
-
-char LowerConstantExpr::ID = 0;
-static RegisterPass<LowerConstantExpr> X(DEBUG_TYPE, "Converting constant expr to instructions");
-
-void LowerConstantExpr::getAnalysisUsage(AnalysisUsage &AU) const {
-}
+#define DEBUG_TYPE "lower-constant-expr"
 
 // Transform an instruction by converting its constant expression operands to regular instructions.
 // For PHI nodes, inserts new instructions before the terminator of the incoming block.
@@ -193,11 +185,10 @@ static bool transformCall(Instruction &I, const DataLayout &DL) {
     }
 }
 
-// Main pass entry point. Performs two passes over the module:
+// New Pass Manager entry point. Performs two passes over the module:
 // 1. Transform call instructions with constant expression callees
 // 2. Transform other instructions with constant expression operands
-// Returns true if any transformations were made.
-bool LowerConstantExpr::runOnModule(Module &M) {
+PreservedAnalyses LowerConstantExprPass::run(Module &M, ModuleAnalysisManager &) {
     try {
         bool Changed = false;
         
@@ -242,18 +233,16 @@ bool LowerConstantExpr::runOnModule(Module &M) {
             errs() << "WARNING: Module verification failed after lowering constant expressions.\n";
             errs() << "Some constant expressions may not have been properly lowered.\n";
             errs() << "Continuing with analysis, but results may be incomplete.\n";
-            // Return true to indicate that we did make changes, even if they resulted in an invalid module
-            return Changed;
         }
-        return Changed;
+        return Changed ? PreservedAnalyses::none() : PreservedAnalyses::all();
     } catch (const std::exception &e) {
-        errs() << "WARNING: Exception in LowerConstantExpr::runOnModule: " << e.what() << "\n";
+        errs() << "WARNING: Exception in LowerConstantExprPass::run: " << e.what() << "\n";
         errs() << "Continuing with analysis, but results may be incomplete.\n";
-        return false;
+        return PreservedAnalyses::all();
     } catch (...) {
-        errs() << "WARNING: Unknown exception in LowerConstantExpr::runOnModule\n";
+        errs() << "WARNING: Unknown exception in LowerConstantExprPass::run\n";
         errs() << "Continuing with analysis, but results may be incomplete.\n";
-        return false;
+        return PreservedAnalyses::all();
     }
 }
 

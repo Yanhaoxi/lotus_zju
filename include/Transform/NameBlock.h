@@ -2,21 +2,14 @@
 #define TRANSFORM_NAMEBLOCK_H
 
 #include <llvm/IR/Module.h>
-#include <llvm/Pass.h>
+#include <llvm/IR/PassManager.h>
 
 using namespace llvm;
 
-class NameBlock : public ModulePass {
+// New Pass Manager version
+class NameBlockPass : public PassInfoMixin<NameBlockPass> {
 public:
-    static char ID;
-
-    NameBlock() : ModulePass(ID) {}
-
-    ~NameBlock() override = default;
-
-    void getAnalysisUsage(AnalysisUsage &) const override;
-
-    bool runOnModule(Module &) override;
+    PreservedAnalyses run(Module &M, ModuleAnalysisManager &MAM);
 };
 
 #endif //TRANSFORM_NAMEBLOCK_H

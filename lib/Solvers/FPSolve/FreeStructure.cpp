@@ -3,6 +3,7 @@
  */
 
 #include "Solvers/FPSolve/DataStructs/FreeStructure.h"
+#include <functional>
 #include <sstream>
 #include <set>
 

@@ -8,22 +8,17 @@
 #include <llvm/Support/Debug.h>
 #include "Transform/RemoveNoRetFunction.h"
 
-#define DEBUG_TYPE "RemoveNoRetFunction"
+#define DEBUG_TYPE "remove-noret-function"
 
-char RemoveNoRetFunction::ID = 0;
-static RegisterPass<RemoveNoRetFunction> X(DEBUG_TYPE, "removing a function that never returns");
-
-void RemoveNoRetFunction::getAnalysisUsage(AnalysisUsage &AU) const {
-}
-
-// Main pass entry point. Removes function bodies that are marked as never returning.
-// Returns false since this pass only removes bodies, not the functions themselves.
-bool RemoveNoRetFunction::runOnModule(Module &M) {
+// New Pass Manager entry point. Removes function bodies that are marked as never returning.
+PreservedAnalyses RemoveNoRetFunctionPass::run(Module &M, ModuleAnalysisManager &) {
+    bool Changed = false;
     for (auto &F: M) {
-        if (F.doesNotReturn()) {
+        if (F.doesNotReturn() && !F.isDeclaration()) {
             F.deleteBody();
             F.setComdat(nullptr);
+            Changed = true;
         }
     }
-    return false;
+    return Changed ? PreservedAnalyses::none() : PreservedAnalyses::all();
 }

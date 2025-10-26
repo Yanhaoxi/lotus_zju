@@ -10,17 +10,11 @@
 #include <llvm/Transforms/Utils/BasicBlockUtils.h>
 #include "Transform/RemoveDeadBlock.h"
 
-#define DEBUG_TYPE "RemoveDeadBlock"
+#define DEBUG_TYPE "remove-dead-block"
 
-char RemoveDeadBlock::ID = 0;
-static RegisterPass<RemoveDeadBlock> X(DEBUG_TYPE, "remove dead block, not sure why simplifycfg does not work");
-
-void RemoveDeadBlock::getAnalysisUsage(AnalysisUsage &AU) const {
-}
-
-// Main pass entry point. Identifies and removes dead blocks transitively.
+// New Pass Manager entry point. Identifies and removes dead blocks transitively.
 // A block is considered dead if it has no predecessors (except self-loops).
-bool RemoveDeadBlock::runOnModule(Module &M) {
+PreservedAnalyses RemoveDeadBlockPass::run(Module &M, ModuleAnalysisManager &) {
     std::vector<BasicBlock *> Block2Remove;
     std::set<BasicBlock *> Visited;
     std::set<BasicBlock *> SuccVec;
@@ -58,5 +52,6 @@ bool RemoveDeadBlock::runOnModule(Module &M) {
     if (verifyModule(M, &errs())) {
         llvm_unreachable("Error: RemoveDeadBlock fails...");
     }
-    return false;
+    // Dead block removal invalidates CFG analyses
+    return PreservedAnalyses::none();
 }

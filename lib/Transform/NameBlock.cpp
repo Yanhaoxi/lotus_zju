@@ -7,23 +7,16 @@
 #include <llvm/Support/Debug.h>
 #include "Transform/NameBlock.h"
 
-#define DEBUG_TYPE "NameBlock"
+#define DEBUG_TYPE "name-block"
 
-char NameBlock::ID = 0;
-static RegisterPass<NameBlock> X(DEBUG_TYPE, "Naming each block for dbg");
-
-void NameBlock::getAnalysisUsage(AnalysisUsage &AU) const {
-    AU.setPreservesAll();
-}
-
-// Main pass entry point. Assigns names to all unnamed basic blocks.
-// Returns false since this pass doesn't modify the module's semantics.
-bool NameBlock::runOnModule(Module &M) {
+// New Pass Manager entry point. Assigns names to all unnamed basic blocks.
+PreservedAnalyses NameBlockPass::run(Module &M, ModuleAnalysisManager &) {
     for (auto &F: M) {
         unsigned BI = 0;
         for (auto &B: F) {
             if (!B.hasName()) B.setName("B" + std::to_string(++BI));
         }
     }
-    return false;
+    // Naming blocks doesn't affect analyses
+    return PreservedAnalyses::all();
 }

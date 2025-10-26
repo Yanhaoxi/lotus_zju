@@ -2,21 +2,14 @@
 #define TRANSFORM_MERGERETURN_H
 
 #include <llvm/IR/Module.h>
-#include <llvm/Pass.h>
+#include <llvm/IR/PassManager.h>
 
 using namespace llvm;
 
-class MergeReturn : public ModulePass {
+// New Pass Manager version
+class MergeReturnPass : public PassInfoMixin<MergeReturnPass> {
 public:
-    static char ID;
-
-    MergeReturn() : ModulePass(ID) {}
-
-    ~MergeReturn() override = default;
-
-    void getAnalysisUsage(AnalysisUsage &) const override;
-
-    bool runOnModule(Module &) override;
+    PreservedAnalyses run(Module &M, ModuleAnalysisManager &MAM);
 };
 
 #endif //TRANSFORM_MERGERETURN_H

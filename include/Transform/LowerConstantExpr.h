@@ -2,21 +2,14 @@
 #define TRANSFORM_LOWERCONSTANTEXPR_H
 
 #include <llvm/IR/Module.h>
-#include <llvm/Pass.h>
+#include <llvm/IR/PassManager.h>
 
 using namespace llvm;
 
-class LowerConstantExpr : public ModulePass {
+// New Pass Manager version
+class LowerConstantExprPass : public PassInfoMixin<LowerConstantExprPass> {
 public:
-    static char ID;
-
-    LowerConstantExpr() : ModulePass(ID) {}
-
-    ~LowerConstantExpr() override = default;
-
-    void getAnalysisUsage(AnalysisUsage &) const override;
-
-    bool runOnModule(Module &) override;
+    PreservedAnalyses run(Module &M, ModuleAnalysisManager &MAM);
 };
 
 #endif //TRANSFORM_LOWERCONSTANTEXPR_H

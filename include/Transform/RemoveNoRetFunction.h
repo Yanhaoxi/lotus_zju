@@ -2,21 +2,14 @@
 #define TRANSFORM_REMOVENORETFUNCTION_H
 
 #include <llvm/IR/Module.h>
-#include <llvm/Pass.h>
+#include <llvm/IR/PassManager.h>
 
 using namespace llvm;
 
-class RemoveNoRetFunction : public ModulePass {
+// New Pass Manager version
+class RemoveNoRetFunctionPass : public PassInfoMixin<RemoveNoRetFunctionPass> {
 public:
-    static char ID;
-
-    RemoveNoRetFunction() : ModulePass(ID) {}
-
-    ~RemoveNoRetFunction() override = default;
-
-    void getAnalysisUsage(AnalysisUsage &) const override;
-
-    bool runOnModule(Module &) override;
+    PreservedAnalyses run(Module &M, ModuleAnalysisManager &MAM);
 };
 
 #endif //TRANSFORM_REMOVENORETFUNCTION_H

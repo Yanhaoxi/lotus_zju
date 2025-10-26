@@ -9,13 +9,7 @@
 #include <llvm/Support/Debug.h>
 #include "Transform/MergeReturn.h"
 
-#define DEBUG_TYPE "MergeReturn"
-
-char MergeReturn::ID = 0;
-static RegisterPass<MergeReturn> X(DEBUG_TYPE, "Merging multiple returns to one");
-
-void MergeReturn::getAnalysisUsage(AnalysisUsage &AU) const {
-}
+#define DEBUG_TYPE "merge-return"
 
 // Unify multiple return blocks in a function into a single return block.
 // Creates a new unified return block and redirects all existing returns to it.
@@ -60,13 +54,13 @@ bool unifyReturnBlocks(Function &F) {
     return true;
 }
 
-// Main pass entry point. Applies return unification to all defined functions.
-bool MergeReturn::runOnModule(Module &M) {
+// New Pass Manager entry point. Applies return unification to all defined functions.
+PreservedAnalyses MergeReturnPass::run(Module &M, ModuleAnalysisManager &MAM) {
     bool Changed = false;
     for (auto &F: M) {
         if (F.isDeclaration()) continue;
         auto Transformed = unifyReturnBlocks(F);
         if (!Changed && Transformed) Changed = Transformed;
     }
-    return Changed;
+    return Changed ? PreservedAnalyses::none() : PreservedAnalyses::all();
 }

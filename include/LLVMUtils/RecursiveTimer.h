@@ -28,7 +28,8 @@
 
 using namespace llvm;
 
-class RecursiveTimer {
+class 
+RecursiveTimer {
 private:
     std::chrono::steady_clock::time_point Begin;
     std::string Prefix;

@@ -6,10 +6,11 @@
 // Note that the pass does not delete the vector operations on its own, but it
 // does leave them unused whenever possible, so that `--dce` can eliminate
 // them.
-#include "llvm/Pass.h"
+#include "Transform/UnrollVectors.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Dominators.h"
+#include "llvm/Analysis/PostDominators.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
@@ -17,9 +18,6 @@
 #include "llvm/Support/Alignment.h"
 
 using namespace llvm;
-
-const int WORD_SIZE = 64;
-const size_t TRACE_NUM_ARGS = 8;
 
 // Check if a type is a vector that can be unrolled by this pass.
 // Only fixed-size vectors with byte-aligned elements are supported.
@@ -40,13 +38,11 @@ static VectorType* unrollableVectorType(Type* Ty, Module* M) {
 }
 
 namespace {
-struct UnrollVectors : public FunctionPass {
-  static char ID;
-  UnrollVectors() : FunctionPass(ID) {}
+// Forward declaration
+static bool handleKnownInst(Instruction* I, DenseMap<Value*, SmallVector<Value*, 2>>& UnrollMap);
 
-  // TODO: handle ConstantVector
-
-  bool runOnFunction(Function &F) override {
+// Helper function to unroll a function (used by both legacy and new pass managers)
+static bool unrollVectorsInFunction(Function &F) {
     DenseMap<Value*, SmallVector<Value*, 2>> UnrollMap;
     std::vector<PHINode*> UnrolledPHIs;
     Module* M = F.getParent();
@@ -116,9 +112,9 @@ struct UnrollVectors : public FunctionPass {
     }
 
     return true;
-  }
+}
 
-  bool handleKnownInst(Instruction* I, DenseMap<Value*, SmallVector<Value*, 2>>& UnrollMap) {
+static bool handleKnownInst(Instruction* I, DenseMap<Value*, SmallVector<Value*, 2>>& UnrollMap) {
     Module* M = I->getModule();
 
     if (auto InsertElement = dyn_cast<InsertElementInst>(I)) {
@@ -226,13 +222,12 @@ struct UnrollVectors : public FunctionPass {
     } else {
       return false;
     }
-  }
-}; // end of struct UnrollVectors
+}
+
 }  // end of anonymous namespace
 
-char UnrollVectors::ID = 0;
-static RegisterPass<UnrollVectors> X(
-        "unroll-vectors",
-        "Unroll vector ops into sequences of scalar ops",
-        false /* Only looks at CFG */,
-        false /* Analysis Pass */);
+// New Pass Manager implementation
+PreservedAnalyses UnrollVectorsPass::run(Function &F, FunctionAnalysisManager &) {
+    bool Changed = unrollVectorsInFunction(F);
+    return Changed ? PreservedAnalyses::none() : PreservedAnalyses::all();
+}

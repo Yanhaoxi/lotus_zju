@@ -1,10 +1,9 @@
 // SoftFloat pass replaces floating-point instructions with calls to
 // the corresponding libgcc library functions. This is useful for targets
 // that don't have native floating-point support.
-#include "llvm/Pass.h"
+#include "Transform/SoftFloat.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
-#include "llvm/IR/Dominators.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
@@ -243,11 +242,8 @@ void replaceFCmp(Module* M, FCmpInst& I) {
   I.replaceAllUsesWith(V);
 }
 
-struct SoftFloat : public FunctionPass {
-  static char ID;
-  SoftFloat() : FunctionPass(ID) {}
-
-  bool runOnFunction(Function &F) override {
+// Helper function for soft float transformation
+static bool softFloatInFunction(Function &F) {
     Module* M = F.getParent();
     std::vector<Instruction*> ToErase;
     for (BasicBlock& BB : F) {
@@ -316,13 +312,12 @@ struct SoftFloat : public FunctionPass {
     }
 
     return true;
-  }
-}; // end of struct UnrollVectors
+}
+
 }  // end of anonymous namespace
 
-char SoftFloat::ID = 0;
-static RegisterPass<SoftFloat> X(
-        "soft-float",
-        "convert floating-point ops to library calls",
-        false /* Only looks at CFG */,
-        false /* Analysis Pass */);
+// New Pass Manager implementation
+PreservedAnalyses SoftFloatPass::run(Function &F, FunctionAnalysisManager &) {
+    bool Changed = softFloatInFunction(F);
+    return Changed ? PreservedAnalyses::none() : PreservedAnalyses::all();
+}

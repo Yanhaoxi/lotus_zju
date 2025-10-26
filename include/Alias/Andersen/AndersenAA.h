@@ -4,7 +4,7 @@
 #include "Alias/Andersen/Andersen.h"
 
 #include <llvm/Analysis/AliasAnalysis.h>
-#include <llvm/Pass.h>
+#include <llvm/IR/PassManager.h>
 
 class AndersenAAResult : public llvm::AAResultBase<AndersenAAResult> {
 private:
@@ -26,21 +26,15 @@ public:
   }
 };
 
-class AndersenAAWrapperPass : public llvm::ModulePass {
-private:
-  std::unique_ptr<AndersenAAResult> result;
+// New Pass Manager version
+class AndersenAA : public llvm::AnalysisInfoMixin<AndersenAA> {
+  friend llvm::AnalysisInfoMixin<AndersenAA>;
+  static llvm::AnalysisKey Key;
 
 public:
-  static char ID;
-
-  AndersenAAWrapperPass();
-
-  AndersenAAResult &getResult() { return *result; }
-  const AndersenAAResult &getResult() const { return *result; }
-
-  bool runOnModule(llvm::Module &) override;
-  // bool doFinalization(llvm::Module&) override;
-  void getAnalysisUsage(llvm::AnalysisUsage &AU) const override;
+  using Result = AndersenAAResult;
+  
+  AndersenAAResult run(llvm::Module &M, llvm::ModuleAnalysisManager &MAM);
 };
 
 #endif
