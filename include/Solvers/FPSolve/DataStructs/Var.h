@@ -6,6 +6,7 @@
 #define FPSOLVE_VAR_H
 
 #include <cassert>
+#include <cstdint>
 #include <memory>
 #include <sstream>
 #include <string>

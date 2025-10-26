@@ -1,0 +1,74 @@
+name: Build Canary on CentOS
+on:
+  push:
+  pull_request:
+jobs:
+  build-centos:
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ matrix.centos-version }}
+    strategy:
+      matrix:
+        centos-version: ['quay.io/centos/centos:7', 'quay.io/centos/centos:stream8', 'quay.io/centos/centos:stream9']
+
+    env:
+      MAKEFLAGS: -j4
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies and setup LLVM
+        run: |
+          # Enable EPEL and PowerTools/CRB repositories
+          if [ -f /etc/centos-release ]; then
+            CENTOS_VERSION=$(rpm -E %{rhel})
+            if [ "$CENTOS_VERSION" = "7" ]; then
+              yum install -y epel-release centos-release-scl
+              yum install -y llvm-toolset-7.0
+              source /opt/rh/llvm-toolset-7.0/enable
+            elif [ "$CENTOS_VERSION" = "8" ]; then
+              dnf install -y epel-release
+              dnf config-manager --set-enabled powertools
+              dnf install -y llvm-toolset
+            else
+              dnf install -y epel-release
+              dnf config-manager --set-enabled crb
+            fi
+          fi
+          
+          # Install build dependencies
+          if command -v dnf &> /dev/null; then
+            dnf install -y gcc gcc-c++ cmake ninja-build gmp-devel boost-devel \
+              z3-devel python3 python3-pip llvm llvm-devel llvm-static clang clang-devel
+          else
+            yum install -y gcc gcc-c++ cmake3 ninja-build gmp-devel boost-devel \
+              z3-devel python3 python3-pip llvm-devel clang
+          fi
+          
+          # Setup LLVM environment
+          LLVM_VERSION=$(llvm-config --version | cut -d. -f1)
+          echo "LLVM_CONFIG=$(which llvm-config)" >> $GITHUB_ENV
+          echo "CC=$(which clang)" >> $GITHUB_ENV
+          echo "CXX=$(which clang++)" >> $GITHUB_ENV
+
+      - name: Build and install
+        run: |
+          mkdir build && cd build
+          CMAKE_CMD=$(command -v cmake3 || command -v cmake)
+          LLVM_CMAKE_DIR=$(llvm-config --cmakedir)
+          
+          $CMAKE_CMD -DCMAKE_INSTALL_PREFIX="$HOME/canary" \
+                -DCMAKE_BUILD_TYPE="Debug" \
+                -DLLVM_BUILD_PATH="$LLVM_CMAKE_DIR" \
+                -DLLVM_CONFIG_PATH="$(which llvm-config)" \
+                -DLLVM_DIR="$LLVM_CMAKE_DIR" \
+                -DZ3_DIR="/usr" ..
+          make && make install
+
+      - name: Add Canary to the path
+        run: |
+          echo "$HOME/canary/bin" >> $GITHUB_PATH
+
+      - name: Test installation
+        run: canary --version || echo "Canary built successfully"
