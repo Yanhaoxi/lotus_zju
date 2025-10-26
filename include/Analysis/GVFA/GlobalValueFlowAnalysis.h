@@ -17,22 +17,12 @@
 #include "Alias/DyckAA/DyckVFG.h"
 #include "Alias/DyckAA/DyckAliasAnalysis.h"
 #include "Alias/DyckAA/DyckModRefAnalysis.h"
+#include "Analysis/GVFA/GVFAUtils.h"
 
 using namespace llvm;
 
 // Forward declaration to avoid circular dependency
 class GVFAVulnerabilityChecker;
-
-// Hash function for pair<const CallInst *, const Function *>
-namespace std {
-    template<>
-    struct hash<std::pair<const CallInst *, const Function *>> {
-        size_t operator()(const std::pair<const CallInst *, const Function *> &p) const {
-            return std::hash<const CallInst *>()(p.first) ^ 
-                   (std::hash<const Function *>()(p.second) << 1);
-        }
-    };
-}
 
 // Vulnerability source/sink types
 using ValueSitePairType = std::pair<const Value *, int>;

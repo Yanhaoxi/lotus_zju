@@ -12,8 +12,7 @@
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/raw_ostream.h>
 
-// #include <algorithm>
-// #include <queue>
+#include <deque>
 
 using namespace llvm;
 using namespace mhp;
@@ -100,20 +99,20 @@ std::vector<ThreadID> ThreadFlowGraph::getAllThreads() const {
   return threads;
 }
 
-void ThreadFlowGraph::setThreadEntry(ThreadID tid, SyncNode *entry) {
+void ThreadFlowGraph::setThreadEntryNode(ThreadID tid, SyncNode *entry) {
   m_thread_entry_nodes[tid] = entry;
 }
 
-void ThreadFlowGraph::setThreadExit(ThreadID tid, SyncNode *exit) {
+void ThreadFlowGraph::setThreadExitNode(ThreadID tid, SyncNode *exit) {
   m_thread_exit_nodes[tid] = exit;
 }
 
-SyncNode *ThreadFlowGraph::getThreadEntry(ThreadID tid) {
+SyncNode *ThreadFlowGraph::getThreadEntryNode(ThreadID tid) const {
   auto it = m_thread_entry_nodes.find(tid);
   return it != m_thread_entry_nodes.end() ? it->second : nullptr;
 }
 
-SyncNode *ThreadFlowGraph::getThreadExit(ThreadID tid) {
+SyncNode *ThreadFlowGraph::getThreadExitNode(ThreadID tid) const {
   auto it = m_thread_exit_nodes.find(tid);
   return it != m_thread_exit_nodes.end() ? it->second : nullptr;
 }
@@ -244,67 +243,174 @@ ThreadRegionAnalysis::getRegionContaining(const Instruction *inst) const {
   return it != m_inst_to_region.end() ? it->second : nullptr;
 }
 
+// ============================================================================
+// CFG-based Region Analysis Helpers
+// ============================================================================
+
+bool ThreadRegionAnalysis::isSyncPoint(const Instruction *inst) const {
+  SyncNode *node = m_tfg.getNode(inst);
+  if (!node)
+    return false;
+  
+  SyncNodeType type = node->getType();
+  return isSynchronizationNode(type) || isThreadBoundaryNode(type);
+}
+
+std::vector<const Instruction *> ThreadRegionAnalysis::collectSyncPoints(const Function *func) const {
+  std::vector<const Instruction *> sync_points;
+  
+  for (const BasicBlock &BB : *func) {
+    for (const Instruction &inst : BB) {
+      if (isSyncPoint(&inst)) {
+        sync_points.push_back(&inst);
+      }
+    }
+  }
+  
+  return sync_points;
+}
+
 void ThreadRegionAnalysis::identifyRegions() {
   auto threads = m_tfg.getAllThreads();
 
   for (ThreadID tid : threads) {
-    auto nodes = m_tfg.getNodesInThread(tid);
+    const Function *entry = m_tfg.getThreadEntry(tid);
+    if (entry && !entry->isDeclaration()) {
+      identifyRegionsForThread(tid, entry);
+    }
+  }
+}
 
-    SyncNode *region_start = nullptr;
-    std::vector<SyncNode *> region_nodes;
-
-    for (auto *node : nodes) {
-      // Start a new region if we haven't started one
-      if (!region_start) {
-        region_start = node;
+void ThreadRegionAnalysis::identifyRegionsForThread(ThreadID tid, const Function *func) {
+  if (!func || func->isDeclaration())
+    return;
+  
+  // Collect all synchronization points in CFG order
+  std::vector<const Instruction *> sync_points = collectSyncPoints(func);
+  
+  // If no synchronization points, the entire function is one region
+  if (sync_points.empty()) {
+    auto region = std::make_unique<Region>();
+    region->region_id = m_regions.size();
+    region->thread_id = tid;
+    // For a region without sync points, start/end nodes can be null or entry/exit
+    region->start_node = nullptr;
+    region->end_node = nullptr;
+    
+    // Collect all instructions in the function
+    for (const BasicBlock &BB : *func) {
+      for (const Instruction &inst : BB) {
+        region->instructions.insert(&inst);
+        m_inst_to_region[&inst] = region.get();
       }
-
-      region_nodes.push_back(node);
-
-      // End region at synchronization boundaries
-      if (isSynchronizationNode(node->getType()) ||
-          isThreadBoundaryNode(node->getType())) {
-
-        // Create region
-        auto region = std::make_unique<Region>();
-        region->region_id = m_regions.size();
-        region->thread_id = tid;
-        region->start_node = region_start;
-        region->end_node = node;
-
-        // Collect instructions
-        for (auto *n : region_nodes) {
-          if (n->getInstruction()) {
-            region->instructions.insert(n->getInstruction());
-            m_inst_to_region[n->getInstruction()] = region.get();
+    }
+    
+    m_regions.push_back(std::move(region));
+    return;
+  }
+  
+  // Create regions based on CFG traversal between synchronization points
+  // Region strategy:
+  // - Region 0: entry -> first sync point (inclusive)
+  // - Region i: sync_i -> sync_{i+1} (both inclusive) 
+  // - Region n: last sync -> exit
+  
+  // Helper: CFG-based region construction between two instructions
+  auto build_region = [&](const Instruction *start_inst, const Instruction *end_inst,
+                          SyncNode *start_node, SyncNode *end_node) {
+    auto region = std::make_unique<Region>();
+    region->region_id = m_regions.size();
+    region->thread_id = tid;
+    region->start_node = start_node;
+    region->end_node = end_node;
+    
+    // Collect instructions between start and end using CFG traversal
+    std::unordered_set<const BasicBlock *> visited;
+    std::deque<const BasicBlock *> worklist;
+    
+    const BasicBlock *start_bb = start_inst ? start_inst->getParent() : &func->getEntryBlock();
+    worklist.push_back(start_bb);
+    visited.insert(start_bb);
+    
+    // BFS through CFG
+    while (!worklist.empty()) {
+      const BasicBlock *BB = worklist.front();
+      worklist.pop_front();
+      
+      bool reached_end = false;
+      bool started = (BB != start_bb) || (start_inst == nullptr);
+      
+      // Process instructions in this block
+      for (const Instruction &inst : *BB) {
+        // Mark start point
+        if (start_inst && &inst == start_inst) {
+          started = true;
+        }
+        
+        // Add instruction if we're in the region
+        if (started) {
+          region->instructions.insert(&inst);
+          m_inst_to_region[&inst] = region.get();
+        }
+        
+        // Check if we reached the end
+        if (end_inst && &inst == end_inst) {
+          reached_end = true;
+          break;
+        }
+      }
+      
+      // Continue to successors if we haven't reached the end
+      if (!reached_end) {
+        for (const BasicBlock *succ : successors(BB)) {
+          if (visited.find(succ) == visited.end()) {
+            visited.insert(succ);
+            worklist.push_back(succ);
           }
         }
-
-        m_regions.push_back(std::move(region));
-
-        // Reset for next region
-        region_start = nullptr;
-        region_nodes.clear();
       }
     }
-
-    // Handle remaining nodes
-    if (region_start) {
-      auto region = std::make_unique<Region>();
-      region->region_id = m_regions.size();
-      region->thread_id = tid;
-      region->start_node = region_start;
-      region->end_node = region_nodes.empty() ? region_start : region_nodes.back();
-
-      for (auto *n : region_nodes) {
-        if (n->getInstruction()) {
-          region->instructions.insert(n->getInstruction());
-          m_inst_to_region[n->getInstruction()] = region.get();
-        }
+    
+    m_regions.push_back(std::move(region));
+  };
+  
+  // Build regions
+  // Region 1: entry to first sync
+  build_region(nullptr, sync_points[0], 
+               nullptr, // Entry node - no specific sync node for start
+               m_tfg.getNode(sync_points[0]));
+  
+  // Regions between sync points
+  for (size_t i = 0; i + 1 < sync_points.size(); ++i) {
+    build_region(sync_points[i], sync_points[i + 1],
+                 m_tfg.getNode(sync_points[i]),
+                 m_tfg.getNode(sync_points[i + 1]));
+  }
+  
+  // Final region: last sync to exit
+  // Use a simple approach: collect all remaining instructions
+  auto final_region = std::make_unique<Region>();
+  final_region->region_id = m_regions.size();
+  final_region->thread_id = tid;
+  final_region->start_node = m_tfg.getNode(sync_points.back());
+  final_region->end_node = nullptr; // Exit node - no specific sync node for end
+  
+  bool after_last_sync = false;
+  for (const BasicBlock &BB : *func) {
+    for (const Instruction &inst : BB) {
+      if (&inst == sync_points.back()) {
+        after_last_sync = true;
+        continue; // Don't include the last sync again
       }
-
-      m_regions.push_back(std::move(region));
+      if (after_last_sync && m_inst_to_region.find(&inst) == m_inst_to_region.end()) {
+        final_region->instructions.insert(&inst);
+        m_inst_to_region[&inst] = final_region.get();
+      }
     }
+  }
+  
+  if (!final_region->instructions.empty()) {
+    m_regions.push_back(std::move(final_region));
   }
 }
 
@@ -513,6 +619,15 @@ void MHPAnalysis::processFunction(const Function *func, ThreadID tid) {
           handleLockRelease(&inst, node);
         } else if (m_thread_api->isTDExit(&inst)) {
           node = m_tfg->createNode(&inst, SyncNodeType::THREAD_EXIT, tid);
+        } else if (m_thread_api->isTDCondWait(&inst)) {
+          node = m_tfg->createNode(&inst, SyncNodeType::COND_WAIT, tid);
+          handleCondWait(&inst, node);
+        } else if (m_thread_api->isTDCondSignal(&inst)) {
+          node = m_tfg->createNode(&inst, SyncNodeType::COND_SIGNAL, tid);
+          handleCondSignal(&inst, node);
+        } else if (m_thread_api->isTDCondBroadcast(&inst)) {
+          node = m_tfg->createNode(&inst, SyncNodeType::COND_BROADCAST, tid);
+          handleCondSignal(&inst, node); // Same handling as signal
         } else if (m_thread_api->isTDBarWait(&inst)) {
           node = m_tfg->createNode(&inst, SyncNodeType::BARRIER_WAIT, tid);
           handleBarrier(&inst, node);
@@ -537,7 +652,7 @@ void MHPAnalysis::processFunction(const Function *func, ThreadID tid) {
 
       if (!entry_node) {
         entry_node = node;
-        m_tfg->setThreadEntry(tid, entry_node);
+        m_tfg->setThreadEntryNode(tid, entry_node);
       }
 
       prev_node = node;
@@ -545,7 +660,7 @@ void MHPAnalysis::processFunction(const Function *func, ThreadID tid) {
   }
 
   if (prev_node) {
-    m_tfg->setThreadExit(tid, prev_node);
+    m_tfg->setThreadExitNode(tid, prev_node);
   }
 }
 
@@ -591,7 +706,7 @@ void MHPAnalysis::handleThreadFork(const Instruction *fork_inst,
     processFunction(forked_fun, new_tid);
 
     // Add inter-thread edge from fork to new thread entry
-    SyncNode *new_thread_entry = m_tfg->getThreadEntry(new_tid);
+    SyncNode *new_thread_entry = m_tfg->getThreadEntryNode(new_tid);
     if (new_thread_entry) {
       m_tfg->addInterThreadEdge(node, new_thread_entry);
     }
@@ -642,7 +757,7 @@ void MHPAnalysis::handleThreadJoin(const Instruction *join_inst,
   
   if (found_thread && joined_tid != 0) {
     // We successfully identified the joined thread
-    SyncNode *child_exit = m_tfg->getThreadExit(joined_tid);
+    SyncNode *child_exit = m_tfg->getThreadExitNode(joined_tid);
     if (child_exit) {
       m_tfg->addInterThreadEdge(child_exit, node);
       node->setJoinedThread(joined_tid);
@@ -655,7 +770,7 @@ void MHPAnalysis::handleThreadJoin(const Instruction *join_inst,
     
     if (m_thread_children.find(parent_tid) != m_thread_children.end()) {
       for (ThreadID child_tid : m_thread_children[parent_tid]) {
-        SyncNode *child_exit = m_tfg->getThreadExit(child_tid);
+        SyncNode *child_exit = m_tfg->getThreadExitNode(child_tid);
         if (child_exit) {
           m_tfg->addInterThreadEdge(child_exit, node);
           // Note: We set joined thread even in fallback case
@@ -680,22 +795,78 @@ void MHPAnalysis::handleLockRelease(const Instruction *unlock_inst,
   node->setLockValue(lock);
 }
 
-void MHPAnalysis::handleCondWait(const Instruction * /*wait_inst*/,
-                                  SyncNode * /*node*/) {
-  // Condition variable handling
-  // TODO: Implement condition variable synchronization analysis
+void MHPAnalysis::handleCondWait(const Instruction *wait_inst,
+                                  SyncNode *node) {
+  // Condition variable wait handling
+  // pthread_cond_wait atomically releases the mutex and waits for a signal
+  // When woken up, it reacquires the mutex
+  
+  const Value *cond = m_thread_api->getCondVal(wait_inst);
+  const Value *mutex = m_thread_api->getCondMutex(wait_inst);
+  
+  node->setCondValue(cond);
+  node->setLockValue(mutex); // The associated mutex
+  
+  // Track this wait for happens-before analysis
+  m_condvar_waits[cond].push_back(wait_inst);
+  
+  // Conservative: add happens-before edges from all prior signals to this wait
+  // In reality, only the most recent signal(s) matter, but we're being conservative
+  if (m_condvar_signals.find(cond) != m_condvar_signals.end()) {
+    for (const Instruction *signal_inst : m_condvar_signals[cond]) {
+      SyncNode *signal_node = m_tfg->getNode(signal_inst);
+      if (signal_node) {
+        // Add inter-thread edge: signal happens-before wait wake-up
+        m_tfg->addInterThreadEdge(signal_node, node);
+      }
+    }
+  }
 }
 
-void MHPAnalysis::handleCondSignal(const Instruction * /*signal_inst*/,
-                                    SyncNode * /*node*/) {
-  // Condition variable handling
-  // TODO: Implement condition variable synchronization analysis
+void MHPAnalysis::handleCondSignal(const Instruction *signal_inst,
+                                    SyncNode *node) {
+  // Condition variable signal/broadcast handling
+  // Wakes up one or more waiting threads
+  
+  const Value *cond = m_thread_api->getCondVal(signal_inst);
+  node->setCondValue(cond);
+  
+  // Track this signal for happens-before analysis
+  m_condvar_signals[cond].push_back(signal_inst);
+  
+  // Add happens-before edges from this signal to all subsequent waits
+  // Note: This is conservative - we don't know which specific wait will be woken
+  // A more precise analysis would track the runtime pairing of signals and waits
 }
 
-void MHPAnalysis::handleBarrier(const Instruction * /*barrier_inst*/,
-                                 SyncNode * /*node*/) {
+void MHPAnalysis::handleBarrier(const Instruction *barrier_inst,
+                                 SyncNode *node) {
   // Barrier synchronization handling
-  // TODO: Implement barrier synchronization analysis
+  // pthread_barrier_wait: all threads must reach the barrier before any proceed
+  // Happens-before: all threads reaching barrier N happen-before any thread leaving barrier N
+  
+  const Value *barrier = m_thread_api->getBarrierVal(barrier_inst);
+  node->setLockValue(barrier); // Reuse lock field for barrier value
+  
+  // Track this barrier wait
+  m_barrier_waits[barrier].push_back(barrier_inst);
+  
+  // Add happens-before edges: all previous barrier waits happen-before this one
+  // and this one happens-before all future barrier waits
+  // This creates a total order among all threads at the barrier
+  if (m_barrier_waits.find(barrier) != m_barrier_waits.end()) {
+    for (const Instruction *prev_wait : m_barrier_waits[barrier]) {
+      if (prev_wait != barrier_inst) {
+        SyncNode *prev_node = m_tfg->getNode(prev_wait);
+        if (prev_node) {
+          // Conservative: create bidirectional happens-before at barriers
+          // All threads synchronize with each other
+          m_tfg->addInterThreadEdge(prev_node, node);
+          m_tfg->addInterThreadEdge(node, prev_node);
+        }
+      }
+    }
+  }
 }
 
 void MHPAnalysis::analyzeLockSets() {
@@ -838,23 +1009,28 @@ void MHPAnalysis::mapInstructionToThread(const Instruction *inst,
 bool MHPAnalysis::hasHappenBeforeRelation(const Instruction *i1,
                                            const Instruction *i2) const {
   // Check various happens-before relations:
-  // 1. Same thread, program order
+  // 1. Same thread, program order (using reachability without back-edges)
   // 2. Fork-join ordering
+  // 3. Condition variable synchronization
+  // 4. Barrier synchronization
 
   if (isInSameThread(i1, i2)) {
-    // In same thread, check program order using dominance in same function
+    // In same thread, check program order using reachability without back-edges
+    // This gives a more precise happens-before for a single dynamic thread instance
     const Function *f1 = i1->getFunction();
     const Function *f2 = i2->getFunction();
     if (f1 == f2) {
-      const DominatorTree &DT = getDomTree(f1);
-      if (DT.dominates(i1, i2) && !DT.dominates(i2, i1)) {
-        return true;
-      }
-      return false;
+      return isReachableWithoutBackEdges(i1, i2);
     }
   }
 
   if (isOrderedByForkJoin(i1, i2))
+    return true;
+  
+  if (isOrderedByCondVar(i1, i2))
+    return true;
+  
+  if (isOrderedByBarrier(i1, i2))
     return true;
 
   return false;
@@ -939,6 +1115,100 @@ bool MHPAnalysis::isOrderedByForkJoin(const Instruction *i1,
               return true; // join before i1, so tid2 before i1
             if (&*I == i1)
               return false; // i1 before join
+          }
+        }
+      }
+    }
+  }
+  
+  return false;
+}
+
+bool MHPAnalysis::isOrderedByCondVar(const Instruction *i1,
+                                       const Instruction *i2) const {
+  // Check if i1 and i2 are ordered by condition variable synchronization
+  // Happens-before: signal/broadcast happens-before the corresponding wait wake-up
+  
+  // Check if i1 is a signal and i2 is a wait on the same condition variable
+  if (m_thread_api->isTDCondSignal(i1) || m_thread_api->isTDCondBroadcast(i1)) {
+    if (m_thread_api->isTDCondWait(i2)) {
+      const Value *cond1 = m_thread_api->getCondVal(i1);
+      const Value *cond2 = m_thread_api->getCondVal(i2);
+      
+      // If they're on the same condition variable, there's a potential happens-before
+      // Conservative: assume signal happens-before any wait on same condvar
+      if (cond1 == cond2) {
+        return true;
+      }
+    }
+  }
+  
+  // Check graph edges for condition variable synchronization
+  SyncNode *node1 = m_tfg->getNode(i1);
+  SyncNode *node2 = m_tfg->getNode(i2);
+  
+  if (node1 && node2) {
+    // Check if there's a path from node1 to node2 in the TFG
+    // This would indicate a happens-before relation established during construction
+    std::unordered_set<const SyncNode *> visited;
+    std::deque<const SyncNode *> worklist;
+    worklist.push_back(node1);
+    visited.insert(node1);
+    
+    while (!worklist.empty()) {
+      const SyncNode *current = worklist.front();
+      worklist.pop_front();
+      
+      if (current == node2) {
+        return true;
+      }
+      
+      for (const SyncNode *succ : current->getSuccessors()) {
+        if (visited.find(succ) == visited.end()) {
+          visited.insert(succ);
+          worklist.push_back(succ);
+        }
+      }
+    }
+  }
+  
+  return false;
+}
+
+bool MHPAnalysis::isOrderedByBarrier(const Instruction *i1,
+                                      const Instruction *i2) const {
+  // Check if i1 and i2 are ordered by barrier synchronization
+  // At a barrier, all threads synchronize with each other
+  
+  // Check if both are barrier waits on the same barrier
+  if (m_thread_api->isTDBarWait(i1) && m_thread_api->isTDBarWait(i2)) {
+    const Value *bar1 = m_thread_api->getBarrierVal(i1);
+    const Value *bar2 = m_thread_api->getBarrierVal(i2);
+    
+    if (bar1 == bar2) {
+      // Same barrier: they synchronize (happens-before in both directions actually)
+      return true;
+    }
+  }
+  
+  // Check if instruction happens before or after a barrier
+  // If i1 is before a barrier wait and i2 is the barrier or after it
+  ThreadID tid1 = getThreadID(i1);
+  ThreadID tid2 = getThreadID(i2);
+  
+  if (tid1 == tid2 && i1->getFunction() == i2->getFunction()) {
+    // Same thread: check if there's a barrier between them
+    // If i1 happens-before a barrier, and i2 is after that barrier,
+    // then due to barrier semantics, i1 happens-before i2
+    for (const auto &pair : m_barrier_waits) {
+      const std::vector<const Instruction *> &waits = pair.second;
+      for (const Instruction *barrier_inst : waits) {
+        ThreadID bar_tid = getThreadID(barrier_inst);
+        if (bar_tid == tid1) {
+          // Check if i1 < barrier < i2 in program order
+          if (isReachableWithoutBackEdges(i1, barrier_inst) &&
+              isReachableWithoutBackEdges(barrier_inst, i2)) {
+            return true;
           }
         }
       }
@@ -1159,4 +1429,80 @@ bool MHPAnalysis::dominates(const Instruction *a, const Instruction *b) const {
     return false;
   const DominatorTree &DT = getDomTree(fa);
   return DT.dominates(a, b);
+}
+
+// =========================================================================
+// Program Order Helpers (Precise Happens-Before for Same Thread)
+// =========================================================================
+
+bool MHPAnalysis::isBackEdge(const BasicBlock *from, const BasicBlock *to,
+                              const DominatorTree &DT) const {
+  // A back edge is an edge from 'from' to 'to' where 'to' dominates 'from'
+  // This captures loop back edges
+  return DT.dominates(to, from);
+}
+
+bool MHPAnalysis::isReachableWithoutBackEdges(const Instruction *from,
+                                               const Instruction *to) const {
+  if (!from || !to)
+    return false;
+  
+  if (from == to)
+    return false;
+  
+  const Function *func = from->getFunction();
+  if (func != to->getFunction())
+    return false;
+  
+  const BasicBlock *fromBB = from->getParent();
+  const BasicBlock *toBB = to->getParent();
+  
+  // Quick check: if in same basic block, check instruction order
+  if (fromBB == toBB) {
+    // Check if 'from' appears before 'to' in the basic block
+    for (const Instruction &inst : *fromBB) {
+      if (&inst == from)
+        return true;  // from comes first
+      if (&inst == to)
+        return false; // to comes first
+    }
+    return false;
+  }
+  
+  // Different basic blocks: perform BFS without following back edges
+  const DominatorTree &DT = getDomTree(func);
+  
+  std::unordered_set<const BasicBlock *> visited;
+  std::vector<const BasicBlock *> worklist;
+  
+  // Start from the basic block containing 'from'
+  // But only consider successors after 'from' in that block
+  worklist.push_back(fromBB);
+  visited.insert(fromBB);
+  
+  while (!worklist.empty()) {
+    const BasicBlock *current = worklist.back();
+    worklist.pop_back();
+    
+    // Check successors
+    for (const BasicBlock *succ : successors(current)) {
+      // Skip back edges (loop back edges)
+      if (isBackEdge(current, succ, DT)) {
+        continue;
+      }
+      
+      // If we reached the target block, check if we can reach 'to'
+      if (succ == toBB) {
+        return true;
+      }
+      
+      // Continue exploring if not visited
+      if (visited.find(succ) == visited.end()) {
+        visited.insert(succ);
+        worklist.push_back(succ);
+      }
+    }
+  }
+  
+  return false;
 }

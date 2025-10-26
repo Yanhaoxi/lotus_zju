@@ -18,7 +18,7 @@
 #include <llvm/Analysis/AliasAnalysis.h>
 #include <llvm/Analysis/CallGraph.h>
 
-#include <functional>
+//#include <functional>
 #include <unordered_map>
 
 namespace ifds {

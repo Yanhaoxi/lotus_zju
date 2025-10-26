@@ -4,8 +4,7 @@
 //
 //===----------------------------------------------------------------------===//
 /*
- * 		SSIfy: a parameterized tool to convert programs for sparse analyses
- *		Copyright (C) 2013  Victor Hugo Sperle Campos
+ * 	 A parameterized tool to convert programs for sparse analyses
  */
 
  #include "IR/SSI/SSI.h"

@@ -26,6 +26,7 @@ target_link_libraries(CanaryNullPointer CanaryLLVMUtils CanaryDyckAA)
 set(GVFA_SOURCES
   GVFA/GlobalValueFlowAnalysis.cpp
   GVFA/ReachabilityAlgorithms.cpp
+  GVFA/GVFAUtils.cpp
 )
 add_library(GVFA STATIC ${GVFA_SOURCES})
 target_link_libraries(GVFA CanaryDyckAA Annotation)

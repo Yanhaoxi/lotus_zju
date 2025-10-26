@@ -172,10 +172,10 @@ public:
   std::vector<ThreadID> getAllThreads() const;
 
   // Entry and exit nodes
-  void setThreadEntry(ThreadID tid, SyncNode *entry);
-  void setThreadExit(ThreadID tid, SyncNode *exit);
-  SyncNode *getThreadEntry(ThreadID tid);
-  SyncNode *getThreadExit(ThreadID tid);
+  void setThreadEntryNode(ThreadID tid, SyncNode *entry);
+  void setThreadExitNode(ThreadID tid, SyncNode *exit);
+  SyncNode *getThreadEntryNode(ThreadID tid) const;
+  SyncNode *getThreadExitNode(ThreadID tid) const;
 
   // Graph construction helpers
   void addIntraThreadEdge(SyncNode *from, SyncNode *to);
@@ -244,10 +244,15 @@ private:
   std::vector<std::unique_ptr<Region>> m_regions;
   std::unordered_map<const llvm::Instruction *, const Region *>
       m_inst_to_region;
-
+  
   void identifyRegions();
+  void identifyRegionsForThread(ThreadID tid, const llvm::Function *entry);
   void computeOrderingConstraints();
   void computeParallelism();
+  
+  // CFG-based helpers
+  bool isSyncPoint(const llvm::Instruction *inst) const;
+  std::vector<const llvm::Instruction *> collectSyncPoints(const llvm::Function *func) const;
 };
 
 // ============================================================================
@@ -417,6 +422,19 @@ private:
       m_pthread_value_to_thread;                             // pthread_t value -> thread ID
   std::unordered_map<ThreadID, const llvm::Value *>
       m_thread_to_pthread_value;                             // thread ID -> pthread_t value
+  
+  // Condition variable tracking (for happens-before)
+  // Map condition variable -> list of signal/broadcast instructions
+  std::unordered_map<const llvm::Value *, std::vector<const llvm::Instruction *>>
+      m_condvar_signals;
+  // Map condition variable -> list of wait instructions
+  std::unordered_map<const llvm::Value *, std::vector<const llvm::Instruction *>>
+      m_condvar_waits;
+  
+  // Barrier tracking (for happens-before)
+  // Map barrier -> list of threads that have reached it
+  std::unordered_map<const llvm::Value *, std::vector<const llvm::Instruction *>>
+      m_barrier_waits;
 
   // Per-thread set of functions already processed to avoid reprocessing
   std::unordered_map<ThreadID, std::unordered_set<const llvm::Function *>>
@@ -491,6 +509,10 @@ private:
                         const llvm::Instruction *i2) const;
   bool isOrderedByForkJoin(const llvm::Instruction *i1,
                            const llvm::Instruction *i2) const;
+  bool isOrderedByCondVar(const llvm::Instruction *i1,
+                          const llvm::Instruction *i2) const;
+  bool isOrderedByBarrier(const llvm::Instruction *i1,
+                          const llvm::Instruction *i2) const;
   
   // Fork-join helper methods
   bool isAncestorThread(ThreadID ancestor, ThreadID descendant) const;
@@ -502,6 +524,12 @@ private:
   // Dominator helpers (intra-function)
   const DominatorTree &getDomTree(const llvm::Function *func) const;
   bool dominates(const llvm::Instruction *a, const llvm::Instruction *b) const;
+  
+  // Program order helpers (precise happens-before for same thread)
+  bool isReachableWithoutBackEdges(const llvm::Instruction *from,
+                                    const llvm::Instruction *to) const;
+  bool isBackEdge(const llvm::BasicBlock *from, const llvm::BasicBlock *to,
+                  const DominatorTree &DT) const;
 };
 
 // ============================================================================

@@ -273,6 +273,79 @@ public:
   }
   //@}
 
+  /// Return barrier value
+  //@{
+  /// First argument of pthread_barrier_wait
+  inline const Value *getBarrierVal(const Instruction *inst) const {
+    assert(isTDBarWait(inst) && "not a barrier wait function");
+    const CallBase *cb = getLLVMCallSite(inst);
+    return cb->getArgOperand(0);
+  }
+  inline const Value *getBarrierVal(const CallBase *cb) const {
+    return getBarrierVal(dyn_cast<Instruction>(cb));
+  }
+  //@}
+
+  /// Return true if this call waits on a condition variable
+  //@{
+  inline bool isTDCondWait(const Instruction *inst) const {
+    return getType(getCallee(inst)) == TD_COND_WAIT;
+  }
+
+  inline bool isTDCondWait(const CallBase *cb) const {
+    return getType(getCallee(cb)) == TD_COND_WAIT;
+  }
+  //@}
+
+  /// Return true if this call signals a condition variable
+  //@{
+  inline bool isTDCondSignal(const Instruction *inst) const {
+    return getType(getCallee(inst)) == TD_COND_SIGNAL;
+  }
+
+  inline bool isTDCondSignal(const CallBase *cb) const {
+    return getType(getCallee(cb)) == TD_COND_SIGNAL;
+  }
+  //@}
+
+  /// Return true if this call broadcasts a condition variable
+  //@{
+  inline bool isTDCondBroadcast(const Instruction *inst) const {
+    return getType(getCallee(inst)) == TD_COND_BROADCAST;
+  }
+
+  inline bool isTDCondBroadcast(const CallBase *cb) const {
+    return getType(getCallee(cb)) == TD_COND_BROADCAST;
+  }
+  //@}
+
+  /// Return condition variable value
+  //@{
+  /// First argument of pthread_cond_wait/signal/broadcast
+  inline const Value *getCondVal(const Instruction *inst) const {
+    assert((isTDCondWait(inst) || isTDCondSignal(inst) || isTDCondBroadcast(inst)) &&
+           "not a condition variable function");
+    const CallBase *cb = getLLVMCallSite(inst);
+    return cb->getArgOperand(0);
+  }
+  inline const Value *getCondVal(const CallBase *cb) const {
+    return getCondVal(dyn_cast<Instruction>(cb));
+  }
+  //@}
+
+  /// Return mutex value associated with condition wait
+  //@{
+  /// Second argument of pthread_cond_wait
+  inline const Value *getCondMutex(const Instruction *inst) const {
+    assert(isTDCondWait(inst) && "not a condition wait function");
+    const CallBase *cb = getLLVMCallSite(inst);
+    return cb->getArgOperand(1);
+  }
+  inline const Value *getCondMutex(const CallBase *cb) const {
+    return getCondMutex(dyn_cast<Instruction>(cb));
+  }
+  //@}
+
   void performAPIStat(Module *m);
   void statInit(llvm::StringMap<u32_t> &tdAPIStatMap);
 };
