@@ -1,6 +1,6 @@
 
 #define DEBUG_TYPE "TreeStreamWriter"
-#include "Support/TreeStream.h"
+#include "Support/ADT/TreeStream.h"
 
 
 #include <cassert>

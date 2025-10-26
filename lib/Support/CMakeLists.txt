@@ -7,4 +7,6 @@ add_library(CanarySupport STATIC
         UnionFind.cpp
         cJSON.cpp
         TreeStream.cpp
+        System.cpp
+        Options.cpp
 )
