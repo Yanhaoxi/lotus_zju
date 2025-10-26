@@ -31,11 +31,6 @@
 #include <chrono>
 #include <memory>
 
-// Forward declarations for solver classes (moved to separate headers)
-template<typename Problem> class IFDSSolver;
-template<typename Problem> class ParallelIFDSSolver;
-template<typename Problem> class IDESolver;
-
 // Forward declaration (real class defined in Alias/DyckAA/DyckAliasAnalysis.h)
 class DyckAliasAnalysis;
 

@@ -28,6 +28,11 @@ add_lotus_test(taint_analysis_test unit/TaintAnalysisTest.cpp)
 add_lotus_test(ifds_solver_test unit/IFDSSolverTest.cpp)
 add_lotus_test(egraph_test unit/EGraphTest.cpp)
 add_lotus_pdg_test(pdg_slicing_test unit/pdg_slicing_test.cpp)
+
+# FPSolve tests
+add_executable(fpsolve_test unit/FPSolveTest.cpp)
+target_include_directories(fpsolve_test PRIVATE ${COMMON_INCLUDES})
+target_link_libraries(fpsolve_test GTest::gtest GTest::gtest_main FPSolve)
 # MHP test needs additional LLVM analysis libraries
 add_executable(mhp_analysis_test unit/MHPAnalysisTest.cpp)
 target_include_directories(mhp_analysis_test PRIVATE ${COMMON_INCLUDES})
@@ -39,8 +44,9 @@ add_test(NAME IFDSSolverTest COMMAND ifds_solver_test)
 add_test(NAME EGraphTest COMMAND egraph_test)
 add_test(NAME PDGSlicingTest COMMAND pdg_slicing_test)
 add_test(NAME MHPAnalysisTest COMMAND mhp_analysis_test)
-set_tests_properties(TaintAnalysisTest IFDSSolverTest EGraphTest PDGSlicingTest MHPAnalysisTest PROPERTIES TIMEOUT 300 WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+add_test(NAME FPSolveTest COMMAND fpsolve_test)
+set_tests_properties(TaintAnalysisTest IFDSSolverTest EGraphTest PDGSlicingTest MHPAnalysisTest FPSolveTest PROPERTIES TIMEOUT 300 WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
-add_custom_target(run_all_tests COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure DEPENDS taint_analysis_test ifds_solver_test egraph_test pdg_slicing_test mhp_analysis_test)
-add_custom_target(run_unit_tests COMMAND ${CMAKE_CTEST_COMMAND} -R "Test$" --output-on-failure DEPENDS taint_analysis_test ifds_solver_test egraph_test pdg_slicing_test mhp_analysis_test)
+add_custom_target(run_all_tests COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure DEPENDS taint_analysis_test ifds_solver_test egraph_test pdg_slicing_test mhp_analysis_test fpsolve_test)
+add_custom_target(run_unit_tests COMMAND ${CMAKE_CTEST_COMMAND} -R "Test$" --output-on-failure DEPENDS taint_analysis_test ifds_solver_test egraph_test pdg_slicing_test mhp_analysis_test fpsolve_test)
 

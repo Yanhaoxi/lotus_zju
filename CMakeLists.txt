@@ -161,7 +161,11 @@ endif()
 add_subdirectory(lib)
 add_subdirectory(tools)
 add_subdirectory(benchmarks)
-add_subdirectory(examples)
+
+option(BUILD_EXAMPLES "Build examples" OFF)
+if(UILD_EXAMPLES) 
+    add_subdirectory(examples)
+endif()
 
 # Add tests if enabled
 option(BUILD_TESTS "Build tests" OFF)

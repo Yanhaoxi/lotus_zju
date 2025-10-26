@@ -1,8 +1,9 @@
 /**********************************************************************
  * Newtonian Program Analysis – generic C++14 header
  *
- * Based on OCaml NPA-PMA (lib/pmaf/npa.ml)
-
+ * Based on OCaml NPA-PMA by Di Wang.
+ * TBD: for KleeIter and NewtonIter (and other components), maybe use the (somewhat more comprehensive) one in lib/Solvers/FPsolve for solving the equations.
+ *
  *   ✅ Conditional expressions (T0_cond/T1_cond) with condCombine
  *   ✅ Kleene & Newton iterators with correct differential construction
  *   ✅ Ndet linearization: adds base values to branches
