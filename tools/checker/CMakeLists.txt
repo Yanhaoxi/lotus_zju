@@ -12,6 +12,7 @@ target_link_libraries(canary-gvfa PRIVATE
   GVFAChecker
   CanaryReport
   Annotation
+  CanaryDyckAA
   ${LLVM_LINK_COMPONENTS}
 )
 
