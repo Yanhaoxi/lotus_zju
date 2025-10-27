@@ -66,6 +66,11 @@ target_include_directories(ClamAnalysis PUBLIC
   ${CRAB_ROOT}/include
 )
 
+# Link against Crab library
+target_link_libraries(ClamAnalysis PUBLIC
+  Crab
+)
+
 # Add optimizer if available
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/Optimizer/Optimizer.cc")
   add_library(ClamOptimizer STATIC
