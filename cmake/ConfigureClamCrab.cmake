@@ -35,6 +35,15 @@ if(ENABLE_CLAM)
                 message(FATAL_ERROR "CRAB clone succeeded but CMakeLists.txt not found")
             endif()
             
+            # Patch CRAB's CMakeLists.txt to update cmake_minimum_required for newer CMake versions
+            file(READ "${CRAB_ROOT}/CMakeLists.txt" CRAB_CMAKE_CONTENT)
+            # Match cmake_minimum_required with various formats (e.g., VERSION 2.8, 2.8.12, with FATAL_ERROR, etc.)
+            string(REGEX REPLACE "cmake_minimum_required\\(VERSION [0-9]+\\.[0-9]+[^)]*\\)" 
+                                 "cmake_minimum_required(VERSION 3.10)" 
+                                 CRAB_CMAKE_CONTENT "${CRAB_CMAKE_CONTENT}")
+            file(WRITE "${CRAB_ROOT}/CMakeLists.txt" "${CRAB_CMAKE_CONTENT}")
+            message(STATUS "Patched CRAB CMakeLists.txt to require CMake 3.10+")
+            
             message(STATUS "CRAB successfully downloaded to ${CRAB_ROOT}")
         else()
             message(STATUS "Using previously downloaded CRAB at: ${CRAB_ROOT}")
