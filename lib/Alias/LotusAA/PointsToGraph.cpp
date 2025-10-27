@@ -180,24 +180,36 @@ void PTGraph::refineResult(mem_value_t &to_refine) {
 }
 
 void PTGraph::trackPtrRightValue(Value *ptr, mem_value_t &res) {
+  set<Value *, llvm_cmp> visited;
+  trackPtrRightValueImpl(ptr, res, visited);
+}
+
+void PTGraph::trackPtrRightValueImpl(Value *ptr, mem_value_t &res,
+                                      set<Value *, llvm_cmp> &visited) {
+  // Cycle detection - prevent infinite recursion
+  if (visited.count(ptr))
+    return;
+  
+  visited.insert(ptr);
+
   if (Argument *arg = dyn_cast<Argument>(ptr)) {
     res.push_back(mem_value_item_t(nullptr, arg));
   } else if (LoadInst *load = dyn_cast<LoadInst>(ptr)) {
     mem_value_t load_result;
     getLoadValues(load->getPointerOperand(), load, load_result);
     for (auto &item : load_result) {
-      trackPtrRightValue(item.val, res);
+      trackPtrRightValueImpl(item.val, res, visited);
     }
   } else if (PHINode *phi = dyn_cast<PHINode>(ptr)) {
     for (unsigned i = 0; i < phi->getNumIncomingValues(); i++) {
-      trackPtrRightValue(phi->getIncomingValue(i), res);
+      trackPtrRightValueImpl(phi->getIncomingValue(i), res, visited);
     }
   } else if (SelectInst *sel = dyn_cast<SelectInst>(ptr)) {
-    trackPtrRightValue(sel->getTrueValue(), res);
+    trackPtrRightValueImpl(sel->getTrueValue(), res, visited);
     
-    trackPtrRightValue(sel->getFalseValue(), res);
+    trackPtrRightValueImpl(sel->getFalseValue(), res, visited);
   } else if (CastInst *cast = dyn_cast<CastInst>(ptr)) {
-    trackPtrRightValue(cast->getOperand(0), res);
+    trackPtrRightValueImpl(cast->getOperand(0), res, visited);
   } else {
     res.push_back(mem_value_item_t(nullptr, ptr));
   }

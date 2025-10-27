@@ -178,6 +178,8 @@ protected:
                  bool create_symbol = false, int64_t offset = 0);
 
   void trackPtrRightValue(Value *ptr, mem_value_t &res);
+  void trackPtrRightValueImpl(Value *ptr, mem_value_t &res,
+                               std::set<Value *, llvm_cmp> &visited);
 
   void performLoadLoadMatch();
   bool cacheLoadCategory(LoadInst *load_inst);

@@ -295,7 +295,7 @@ Argument *ObjectLocator::getValues(Instruction *from_loc, mem_value_t &res,
       if (bb == startBB) {
         // Find last locator value before or equal to from_loc
         auto it = bb->rbegin(), ie = bb->rend();
-        while (end_pos) {
+        while (end_pos > 0) {
           Instruction *last_loc = lv_list->at(end_pos - 1)->getPos();
           Instruction *inst = nullptr;
           for (; it != ie; ++it) {
