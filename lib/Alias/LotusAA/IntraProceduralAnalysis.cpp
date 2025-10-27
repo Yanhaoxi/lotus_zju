@@ -1,5 +1,6 @@
 #include "Alias/LotusAA/IntraProceduralAnalysis.h"
 
+#include <unordered_map>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/IntrinsicInst.h>
 #include <llvm/IR/Constants.h>
