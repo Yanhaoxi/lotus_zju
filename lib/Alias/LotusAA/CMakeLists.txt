@@ -12,22 +12,23 @@ set(LOTUSAA_SOURCES
   InterProceduralPass.cpp
 )
 
-add_library(LotusAA MODULE ${LOTUSAA_SOURCES})
+# Build as STATIC library for linking into executables
+add_library(LotusAA STATIC ${LOTUSAA_SOURCES})
 
 target_compile_options(LotusAA PRIVATE
   -fno-rtti
 )
 
-target_link_libraries(LotusAA PRIVATE
+target_link_libraries(LotusAA PUBLIC
   LLVMAnalysis
 )
 
 # Set output directory
 set_target_properties(LotusAA PROPERTIES
-  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+  ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
 )
 
 install(TARGETS LotusAA
-  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
 )
 

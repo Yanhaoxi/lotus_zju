@@ -84,6 +84,9 @@ private:
   // Global value cache (for initialization heuristics)
   GlobalValueCache globalValuesCache_;
 
+  // Cached dominator trees for each function
+  std::map<Function *, DominatorTree *, llvm_cmp> dominatorTrees_;
+
   friend class PTGraph;
   friend class IntraLotusAA;
 

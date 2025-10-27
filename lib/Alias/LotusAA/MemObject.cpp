@@ -157,12 +157,22 @@ Argument *SymbolicMemObject::findCreatePseudoArg(ObjectLocator *locator,
     return it->second;
 
   if (arg_type) {
+    // LLVM Arguments must have first-class types or be void
+    // If we have a non-first-class type (struct, array), use a pointer to it
+    Type *actual_type = arg_type;
+    if (!arg_type->isFirstClassType() && !arg_type->isVoidTy()) {
+      actual_type = arg_type->getPointerTo();
+    }
+    
+    // LLVM doesn't allow naming void-typed values, so use empty name for void types
     std::string name;
-    raw_string_ostream ss(name);
-    ss << *locator;
-    ss.flush();
+    if (!actual_type->isVoidTy()) {
+      raw_string_ostream ss(name);
+      ss << *locator;
+      ss.flush();
+    }
 
-    Argument *arg = new Argument(arg_type, name);
+    Argument *arg = new Argument(actual_type, name);
     pseudo_args[locator] = arg;
     return arg;
   }

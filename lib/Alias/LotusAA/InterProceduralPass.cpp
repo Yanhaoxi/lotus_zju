@@ -66,6 +66,12 @@ LotusAA::~LotusAA() {
     if (func_result.second)
       delete func_result.second;
   }
+
+  // Clean up cached dominator trees
+  for (auto &dt_pair : dominatorTrees_) {
+    if (dt_pair.second)
+      delete dt_pair.second;
+  }
 }
 
 void LotusAA::getAnalysisUsage(AnalysisUsage &AU) const {
@@ -358,7 +364,21 @@ IntraLotusAA *LotusAA::getPtGraph(Function *F) {
 }
 
 DominatorTree *LotusAA::getDomTree(Function *F) {
-  return &getAnalysis<DominatorTreeWrapperPass>(*F).getDomTree();
+  // Check if already computed
+  auto it = dominatorTrees_.find(F);
+  if (it != dominatorTrees_.end())
+    return it->second;
+
+  // External functions (declarations) have no body, so no dominator tree
+  if (F->isDeclaration()) {
+    dominatorTrees_[F] = nullptr;
+    return nullptr;
+  }
+
+  // Compute dominator tree for this function
+  DominatorTree *DT = new DominatorTree(*F);
+  dominatorTrees_[F] = DT;
+  return DT;
 }
 
 bool LotusAA::isBackEdge(Function *caller, Function *callee) {

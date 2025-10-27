@@ -454,13 +454,22 @@ void IntraLotusAA::processCalleeOutput(
   for (size_t idx = 1; idx < callee_output.size(); idx++) {
     OutputItem *output = callee_output[idx];
     Type *output_type = output->getType();
+    
+    // LLVM Arguments must have first-class types or be void
+    Type *actual_type = output_type;
+    if (!output_type->isFirstClassType() && !output_type->isVoidTy()) {
+      actual_type = output_type->getPointerTo();
+    }
 
+    // LLVM doesn't allow naming void-typed values, so use empty name for void types
     string name_str;
-    raw_string_ostream ss(name_str);
-    ss << "LPseudoCallSiteOutput_" << callsite << "_" << callee << "_#" << idx;
-    ss.flush();
+    if (!actual_type->isVoidTy()) {
+      raw_string_ostream ss(name_str);
+      ss << "LPseudoCallSiteOutput_" << callsite << "_" << callee << "_#" << idx;
+      ss.flush();
+    }
 
-    Argument *new_arg = new Argument(output_type, name_str);
+    Argument *new_arg = new Argument(actual_type, name_str);
     out_values.push_back(new_arg);
     func_pseudo_ret_cache[new_arg] = make_pair(callsite, idx);
   }
@@ -483,13 +492,22 @@ void IntraLotusAA::processCalleeOutput(
       continue;
     }
     Type *obj_ptr_type = alloca_site->getType();
+    
+    // LLVM Arguments must have first-class types or be void
+    Type *actual_type = obj_ptr_type;
+    if (!obj_ptr_type->isFirstClassType() && !obj_ptr_type->isVoidTy()) {
+      actual_type = obj_ptr_type->getPointerTo();
+    }
 
+    // LLVM doesn't allow naming void-typed values, so use empty name for void types
     string name_str;
-    raw_string_ostream ss(name_str);
-    ss << "LCallSiteEscapedObject_" << callsite << "_#" << escape_obj_idx++;
-    ss.flush();
+    if (!actual_type->isVoidTy()) {
+      raw_string_ostream ss(name_str);
+      ss << "LCallSiteEscapedObject_" << callsite << "_#" << escape_obj_idx++;
+      ss.flush();
+    }
 
-    Argument *new_arg = new Argument(obj_ptr_type, name_str);
+    Argument *new_arg = new Argument(actual_type, name_str);
     func_pseudo_ret_cache[new_arg] = make_pair(callsite, PTR_TO_ESC_OBJ);
     MemObject::ObjKind obj_kind = MemObject::CONCRETE;
     MemObject *escaped_obj_to = newObject(new_arg, obj_kind);

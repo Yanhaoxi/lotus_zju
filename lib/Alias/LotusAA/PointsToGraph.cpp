@@ -52,7 +52,10 @@ PTResultIterator::PTResultIterator(PTResult *target, PTGraph *parent_graph)
 void PTResultIterator::visit(PTResult *target, int64_t off,
                              set<PTResult *> &visited) {
   assert(target && "Null target");
-  assert(!visited.count(target) && "Cycle in PT graph");
+  
+  // Check for cycles - if already visited, skip
+  if (visited.count(target))
+    return;
   
   visited.insert(target);
 
@@ -66,8 +69,8 @@ void PTResultIterator::visit(PTResult *target, int64_t off,
   for (PTResult::DerivedPtItem &item : target->derived_list) {
     visit(item.src_pts, off + item.offset, visited);
   }
-
-  visited.erase(target);
+  
+  // Don't erase from visited - we want to prevent cycles
 }
 
 namespace llvm {

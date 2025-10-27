@@ -34,6 +34,13 @@ target_link_libraries(fpa PRIVATE
   ${LLVM_LINK_COMPONENTS}
 )
 
+# LotusAA Pointer Analysis Tool
+add_executable(lotus_aa lotus_aa.cpp)
+target_link_libraries(lotus_aa PRIVATE
+  LotusAA
+  ${LLVM_LINK_COMPONENTS}
+)
+
 # Dynamic Alias Analysis tools (only built if BUILD_DYNAA is enabled)
 if(BUILD_DYNAA)
   add_subdirectory(dynaa)
