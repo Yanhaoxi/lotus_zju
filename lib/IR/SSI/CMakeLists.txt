@@ -12,5 +12,3 @@ target_link_libraries(CanarySSI PUBLIC
   LLVMCore
   LLVMSupport
 )
-
-

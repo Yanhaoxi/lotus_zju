@@ -9,3 +9,4 @@ set(CanaryNullPointer_SOURCES
   AliasAnalysisAdapter.cpp
 )
 add_library(CanaryNullPointer STATIC ${CanaryNullPointer_SOURCES})
+target_link_libraries(CanaryNullPointer CanaryLLVMUtils CanaryDyckAA)

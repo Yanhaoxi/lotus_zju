@@ -4,5 +4,5 @@ set(Concurrency_SOURCES
   MHPAnalysis.cpp
 )
 add_library(Concurrency STATIC ${Concurrency_SOURCES})
-target_link_libraries(Concurrency CanaryDyckAA)
+target_link_libraries(Concurrency CanaryLLVMUtils CanaryDyckAA)
 
