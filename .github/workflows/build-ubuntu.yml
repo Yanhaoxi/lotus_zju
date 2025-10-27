@@ -5,12 +5,10 @@ on:
 jobs:
   build-linux:
     runs-on: ${{ matrix.ubuntu-version }}
+    timeout-minutes: 60
     strategy:
       matrix:
         ubuntu-version: [ubuntu-22.04, ubuntu-24.04, ubuntu-latest]
-
-    env:
-      MAKEFLAGS: -j4
 
     steps:
       - name: Checkout
@@ -29,12 +27,12 @@ jobs:
         run: |
           mkdir build && cd build
           cmake -DCMAKE_INSTALL_PREFIX="$HOME/canary" \
-                -DCMAKE_BUILD_TYPE="Debug" \
+                -DCMAKE_BUILD_TYPE="Release" \
                 -DLLVM_BUILD_PATH="/usr/lib/llvm-14/lib/cmake/llvm" \
                 -DLLVM_CONFIG_PATH="/usr/bin/llvm-config-14" \
                 -DLLVM_DIR="/usr/lib/llvm-14/lib/cmake/llvm" \
                 -DZ3_DIR="/usr" ..
-          make && make install
+          make -j$(nproc) && make install
       - name: Add Canary to the path
         run: |
           echo "$HOME/canary/bin" >> $GITHUB_PATH

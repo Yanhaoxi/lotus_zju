@@ -5,8 +5,7 @@ on:
 jobs:
   build:
     runs-on: macos-latest
-    env:
-      MAKEFLAGS: -j4
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
@@ -28,11 +27,11 @@ jobs:
           cd build
           cmake \
             -DCMAKE_INSTALL_PREFIX="$HOME/canary" \
-            -DCMAKE_BUILD_TYPE="Debug" \
+            -DCMAKE_BUILD_TYPE="Release" \
             -DLLVM_BUILD_PATH="/opt/homebrew/opt/llvm@14/lib/cmake/llvm" \
             -DZ3_DIR="/usr/local" \
             ..
-          make
+          make -j$(nproc || sysctl -n hw.ncpu)
           make install
       - name: Add Canary to the path
         run: |
