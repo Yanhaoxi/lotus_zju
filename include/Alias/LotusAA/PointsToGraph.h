@@ -1,0 +1,234 @@
+/*
+ * LotusAA - Points-To Graph Base Class
+ * 
+ * Base class for pointer analysis results. Provides common infrastructure
+ * for managing points-to information, memory objects, and constraints.
+ * 
+ * Key Concepts:
+ * - PTResult: Maps pointers to sets of (MemObject, offset) pairs
+ * - MemObject: Abstract representation of memory locations
+ * - Field-sensitive: Tracks individual struct fields separately
+ */
+
+#pragma once
+
+#include <map>
+#include <set>
+#include <vector>
+
+#include <llvm/IR/Dominators.h>
+#include <llvm/IR/DataLayout.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/Instructions.h>
+
+#include "Alias/LotusAA/MemObject.h"
+#include "Alias/LotusAA/Types.h"
+#include "Alias/LotusAA/Compat.h"
+
+namespace llvm {
+
+// Forward declarations
+class LotusAA;
+class PTResultIterator;
+class PTGraph;
+
+/*
+ * PTResult - Points-to set for a pointer (simplified)
+ * 
+ * Two types of targets:
+ * 1. Direct: <ObjectLocator> - ptr points to locator
+ * 2. Derived: <PTResult', offset> - ptr points to (PTResult' + offset)
+ */
+class PTResult {
+public:
+  // Direct points-to target
+  struct PtItem {
+    ObjectLocator *locator;
+    PtItem(ObjectLocator *loc) : locator(loc) {}
+    PtItem(const PtItem &item) : locator(item.locator) {}
+  };
+
+  // Derived points-to target  
+  struct DerivedPtItem {
+    PTResult *src_pts;
+    int64_t offset;
+
+    DerivedPtItem(PTResult *other_pts, int64_t off)
+        : src_pts(other_pts), offset(off) {}
+    DerivedPtItem(const DerivedPtItem &itemset)
+        : src_pts(itemset.src_pts), offset(itemset.offset) {}
+  };
+
+private:
+  std::vector<PtItem> pt_list;
+  std::vector<DerivedPtItem> derived_list;
+  Value *ptr;
+  bool is_optimized;
+
+  friend class PTResultIterator;
+
+public:
+  PTResult(Value *ptr) : ptr(ptr), is_optimized(false) {}
+
+  Value *get_ptr() { return ptr; }
+
+  void add_target(MemObject *obj, int64_t offset) {
+    ObjectLocator *locator = obj->findLocator(offset, true);
+    pt_list.push_back({locator});
+    is_optimized = false;
+  }
+
+  void add_derived_target(PTResult *src_pts, int64_t offset) {
+    derived_list.push_back({src_pts, offset});
+    is_optimized = false;
+  }
+};
+
+/*
+ * PTResultIterator - Collect final points-to results
+ */
+class PTResultIterator {
+public:
+  using iterator = std::set<ObjectLocator *, obj_loc_cmp>::iterator;
+  using size_type = std::set<ObjectLocator *, obj_loc_cmp>::size_type;
+
+private:
+  std::set<ObjectLocator *, obj_loc_cmp> res;
+  PTGraph *parent_graph;
+
+  void visit(PTResult *target, int64_t off, std::set<PTResult *> &visited);
+
+public:
+  PTResultIterator(PTResult *target, PTGraph *parent_graph);
+
+  iterator begin() { return res.begin(); }
+  iterator end() { return res.end(); }
+  size_type count(ObjectLocator *loc) { return res.count(loc); }
+  int size() { return res.size(); }
+
+  friend raw_ostream &operator<<(raw_ostream &out, PTResultIterator &pt_it);
+};
+
+/*
+ * PTGraph - Points-to graph manager (simplified)
+ */
+class PTGraph {
+public:
+  enum PTGType { PTGBegin, PTGraphTy, IntraLotusAATy, PTGEnd };
+
+  PTGType getKind() const { return PTGraphTy; }
+
+  static bool classof(const PTGraph *G) {
+    return G->getKind() >= PTGBegin && G->getKind() <= PTGEnd;
+  }
+
+protected:
+  // Parent function being analyzed
+  Function *analyzed_func;
+
+  // Parent LotusAA pass
+  LotusAA *lotus_aa;
+
+  // Dominance information for SSA construction
+  DominatorTree *dom_tree;
+
+  // Special NULL result
+  PTResult *NullPTS;
+
+  // Points-to results
+  std::map<Value *, PTResult *, llvm_cmp> pt_results;
+
+  // Memory objects
+  std::map<MemObject *, int, mem_obj_cmp> mem_objs;
+
+  int pt_index;
+  int obj_index;
+
+  // Load-load matching
+  std::map<LoadInst *, int, llvm_cmp> load_category;
+  std::vector<std::set<LoadInst *, llvm_cmp> *> load_category_collection;
+  bool load_load_match_performed;
+
+  // Global objects
+  std::set<MemObject *, mem_obj_cmp> global_objects;
+
+  // Object-to-call access-path depth caches
+  std::map<Value *, std::map<MemObject *, int, mem_obj_cmp>, llvm_cmp>
+      object_call_arg_ap_depth_cache;
+  std::map<Value *, std::set<MemObject *, mem_obj_cmp>, llvm_cmp>
+      object_call_ap_depth_frontier;
+
+  // Constants
+  static const int VALUE_SEQ_UNDEF;
+  static const int VALUE_SEQ_INFINITE;
+  static const int FUNC_OBJ_UNREACHABLE;
+
+protected:
+  Type *normalizeType(Type *type);
+  MemObject *newObject(Value *alloc_site,
+                       MemObject::ObjKind obj_type = MemObject::CONCRETE);
+
+  PTResult *addPointsTo(Value *ptr, MemObject *obj, int64_t offset);
+  PTResult *derivePtsFrom(Value *ptr, PTResult *other_pts, int64_t offset);
+  PTResult *assignPts(Value *ptr, PTResult *pts);
+
+  void refineResult(mem_value_t &to_refine);
+
+  void loadPtrAt(Value *ptr, Instruction *from_loc, mem_value_t &res,
+                 bool create_symbol = false, int64_t offset = 0);
+
+  void trackPtrRightValue(Value *ptr, mem_value_t &res);
+
+  void performLoadLoadMatch();
+  bool cacheLoadCategory(LoadInst *load_inst);
+
+  virtual int getSequenceNum(Value *val) = 0;
+  virtual int getInlineApDepth() = 0;
+  virtual PTGraph *getPtGraph(Function *F) = 0;
+
+public:
+  PTGraph(Function *F, LotusAA *lotus_aa);
+  virtual ~PTGraph();
+
+  int getPtIndex() { return pt_index; }
+
+  void getLoadValues(Value *ptr, Instruction *from_loc, mem_value_t &res,
+                     int64_t offset = 0);
+
+  bool isSameValue(Value *ptr1, Instruction *loc1, Value *ptr2,
+                   Instruction *loc2, int64_t offset1 = 0,
+                   int64_t offset2 = 0);
+  bool isSameValue(LoadInst *l1, LoadInst *l2);
+
+  const std::set<LoadInst *, llvm_cmp> &
+  getAllLoadWithSameValue(LoadInst *load_inst);
+
+  PTResult *findPTResult(Value *ptr, bool is_create = false);
+
+  // Get access-path depth of object to call arguments
+  int getObjectToCallApDepth(MemObject *obj, CallInst *call);
+
+  // Utilities
+  const DataLayout &getDL();
+  Function *getFunc() { return analyzed_func; }
+  DominatorTree *getDomTree() { return dom_tree; }
+  PTResult *getNullPTS() { return NullPTS; }
+
+  int getObjectID(MemObject *obj) {
+    auto it = mem_objs.find(obj);
+    assert(it != mem_objs.end() && "Object not in this PTG");
+    return it->second;
+  }
+
+  void dumpMemObjs();
+
+  friend class MemObject;
+  friend class ObjectLocator;
+  friend class PTResultIterator;
+
+  static Type *DEFAULT_POINTER_TYPE;
+  static Type *DEFAULT_NON_POINTER_TYPE;
+};
+
+} // namespace llvm
+
