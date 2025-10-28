@@ -1,7 +1,6 @@
 
 add_subdirectory(alias)
 add_subdirectory(checker)
-add_subdirectory(csr)
 add_subdirectory(graspan)
 add_subdirectory(pdg-query)
 
@@ -10,10 +9,12 @@ if(ENABLE_CLAM)
     add_subdirectory(clam)
 endif()
 
-
 option(BUILD_CSR "Build indexing context-sensitive reachability solver" OFF)
-option(BUILD_DYNAA "Build dynamic alias analyses" OFF)
+if(BUILD_CSR)
+    add_subdirectory(csr)
+endif()
 
+option(BUILD_DYNAA "Build dynamic alias analyses" OFF)
 if(BUILD_DYNAA)
     add_subdirectory(alias/dynaa)
 endif()

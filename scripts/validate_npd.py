@@ -48,11 +48,11 @@ class NPDValidator:
     def __init__(self, 
                  benchmark_dir: str,
                  clang_path: str,
-                 canary_gvfa_path: str,
+                 lotus_gvfa_path: str,
                  output_dir: str):
         self.benchmark_dir = Path(benchmark_dir)
         self.clang_path = clang_path
-        self.canary_gvfa_path = canary_gvfa_path
+        self.lotus_gvfa_path = lotus_gvfa_path
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
         
@@ -101,7 +101,7 @@ class NPDValidator:
     
     def run_gvfa_analysis(self, bc_file: Path) -> Tuple[int, str]:
         """Run GVFA null pointer analysis. Returns (vulnerability_count, error_message)."""
-        cmd = [self.canary_gvfa_path, "--vuln-type=nullpointer", str(bc_file)]
+        cmd = [self.lotus_gvfa_path, "--vuln-type=nullpointer", str(bc_file)]
         
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
@@ -217,7 +217,7 @@ def main():
     script_dir = Path(__file__).parent
     benchmark_dir = script_dir / "benchmarks/micro/npd"
     clang_path = os.getenv("CLANG", "clang")  # Use system clang by default
-    canary_gvfa_path = script_dir / "build/bin/canary-gvfa"
+    lotus_gvfa_path = script_dir / "build/bin/lotus-gvfa"
     output_dir = script_dir / "npd_validation_results"
     
     # Verify required paths exist
@@ -225,22 +225,22 @@ def main():
         print(f"Error: Benchmark directory not found: {benchmark_dir}")
         return 1
     
-    if not canary_gvfa_path.exists():
-        print(f"Error: canary-gvfa not found: {canary_gvfa_path}")
+    if not lotus_gvfa_path.exists():
+        print(f"Error: lotus-gvfa not found: {lotus_gvfa_path}")
         print("Please build the project first.")
         return 1
     
     print(f"NPD Benchmark Validation\n{'='*80}")
     print(f"Benchmark dir: {benchmark_dir}")
     print(f"Clang:         {clang_path}")
-    print(f"GVFA tool:     {canary_gvfa_path}")
+    print(f"GVFA tool:     {lotus_gvfa_path}")
     print(f"Output dir:    {output_dir}\n{'='*80}\n")
     
     # Run validation
     validator = NPDValidator(
         benchmark_dir=str(benchmark_dir),
         clang_path=str(clang_path),
-        canary_gvfa_path=str(canary_gvfa_path),
+        lotus_gvfa_path=str(lotus_gvfa_path),
         output_dir=str(output_dir)
     )
     

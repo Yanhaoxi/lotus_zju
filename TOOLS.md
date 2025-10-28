@@ -32,12 +32,12 @@ Available options:
   
   Prints a call graph based on the alias analysis. Can be used with `-with-labels` option to add labels (call instructions) to the edges in call graphs.
 
-### `aser_pta`
+### `aser-aa`
 
 High-performance pointer analysis with multiple context sensitivities and solver algorithms.
 
 ```bash
-./build/bin/aser_pta [options] <input.bc>
+./build/bin/aser-aa [options] <input.bc>
 ```
 
 **Analysis Modes:**
@@ -62,16 +62,16 @@ High-performance pointer analysis with multiple context sensitivities and solver
 Examples:
 ```bash
 # Context-insensitive with wave propagation
-./build/bin/aser_pta input.bc
+./build/bin/aser-aa input.bc
 
 # 1-CFA with deep propagation
-./build/bin/aser_pta -analysis-mode=1-cfa -solver=deep input.bc
+./build/bin/aser-aa -analysis-mode=1-cfa -solver=deep input.bc
 
 # Origin-sensitive (tracks pthread_create and spawns)
-./build/bin/aser_pta -analysis-mode=origin input.bc
+./build/bin/aser-aa -analysis-mode=origin input.bc
 
 # Field-insensitive for faster analysis
-./build/bin/aser_pta -field-sensitive=false input.bc
+./build/bin/aser-aa -field-sensitive=false input.bc
 ```
 
 ### FPA
@@ -160,12 +160,12 @@ This tool provides advanced analysis capabilities for understanding memory usage
 
 ## Data Flow Analysis Tools
 
-### ifds-taint
+### lotus-taint
 
 Interprocedural taint analysis tool using the IFDS (Interprocedural Finite Distributive Subset) framework.
 
 ```bash
-./ifds-taint [options] <input bitcode file>
+./lotus-taint [options] <input bitcode file>
 ```
 
 Key options:
@@ -181,21 +181,21 @@ The tool performs interprocedural taint analysis to detect potential security vu
 Examples:
 ```bash
 # Basic taint analysis
-./ifds-taint input.bc
+./lotus-taint input.bc
 
 # Custom sources and sinks
-./ifds-taint -sources="read,scanf" -sinks="system,exec" input.bc
+./lotus-taint -sources="read,scanf" -sinks="system,exec" input.bc
 
 # Reaching definitions analysis
-./ifds-taint -analysis=1 input.bc
+./lotus-taint -analysis=1 input.bc
 ```
 
-### canary-gvfa
+### lotus-gvfa
 
 Global Value Flow Analysis tool for vulnerability detection, including null pointer analysis and taint analysis.
 
 ```bash
-./canary-gvfa [options] <input bitcode file>
+./lotus-gvfa [options] <input bitcode file>
 ```
 
 Key options:
@@ -210,20 +210,20 @@ The tool uses Dyck alias analysis and value flow analysis to detect potential vu
 Examples:
 ```bash
 # Null pointer analysis
-./canary-gvfa input.bc
+./lotus-gvfa input.bc
 
 # Context-sensitive analysis with statistics
-./canary-gvfa -test-cfl-reachability -dump-stats -verbose input.bc
+./lotus-gvfa -test-cfl-reachability -dump-stats -verbose input.bc
 ```
 
 ## Bug Finding Tools
 
-### kint
+### lotus-kint
 
 A static bug finder for integer-related and taint-style bugs (originally from OSDI 12).
 
 ```bash
-./kint [options] <input IR file>
+./lotus-kint [options] <input IR file>
 ```
 
 Key options:
@@ -255,16 +255,16 @@ The tool detects various integer-related bugs:
 Examples:
 ```bash
 # Enable all checkers
-./kint -check-all input.ll
+./lotus-kint -check-all input.ll
 
 # Enable specific checkers
-./kint -check-int-overflow -check-div-by-zero input.ll
+./lotus-kint -check-int-overflow -check-div-by-zero input.ll
 
 # Set function timeout and log level
-./kint -function-timeout=30 -log-level=debug input.ll
+./lotus-kint -function-timeout=30 -log-level=debug input.ll
 
 # Quiet mode with output to file
-./kint -quiet -log-to-file=analysis.log input.ll
+./lotus-kint -quiet -log-to-file=analysis.log input.ll
 ```
 
 

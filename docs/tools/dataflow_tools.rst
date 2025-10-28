@@ -6,14 +6,14 @@ Data flow analysis tools for security and program understanding.
 IFDS Taint Analysis Tool
 -------------------------
 
-**Binary**: ``build/bin/ifds-taint``
+**Binary**: ``build/bin/lotus-taint``
 
 Interprocedural taint analysis using IFDS framework.
 
 **Usage**:
 .. code-block:: bash
 
-   ./build/bin/ifds-taint [options] <input bitcode file>
+   ./build/bin/lotus-taint [options] <input bitcode file>
 
 **Key Options**:
 * ``-analysis=<N>``: ``0``=Taint analysis, ``1``=Reaching definitions
@@ -28,21 +28,21 @@ Interprocedural taint analysis using IFDS framework.
 **Examples**:
 .. code-block:: bash
 
-   ./build/bin/ifds-taint example.bc
-   ./build/bin/ifds-taint -sources="read,scanf" -sinks="system,exec" example.bc
-   ./build/bin/ifds-taint -analysis=1 example.bc  # Reaching definitions
+   ./build/bin/lotus-taint example.bc
+   ./build/bin/lotus-taint -sources="read,scanf" -sinks="system,exec" example.bc
+   ./build/bin/lotus-taint -analysis=1 example.bc  # Reaching definitions
 
 Global Value Flow Analysis Tool
 -------------------------------
 
-**Binary**: ``build/bin/canary-gvfa``
+**Binary**: ``build/bin/lotus-gvfa``
 
 Vulnerability detection with null pointer and taint analysis.
 
 **Usage**:
 .. code-block:: bash
 
-   ./build/bin/canary-gvfa [options] <input bitcode file>
+   ./build/bin/lotus-gvfa [options] <input bitcode file>
 
 **Key Options**:
 * ``-vuln-type=<type>``: ``nullpointer``, ``taint``
@@ -53,9 +53,9 @@ Vulnerability detection with null pointer and taint analysis.
 **Examples**:
 .. code-block:: bash
 
-   ./build/bin/canary-gvfa example.bc  # Null pointer analysis
-   ./build/bin/canary-gvfa -vuln-type=taint example.bc
-   ./build/bin/canary-gvfa -test-cfl-reachability -verbose example.bc
+   ./build/bin/lotus-gvfa example.bc  # Null pointer analysis
+   ./build/bin/lotus-gvfa -vuln-type=taint example.bc
+   ./build/bin/lotus-gvfa -test-cfl-reachability -verbose example.bc
 
 Analysis Framework
 ------------------

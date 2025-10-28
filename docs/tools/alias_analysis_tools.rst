@@ -30,14 +30,14 @@ Unification-based alias analysis tool.
 AserPTA Tool
 ------------
 
-**Binary**: ``build/bin/aser_pta``
+**Binary**: ``build/bin/aser-aa``
 
 High-performance pointer analysis with multiple context sensitivities and solver algorithms.
 
 **Usage**:
 .. code-block:: bash
 
-   ./build/bin/aser_pta [options] <input bitcode file>
+   ./build/bin/aser-aa [options] <input bitcode file>
 
 **Key Options**:
 * ``-analysis-mode=<mode>``: ``ci`` (context-insensitive), ``1-cfa``, ``2-cfa``, ``origin``
@@ -51,13 +51,13 @@ High-performance pointer analysis with multiple context sensitivities and solver
 .. code-block:: bash
 
    # Context-insensitive with wave propagation
-   ./build/bin/aser_pta example.bc
+   ./build/bin/aser-aa example.bc
    
    # 1-CFA with deep propagation solver
-   ./build/bin/aser_pta -analysis-mode=1-cfa -solver=deep example.bc
+   ./build/bin/aser-aa -analysis-mode=1-cfa -solver=deep example.bc
    
    # Origin-sensitive (tracks thread creation)
-   ./build/bin/aser_pta -analysis-mode=origin example.bc
+   ./build/bin/aser-aa -analysis-mode=origin example.bc
 
 FPA Tool
 --------

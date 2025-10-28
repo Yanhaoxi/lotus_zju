@@ -3,17 +3,17 @@ Bug Detection Tools
 
 Static analysis tools for detecting various types of bugs and vulnerabilities.
 
-Kint Static Bug Finder
------------------------
+Lotus Kint Static Bug Finder
+-----------------------------
 
-**Binary**: ``build/bin/kint``
+**Binary**: ``build/bin/lotus-kint``
 
 Static bug finder for integer-related and taint-style bugs.
 
 **Usage**:
 .. code-block:: bash
 
-   ./build/bin/kint [options] <input IR file>
+   ./build/bin/lotus-kint [options] <input IR file>
 
 **Bug Checkers**:
 * ``-check-all``: Enable all checkers
@@ -32,9 +32,9 @@ Static bug finder for integer-related and taint-style bugs.
 **Examples**:
 .. code-block:: bash
 
-   ./build/bin/kint -check-all example.ll
-   ./build/bin/kint -check-int-overflow -check-div-by-zero example.ll
-   ./build/bin/kint -function-timeout=30 -log-level=debug example.ll
+   ./build/bin/lotus-kint -check-all example.ll
+   ./build/bin/lotus-kint -check-int-overflow -check-div-by-zero example.ll
+   ./build/bin/lotus-kint -function-timeout=30 -log-level=debug example.ll
 
 Null Pointer Analysis Tool
 --------------------------
@@ -61,12 +61,12 @@ Context-sensitive null pointer analysis.
 Buffer Overflow Detection
 -------------------------
 
-Integrated into Kint through array out of bounds checker.
+Integrated into Lotus Kint through array out of bounds checker.
 
 **Usage**:
 .. code-block:: bash
 
-   ./build/bin/kint -check-array-oob example.ll
+   ./build/bin/lotus-kint -check-array-oob example.ll
 
 **Detection**: Array bounds, buffer overruns, string vulnerabilities
 
@@ -74,17 +74,15 @@ Memory Safety Analysis
 ----------------------
 
 **Tools**:
-* Null Pointer Analysis: ``canary-npa``
-* Buffer Overflow: ``kint -check-array-oob``
-* Use-After-Free: Through alias analysis
-* Memory Leaks: Through value flow analysis
+* Null Pointer, Use-After-Free, etc.: ``lotus-gvfa``
+* Buffer Overflow: ``lotus-kint -check-array-oob``
 
 **Comprehensive Analysis**:
 .. code-block:: bash
 
    ./build/bin/canary-npa example.bc
-   ./build/bin/kint -check-array-oob example.ll
-   ./build/bin/canary-gvfa -vuln-type=nullpointer example.bc
+   ./build/bin/lotus-kint -check-array-oob example.ll
+   ./build/bin/lotus-gvfa -vuln-type=nullpointer example.bc
 
 Bug Detection Workflow
 ----------------------
@@ -98,9 +96,9 @@ Bug Detection Workflow
 2. **Run Analysis**:
    .. code-block:: bash
 
-      ./build/bin/kint -check-all example.ll
+      ./build/bin/lotus-kint -check-all example.ll
       ./build/bin/canary-npa example.bc
-      ./build/bin/ifds-taint example.bc
+      ./build/bin/lotus-taint example.bc
 
 3. **Review Results**: Check vulnerabilities, validate findings, prioritize fixes
 
@@ -141,7 +139,7 @@ Tool Selection
 
 | Bug Type | Tool | Options |
 |----------|------|---------|
-| Integer Bugs | Kint | ``-check-int-overflow``, ``-check-div-by-zero`` |
-| Memory Bugs | canary-npa, Kint | ``-check-array-oob`` |
-| Security Bugs | ifds-taint, canary-gvfa | Various options |
-| Performance Bugs | Kint | ``-check-dead-branch`` |
+| Integer Bugs | Lotus Kint | ``-check-int-overflow``, ``-check-div-by-zero`` |
+| Memory Bugs | canary-npa, Lotus Kint | ``-check-array-oob`` |
+| Security Bugs | lotus-taint, lotus-gvfa | Various options |
+| Performance Bugs | Lotus Kint | ``-check-dead-branch`` |

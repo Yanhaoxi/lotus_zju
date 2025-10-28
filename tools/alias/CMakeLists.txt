@@ -6,8 +6,8 @@ llvm_map_components_to_libnames(LLVM_LINK_COMPONENTS
 )
 
 # AserPTA Pointer Analysis Tool
-add_executable(aser_pta aser_pta.cpp)
-target_link_libraries(aser_pta PRIVATE
+add_executable(aser-aa aser-aa.cpp)
+target_link_libraries(aser-aa PRIVATE
   AserPTA
   ${LLVM_LINK_COMPONENTS}
 )
@@ -32,15 +32,15 @@ target_link_libraries(fpa PRIVATE
 )
 
 # LotusAA Pointer Analysis Tool
-add_executable(lotus_aa lotus_aa.cpp)
-target_link_libraries(lotus_aa PRIVATE
+add_executable(lotus-aa lotus-aa.cpp)
+target_link_libraries(lotus-aa PRIVATE
   LotusAA
   ${LLVM_LINK_COMPONENTS}
 )
 
 # Andersen's Pointer Analysis Tool
-add_executable(ander_aa ander_aa.cpp)
-target_link_libraries(ander_aa PRIVATE
+add_executable(ander-aa ander-aa.cpp)
+target_link_libraries(ander-aa PRIVATE
   Andersen
   ${LLVM_LINK_COMPONENTS}
 )

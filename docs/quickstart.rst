@@ -27,17 +27,17 @@ Taint Analysis
 
 .. code-block:: bash
 
-   ./build/bin/ifds-taint example.bc                # Basic taint analysis
-   ./build/bin/ifds-taint -sources="read,scanf" -sinks="system,exec" example.bc
+   ./build/bin/lotus-taint example.bc                # Basic taint analysis
+   ./build/bin/lotus-taint -sources="read,scanf" -sinks="system,exec" example.bc
 
 Bug Detection
 -------------
 
 .. code-block:: bash
 
-   ./build/bin/kint -check-int-overflow example.ll  # Integer overflow
-   ./build/bin/canary-npa example.bc                # Null pointer
-   ./build/bin/kint -check-all example.ll           # All checks
+   ./build/bin/lotus-kint -check-int-overflow example.ll  # Integer overflow
+   ./build/bin/canary-npa example.bc                      # Null pointer
+   ./build/bin/lotus-kint -check-all example.ll           # All checks
 
 Memory Analysis
 ---------------
@@ -85,6 +85,6 @@ Analysis commands:
 .. code-block:: bash
 
    clang -emit-llvm -c example.c -o example.bc
-   ./build/bin/ifds-taint example.bc                # Detect taint flow
-   ./build/bin/kint -check-array-oob example.ll     # Check buffer overflow
-   ./build/bin/sea-dsa-dg --sea-dsa-dot example.bc  # Memory analysis
+   ./build/bin/lotus-taint example.bc                   # Detect taint flow
+   ./build/bin/lotus-kint -check-array-oob example.ll   # Check buffer overflow
+   ./build/bin/sea-dsa-dg --sea-dsa-dot example.bc      # Memory analysis
