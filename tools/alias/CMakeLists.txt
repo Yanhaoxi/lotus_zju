@@ -3,15 +3,12 @@
 llvm_map_components_to_libnames(LLVM_LINK_COMPONENTS
   Coroutines
   Target
-  BitWriter
 )
 
-# OriginAA Pointer Analysis Tool
-add_executable(origin_aa origin_aa.cpp)
-target_link_libraries(origin_aa PRIVATE
-  OriginAA
-  CanarySupport
-  CanaryLLVMUtils
+# AserPTA Pointer Analysis Tool
+add_executable(aser_pta aser_pta.cpp)
+target_link_libraries(aser_pta PRIVATE
+  AserPTA
   ${LLVM_LINK_COMPONENTS}
 )
 

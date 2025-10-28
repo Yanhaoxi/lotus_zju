@@ -32,45 +32,46 @@ Available options:
   
   Prints a call graph based on the alias analysis. Can be used with `-with-labels` option to add labels (call instructions) to the edges in call graphs.
 
-### origin_aa
+### `aser_pta`
 
-K-callsite sensitive and origin-sensitive pointer analysis tool (from https://github.com/bozhen-liu/AFG).
+High-performance pointer analysis with multiple context sensitivities and solver algorithms.
 
 ```bash
-./origin_aa [options] <input bitcode file>
+./build/bin/aser_pta [options] <input.bc>
 ```
 
-Key options:
-- `-analysis-mode=<mode>`: Pointer analysis mode - 'ci' (context-insensitive), 'kcs' (k-callsite-sensitive), or 'origin' (origin-sensitive, default: 'ci')
-- `-k=<N>`: Set k value for k-callsite-sensitive analysis (default: 1)
-- `-taint`: Enable taint analysis
-- `-handle-indirect`: Handle indirect calls (default: true)
-- `-max-visits=<N>`: Maximum number of function visits (default: 10)
-- `-print-cg`: Print call graph to callgraph.txt
-- `-print-pts`: Print points-to map to pointsto.txt
-- `-print-tainted`: Print tainted nodes to tainted.txt
-- `-s`: Only output statistics
-- `-v`: Verbose output
-- `-o <file>`: Output file (default: stdout)
+**Analysis Modes:**
+- `ci`: Context-insensitive (default)
+- `1-cfa`: 1-call-site sensitive
+- `2-cfa`: 2-call-site sensitive  
+- `origin`: Origin-sensitive (tracks thread creation)
 
-The tool provides three analysis modes:
-1. **Context-insensitive (ci)**: Standard flow-insensitive pointer analysis
-2. **K-callsite-sensitive (kcs)**: Tracks up to k call sites for better precision
-3. **Origin-sensitive (origin)**: Tracks the origin of pointer values for enhanced precision
+**Solver Types:**
+- `basic`: PartialUpdateSolver
+- `wave`: WavePropagation with SCC detection (default)
+- `deep`: DeepPropagation with cycle detection
+
+**Key Options:**
+- `-analysis-mode=<mode>`: Analysis mode
+- `-solver=<type>`: Solver algorithm
+- `-field-sensitive`: Use field-sensitive memory model (default: true)
+- `-dump-stats`: Print analysis statistics
+- `-consgraph`: Dump constraint graph to DOT file
+- `-dump-pts`: Dump points-to sets
 
 Examples:
 ```bash
-# Context-insensitive analysis
-./origin_aa input.bc
+# Context-insensitive with wave propagation
+./build/bin/aser_pta input.bc
 
-# K-callsite-sensitive analysis with k=2
-./origin_aa -analysis-mode=kcs -k=2 input.bc
+# 1-CFA with deep propagation
+./build/bin/aser_pta -analysis-mode=1-cfa -solver=deep input.bc
 
-# Origin-sensitive analysis with taint analysis
-./origin_aa -analysis-mode=origin -taint input.bc
+# Origin-sensitive (tracks pthread_create and spawns)
+./build/bin/aser_pta -analysis-mode=origin input.bc
 
-# Generate all output files
-./origin_aa -print-cg -print-pts -print-tainted input.bc
+# Field-insensitive for faster analysis
+./build/bin/aser_pta -field-sensitive=false input.bc
 ```
 
 ### FPA

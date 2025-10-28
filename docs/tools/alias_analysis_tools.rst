@@ -27,29 +27,37 @@ Unification-based alias analysis tool.
    ./build/bin/canary -print-alias-set-info example.bc
    ./build/bin/canary -dot-dyck-callgraph -with-labels example.bc
 
-OriginAA Tool
--------------
+AserPTA Tool
+------------
 
-**Binary**: ``build/bin/origin_aa``
+**Binary**: ``build/bin/aser_pta``
 
-K-callsite sensitive and origin-sensitive pointer analysis.
+High-performance pointer analysis with multiple context sensitivities and solver algorithms.
 
 **Usage**:
 .. code-block:: bash
 
-   ./build/bin/origin_aa [options] <input bitcode file>
+   ./build/bin/aser_pta [options] <input bitcode file>
 
 **Key Options**:
-* ``-analysis-mode=<mode>``: ``ci``, ``kcs``, ``origin``
-* ``-k=<N>``: Set k value for k-callsite-sensitive analysis
-* ``-taint``: Enable taint analysis
-* ``-print-cg``, ``-print-pts``, ``-print-tainted``: Output files
+* ``-analysis-mode=<mode>``: ``ci`` (context-insensitive), ``1-cfa``, ``2-cfa``, ``origin``
+* ``-solver=<type>``: ``basic``, ``wave`` (default), ``deep``
+* ``-field-sensitive``: Use field-sensitive memory model (default: true)
+* ``-dump-stats``: Print analysis statistics
+* ``-consgraph``: Dump constraint graph to DOT file
+* ``-dump-pts``: Dump points-to sets
 
 **Examples**:
 .. code-block:: bash
 
-   ./build/bin/origin_aa -analysis-mode=kcs -k=2 example.bc
-   ./build/bin/origin_aa -analysis-mode=origin -taint example.bc
+   # Context-insensitive with wave propagation
+   ./build/bin/aser_pta example.bc
+   
+   # 1-CFA with deep propagation solver
+   ./build/bin/aser_pta -analysis-mode=1-cfa -solver=deep example.bc
+   
+   # Origin-sensitive (tracks thread creation)
+   ./build/bin/aser_pta -analysis-mode=origin example.bc
 
 FPA Tool
 --------
