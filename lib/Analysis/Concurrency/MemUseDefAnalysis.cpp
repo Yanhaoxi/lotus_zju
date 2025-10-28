@@ -6,7 +6,7 @@
 using namespace llvm;
 
 #define DEBUG_TYPE "mem-usedef-analysis"
-static StringRef TargetRTLToken = "__tgt_target_";
+[[maybe_unused]] static StringRef TargetRTLToken = "__tgt_target_";
 
 Function *getCalledFunction(const CallInst &CI) {
   auto CalledF = CI.getCalledFunction();
@@ -211,7 +211,7 @@ const std::string DebugLocation::getDebugLocStr(const unsigned seq) {
   const std::string invalidRet = ""; //(unsigned)(-1);
   for (auto &iter : DebugLoc2SeqNumMap) {
     if (iter.second == seq)
-      return (iter.first.str());
+      return iter.first;
   }
   return invalidRet;
 }
@@ -683,6 +683,7 @@ SetOfInstructions &MemoryLdStMapClass::getUsersOfCall(const Instruction &Call) {
 
 bool MemoryLdStMapClass::propagateReachingDefsIntoFunc(
     SetOfInstructions &ReachingDefs, const int ArgNum) {
+  (void)ArgNum; // Unused parameter
   bool NewDefsAdded = false;
   LLVM_DEBUG(dbgs() << "\n Propagating reaching defs into function::");
   for (auto Def : ReachingDefs) {
@@ -1614,6 +1615,7 @@ void InterproceduralMemDFA::getParamNumber(const CallInst &CI,
 }
 bool InterproceduralMemDFA::propagateReachingDefsIntoFunc(
     SetOfInstructions &ReachingDefs, Function &CalledF, const int argNum) {
+  (void)CalledF; // Unused parameter
   // Set the "has converged" properly, else infinite loop.
   return LdStToMem.propagateReachingDefsIntoFunc(ReachingDefs, argNum);
 }
@@ -2088,8 +2090,7 @@ int getSCEVMaxValue(std::vector<const SCEV *> &SimplifySCEVStack, std::string &m
                          auto beCountScev = SE.getBackedgeTakenCount(fLoop);
                          LLVM_DEBUG(dbgs()<< "\n TRIP COUNT ::"<<SE.getSmallConstantMaxTripCount(fLoop)
                              <<" \n be count::"<<*beCountScev
-                             <<"bescev count: "<<beCountScev->getSCEVType()
-                             <<"\n Max BE Count: "<< *SE.getMaxBackedgeTakenCount(fLoop));
+                             <<"bescev count: "<<beCountScev->getSCEVType());
                          if (beCountScev->getSCEVType() !=  scUnknown 
                              && beCountScev->getSCEVType() != scCouldNotCompute
                             ) {
@@ -2173,7 +2174,8 @@ int getSCEVMaxValue(std::vector<const SCEV *> &SimplifySCEVStack, std::string &m
                        return -1;
                      }
     case scUMinExpr:
-    case scSMinExpr:{
+    case scSMinExpr:
+    case scSequentialUMinExpr:{
                        LLVM_DEBUG(dbgs()<<"\n min scev:");
                        const SCEVNAryExpr *SExt = cast<SCEVNAryExpr>(inst_scev);
                        //const SCEVSMaxExpr *SExt = cast<SCEVSMaxExpr>(inst_scev);
@@ -2212,6 +2214,14 @@ int getSCEVMaxValue(std::vector<const SCEV *> &SimplifySCEVStack, std::string &m
                        //              getSCEVMaxValue(SimplifySCEVStack, SE, LI);
                        return -1;
                      }
+    case scPtrToInt: {
+                      LLVM_DEBUG(dbgs()<<"\n ptrtoint scev:");
+                      const SCEVPtrToIntExpr *PtrToInt = cast<SCEVPtrToIntExpr>(inst_scev);
+                      const SCEV *Op = PtrToInt->getOperand();
+                      SimplifySCEVStack.push_back(Op);
+                      getSCEVMaxValue(SimplifySCEVStack, maxSCEV_string, SE);
+                      return -1;
+                    }
     case scUnknown: {
                       LLVM_DEBUG(dbgs()<<"\n unknown scev:");
                       const SCEVUnknown *U = cast<SCEVUnknown>(inst_scev);
@@ -2310,6 +2320,6 @@ MemAccessRangeAnalysisPrinterPass::run(Function &F, FunctionAnalysisManager &AM)
   return PreservedAnalyses::all();
 }
 AnalysisKey MemAccessRangeAnalysis::Key;
-static const char LocalPassArg[] = "omp-diagnostics-local";
-static const char LocalPassName[] = "omp diagnostics Local Analysis";
-static const char GlobalPassName[] = "omp diagnostics Analysis";
+[[maybe_unused]] static const char LocalPassArg[] = "omp-diagnostics-local";
+[[maybe_unused]] static const char LocalPassName[] = "omp diagnostics Local Analysis";
+[[maybe_unused]] static const char GlobalPassName[] = "omp diagnostics Analysis";
