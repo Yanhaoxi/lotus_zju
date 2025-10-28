@@ -45,7 +45,7 @@ private:
   NodeIndex idx;
 
   // We use set rather than SmallSet because we need the capability of iteration
-  typedef std::set<NodeIndex> NodeSet;
+  using NodeSet = std::set<NodeIndex>;
   NodeSet copyEdges, loadEdges, storeEdges;
 
   bool insertCopyEdge(NodeIndex dst) { return copyEdges.insert(dst).second; }
@@ -67,8 +67,8 @@ private:
   ConstraintGraphNode(NodeIndex i) : idx(i) {}
 
 public:
-  typedef NodeSet::iterator iterator;
-  typedef NodeSet::const_iterator const_iterator;
+  using iterator = NodeSet::iterator;
+  using const_iterator = NodeSet::const_iterator;
 
   NodeIndex getNodeIndex() const { return idx; }
 
@@ -104,12 +104,12 @@ public:
 
 class ConstraintGraph {
 private:
-  typedef std::map<NodeIndex, ConstraintGraphNode> NodeMapTy;
+  using NodeMapTy = std::map<NodeIndex, ConstraintGraphNode>;
   NodeMapTy graph;
 
 public:
-  typedef NodeMapTy::iterator iterator;
-  typedef NodeMapTy::const_iterator const_iterator;
+  using iterator =   NodeMapTy::iterator;
+  using const_iterator = NodeMapTy::const_iterator;
 
   ConstraintGraph() {}
 
@@ -190,9 +190,9 @@ public:
 // Specialize the AnderGraphTraits for ConstraintGraph
 template <> class AndersGraphTraits<ConstraintGraph> {
 public:
-  typedef ConstraintGraphNode NodeType;
-  typedef MapValueIterator<ConstraintGraph::const_iterator> NodeIterator;
-  typedef ConstraintGraphNode::iterator ChildIterator;
+  using NodeType = ConstraintGraphNode;
+  using NodeIterator = MapValueIterator<ConstraintGraph::const_iterator>;
+  using ChildIterator = ConstraintGraphNode::iterator;
 
   static inline ChildIterator child_begin(const NodeType *n) {
     return n->begin();

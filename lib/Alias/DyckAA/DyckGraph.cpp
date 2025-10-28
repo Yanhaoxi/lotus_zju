@@ -93,8 +93,8 @@ void DyckGraph::printAsDot(const char *FileName) const {
 }
 
 void DyckGraph::removeFromWorkList(std::multimap<DyckGraphNode *, void *> &List, DyckGraphNode *Node, void *Label) {
-    typedef std::multimap<DyckGraphNode *, void *>::iterator CIT;
-    typedef std::pair<CIT, CIT> Range;
+    using CIT = std::multimap<DyckGraphNode *, void *>::iterator;
+    using Range = std::pair<CIT, CIT>;
     Range NodeRange = List.equal_range(Node);
     auto Next = NodeRange.first;
     while (Next != NodeRange.second) {
@@ -107,8 +107,8 @@ void DyckGraph::removeFromWorkList(std::multimap<DyckGraphNode *, void *> &List,
 }
 
 bool DyckGraph::containsInWorkList(std::multimap<DyckGraphNode *, void *> &List, DyckGraphNode *v, void *l) {
-    typedef std::multimap<DyckGraphNode *, void *>::iterator CIT;
-    typedef std::pair<CIT, CIT> Range;
+    using CIT = std::multimap<DyckGraphNode *, void *>::iterator;
+    using Range = std::pair<CIT, CIT>;
     Range NodeRange = List.equal_range(v);
     auto Next = NodeRange.first;
     while (Next != NodeRange.second) {

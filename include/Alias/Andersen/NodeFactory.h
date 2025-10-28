@@ -16,7 +16,7 @@
 // location equivalent Node. Ordinary clients are not allowed to create
 // AndersNode objects. To guarantee index consistency, AndersNodes (and its
 // subclasses) instances should only be created through AndersNodeFactory.
-typedef unsigned NodeIndex;
+using NodeIndex = unsigned;
 class AndersNode {
 public:
   enum AndersNodeType { VALUE_NODE, OBJ_NODE };

@@ -73,14 +73,14 @@ public:
 
 
 // 常用类型定义
-typedef vector<pair<Module*, StringRef>> ModuleList; // 模块列表类型，每个模块对应一个Module*对象以及一个模块名
+using ModuleList = vector<pair<Module*, StringRef>>; // 模块列表类型，每个模块对应一个Module*对象以及一个模块名
 // Mapping module to its file name.
-typedef unordered_map<Module*, StringRef> ModuleNameMap; // 将模块对象映射为模块名的类型
+using ModuleNameMap = unordered_map<Module*, StringRef>; // 将模块对象映射为模块名的类型
 // The set of all functions.
-typedef SmallPtrSet<Function*, 8> FuncSet; // 函数集合类型
-typedef SmallPtrSet<CallInst*, 8> CallInstSet; // Call指令集合类型
-typedef DenseMap<Function*, CallInstSet> CallerMap; // 将Function对象映射为对应的callsite集合
-typedef DenseMap<CallInst*, FuncSet> CalleeMap; // 将Call指令映射为对应的函数集合
+using FuncSet = SmallPtrSet<Function*, 8>; // 函数集合类型
+using CallInstSet = SmallPtrSet<CallInst*, 8>; // Call指令集合类型
+using CallerMap = DenseMap<Function*, CallInstSet>; // 将Function对象映射为对应的callsite集合
+using CalleeMap = DenseMap<CallInst*, FuncSet>; // 将Call指令映射为对应的函数集合
 
 
 class CommonUtil {

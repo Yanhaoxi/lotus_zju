@@ -21,7 +21,7 @@ class ICFGNode;
 /// @brief Base class for interprocedural control-flow graph nodes.
 ///
 /// Each node represents a program point in the ICFG (typically a basic block).
- typedef GenericNode<ICFGNode, ICFGEdge> GenericICFGNodeTy;
+ using GenericICFGNodeTy = GenericNode<ICFGNode, ICFGEdge>;
  
  class ICFGNode : public GenericICFGNodeTy
  {

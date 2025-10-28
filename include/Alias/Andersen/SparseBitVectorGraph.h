@@ -99,9 +99,9 @@ public:
 // Specialize the AnderGraphTraits for SparseBitVectorGraph
 template <> class AndersGraphTraits<SparseBitVectorGraph> {
 public:
-  typedef SparseBitVectorGraphNode NodeType;
-  typedef MapValueIterator<SparseBitVectorGraph::iterator> NodeIterator;
-  typedef SparseBitVectorGraphNode::iterator ChildIterator;
+  using NodeType = SparseBitVectorGraphNode;
+  using NodeIterator = MapValueIterator<SparseBitVectorGraph::iterator>;
+  using ChildIterator = SparseBitVectorGraphNode::iterator;
 
   static inline ChildIterator child_begin(NodeType *n) { return n->begin(); }
   static inline ChildIterator child_end(NodeType *n) { return n->end(); }

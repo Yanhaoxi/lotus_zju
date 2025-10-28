@@ -1368,13 +1368,13 @@ void Graph::import(const Graph &g, bool withFormals) {
 
 void Graph::write(raw_ostream &o) const {
 
-  typedef std::set<const llvm::Value *> ValSet;
-  typedef std::set<const llvm::Argument *> ArgSet;
-  typedef std::set<const llvm::Function *> FuncSet;
+  using ValSet = std::set<const llvm::Value *>;
+  using ArgSet = std::set<const llvm::Argument *>;
+  using FuncSet = std::set<const llvm::Function *>;
 
-  typedef DenseMap<const Cell *, ValSet> CellValMap;
-  typedef DenseMap<const Cell *, ArgSet> CellArgMap;
-  typedef DenseMap<const Cell *, FuncSet> CellRetMap;
+  using CellValMap = DenseMap<const Cell *, ValSet>;
+  using CellArgMap = DenseMap<const Cell *, ArgSet>;
+  using CellRetMap = DenseMap<const Cell *, FuncSet>;
 
   // --- collect all nodes and cells referenced by scalars
   CellValMap scalarCells;

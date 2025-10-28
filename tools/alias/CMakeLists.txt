@@ -41,6 +41,13 @@ target_link_libraries(lotus_aa PRIVATE
   ${LLVM_LINK_COMPONENTS}
 )
 
+# Andersen's Pointer Analysis Tool
+add_executable(ander_aa ander_aa.cpp)
+target_link_libraries(ander_aa PRIVATE
+  Andersen
+  ${LLVM_LINK_COMPONENTS}
+)
+
 # Dynamic Alias Analysis tools (only built if BUILD_DYNAA is enabled)
 if(BUILD_DYNAA)
   add_subdirectory(dynaa)

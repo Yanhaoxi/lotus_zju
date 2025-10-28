@@ -15,10 +15,10 @@
 // functions
 template <class GraphType> class CycleDetector {
 public:
-  typedef AndersGraphTraits<GraphType> GraphTraits;
-  typedef typename GraphTraits::NodeType NodeType;
-  typedef typename GraphTraits::NodeIterator node_iterator;
-  typedef typename GraphTraits::ChildIterator child_iterator;
+  using GraphTraits = AndersGraphTraits<GraphType>;
+  using NodeType = typename GraphTraits::NodeType;
+  using node_iterator = typename GraphTraits::NodeIterator;
+  using child_iterator = typename GraphTraits::ChildIterator;
 
 private:
   // The SCC stack
