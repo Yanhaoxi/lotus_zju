@@ -5,9 +5,9 @@
  * Handles both concrete (allocation-site based) and symbolic objects.
  */
 
-#include "Alias/LotusAA/MemObject.h"
-#include "Alias/LotusAA/Config.h"
-#include "Alias/LotusAA/PointsToGraph.h"
+#include "Alias/LotusAA/MemoryModel/MemObject.h"
+#include "Alias/LotusAA/Support/Config.h"
+#include "Alias/LotusAA/MemoryModel/PointsToGraph.h"
 
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/GlobalVariable.h>

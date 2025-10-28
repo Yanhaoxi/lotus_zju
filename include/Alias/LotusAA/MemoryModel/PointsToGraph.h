@@ -21,9 +21,9 @@
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
 
-#include "Alias/LotusAA/MemObject.h"
-#include "Alias/LotusAA/Types.h"
-#include "Alias/LotusAA/Compat.h"
+#include "Alias/LotusAA/MemoryModel/MemObject.h"
+#include "Alias/LotusAA/MemoryModel/Types.h"
+#include "Alias/LotusAA/Support/Compat.h"
 
 namespace llvm {
 

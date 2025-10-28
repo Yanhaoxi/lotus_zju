@@ -4,7 +4,7 @@
  * Helper functions for IntraLotusAA: memory management, access paths, etc.
  */
 
-#include "Alias/LotusAA/IntraProceduralAnalysis.h"
+#include "Alias/LotusAA/Engine/IntraProceduralAnalysis.h"
 
 #include <llvm/Support/Debug.h>
 

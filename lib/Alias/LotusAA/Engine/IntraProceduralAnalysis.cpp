@@ -1,0 +1,168 @@
+/*
+ * LotusAA - Intraprocedural Analysis Driver
+ * 
+ * Core driver for function-level pointer analysis.
+ * Manages instruction processing, delegates to transfer functions.
+ * 
+ * Transfer functions are organized in TransferFunctions/ subdirectory:
+ * - MemoryOps.cpp: Load/Store operations
+ * - PointerOps.cpp: PHI, Select, GEP, Casts, processBasePointer
+ * - BasicOps.cpp: Alloca, Arguments, Globals, Constants
+ * - CallHandling.cpp: Function calls and summary application
+ */
+
+#include "Alias/LotusAA/Engine/IntraProceduralAnalysis.h"
+
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/IntrinsicInst.h>
+#include <llvm/IR/CFG.h>
+#include <llvm/Support/CommandLine.h>
+#include <llvm/Support/raw_ostream.h>
+
+using namespace llvm;
+using namespace std;
+
+// Configuration
+int IntraLotusAAConfig::lotus_restrict_inline_depth = 2;
+double IntraLotusAAConfig::lotus_timeout = 10.0;
+int IntraLotusAAConfig::lotus_restrict_cg_size = 5;
+bool IntraLotusAAConfig::lotus_test_correctness = false;
+int IntraLotusAAConfig::lotus_restrict_inline_size = 100;
+int IntraLotusAAConfig::lotus_restrict_ap_level = 2;
+
+static cl::opt<int> lotus_restrict_inline_depth_cl(
+    "lotus-restrict-inline-depth",
+    cl::desc("Maximum inlining depth for inter-procedural analysis"),
+    cl::init(2), cl::Hidden);
+
+static cl::opt<int> lotus_restrict_cg_size_cl(
+    "lotus-restrict-cg-size",
+    cl::desc("Maximum indirect call targets to process"),
+    cl::init(5), cl::Hidden);
+
+void IntraLotusAAConfig::setParam() {
+  if (lotus_restrict_inline_depth_cl.getNumOccurrences() > 0)
+    lotus_restrict_inline_depth = lotus_restrict_inline_depth_cl;
+  if (lotus_restrict_cg_size_cl.getNumOccurrences() > 0)
+    lotus_restrict_cg_size = lotus_restrict_cg_size_cl;
+}
+
+// IntraLotusAA implementation
+const int IntraLotusAA::PTR_TO_ESC_OBJ = -1;
+
+IntraLotusAA::IntraLotusAA(Function *F, LotusAA *lotus_aa)
+    : PTGraph(F, lotus_aa), func_obj(nullptr), func_new(nullptr),
+      is_PTA_computed(false), is_CG_computed(false),
+      is_considered_as_library(false), is_timeout_found(false),
+      inline_ap_depth(0) {
+  
+  getReturnInst();
+  
+  // Topological sort of BBs (simple RPO)
+  for (BasicBlock &BB : *F) {
+    topBBs.push_back(&BB);
+  }
+}
+
+IntraLotusAA::~IntraLotusAA() {
+  for (OutputItem *item : outputs) {
+    delete item;
+  }
+}
+
+void IntraLotusAA::computePTA() {
+  if (is_considered_as_library || is_PTA_computed)
+    return;
+
+  // Cache instruction sequence
+  int seq_num = 0;
+  for (BasicBlock *bb : topBBs) {
+    for (Instruction &inst : *bb) {
+      value_seq[&inst] = seq_num++;
+    }
+  }
+
+  cacheFunctionCallInfo();
+
+  // Process instructions
+  for (BasicBlock *bb : topBBs) {
+    for (Instruction &inst : *bb) {
+      switch (inst.getOpcode()) {
+      case Instruction::Store:
+        processStore(cast<StoreInst>(&inst));
+        break;
+
+      case Instruction::Load: {
+        LoadInst *load = cast<LoadInst>(&inst);
+        if (load->getType()->isPointerTy())
+          processLoad(load);
+        else {
+          mem_value_t tmp;
+          processBasePointer(load->getPointerOperand());
+          loadPtrAt(load->getPointerOperand(), load, tmp, true);
+        }
+        break;
+      }
+
+      case Instruction::PHI:
+        if (inst.getType()->isPointerTy())
+          processPhi(cast<PHINode>(&inst));
+        break;
+
+      case Instruction::Alloca:
+        processAlloca(cast<AllocaInst>(&inst));
+        break;
+
+      case Instruction::Call:
+      case Instruction::Invoke:
+        if (!isa<DbgInfoIntrinsic>(&inst)) {
+          processCall(cast<CallBase>(&inst));
+        }
+        break;
+
+      case Instruction::Select:
+        if (inst.getType()->isPointerTy())
+          processSelect(cast<SelectInst>(&inst));
+        break;
+
+      case Instruction::BitCast:
+      case Instruction::GetElementPtr:
+          processBasePointer(&inst);
+        break;
+      }
+    }
+  }
+
+  // Collect interface for interprocedural analysis
+  if (IntraLotusAAConfig::lotus_restrict_inline_depth != 0) {
+    collectOutputs();
+    collectInputs();
+    finalizeInterface();
+  }
+
+  is_PTA_computed = true;
+}
+
+void IntraLotusAA::show() {
+  outs() << "\n========== LotusAA Results: " << analyzed_func->getName() << " ==========\n";
+  
+  // Show points-to sets
+  for (auto &it : pt_results) {
+    Value *ptr = it.first;
+    if (!ptr)
+      continue;
+      
+    PTResult *res = it.second;
+    PTResultIterator iter(res, this);
+
+    outs() << "Pointer: ";
+    if (ptr->hasName())
+      outs() << ptr->getName();
+    else
+      ptr->print(outs());
+    outs() << " -> " << iter.size() << " locations\n";
+    outs() << iter << "\n";
+  }
+  
+  outs() << "==============================================\n\n";
+}

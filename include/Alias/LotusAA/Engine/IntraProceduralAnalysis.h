@@ -18,9 +18,9 @@
 #include <map>
 #include <set>
 
-#include "Alias/LotusAA/InterProceduralPass.h"
-#include "Alias/LotusAA/PointsToGraph.h"
-#include "Alias/LotusAA/Types.h"
+#include "Alias/LotusAA/Engine/InterProceduralPass.h"
+#include "Alias/LotusAA/MemoryModel/PointsToGraph.h"
+#include "Alias/LotusAA/MemoryModel/Types.h"
 
 namespace llvm {
 

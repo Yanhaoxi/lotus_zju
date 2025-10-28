@@ -25,8 +25,8 @@
 #include <llvm/Support/Casting.h>
 #include <llvm/Support/raw_ostream.h>
 
-#include "Alias/LotusAA/Types.h"
-#include "Alias/LotusAA/Compat.h"
+#include "Alias/LotusAA/MemoryModel/Types.h"
+#include "Alias/LotusAA/Support/Compat.h"
 
 namespace llvm {
 

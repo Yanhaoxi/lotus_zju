@@ -2,7 +2,7 @@
  * LotusAA - Function Pointer Results Implementation
  */
 
-#include "Alias/LotusAA/FunctionPointerResults.h"
+#include "Alias/LotusAA/Engine/FunctionPointerResults.h"
 
 using namespace llvm;
 

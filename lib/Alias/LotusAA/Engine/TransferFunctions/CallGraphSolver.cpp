@@ -4,7 +4,7 @@
  * Resolves indirect function calls using points-to information
  */
 
-#include "Alias/LotusAA/IntraProceduralAnalysis.h"
+#include "Alias/LotusAA/Engine/IntraProceduralAnalysis.h"
 
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/Debug.h>

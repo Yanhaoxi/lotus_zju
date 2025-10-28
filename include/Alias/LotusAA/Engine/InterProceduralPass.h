@@ -18,10 +18,10 @@
 #include <map>
 #include <set>
 
-#include "Alias/LotusAA/Types.h"
-#include "Alias/LotusAA/Compat.h"
-#include "Alias/LotusAA/CallGraphState.h"
-#include "Alias/LotusAA/FunctionPointerResults.h"
+#include "Alias/LotusAA/MemoryModel/Types.h"
+#include "Alias/LotusAA/Support/Compat.h"
+#include "Alias/LotusAA/Engine/CallGraphState.h"
+#include "Alias/LotusAA/Engine/FunctionPointerResults.h"
 
 namespace llvm {
 

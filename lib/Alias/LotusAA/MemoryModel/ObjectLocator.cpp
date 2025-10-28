@@ -5,9 +5,9 @@
  * Manages values stored at specific offsets within memory objects.
  */
 
-#include "Alias/LotusAA/MemObject.h"
-#include "Alias/LotusAA/PointsToGraph.h"
-#include "Alias/LotusAA/LotusConfig.h"
+#include "Alias/LotusAA/MemoryModel/MemObject.h"
+#include "Alias/LotusAA/MemoryModel/PointsToGraph.h"
+#include "Alias/LotusAA/Support/LotusConfig.h"
 
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/GlobalVariable.h>

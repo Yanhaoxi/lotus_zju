@@ -8,8 +8,8 @@
  * - finalizeInterface: Prunes and optimizes the function interface
  */
 
-#include "Alias/LotusAA/IntraProceduralAnalysis.h"
-#include "Alias/LotusAA/Config.h"
+#include "Alias/LotusAA/Engine/IntraProceduralAnalysis.h"
+#include "Alias/LotusAA/Support/Config.h"
 
 #include <llvm/Support/raw_ostream.h>
 

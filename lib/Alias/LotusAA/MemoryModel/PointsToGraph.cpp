@@ -2,9 +2,9 @@
  * LotusAA - Points-To Graph 
  */
 
-#include "Alias/LotusAA/PointsToGraph.h"
-#include "Alias/LotusAA/InterProceduralPass.h"
-#include "Alias/LotusAA/Config.h"
+#include "Alias/LotusAA/MemoryModel/PointsToGraph.h"
+#include "Alias/LotusAA/Engine/InterProceduralPass.h"
+#include "Alias/LotusAA/Support/Config.h"
 
 #include <llvm/Analysis/DominanceFrontier.h>
 #include <llvm/Support/CommandLine.h>

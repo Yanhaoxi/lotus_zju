@@ -1,10 +1,10 @@
 
 
-#include "Alias/LotusAA/InterProceduralPass.h"
-#include "Alias/LotusAA/IntraProceduralAnalysis.h"
-#include "Alias/LotusAA/PointsToGraph.h"
-#include "Alias/LotusAA/MemObject.h"
-#include "Alias/LotusAA/LotusConfig.h"
+#include "Alias/LotusAA/Engine/InterProceduralPass.h"
+#include "Alias/LotusAA/Engine/IntraProceduralAnalysis.h"
+#include "Alias/LotusAA/MemoryModel/PointsToGraph.h"
+#include "Alias/LotusAA/MemoryModel/MemObject.h"
+#include "Alias/LotusAA/Support/LotusConfig.h"
 
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Instructions.h>

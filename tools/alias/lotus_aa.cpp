@@ -6,7 +6,7 @@
  *
  */
 
-#include "Alias/LotusAA/InterProceduralPass.h"
+#include "Alias/LotusAA/Engine/InterProceduralPass.h"
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>

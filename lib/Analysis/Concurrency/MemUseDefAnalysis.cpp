@@ -18,7 +18,7 @@ Function *getCalledFunction(const CallInst &CI) {
   return CalledF;
 }
 void DebugLocation::printDebugLocation() {
-  for (auto Iter : FileLinesMap) {
+  for (auto& Iter : FileLinesMap) {
     LLVM_DEBUG(dbgs() << "\n file:" << Iter.first);
     // errs()<<"\n file:"<<iter.first;
     for (auto Lines : Iter.second) {
@@ -706,7 +706,7 @@ bool MemoryLdStMapClass::propagateReachingDefsIntoFunc(
   // Now iterate over all the users, and update the reaching defs, if the memory
   // accessed are the same. We donot set the NewDefsAdded here, since the above
   // is a superset of the following loop.
-  for (auto Iter : MemUseToReachingDefsMap) {
+  for (auto& Iter : MemUseToReachingDefsMap) {
     auto MemUser = Iter.first;
     bool CheckAlias = true;
     // if (ArgNum != -1 ){
@@ -883,7 +883,7 @@ bool MemoryLdStMapClass::isDoublePointer(ConstInstrPtr Instr) {
 }
 
 void MemoryLdStMapClass::print(raw_ostream &O) {
-  for (auto Iter : MemUseToReachingDefsMap) {
+  for (auto& Iter : MemUseToReachingDefsMap) {
     auto MemUseInstr = Iter.first;
     if (Iter.second.empty())
       continue;
@@ -902,7 +902,7 @@ void MemoryLdStMapClass::print(raw_ostream &O) {
       //<<"At :"<<OmpDiagnosticsLocationInfo.getVarNameLocStr(MemDefInstr);
     }
   }
-  for (auto Iter : CallInstToUsersMap) {
+  for (auto& Iter : CallInstToUsersMap) {
     auto Call = Iter.first;
     O << "\n Call :" << *Call;
     for (auto User : Iter.second) {
@@ -978,7 +978,7 @@ Type *MemoryLdStMapClass::getType(ConstInstrPtr LdSt) {
 void MemoryLdStMapClass::print() {
   LLVM_DEBUG(dbgs() << "\n Printing usedef::\n");
   FuncParamInfo.print();
-  for (auto Iter : MemUseToReachingDefsMap) {
+  for (auto& Iter : MemUseToReachingDefsMap) {
     auto MemUseInstr = Iter.first;
     if (Iter.second.empty())
       continue;
@@ -1006,13 +1006,13 @@ void MemoryLdStMapClass::print() {
       //<<"At :"<<OmpDiagnosticsLocationInfo.getVarNameLocStr(MemDefInstr);
     }
   }
-  for (auto Iter : FuncGeneratingDefs) {
+  for (auto& Iter : FuncGeneratingDefs) {
     LLVM_DEBUG(dbgs() << "\n Func generating::" << Iter.first->getName());
     for (auto D : Iter.second)
       LLVM_DEBUG(dbgs() << "\n "
                         << OmpDiagnosticsLocationInfo.getDebugLocStr(*D));
   }
-  for (auto Iter : CallInstToUsersMap) {
+  for (auto& Iter : CallInstToUsersMap) {
     auto Call = Iter.first;
     LLVM_DEBUG(dbgs() << "\n Call :" << *Call);
     for (auto User : Iter.second) {
@@ -1090,13 +1090,13 @@ void MemorySSAUseDefWalker::addToGeneratingDefs(
 void MemorySSAUseDefWalker::print() {
   LLVM_DEBUG(dbgs() << "\n===============================");
 
-  for (auto iter1 : BBReachingDefs) {
+  for (auto& iter1 : BBReachingDefs) {
     auto memPhi = iter1.first; // MSSA->getMemoryAccess(bb);
     if (memPhi == nullptr)
       continue;
     LLVM_DEBUG(dbgs() << "\n Mem Phi:" << *memPhi);
     auto reachingDefs = BBReachingDefs[memPhi];
-    for (auto iter3 : reachingDefs) {
+    for (auto& iter3 : reachingDefs) {
       auto writtenToVal = iter3.first;
       LLVM_DEBUG(dbgs() << "\n Write to :" << *writtenToVal);
       auto setOfDefs = iter3.second;
@@ -1125,7 +1125,7 @@ void MemorySSAUseDefWalker::updateReachingDefsOfBB(const BasicBlock *PredBB,
   // All the reaching defs of the predecessor, also reach the BB, unless they
   // are killed. This implements the union operator at a phi node
   if (BBReachingDefs.find(PredBB) != BBReachingDefs.end())
-    for (auto PredPhiIter : BBReachingDefs[PredBB]) {
+    for (auto& PredPhiIter : BBReachingDefs[PredBB]) {
       // forall defs transitively passed by the phis of the incoming block
       auto MemWritten = PredPhiIter.first;
       auto MemDefSet = PredPhiIter.second;
@@ -1267,7 +1267,7 @@ void MemorySSAUseDefWalker::updateClobberingAccess(const MemoryUse *MemUse) {
 void MemorySSAUseDefWalker::getReachingDefs(const BasicBlock *BB,
     SetOfInstructions &ReachingDefs) const{
   if (EXISTSinMap(BBReachingDefs, BB))
-    for (auto Iter : BBReachingDefs.at(BB)) 
+    for (auto& Iter : BBReachingDefs.at(BB)) 
       for (auto Def : Iter.second) 
         ReachingDefs.insert(Def->getMemoryInst());
 

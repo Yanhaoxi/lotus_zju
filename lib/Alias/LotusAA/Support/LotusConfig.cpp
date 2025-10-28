@@ -5,7 +5,7 @@
  * Required for linking when addresses of constants are taken.
  */
 
-#include "Alias/LotusAA/LotusConfig.h"
+#include "Alias/LotusAA/Support/LotusConfig.h"
 
 namespace llvm {
 namespace LotusConfig {

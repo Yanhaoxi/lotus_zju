@@ -12,7 +12,7 @@
 
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Value.h>
-#include "Alias/LotusAA/Types.h"
+#include "Alias/LotusAA/MemoryModel/Types.h"
 
 namespace llvm {
 
