@@ -13,4 +13,6 @@ add_library(CanaryLLVMUtils STATIC
         IO/WriteIR.cpp
 )
 
+# Link against LLVMDemangle since Demangle.cpp uses llvm::demangle()
+target_link_libraries(CanaryLLVMUtils PUBLIC LLVMDemangle)
 
