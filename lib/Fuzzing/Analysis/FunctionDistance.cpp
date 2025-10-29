@@ -83,6 +83,7 @@ public:
 
 } // namespace
 
+namespace llvm {
 template <> struct GraphTraits<const InvertedCallGraphNode *> {
   using NodeRef = const InvertedCallGraphNode *;
   using CGNPairTy = InvertedCallGraphNode::CallRecord;
@@ -107,6 +108,7 @@ template <> struct GraphTraits<const InvertedCallGraphNode *> {
     return ChildIteratorType(N->end(), &getValue);
   }
 };
+} // namespace llvm
 
 std::map<Function *, double>
 getHawkeyeDistancesFromFunction(Function &TargetFunction,

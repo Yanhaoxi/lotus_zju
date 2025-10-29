@@ -125,8 +125,9 @@ private:
     friend class PTSTrait<BitVectorPTS>;
 };
 
-DEFINE_PTS_TRAIT(BitVectorPTS)
+// DEFINE_PTS_TRAIT(BitVectorPTS)
 
 }  // namespace aser
+DEFINE_PTS_TRAIT(BitVectorPTS)
 
 #endif
