@@ -58,8 +58,9 @@ struct PTSTrait {
 }  // namespace aser
 
 #define DEFINE_PTS_TRAIT(IMPL)                                                                             \
+    namespace aser {                                                                                       \
     template <>                                                                                            \
-    struct aser::PTSTrait<IMPL> {                                                                          \
+    struct PTSTrait<IMPL> {                                                                          \
         using TargetID = NodeID;                                                                           \
                                                                                                            \
         using PtsTy = typename IMPL::PtsTy;                                                                \
@@ -107,6 +108,6 @@ struct PTSTrait {
                     "not supported by BitVectorPTS, use PointedByPts "                                     \
                     "instead ");                                                                           \
         }                                                                                                  \
-    };
-
+    };                                                                                                    \
+}
 #endif
