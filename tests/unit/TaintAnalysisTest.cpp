@@ -10,9 +10,9 @@
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/MemoryBuffer.h>
 
-#include <Analysis/IFDS/Clients/IFDSTaintAnalysis.h>
-#include <Analysis/IFDS/IFDSFramework.h>
-#include <Analysis/IFDS/IFDSSolvers.h>
+#include <Dataflow/IFDS/Clients/IFDSTaintAnalysis.h>
+#include <Dataflow/IFDS/IFDSFramework.h>
+#include <Dataflow/IFDS/IFDSSolvers.h>
 
 using namespace ifds;
 using namespace llvm;

@@ -6,9 +6,9 @@
  * on LLVM bitcode files using the Sparta framework.
  */
 
-#include <Analysis/IFDS/IFDSFramework.h>
-#include <Analysis/IFDS/IFDSSolvers.h>
-#include <Analysis/IFDS/Clients/IFDSTaintAnalysis.h>
+#include <Dataflow/IFDS/IFDSFramework.h>
+#include <Dataflow/IFDS/IFDSSolvers.h>
+#include <Dataflow/IFDS/Clients/IFDSTaintAnalysis.h>
 #include <Alias/AliasAnalysisWrapper.h>
 
 #include <llvm/ADT/Statistic.h>

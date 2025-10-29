@@ -60,7 +60,7 @@ Vulnerability detection with null pointer and taint analysis.
 Analysis Framework
 ------------------
 
-**IFDS/IDE Framework**: ``include/Analysis/IFDS/``
+**IFDS/IDE Framework**: ``include/Dataflow/IFDS/``
 
 **Key Components**:
 * ``IFDSFramework``: Core implementation
@@ -70,7 +70,7 @@ Analysis Framework
 **Usage in Code**:
 .. code-block:: cpp
 
-   #include <Analysis/IFDS/IFDSFramework.h>
+   #include <Dataflow/IFDS/IFDSFramework.h>
    auto analysis = std::make_unique<IFDSAnalysis>();
    analysis->setSources(customSources);
    analysis->setSinks(customSinks);
