@@ -1,30 +1,81 @@
 /* 
-* TODO: Design this module...
-* LSP (language server protocol) server for Lotus
+* LSP (Language Service Protocol) Tool for Lotus
 * 
-* Server for the following services:
-*  - Neural-Symbolic Analysis over LLVM IR: fine-grained analysis of LLVM IR.
-*  - General Code Agent: meta data extraction, e.g., call graph.
-*  - ...?
-*
-*  Interfaces
-* - List functions
-* - Callgraph: callee, caller, reachability, reachable functions, etc.
-* - ...?
- */
+* Provides callgraph analysis and queries for LLVM IR
+*/
 
 #include <LSP/LSP.h>
-#include <chrono>
-#include <algorithm>
+#include <LSP/LSPServer.h>
 #include <iostream>
-#include <ctime>
-#include <iomanip>
+#include <fstream>
 
+using namespace lotus::lsp;
 
 void printUsage() {
-    std::cout << "Usage: lsp <options>" << std::endl;
-    std::cout << "Options:" << std::endl;
-    std::cout << "  -h, --help      Show this help message and exit" << std::endl;
-    std::cout << "  -v, --version   Show version information and exit" << std::endl;
+    std::cout << "Usage: lsp <bitcode> <command> [args]\n\n"
+              << "Commands:\n"
+              << "  list                   List all functions\n"
+              << "  callees <func>         Get direct callees\n"
+              << "  callers <func>         Get direct callers\n"
+              << "  reachable <func>       Get all reachable functions\n"
+              << "  can-reach <from> <to>  Check reachability\n"
+              << "  export-json            Export as JSON\n"
+              << "  export-dot             Export as DOT (Graphviz)\n\n"
+              << "Examples:\n"
+              << "  lsp program.bc callees main\n"
+              << "  lsp program.bc can-reach main exit\n"
+              << "  lsp program.bc export-dot > graph.dot\n";
+}
+
+void lsp(int argc, char **argv) {
+    if (argc < 3 || std::string(argv[1]) == "-h") {
+        printUsage();
+        return;
+    }
+    
+    LSPServer server;
+    if (!server.loadModule(argv[1])) {
+        std::cerr << "Failed to load: " << argv[1] << std::endl;
+        return;
+    }
+    server.buildCallGraph();
+    
+    std::string cmd = argv[2];
+    
+    if (cmd == "list") {
+        auto funcs = server.getAllFunctions();
+        std::cout << "Functions: " << funcs.size() << "\n";
+        for (const auto &f : funcs) std::cout << f << "\n";
+    }
+    else if (cmd == "callees" && argc > 3) {
+        auto results = server.getCallees(argv[3]);
+        std::cout << "Callees of " << argv[3] << ": " << results.size() << "\n";
+        for (const auto &r : results) std::cout << "  " << r << "\n";
+    }
+    else if (cmd == "callers" && argc > 3) {
+        auto results = server.getCallers(argv[3]);
+        std::cout << "Callers of " << argv[3] << ": " << results.size() << "\n";
+        for (const auto &r : results) std::cout << "  " << r << "\n";
+    }
+    else if (cmd == "reachable" && argc > 3) {
+        auto results = server.getReachableFunctions(argv[3]);
+        std::cout << "Reachable from " << argv[3] << ": " << results.size() << "\n";
+        for (const auto &r : results) std::cout << "  " << r << "\n";
+    }
+    else if (cmd == "can-reach" && argc > 4) {
+        bool reach = server.canReach(argv[3], argv[4]);
+        std::cout << argv[3] << (reach ? " can " : " cannot ") 
+                  << "reach " << argv[4] << "\n";
+    }
+    else if (cmd == "export-json") {
+        std::cout << server.exportAsJSON();
+    }
+    else if (cmd == "export-dot") {
+        std::cout << server.exportAsDOT();
+    }
+    else {
+        std::cerr << "Unknown or incomplete command\n";
+        printUsage();
+    }
 }
 
