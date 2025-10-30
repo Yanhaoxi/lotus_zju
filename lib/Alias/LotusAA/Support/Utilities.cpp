@@ -1,8 +1,39 @@
-/*
- * LotusAA - Utility Functions
- * 
- * Helper functions for IntraLotusAA: memory management, access paths, etc.
- */
+/// @file Utilities.cpp
+/// @brief Helper utilities for intra-procedural analysis
+///
+/// Provides utility functions for `IntraLotusAA` including:
+///
+/// **Memory Management:**
+/// - `clearIntermediatePtsResult()`: Clear temporary pointer analysis data
+/// - `clearIntermediateCgResult()`: Clear temporary call graph data
+/// - `clearMemObjectResult()`: Clear all memory objects and points-to results
+/// - `clearInterfaceResult()`: Clear function summary data
+///
+/// **Access Path Queries:**
+/// - `getArgLevel(path)`: Compute nesting depth of access path
+/// - `getFullAccessPath(val)`: Expand access path to root (arg/global)
+/// - `getFullOutputAccessPath(idx)`: Get complete path for output
+///
+/// **Inter-procedural Mapping:**
+/// - `getCallerObj()`: Map callee symbolic object to caller objects
+/// - `getCallerEscapeObj()`: Map callee escaped object to caller object
+///
+/// **Interface Utilities:**
+/// - `isPseudoInput()`: Check if value is pseudo-argument (side-effect input)
+/// - `isPseudoInterface()`: Check if argument is synthetic
+/// - `isSameInterface()`: Compare two function summaries
+/// - `isPure()`: Check if function has no side-effects
+///
+/// **Miscellaneous:**
+/// - `getReturnInst()`: Collect all return instructions
+/// - `getSequenceNum()`: Get instruction sequence number
+/// - `getInlineApDepth()`: Get access path depth limit
+///
+/// These utilities support the main analysis algorithms and inter-procedural
+/// summary generation/application.
+///
+/// @see IntraProceduralAnalysis.h for class context
+/// @see SummaryBuilder.cpp for summary construction using these utilities
 
 #include "Alias/LotusAA/Engine/IntraProceduralAnalysis.h"
 

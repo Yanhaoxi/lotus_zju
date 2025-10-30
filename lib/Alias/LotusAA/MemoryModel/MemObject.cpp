@@ -1,9 +1,59 @@
-/*
- * LotusAA - Memory Object Implementation
- * 
- * Core memory object abstraction for pointer analysis.
- * Handles both concrete (allocation-site based) and symbolic objects.
- */
+/// @file MemObject.cpp
+/// @brief Memory object abstraction - the core memory model for LotusAA
+///
+/// This file implements `MemObject`, the fundamental abstraction representing
+/// memory locations in pointer analysis. Each memory object represents a set
+/// of concrete memory locations that are abstracted together.
+///
+/// **Object Types:**
+///
+/// 1. **Concrete Objects** (`MemObject::CONCRETE`):
+///    - Allocation-site sensitive: one object per allocation site
+///    - Examples: alloca instructions, malloc calls, escaped objects
+///    - Known allocation point in analyzed code
+///
+/// 2. **Symbolic Objects** (`SymbolicMemObject`, kind=SYMBOLIC):
+///    - Represent memory from outside function scope
+///    - Examples: function arguments, global variables
+///    - May create **pseudo-arguments** for field accesses (e.g., **p)
+///    - Used for inter-procedural summary generation
+///
+/// 3. **Special Objects**:
+///    - `NullObj`: Singleton representing null pointer
+///    - `UnknownObj`: Top element (may point anywhere - conservative)
+///
+/// **Field-Sensitivity:**
+/// Each MemObject contains a map of `ObjectLocator`s, one per field offset:
+/// ```
+/// MemObject [base]
+///   ├── Locator @offset 0 → stores values at base
+///   ├── Locator @offset 8 → stores values at field +8
+///   └── Locator @offset 16 → stores values at field +16
+/// ```
+///
+/// **Pseudo-Arguments (Symbolic Objects Only):**
+/// When a symbolic object's field is accessed but not defined locally,
+/// a pseudo-argument is created to represent the external value:
+/// ```c
+/// void f(struct S *s) {
+///   return s->field;  // Creates pseudo-arg for s->field
+/// }
+/// // Summary: Input = {s, s->field (pseudo-arg)}
+/// ```
+///
+/// **Object Identity:**
+/// - Each object has unique `obj_index` within its function
+/// - Allocation site (`alloc_site`) provides source-level identity
+/// - Used for points-to set comparison and aliasing queries
+///
+/// **Memory Management:**
+/// - Objects owned by PTGraph, deleted with it
+/// - Locators owned by MemObject, deleted in destructor
+/// - Special singletons (NullObj, UnknownObj) deleted by LotusAA pass
+///
+/// @see ObjectLocator for field-level value tracking
+/// @see SymbolicMemObject for symbolic object specialization
+/// @see PTGraph for object ownership and creation
 
 #include "Alias/LotusAA/MemoryModel/MemObject.h"
 #include "Alias/LotusAA/Support/Config.h"

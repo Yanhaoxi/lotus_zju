@@ -1,9 +1,72 @@
-/*
- * LotusAA - Object Locator Implementation
- * 
- * Field-sensitive memory location tracking.
- * Manages values stored at specific offsets within memory objects.
- */
+/// @file ObjectLocator.cpp
+/// @brief Field-sensitive memory location tracking with flow-sensitive value storage
+///
+/// This file implements `ObjectLocator`, which tracks **values stored at specific
+/// memory locations** (object + offset) across program execution paths. This is the
+/// key component enabling **flow-sensitive** and **field-sensitive** analysis.
+///
+/// **Core Abstraction:**
+/// ```
+/// ObjectLocator = (MemObject, offset)
+/// Represents a specific field/location within a memory object
+/// ```
+///
+/// **Flow-Sensitive Value Tracking:**
+/// Values are tracked **per basic block** using SSA-style versioning:
+/// ```
+/// Entry:  loc.value = ⊥
+/// BB1:    store v1 → loc     // loc.value[BB1] = {v1}
+/// BB2:    store v2 → loc     // loc.value[BB2] = {v2}
+/// BB3 (join of BB1,BB2):     // loc.value[BB3] = {v1,v2} (via phi)
+/// ```
+///
+/// **Update Semantics:**
+///
+/// 1. **Strong Update** (must-point):
+///    - Overwrites previous value completely
+///    - Used when pointer provably points to single location
+///    - Example: `x = 5; x = 10;` → x is 10 (not {5,10})
+///
+/// 2. **Weak Update** (may-point):
+///    - Merges with previous values
+///    - Used when pointer may point to multiple locations
+///    - Propagated via SSA-style φ-placement using dominance frontiers
+///
+/// **SSA-Style Φ-Placement:**
+/// Stores trigger φ-placement in dominance frontiers:
+/// ```
+/// BB1: store v1, loc        // Define loc in BB1
+/// BB2: store v2, loc        // Define loc in BB2
+/// BB3 = join(BB1, BB2):     // Auto-place weak φ(v1, v2)
+/// ```
+/// Uses LLVM's `IteratedDominanceFrontier` (modern LLVM 14+)
+///
+/// **Value Versioning:**
+/// ```
+/// getValues(from_inst, result):
+///   Walk dominator tree from from_inst upward
+///   Collect all reaching definitions
+///   Stop at strong updates (must-alias)
+///   Continue through weak updates (may-alias)
+/// ```
+///
+/// **Configuration Limits** (heuristics for scalability):
+/// - `lotus_memory_max_bb_load`: Max values per BB (default: 1000)
+/// - `lotus_memory_max_bb_depth`: Max BB depth to search (default: 50)
+/// - `lotus_memory_max_load`: Max total values (default: 5000)
+/// - `lotus_memory_store_depth`: Max φ-placement depth (default: 100)
+///
+/// **Global Constant Handling:**
+/// Constant globals return their initializer value directly (optimization).
+///
+/// **Pseudo-Argument Creation:**
+/// Symbolic objects may create pseudo-arguments for undefined field accesses,
+/// enabling inter-procedural side-effect tracking.
+///
+/// @see MemObject for object-level abstraction
+/// @see storeValue() for update logic (strong vs weak)
+/// @see getValues() for flow-sensitive value retrieval
+/// @see placePhi() for SSA-style φ-placement algorithm
 
 #include "Alias/LotusAA/MemoryModel/MemObject.h"
 #include "Alias/LotusAA/MemoryModel/PointsToGraph.h"

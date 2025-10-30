@@ -1,15 +1,42 @@
-/*
- * LotusAA - Intraprocedural Analysis Driver
- * 
- * Core driver for function-level pointer analysis.
- * Manages instruction processing, delegates to transfer functions.
- * 
- * Transfer functions are organized in TransferFunctions/ subdirectory:
- * - MemoryOps.cpp: Load/Store operations
- * - PointerOps.cpp: PHI, Select, GEP, Casts, processBasePointer
- * - BasicOps.cpp: Alloca, Arguments, Globals, Constants
- * - CallHandling.cpp: Function calls and summary application
- */
+/// @file IntraProceduralAnalysis.cpp
+/// @brief Main driver for intra-procedural pointer analysis in LotusAA
+///
+/// This file contains the **analysis orchestration** logic that coordinates all
+/// transfer functions to perform flow-sensitive, field-sensitive pointer analysis
+/// within a single function.
+///
+/// **Architecture:**
+/// ```
+/// IntraLotusAA (per-function analysis)
+///   ├── computePTA() - Main analysis driver
+///   │   ├── Process instructions in topological order
+///   │   ├── Dispatch to transfer functions by opcode
+///   │   └── Collect function interface (summary)
+///   ├── computeCG() - Call graph resolution
+///   └── Analysis utilities (show, clearMemory, etc.)
+/// ```
+///
+/// **Transfer Function Organization** (in TransferFunctions/ subdirectory):
+/// - `PointerInstructions.cpp`: Load, Store, PHI, Select, GEP, Casts, processBasePointer
+/// - `BasicOps.cpp`: Alloca, Arguments, Globals, Constants
+/// - `CallHandling.cpp`: Function calls and summary application
+/// - `CallGraphSolver.cpp`: Indirect call resolution
+/// - `SummaryBuilder.cpp`: Function summary collection
+///
+/// **Analysis Phases:**
+/// 1. **Initialization**: Topological BB ordering, sequence numbering
+/// 2. **Instruction Processing**: Dispatch by opcode to transfer functions
+/// 3. **Summary Generation**: Extract inputs/outputs/escaped objects
+/// 4. **Call Graph Construction**: Resolve indirect calls (if enabled)
+///
+/// **Configuration Options:**
+/// - `lotus_restrict_inline_depth`: Max inter-procedural inlining depth (default: 2)
+/// - `lotus_restrict_cg_size`: Max indirect call targets (default: 5)
+/// - `lotus_restrict_inline_size`: Max summary size (default: 100)
+/// - `lotus_restrict_ap_level`: Max access path depth (default: 2)
+///
+/// @see IntraProceduralAnalysis.h for class declaration and data structures
+/// @see TransferFunctions/ subdirectory for individual transfer function implementations
 
 #include "Alias/LotusAA/Engine/IntraProceduralAnalysis.h"
 

@@ -1,6 +1,33 @@
-/*
- * LotusAA - Call Graph State Implementation
- */
+/// @file CallGraphState.cpp
+/// @brief Call graph management with back-edge detection for recursive calls
+///
+/// Manages the **dynamic call graph** during on-the-fly call graph construction.
+/// Tracks caller-callee relationships and identifies recursive cycles (back-edges).
+///
+/// **Data Structure:**
+/// ```
+/// topDown_:  caller → set of callees (forward edges)
+/// bottomUp_: callee → set of callers (reverse edges)
+/// backEdges_: caller → set of callees that form cycles
+/// ```
+///
+/// **Back-Edge Detection:**
+/// Uses DFS to identify cycles in the call graph. Back-edges indicate recursion:
+/// ```
+/// detectBackEdges():
+///   for each root in call graph:
+///     DFS from root:
+///       if visit edge to node on DFS path:
+///         mark as back-edge (recursion)
+/// ```
+///
+/// **Usage in Analysis:**
+/// - Bottom-up traversal uses topDown_ (callees before callers)
+/// - Back-edges excluded from bottom-up ordering (handled specially)
+/// - Callers of changed callees retrieved via bottomUp_
+///
+/// @see FunctionPointerResults for storing resolved call targets
+/// @see InterProceduralPass.cpp for usage in fixpoint iteration
 
 #include "Alias/LotusAA/Support/CallGraphState.h"
 

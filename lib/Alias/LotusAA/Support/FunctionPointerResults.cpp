@@ -1,6 +1,28 @@
-/*
- * LotusAA - Function Pointer Results Implementation
- */
+/// @file FunctionPointerResults.cpp
+/// @brief Storage for resolved indirect call targets
+///
+/// Stores the results of **indirect call resolution** - mapping call sites to
+/// their possible target functions. Used to drive fixpoint iteration during
+/// call graph construction.
+///
+/// **Data Structure:**
+/// ```
+/// results_: Caller → CallSite → Set<Target Functions>
+/// ```
+///
+/// **Example:**
+/// ```c
+/// void (*fp)();
+/// fp = &foo;  // PTA: fp → {foo}
+/// fp();       // Resolved: call site → {foo}
+/// ```
+///
+/// **Change Detection:**
+/// `hasChanged()` compares old vs new targets to determine if fixpoint reached.
+/// Used to decide whether to reanalyze caller functions.
+///
+/// @see CallGraphSolver.cpp for indirect call resolution
+/// @see InterProceduralPass.cpp for usage in fixpoint loop
 
 #include "Alias/LotusAA/Support/FunctionPointerResults.h"
 

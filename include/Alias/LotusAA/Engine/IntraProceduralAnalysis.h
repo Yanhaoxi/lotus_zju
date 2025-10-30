@@ -17,6 +17,7 @@
 #include <llvm/IR/Function.h>
 #include <map>
 #include <set>
+#include <unordered_map>
 
 #include "Alias/LotusAA/Engine/InterProceduralPass.h"
 #include "Alias/LotusAA/MemoryModel/PointsToGraph.h"

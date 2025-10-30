@@ -1,8 +1,36 @@
-/*
- * LotusAA - Call Graph Resolution
- * 
- * Resolves indirect function calls using points-to information
- */
+/// @file CallGraphSolver.cpp
+/// @brief Call graph construction and indirect call resolution using pointer analysis
+///
+/// This file implements **context-sensitive call graph construction** for LotusAA,
+/// resolving indirect function calls (function pointers) using the results of
+/// pointer analysis.
+///
+/// **Key Responsibilities:**
+/// 1. **Indirect Call Resolution**: Determine possible callee targets for function pointers
+/// 2. **Call Graph Summaries**: Build compact summaries of which functions may be called
+/// 3. **Inter-procedural Propagation**: Inline summary information through call chains
+/// 4. **Visualization**: Print resolved call graphs for debugging
+///
+/// **Algorithm Overview:**
+/// ```
+/// For each indirect call site:
+///   1. Track function pointer value through program
+///   2. Resolve to concrete function values via points-to
+///   3. Handle returns from callees (functions returned by functions)
+///   4. Handle arguments (function pointers passed as parameters)
+///   5. Build input/output call graph summaries
+/// ```
+///
+/// **Call Graph Summaries:**
+/// - **Input Summaries**: Maps arguments to possible function targets
+/// - **Output Summaries**: Maps return positions to possible function targets
+/// - Used for context-sensitive interprocedural analysis
+///
+/// **Command-line Options:**
+/// - `--lotus-print-cg-details`: Detailed call graph resolution diagnostics
+///
+/// @see functionPointerResults.h for storing resolved call graph
+/// @see trackPtrRightValue() for value tracking implementation
 
 #include "Alias/LotusAA/Engine/IntraProceduralAnalysis.h"
 
@@ -18,6 +46,27 @@ static cl::opt<bool> lotus_print_cg_details(
     cl::desc("Print detailed CG resolution info"),
     cl::init(false), cl::Hidden);
 
+/// Resolves a value to the set of functions it may represent.
+///
+/// This is the core resolution function that tracks a value through the program
+/// to determine which function(s) it may represent at runtime. Handles:
+/// - Direct function pointers
+/// - Functions returned from calls
+/// - Functions passed through arguments
+///
+/// @param val The value to resolve (may be function, call result, argument, etc.)
+/// @param target Output set populated with resolved function targets
+///
+/// **Resolution Cases:**
+/// 1. **Direct Function**: `val` is a Function* → add to target set
+/// 2. **Call Return**: `val` is CallBase → query callee's output summary
+/// 3. **Argument**: `val` is Argument → mark as needing inter-procedural resolution
+///
+/// **Inter-procedural Handling:**
+/// For arguments, adds to `input_cg_summary` so callers can provide concrete values.
+///
+/// @see computeCG() for the main call graph computation algorithm
+/// @see trackPtrRightValue() for value tracking implementation
 void IntraLotusAA::resolveCallValue(Value *val, cg_result_t &target) {
   mem_value_t resolved_tmp;
   trackPtrRightValue(val, resolved_tmp);
@@ -55,6 +104,37 @@ void IntraLotusAA::resolveCallValue(Value *val, cg_result_t &target) {
   }
 }
 
+/// Computes the call graph for this function, resolving all indirect calls.
+///
+/// This is the main entry point for call graph analysis. It:
+/// 1. Resolves indirect call sites to determine possible callees
+/// 2. Inlines callee input summaries to resolve function pointer parameters
+/// 3. Builds output summaries for use by callers
+/// 4. Handles recursive and high-order function scenarios
+///
+/// **Algorithm:**
+/// ```
+/// for each call site:
+///   for each possible callee:
+///     // Inline callee's input CG summaries
+///     for each arg that is function pointer in callee:
+///       resolve arg value in caller context
+///       add to callee's input summary targets
+///   // Resolve call value itself
+///   resolveCallValue(called_operand, cg_resolve_result[call])
+///
+/// // Build output summaries
+/// for each output (return value, side-effects):
+///   resolve output values to functions
+///   store in output_cg_summary
+/// ```
+///
+/// **Configuration:**
+/// - `lotus_restrict_inline_depth`: Controls interprocedural depth
+/// - `lotus_restrict_cg_size`: Limits number of indirect targets processed
+///
+/// @note Sets is_CG_computed = true on completion
+/// @see resolveCallValue() for per-value resolution logic
 void IntraLotusAA::computeCG() {
   if (is_considered_as_library || !is_PTA_computed || is_CG_computed)
     return;
@@ -150,6 +230,22 @@ void IntraLotusAA::computeCG() {
   is_CG_computed = true;
 }
 
+/// Prints resolved function pointer targets for debugging.
+///
+/// Displays all indirect call sites in this function along with their
+/// resolved targets. Only shows indirect calls (skips direct calls).
+///
+/// **Output Format:**
+/// ```
+/// ========== Function Pointers: function_name ==========
+///   Call Site: %call = call %fp(...)
+///     -> target_func_1
+///     -> target_func_2
+/// ===============================================
+/// ```
+///
+/// @note Only outputs if there are indirect calls with resolutions
+/// @see computeCG() for the resolution algorithm
 void IntraLotusAA::showFunctionPointers() {
   bool title_printed = false;
   

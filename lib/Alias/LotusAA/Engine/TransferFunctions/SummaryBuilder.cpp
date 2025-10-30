@@ -1,12 +1,50 @@
-/*
- * LotusAA - Function Summary Collection
- * 
- * Builds function summaries for interprocedural analysis:
- * - collectEscapedObjects: Identifies objects that escape the function
- * - collectOutputs: Collects return values and side-effect outputs
- * - collectInputs: Collects side-effect inputs (pseudo-arguments)
- * - finalizeInterface: Prunes and optimizes the function interface
- */
+/// @file SummaryBuilder.cpp
+/// @brief Function summary construction for context-sensitive inter-procedural analysis
+///
+/// This file implements the **function summary generation** phase of LotusAA. After
+/// intra-procedural pointer analysis completes, these algorithms extract a compact
+/// summary describing the function's behavior for use at call sites.
+///
+/// **Function Summary Components:**
+///
+/// 1. **Escaped Objects** (`collectEscapedObjects`):
+///    - Objects that escape function scope (returned or stored in globals/args)
+///    - Computed via reachability from return values and symbolic objects
+///    - Includes object merging heuristic for scalability
+///
+/// 2. **Output Summary** (`collectOutputs`):
+///    - Return value (index 0)
+///    - Side-effect outputs: modified memory locations (**p, *global, etc.)
+///    - For each output: symbolic path + values + points-to information
+///
+/// 3. **Input Summary** (`collectInputs`):
+///    - Side-effect inputs: dereferenced arguments (**p, (*p)->field, etc.)
+///    - Generated on-demand when memory reads can't be resolved locally
+///    - Represented as pseudo-arguments with access paths
+///
+/// 4. **Interface Finalization** (`finalizeInterface`):
+///    - Prunes deep access paths based on heuristics
+///    - Balances precision vs. scalability
+///    - Self-adjusting based on interface complexity
+///
+/// **Summary Application:**
+/// Summaries enable **modular analysis** - analyze each function once, apply at
+/// all call sites. Critical for scalability on large programs.
+///
+/// **Example Summary:**
+/// ```c
+/// int* f(int **p) {
+///   *p = malloc(sizeof(int));  // Side-effect output: *p
+///   return *p;                 // Return output
+/// }
+/// // Summary:
+/// // - Inputs: {}
+/// // - Outputs: {[0] return, [1] *p}
+/// // - Escaped: {malloc object}
+/// ```
+///
+/// @see IntraProceduralAnalysis.h for OutputItem and AccessPath data structures
+/// @see CallHandling.cpp for summary application at call sites
 
 #include "Alias/LotusAA/Engine/IntraProceduralAnalysis.h"
 #include "Alias/LotusAA/Support/Config.h"

@@ -1,9 +1,54 @@
-/*
- * LotusAA - Call Instruction Transfer Functions
- * 
- * Transfer functions for call instructions: summary application, 
- * input/output linking, escaped object handling.
- */
+/// @file CallHandling.cpp
+/// @brief Inter-procedural call transfer functions and function summary application
+///
+/// This file implements the **most complex transfer function** in LotusAA: processing
+/// function calls. It handles context-sensitive inter-procedural analysis by applying
+/// callee summaries to call sites.
+///
+/// **Core Responsibilities:**
+/// 1. **Summary Application**: Apply callee function summaries to call sites
+/// 2. **Input Binding**: Map actual arguments to formal parameters
+/// 3. **Output Linking**: Connect return values and side-effects to caller context
+/// 4. **Escaped Object Handling**: Track objects that escape via function calls
+/// 5. **Pseudo-Node Creation**: Create synthetic nodes for inter-procedural values
+///
+/// **Inter-procedural Analysis Flow:**
+/// ```
+/// processCall(call_site):
+///   for each possible callee:
+///     // 1. Bind inputs: actual args → formal params
+///     processCalleeInput(callee.inputs, actual_args)
+///
+///     // 2. Create pseudo-nodes for outputs
+///     createPseudoOutputNodes(callee.outputs, call_site)
+///
+///     // 3. Create escaped objects
+///     createEscapedObjects(callee.escape_objs, call_site)
+///
+///     // 4. Link outputs to caller
+///     processCalleeOutput(callee.outputs, callee.escape_objs, call_site)
+/// ```
+///
+/// **Function Summaries:**
+/// - **Inputs**: Symbolic arguments + side-effect inputs (e.g., **p for argument p)
+/// - **Outputs**: Return value + side-effect outputs (modified memory)
+/// - **Escaped Objects**: Stack objects that escape to caller's heap/stack
+///
+/// **Key Design Decisions:**
+/// - Context-sensitive: Different call sites get different pseudo-nodes
+/// - Allocation-site sensitive: Distinguish objects by allocation context
+/// - Side-effect tracking: Model memory modifications via pseudo-arguments/returns
+///
+/// **Example:**
+/// ```c
+/// void f(int **p) { *p = malloc(...); }  // Side-effect output: **p
+/// int *q;
+/// f(&q);  // After call: q points to allocated object
+/// ```
+///
+/// @see IntraProceduralAnalysis.h for summary data structures
+/// @see SummaryBuilder.cpp for summary construction
+/// @see createPseudoOutputNodes() for synthetic value creation
 
 #include "Alias/LotusAA/Engine/IntraProceduralAnalysis.h"
 
@@ -15,6 +60,10 @@
 using namespace llvm;
 using namespace std;
 
+/// Conservatively handles unknown library calls by invalidating pointer arguments.
+///
+/// @param call The unknown library call
+/// @note Treats all pointer arguments as potentially modified (weak update with NO_VALUE)
 void IntraLotusAA::processUnknownLibraryCall(CallBase *call) {
   // Mark all pointer arguments as potentially modified
   // TODO: this operation may lead to imprecision in the analysis;
@@ -37,6 +86,14 @@ void IntraLotusAA::processUnknownLibraryCall(CallBase *call) {
   }
 }
 
+/// Main transfer function for call instructions - applies callee summaries.
+///
+/// Processes both direct and indirect calls by applying function summaries.
+/// For each possible callee, binds inputs, creates output pseudo-nodes, and
+/// links escaped objects.
+///
+/// @param call The call or invoke instruction
+/// @see processCalleeInput(), processCalleeOutput() for detailed steps
 void IntraLotusAA::processCall(CallBase *call) {
   if (IntraLotusAAConfig::lotus_restrict_inline_depth == 0) {
     if (call->getType()->isPointerTy()) {
@@ -103,6 +160,18 @@ void IntraLotusAA::processCall(CallBase *call) {
   }
 }
 
+/// Binds actual arguments to callee's formal parameters and side-effect inputs.
+///
+/// Maps caller values to callee's symbolic interface, handling both:
+/// - Direct arguments (formal parameters)
+/// - Side-effect inputs (dereferenced arguments like **p)
+///
+/// @param callee_input Callee's input summary (formal args + side-effects)
+/// @param callee_input_func_level Function nesting level for each input
+/// @param real_args Actual argument values at call site
+/// @param formal_args Formal parameter values in callee
+/// @param callsite The call instruction
+/// @param result Output map binding callee inputs to caller values
 void IntraLotusAA::processCalleeInput(
     map<Value *, AccessPath, llvm_cmp> &callee_input,
     map<Value *, int, llvm_cmp> &/*callee_input_func_level*/,

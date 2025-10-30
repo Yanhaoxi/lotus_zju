@@ -1,4 +1,67 @@
-
+/// @file InterProceduralPass.cpp
+/// @brief LLVM module pass implementing inter-procedural pointer analysis with call graph construction
+///
+/// This file implements `LotusAA`, the top-level LLVM ModulePass that orchestrates
+/// **whole-program pointer analysis** and **on-the-fly call graph construction**.
+///
+/// **Pass Architecture:**
+/// ```
+/// LotusAA::runOnModule(Module)
+///   ├── Initialize global structures (NullObj, UnknownObj, sentinel values)
+///   ├── computeGlobalHeuristic() - Analyze global initializers
+///   ├── computePtsCgIteratively() - Main fixpoint algorithm
+///   │   ├── initFuncProcessingSeq() - Build call graph, topological sort
+///   │   ├── For each function (bottom-up):
+///   │   │   └── computePTA(func) - Run intra-procedural analysis
+///   │   ├── computeCG() - Resolve indirect calls
+///   │   ├── Detect changes, iterate until fixpoint
+///   │   └── detectBackEdges() - Handle recursion
+///   └── finalizeCg() - Print results (if enabled)
+/// ```
+///
+/// **On-the-Fly Call Graph Construction:**
+/// The analysis alternates between pointer analysis and call graph refinement:
+/// 1. Analyze functions bottom-up using current call graph
+/// 2. Resolve indirect calls using pointer analysis results
+/// 3. Update call graph with newly discovered edges
+/// 4. Reanalyze affected functions
+/// 5. Repeat until fixpoint (no new edges discovered)
+///
+/// **Fixpoint Iteration:**
+/// ```
+/// iter = 0
+/// changed = all_functions
+/// while changed and iter < max_iter:
+///   for func in bottom_up_order:
+///     if func in changed:
+///       interface_changed = analyze(func)
+///       if interface_changed:
+///         changed += callers_of(func)
+///   update_call_graph_from_FP_results()
+///   detect_back_edges()
+///   iter++
+/// ```
+///
+/// **Key Features:**
+/// - **Context-Sensitive**: Function summaries provide calling context
+/// - **Flow-Sensitive**: SSA-based intra-procedural analysis
+/// - **On-the-Fly CG**: No pre-computed call graph needed
+/// - **Scalable**: Iterates only on changed functions
+///
+/// **Command-line Options:**
+/// - `--lotus-cg`: Enable call graph construction (default: on)
+/// - `--lotus-restrict-cg-iter`: Max CG iterations (default: 5)
+/// - `--lotus-print-pts`: Print points-to results
+/// - `--lotus-print-cg`: Print resolved call graph
+/// - `--lotus-enable-global-heuristic`: Analyze global initializers
+///
+/// **Registered Pass:**
+/// - Pass ID: "lotus-aa"
+/// - Description: "LotusAA: Flow-sensitive alias analysis"
+///
+/// @see IntraLotusAA for per-function analysis
+/// @see CallGraphState for call graph management
+/// @see FunctionPointerResults for storing resolved indirect calls
 
 #include "Alias/LotusAA/Engine/InterProceduralPass.h"
 #include "Alias/LotusAA/Engine/IntraProceduralAnalysis.h"
@@ -339,6 +402,8 @@ void LotusAA::finalizeCg(std::vector<Function *> &func_seq) {
 
 bool LotusAA::computePTA(Function *F) {
   assert(intraResults_.count(F));
+  // FIXME: it seems that we almost re-run the analysis in each round of the on-the-fly callgraph construction??
+  // Maybe this is due partly to the flow-sensitive nature of our analysis?
   
   IntraLotusAA *old_result = intraResults_[F];
   IntraLotusAA *new_result = new IntraLotusAA(F, this);

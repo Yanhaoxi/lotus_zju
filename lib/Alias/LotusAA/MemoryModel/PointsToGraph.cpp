@@ -1,6 +1,62 @@
-/*
- * LotusAA - Points-To Graph 
- */
+/// @file PointsToGraph.cpp
+/// @brief Points-to graph data structure and core operations
+///
+/// This file implements `PTGraph` and `PTResult`, the foundational data structures
+/// for representing and querying **points-to relationships** in LotusAA.
+///
+/// **Core Data Structures:**
+///
+/// 1. **PTResult**: Points-to set for a single pointer value
+///    - Direct targets: `{(obj1, offset1), (obj2, offset2), ...}`
+///    - Derived targets: `{ptr → offset}` (indirection through another pointer)
+///    - Cached and memoized for performance
+///
+/// 2. **PTResultIterator**: Efficient traversal of points-to sets
+///    - Recursively expands derived targets
+///    - Handles cycles gracefully
+///    - Caches results for repeated queries
+///
+/// 3. **PTGraph**: Per-function points-to graph
+///    - Maps `Value* → PTResult*` (points-to sets)
+///    - Owns all `MemObject`s for the function
+///    - Provides utilities for memory operations and value tracking
+///
+/// **Key Operations:**
+///
+/// - `addPointsTo(ptr, obj, offset)`: Create direct points-to edge
+/// - `derivePtsFrom(ptr, other_pts, offset)`: Create derived edge
+/// - `loadPtrAt(ptr, inst, result)`: Load values from memory locations
+/// - `trackPtrRightValue(val, result)`: Track value through PHI/Select/Load
+///
+/// **Memory Model Integration:**
+/// ```
+/// PTGraph
+///   ├── pt_results: Value → PTResult
+///   ├── mem_objs: MemObject set
+///   └── Each MemObject contains ObjectLocators
+///       └── Each ObjectLocator tracks stored values
+/// ```
+///
+/// **Optimization Techniques:**
+///
+/// 1. **Memoization**: PTResults cached by Value*
+/// 2. **Iterator Caching**: PTResultIterator results cached in PTResult
+/// 3. **Load Categories**: Group equivalent loads for load-load matching
+/// 4. **Access Path Depth Limiting**: Prune deep field accesses for scalability
+///
+/// **Configuration:**
+/// - `lotus_restrict_pts_count`: Max points-to set size (default: 100)
+/// - `lotus_restrict_obj_ap_depth`: Max access path depth for objects (default: 5)
+///
+/// **Special Values:**
+/// - `NullPTS`: Singleton for null pointer
+/// - `DEFAULT_NON_POINTER_TYPE`: Int64 (placeholder for non-pointers)
+/// - `DEFAULT_POINTER_TYPE`: Int8* (generic pointer type)
+///
+/// @see PTResult for points-to set representation
+/// @see PTResultIterator for efficient set traversal
+/// @see MemObject for memory object abstraction
+/// @see ObjectLocator for field-level tracking
 
 #include "Alias/LotusAA/MemoryModel/PointsToGraph.h"
 #include "Alias/LotusAA/Engine/InterProceduralPass.h"
