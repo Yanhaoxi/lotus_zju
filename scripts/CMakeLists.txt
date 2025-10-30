@@ -11,6 +11,4 @@ if (PYTHON)
   install(PROGRAMS clam-debug-assertion.py DESTINATION bin)
   install(PROGRAMS clam-output-check.py DESTINATION bin)
   
-  # Install validation scripts
-  install(PROGRAMS validate_npd.py DESTINATION bin)
 endif()
