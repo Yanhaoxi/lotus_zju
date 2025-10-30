@@ -10,7 +10,14 @@
 #include "Alias/AserPTA/PointerAnalysis/Graph/ConstraintGraph/CGPtrNode.h"
 
 namespace aser {
-// nodes represent collapsed SCC
+
+/// @brief Constraint graph node representing collapsed strongly connected components (SCCs).
+///
+/// CGSuperNode merges multiple nodes in a cycle into a single representative node
+/// to improve constraint solving efficiency. All constraints pointing to or from
+/// nodes in the SCC are redirected to the super node.
+///
+/// @tparam ctx Context type for context-sensitive analysis
 template <typename ctx>
 class CGSuperNode : public CGNodeBase<ctx> {
 private:
@@ -35,6 +42,8 @@ private:
     };
 
 public:
+    /// @brief Copies all outgoing edges from a node to this super node.
+    /// @param node The node whose outgoing edges should be copied
     inline void copyOutgoingEdges(super *node) {
         for (auto it = node->pred_edge_begin(), ie = node->pred_edge_end(); it != ie; it++) {
             auto pred = (*it).second;
@@ -46,6 +55,10 @@ public:
         node->setSuperNode(this->getNodeID());
     }
 
+    /// @brief Merges all incoming edges from SCC nodes and clears individual node constraints.
+    ///
+    /// Consolidates constraints from all nodes in the SCC into this super node,
+    /// then clears the original constraints to prevent redundant processing.
     void clearAndMergeIncomingEdges() {
         for (NodeID nodeId : scc) {
             auto node = this->graph->getNode(nodeId);

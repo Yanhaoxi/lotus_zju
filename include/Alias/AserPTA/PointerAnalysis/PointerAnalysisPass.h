@@ -12,6 +12,8 @@
 #include <llvm/ADT/StringRef.h>
 #include <llvm/Pass.h>
 
+/// @brief LLVM module pass that runs pointer analysis using a specified solver.
+/// @tparam Solver The pointer analysis solver type to use.
 template <typename Solver>
 class PointerAnalysisPass : public llvm::ModulePass {
 private:
@@ -21,11 +23,17 @@ public:
     static char ID;
     PointerAnalysisPass() : solver(nullptr), llvm::ModulePass(ID) {}
 
+    /// @brief Runs pointer analysis on the given module.
+    /// @param M The LLVM module to analyze.
+    /// @return false (analysis pass does not modify IR).
     bool runOnModule(llvm::Module &M) override {
         analyze(&M);
         return false;  // Analysis doesn't modify IR
     }
 
+    /// @brief Analyzes the given module with the specified entry function.
+    /// @param M Pointer to the LLVM module.
+    /// @param entry Name of the entry function (default: "main").
     void analyze(llvm::Module *M, llvm::StringRef entry = "main") {
         if (solver.get() != nullptr) {
             if (solver->getLLVMModule() == M && entry.equals(solver->getEntryName())) {
@@ -46,11 +54,14 @@ public:
                  std::chrono::duration_cast<std::chrono::milliseconds>(elapsed_seconds).count());
     }
 
+    /// @brief Returns the pointer analysis solver instance.
+    /// @return Pointer to the solver (must call analyze() first).
     Solver *getPTA() const {
         assert(solver.get() != nullptr && "call analyze() before getting the pta instance");
         return solver.get();
     }
 
+    /// @brief Releases the solver and frees associated memory.
     void release() {
         // release the memory hold by the correct solver
         solver.reset(nullptr);

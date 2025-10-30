@@ -16,7 +16,7 @@ class CallGraphNode;
 template <typename ctx>
 class ConstraintGraph;
 
-// forward declartion
+/// Node identifier type for constraint graph nodes.
 using NodeID = uint64_t;
 
 const NodeID NULL_PTR = 0;
@@ -31,29 +31,31 @@ struct PTSTrait;
 template <typename Model>
 struct LangModelTrait;
 
-// must start from 0 and increase by one!
+/// Constraint types for pointer analysis edges.
 enum class Constraints : std::uint8_t {
-    load = 0,
-    store = 1,
-    copy = 2,
-    addr_of = 3,
-    offset = 4,
+    load = 0,      ///< Load constraint: *ptr
+    store = 1,     ///< Store constraint: *ptr = 
+    copy = 2,      ///< Copy constraint: ptr1 = ptr2
+    addr_of = 3,   ///< Address-of constraint: ptr = &obj
+    offset = 4,    ///< Offset constraint: ptr = base + offset
 };
 
+/// Constraint graph node types.
 enum class CGNodeKind : uint8_t {
-    PtrNode = 0,
-    ObjNode = 1,
-    SuperNode = 2,
+    PtrNode = 0,    ///< Pointer node
+    ObjNode = 1,    ///< Object node
+    SuperNode = 2,  ///< Super node (collapsed SCC)
 };
 
-// NOTE: for deep propagation
-// in order to eliminate set operations
+/// Node color for deep propagation algorithm.
 enum class Color : uint8_t {
-    DEFAULT = 0,
-    GREY = 1,
-    BLACK = 2,
+    DEFAULT = 0,  ///< Unvisited
+    GREY = 1,     ///< In progress
+    BLACK = 2,    ///< Completed
 };
 
+/// Base class for constraint graph nodes in pointer analysis.
+/// @tparam ctx Context type for context-sensitive analysis
 template <typename ctx>
 class CGNodeBase {
 protected:
@@ -61,18 +63,18 @@ protected:
     using super = NodeBase<Constraints, CGNodeBase>;
     using GraphTy = GraphBase<Self, Constraints>;
 
-    const CGNodeKind type;
-    const NodeID id;
-    const GraphTy *graph;
+    const CGNodeKind type;  ///< Node type
+    const NodeID id;        ///< Unique node identifier
+    const GraphTy *graph;   ///< Parent constraint graph
 
-    Color color;
+    Color color;  ///< Color for DFS-based algorithms
 
-    Self *superNode; // the super node
-    llvm::SparseBitVector<> childNodes;
+    Self *superNode;                  ///< Representative node for SCC
+    llvm::SparseBitVector<> childNodes;  ///< Child nodes in collapsed SCC
 
     using SetTy = llvm::DenseSet<Self *>;
-    SetTy succCons[5];  // successor constraints
-    SetTy predCons[5];  // predecessor constraints
+    SetTy succCons[5];  ///< Successor constraint edges
+    SetTy predCons[5];  ///< Predecessor constraint edges
 
     inline void setGraph(const GraphTy *g) { this->graph = g; }
 
