@@ -10,5 +10,7 @@ add_subdirectory(Annotation)
 add_subdirectory(Checker)
 add_subdirectory(CFL/CSIndex)
 add_subdirectory(CFL/Graspan)
+# POCR needs SVF; we do not enable it for now.
+# add_subdirectory(CFL/POCR)
 add_subdirectory(Fuzzing)
 add_subdirectory(Clam)
