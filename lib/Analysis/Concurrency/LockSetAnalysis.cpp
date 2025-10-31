@@ -4,7 +4,7 @@
  */
 
 #include "Analysis/Concurrency/LockSetAnalysis.h"
-#include "Alias/AliasAnalysisWrapper.h"
+#include "Alias/AliasAnalysisWrapper/AliasAnalysisWrapper.h"
 
 #include <llvm/Analysis/CallGraph.h>
 #include <llvm/Analysis/MemoryLocation.h>

@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "Alias/AliasAnalysisWrapper.h"
+#include "Alias/AliasAnalysisWrapper/AliasAnalysisWrapper.h"
 
 #include <llvm/Analysis/AliasAnalysis.h>
 #include <llvm/IR/Module.h>

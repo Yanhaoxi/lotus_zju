@@ -1,5 +1,5 @@
 #include "Checker/concurrency/DataRaceChecker.h"
-#include "Alias/AliasAnalysisWrapper.h"
+#include "Alias/AliasAnalysisWrapper/AliasAnalysisWrapper.h"
 #include <llvm/Support/raw_ostream.h>
 
 using namespace llvm;

@@ -17,7 +17,7 @@
 #include <llvm/IR/CFG.h>
 #include <llvm/Analysis/AliasAnalysis.h>
 #include <llvm/Analysis/CallGraph.h>
-#include <Alias/AliasAnalysisWrapper.h>
+#include <Alias/AliasAnalysisWrapper/AliasAnalysisWrapper.h>
 #include <Support/ADT/ThreadSafe.h>
 
 #include <functional>

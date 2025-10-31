@@ -9,7 +9,7 @@
 #include <Dataflow/IFDS/IFDSFramework.h>
 #include <Dataflow/IFDS/IFDSSolvers.h>
 #include <Dataflow/IFDS/Clients/IFDSTaintAnalysis.h>
-#include <Alias/AliasAnalysisWrapper.h>
+#include <Alias/AliasAnalysisWrapper/AliasAnalysisWrapper.h>
 
 #include <llvm/ADT/Statistic.h>
 #include <llvm/IR/LLVMContext.h>

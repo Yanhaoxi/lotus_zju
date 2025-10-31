@@ -14,4 +14,8 @@ add_library(CanaryTransform STATIC
         UnrollVectors.cpp
         ExpandAssume.cpp
         ElimPhi.cpp
+        MergeGEP.cpp
+        SimplifyExtractValue.cpp
+        SimplifyInsertValue.cpp
+
 )

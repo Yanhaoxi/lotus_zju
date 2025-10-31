@@ -1,5 +1,5 @@
 #include "Checker/concurrency/ConcurrencyChecker.h"
-#include "Alias/AliasAnalysisWrapper.h"
+#include "Alias/AliasAnalysisWrapper/AliasAnalysisWrapper.h"
 #include "Analysis/Concurrency/ThreadAPI.h"
 
 #include <llvm/IR/Constants.h>

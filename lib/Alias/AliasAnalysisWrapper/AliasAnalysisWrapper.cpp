@@ -1,4 +1,4 @@
-#include "Alias/AliasAnalysisWrapper.h"
+#include "Alias/AliasAnalysisWrapper/AliasAnalysisWrapper.h"
 #include "Alias/Andersen/AndersenAA.h"
 #include "Alias/DyckAA/DyckAliasAnalysis.h"
 #include "Alias/UnderApproxAA/UnderApproxAA.h"
