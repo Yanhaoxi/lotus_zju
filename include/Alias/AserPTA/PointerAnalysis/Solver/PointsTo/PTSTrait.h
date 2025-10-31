@@ -4,6 +4,9 @@
 #ifndef ASER_PTA_PTSTRAIT_H
 #define ASER_PTA_PTSTRAIT_H
 
+#include <cstddef>
+#include <cstdint>
+
 namespace aser {
 using NodeID = uint64_t;
 

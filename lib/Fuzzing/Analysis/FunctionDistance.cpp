@@ -1,4 +1,8 @@
 // CCS 18: Hawkeye: Towards a desired directed grey-box fuzzer
+//
+// This file implements function-level distance analysis for directed fuzzing.
+// It computes call graph distances from each function to functions containing
+// target locations, supporting both AFLGo (BFS) and Hawkeye (weighted) metrics.
 
 #include "Fuzzing/Analysis/ExtendedCallGraph.h"
 #include "Fuzzing/Analysis/FunctionDistance.h"
@@ -15,6 +19,7 @@ using namespace llvm;
 
 namespace {
 
+// Represents a call graph node with reversed edges (callers instead of callees).
 class InvertedCallGraphNode {
 public:
   using CallRecord =
@@ -41,6 +46,7 @@ public:
   const std::unique_ptr<CallGraphNode> &getInner() const { return Inner; }
 };
 
+// Inverted call graph for backward traversal from targets to callers.
 class InvertedCallGraph {
   using FunctionMapTy =
       std::map<const Function *, std::unique_ptr<InvertedCallGraphNode>>;
@@ -110,6 +116,8 @@ template <> struct GraphTraits<const InvertedCallGraphNode *> {
 };
 } // namespace llvm
 
+// Computes Hawkeye distances using weighted Dijkstra. Edge weights depend on
+// call site frequency: more call sites/BBs in caller reduce the edge distance.
 std::map<Function *, double>
 getHawkeyeDistancesFromFunction(Function &TargetFunction,
                                 InvertedCallGraph &ICG) {
@@ -171,6 +179,8 @@ getHawkeyeDistancesFromFunction(Function &TargetFunction,
   return DistancesFromTarget;
 }
 
+// Computes AFLGo distances using simple BFS on inverted call graph.
+// Distance is the call graph depth from target to each caller.
 std::map<Function *, double>
 getAFLGoDistancesFromFunction(Function &TargetFunction,
                               InvertedCallGraph &ICG) {
@@ -187,6 +197,8 @@ getAFLGoDistancesFromFunction(Function &TargetFunction,
 
 AnalysisKey AFLGoFunctionDistanceAnalysis::Key;
 
+// Computes distances from all functions to target-containing functions.
+// Uses harmonic mean when a function can reach multiple targets.
 AFLGoFunctionDistanceAnalysis::Result
 AFLGoFunctionDistanceAnalysis::run(Module &M, ModuleAnalysisManager &MAM) {
   FunctionAnalysisManager &FAM =

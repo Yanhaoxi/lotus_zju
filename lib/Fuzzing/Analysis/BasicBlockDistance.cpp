@@ -1,4 +1,8 @@
 // CCS 17: Directed Greybox Fuzzing (AFLGo)
+//
+// This file implements basic block distance analysis for directed fuzzing.
+// It computes the control-flow distance from each basic block to target
+// locations, used to guide fuzzing towards specific program points.
 
 #include "Fuzzing/Analysis/BasicBlockDistance.h"
 #include "Fuzzing/Analysis/ExtendedCallGraph.h"
@@ -13,10 +17,13 @@
 
 using namespace llvm;
 
+// Scale factor for inter-procedural distances to prioritize intra-procedural paths.
 const double FunctionDistanceMagnificationFactor = 10;
 
 AnalysisKey AFLGoBasicBlockDistanceAnalysis::Key;
 
+// Identifies origin basic blocks (targets and call sites to functions with targets)
+// and associates them with initial distances based on call graph proximity.
 AFLGoBasicBlockDistanceAnalysis::Result
 AFLGoBasicBlockDistanceAnalysis::run(Module &M, ModuleAnalysisManager &MAM) {
   AFLGoBasicBlockDistanceAnalysis::Result::FunctionToOriginBBsMapTy
@@ -78,6 +85,8 @@ AFLGoBasicBlockDistanceAnalysis::run(Module &M, ModuleAnalysisManager &MAM) {
   return Result{FunctionToOriginBBs, FunctionDistances};
 }
 
+// Computes distance from each basic block to the nearest target using backward BFS
+// from origin blocks. Uses harmonic mean for blocks reachable from multiple origins.
 AFLGoBasicBlockDistanceAnalysis::Result::BBToDistanceTy
 AFLGoBasicBlockDistanceAnalysis::Result::computeBBDistances(Function &F) {
   auto OriginBBs = FunctionToOriginBBs[&F];

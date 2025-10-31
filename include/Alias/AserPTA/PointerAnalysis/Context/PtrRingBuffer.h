@@ -5,6 +5,9 @@
 #ifndef ASER_PTA_PTRRINGBUFFER_H
 #define ASER_PTA_PTRRINGBUFFER_H
 
+#include <array>
+#include <cstdint>
+
 namespace aser {
 
 // forward declaration

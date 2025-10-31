@@ -27,7 +27,7 @@ private:
     NodeList scc;
     NodeList callNodes;
 
-    CGSuperNode(const vector<super *> &scc, NodeID id) : super(id, CGNodeKind::SuperNode) {
+    CGSuperNode(const std::vector<super *> &scc, NodeID id) : super(id, CGNodeKind::SuperNode) {
         for (super *node : scc) {
             if (node->isFunctionPtr()) {
                 callNodes.set(node->getNodeID());
