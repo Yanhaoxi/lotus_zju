@@ -7,8 +7,8 @@ rebuild.sh
 .cursor
 venv
 compile_commands.json
-test/regression/*.bc   
-test/regression/*.ll
+tests/regression/*.bc   
+tests/regression/*.ll
 .vscode
 .settings
 .idea
@@ -19,7 +19,6 @@ cmake-build-*
 build
 *.a
 *.o
-*.ll
 *.log
 *+Asserts
 nbproject
