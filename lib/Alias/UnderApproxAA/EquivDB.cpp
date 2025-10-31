@@ -1,3 +1,86 @@
+/*
+// This file implements a must-alias analysis using union-find with congruence
+// closure. The goal is to compute an *under-approximation* of pointer 
+// equivalence: if two pointers are in the same equivalence class, they are
+// guaranteed to alias. We never produce false positives, but may miss aliases.
+//
+// ┌─────────────────────────────────────────────────────────────────────────┐
+// │ DATA STRUCTURE: Union-Find with Watches                                 │
+// └─────────────────────────────────────────────────────────────────────────┘
+//
+//   • Each Value* gets a unique ID (IdTy = unsigned)
+//   • Val2Id: DenseMap<const Value*, IdTy>  — value → ID lookup
+//   • Id2Val: vector<const Value*>          — ID → value lookup
+//   • Nodes:  vector<{Parent, Rank}>        — union-find forest
+//   • Watches: vector<SmallVector<Inst*>>   — per-class watch lists
+//
+//   Watches[i] stores instructions that depend on class i. When two classes
+//   merge, we revisit all watched instructions to check if new semantic rules
+//   can fire (e.g., a PHI becomes "closed" when all operands unify).
+//
+// ┌─────────────────────────────────────────────────────────────────────────┐
+// │ ALGORITHM: Two-Phase Construction                                       │
+// └─────────────────────────────────────────────────────────────────────────┘
+//
+//   Phase 1: SEED with atomic must-alias pairs
+//   ──────────────────────────────────────────
+//   Scan all instructions and their operands. For each pair (A, B), apply
+//   local syntactic rules to check if A and B must alias:
+//
+//     1. Identity:           A == B (after stripping casts)
+//     2. Cast equivalence:   A = bitcast(B) or A = addrspacecast(B)
+//     3. Const-offset GEP:   GEP(base, C₁) == GEP(base, C₂) when C₁ ≡ C₂
+//     4. Zero GEP:           GEP(p, 0, 0, ...) == p
+//     5. Round-trip cast:    inttoptr(ptrtoint(p)) == p
+//     6. Same object:        Both derive from same alloca/global
+//     7. Constant null:      null == null (same address space)
+//     8. Trivial PHI:        phi [p, bb1], [p, bb2] == p
+//     9. Trivial Select:     select cond, p, p == p
+//
+//   All matching pairs (A, B) are added to a worklist WL.
+//   Additionally, register each pointer-producing instruction I as "watched"
+//   by the equivalence classes of its pointer operands.
+//
+//   Phase 2: PROPAGATE with semantic rules
+//   ───────────────────────────────────────
+//   Process the worklist WL:
+//
+//     while WL not empty:
+//       pop (A, B) from WL
+//       CA ← find(A);  CB ← find(B)
+//       if CA == CB: continue  // already unified
+//       
+//       unite(CA, CB) → NewRoot
+//       
+//       // Revisit all instructions watching the merged class
+//       for each instruction I in Watches[NewRoot]:
+//         if I is a pointer instruction:
+//           try semantic rules (e.g., closed PHI, closed Select):
+//             if all pointer operands of I are now in the same class:
+//               Rep ← representative of that class
+//               push (I, Rep) to WL  // I must equal Rep
+//
+//   Semantic rules capture higher-order patterns:
+//     • Closed PHI:    phi [p₁, bb₁], ..., [pₙ, bbₙ] where p₁ ≡ ... ≡ pₙ
+//                      → the PHI must equal the common class
+//     • Closed Select: select cond, pTrue, pFalse where pTrue ≡ pFalse
+//                      → the Select must equal the common class
+//
+//   These rules are *inductive*: as more values unify, previously non-closed
+//   instructions may become closed, enabling further propagation.
+//
+// ┌─────────────────────────────────────────────────────────────────────────┐
+// │ QUERY: mustAlias(A, B)                                                  │
+// └─────────────────────────────────────────────────────────────────────────┘
+//
+//   After construction, query in O(α(N)) time:
+//     return find(id(A)) == find(id(B))
+//
+//   If A and B are in the same equivalence class, they are guaranteed to
+//   alias (sound under-approximation). If not, we don't know.
+
+*/
+
 #include "Alias/UnderApproxAA/EquivDB.h"
 #include "Alias/UnderApproxAA/Canonical.h"
 #include <llvm/Analysis/ValueTracking.h>
@@ -10,6 +93,8 @@
 using namespace llvm;
 using namespace UnderApprox;
 
+
+//
 //===----------------------------------------------------------------------===//
 //             1.  Atomic Must-Alias Rules
 //===----------------------------------------------------------------------===//
@@ -23,6 +108,7 @@ using namespace UnderApprox;
 //   2. Add clear documentation explaining when the rule applies
 //   3. Call it from atomicMustAlias()
 //===----------------------------------------------------------------------===//
+
 
 /// Rule 1: Identity
 /// Two pointers are the same SSA value (after stripping no-op casts).
@@ -137,6 +223,8 @@ static bool checkTrivialSelect(const Value *S1, const Value *S2) {
   return false;
 }
 
+
+
 //===----------------------------------------------------------------------===//
 // Main atomic must-alias checker
 //===----------------------------------------------------------------------===//
@@ -163,7 +251,6 @@ static bool atomicMustAlias(const DataLayout &DL,
   if (checkConstantNull(S1, S2))          return true;
   if (checkTrivialPHI(S1, S2))            return true;
   if (checkTrivialSelect(S1, S2))         return true;
-
   // No rule matched - cannot prove they must alias
   return false;
 }
@@ -208,6 +295,55 @@ void EquivDB::unite(IdTy A, IdTy B) {
 //===----------------------------------------------------------------------===//
 //                    3. Build (seed + propagate)
 //===----------------------------------------------------------------------===//
+
+//   "Do all pointer operands of I already belong to the same class?"
+//      If yes, return that representative value, otherwise nullptr.
+static const Value *uniquePtrOperandClass(const Instruction *I,
+                                          const EquivDB &DB) {
+  const Value *Rep = nullptr;
+  for (const Value *Op : I->operands())
+    if (Op->getType()->isPointerTy()) {
+      if (!Rep) Rep = Op;
+      else if (!DB.mustAlias(Rep, Op)) return nullptr;
+    }
+  return Rep;                // may be nullptr
+}
+
+// (Inductive Rule) S1: Alias-closed PHI 
+static bool ruleClosedPHI(const Instruction *I,
+  const EquivDB &DB, const Value *&Rep) {
+    auto *PN = dyn_cast<PHINode>(I);
+    if (!PN) return false;
+    if (const Value *Common = uniquePtrOperandClass(PN, DB)) {
+        Rep = Common;
+        return true;
+    }
+    return false;
+}
+
+// (Inductive Rule) S2: Alias-closed Select 
+static bool ruleClosedSelect(const Instruction *I,
+     const EquivDB &DB, const Value *&Rep) {
+    auto *SI = dyn_cast<SelectInst>(I);
+    if (!SI) return false;
+    if (const Value *Common = uniquePtrOperandClass(SI, DB)) {
+        Rep = Common;
+        return true;
+    }
+    return false;
+}
+
+// More rules to be added here...
+
+//-----------------------------------------------------------------------
+// Dispatcher table
+//-----------------------------------------------------------------------
+using RuleTy = bool (*)(const Instruction *, const EquivDB &, const Value *&);
+static constexpr RuleTy SemanticRules[] = {
+      ruleClosedPHI,
+      ruleClosedSelect,
+};
+
 
 EquivDB::EquivDB(Function &Func)
     : DL(Func.getParent()->getDataLayout()), F(Func) {
@@ -279,19 +415,21 @@ void EquivDB::propagate(
     unite(CA, CB);
     IdTy NewRoot = find(CA);
 
-    // every instruction watched by either old class may now collapse
     auto Revisit = [&](IdTy Cls) {
       auto &List = Watches[Cls].Users;
       for (Instruction *I : List) {
         if (!I->getType()->isPointerTy()) continue;
-        if (!operandsInSameClass(I)) continue;
-        // Choose first pointer operand as representative
-        Value *Rep = nullptr;
-        for (Value *Op : I->operands())
-          if (Op->getType()->isPointerTy()) { Rep = Op; break; }
-        if (Rep) WL.emplace_back(I, Rep);
+    
+        const Value *Rep = nullptr;
+        for (RuleTy R : SemanticRules)
+          if (R(I, *this, Rep)) {        // *this == EquivDB
+            WL.emplace_back(I, Rep);
+            break;                       // one rule firing is enough
+          }
       }
+      // keep List – every instruction may fire at most once
     };
+
     Revisit(NewRoot); // merged list lives here
   }
 }

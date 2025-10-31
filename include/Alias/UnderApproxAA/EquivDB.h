@@ -1,8 +1,8 @@
 #ifndef UNDERAPPROX_EQUIVDB_H
 #define UNDERAPPROX_EQUIVDB_H
 
+#include <llvm/ADT/DenseMap.h>
 #include <llvm/IR/Function.h>
-#include <unordered_map>
 #include <vector>
 
 namespace UnderApprox {
@@ -26,7 +26,7 @@ private:
 
   std::vector<Node> Nodes;
   std::vector<const llvm::Value *> Id2Val;
-  std::unordered_map<const llvm::Value *, IdTy> Val2Id;
+  llvm::DenseMap<const llvm::Value *, IdTy> Val2Id;
 
   // ---------- saturation work-lists ----------------------------------------
   struct WatchInfo {
