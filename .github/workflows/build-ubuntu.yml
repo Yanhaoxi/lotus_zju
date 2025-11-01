@@ -9,6 +9,7 @@ jobs:
     strategy:
       matrix:
         ubuntu-version: [ubuntu-22.04, ubuntu-24.04, ubuntu-latest]
+        compiler: [clang, gcc]
 
     steps:
       - name: Checkout
@@ -21,8 +22,18 @@ jobs:
             libz3-dev python3 python3-pip llvm-14 llvm-14-dev llvm-14-tools clang-14
           # Setup LLVM environment
           echo "LLVM_CONFIG=/usr/bin/llvm-config-14" >> $GITHUB_ENV
+          
+      - name: Setup compiler (clang)
+        if: matrix.compiler == 'clang'
+        run: |
           echo "CC=/usr/bin/clang-14" >> $GITHUB_ENV
           echo "CXX=/usr/bin/clang++-14" >> $GITHUB_ENV
+          
+      - name: Setup compiler (gcc)
+        if: matrix.compiler == 'gcc'
+        run: |
+          echo "CC=/usr/bin/gcc" >> $GITHUB_ENV
+          echo "CXX=/usr/bin/g++" >> $GITHUB_ENV
       - name: Build and install
         run: |
           mkdir build && cd build

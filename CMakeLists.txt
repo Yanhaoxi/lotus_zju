@@ -14,6 +14,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # Find and configure LLVM
+# TBD: Currently, we build llvm locally, and use this parameter tell cmake how to find LLVM. However, this may not be a standard choicse for configuring LLVM. Besides, the CI script shows a bit diffeerence (it attempts to set different LLVM-related options..)
 if (NOT LLVM_BUILD_PATH)
     message(FATAL_ERROR "Please specify the build folder of LLVM using -DLLVM_BUILD_PATH=")
 endif()
