@@ -1,0 +1,12 @@
+#pragma once
+
+#include "Support/KVStore/KVStore.h"
+#include <string>
+
+namespace lotus {
+
+static constexpr const char *SocketPath = "@CMAKE_BINARY_DIR@/cache.sock";
+static_assert(SocketPath[0] != 0 && SocketPath[0] != '@',
+              "CMake does not seem to have rewritten the socket path correctly");
+
+}

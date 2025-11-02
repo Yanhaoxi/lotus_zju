@@ -7,6 +7,38 @@
 Lotus is a program analysis, verification, and optimization framework. It provides several toolkits that can be used individually or in combination to perform different tasks.
 The current version has been tested on x86 Linux and ARM Mac using LLVM-12 and LLVM-14 with Z3-4.11.
 
+## Publications
+
+If you use Lotus in your research or work, please cite the following:
+
+```bibtex
+@misc{lotus2025,
+  title = {Lotus: A Versatile and Industrial-Scale Program Analysis Framework},
+  author = {ZJU Programming Languages and Automated Reasoning Group},
+  year = {2025},
+  url = {https://github.com/ZJU-Automated-Reasoning-Group/lotus},
+  note = {Program analysis framework built on LLVM}
+}
+```
+
+### Papers that use Lotus
+
+- **ISSTA 2025**: Program Analysis Combining Generalized Bit-Level and Word-Level Abstractions.  
+  Guangsheng Fan, Liqian Chen, Banghu Yin, Wenyu Zhang, Peisen Yao, and Ji Wang.  
+  *The ACM SIGSOFT International Symposium on Software Testing and Analysis.*
+- **S&P 2024**: Titan: Efficient Multi-target Directed Greybox Fuzzing.
+Heqing Huang, Peisen Yao*, Hung-Chun Chiu, Yiyuan Guo, and Charles Zhang.
+*The 45th IEEE Symposium on Security and Privacy (Oakland).*
+- **USENIX Security 2024**: Unleashing the Power of Type-Based Call Graph Construction by Using Regional Pointer Information. Yuandao Cai, Yibo Jin, Charles Zhang. 
+*The 2024 USENIX Security Symposium.*
+- **TSE 2024**: Fast and Precise Static Null Exception Analysis with Synergistic Preprocessing.  
+  Yi Sun, Chengpeng Wang, Gang Fan, Qingkai Shi, Xiangyu Zhang.  
+  *The IEEE Transactions on Software Engineering.*
+- **OOPSLA 2022**： Indexing the Extended Dyck-CFL Reachability for Context-Sensitive Program Analysis
+Qingkai Shi, Yongchao Wang, Peisen Yao, and Charles Zhang.
+*The 37th ACM SIGPLAN Conference on Objected Oriented Programming, Systems, Languages, and Applications.*
+
+
 ## Major Components
 
 ### Alias Analysis
@@ -17,9 +49,9 @@ The current version has been tested on x86 Linux and ARM Mac using LLVM-12 and L
   We copy these files as LLVM removed them in the transition from version 14 to 15
 - **Sea-DSA**: A context-sensitive, field-sensitive alias analysis based on Data Structure Analysis (See `lib/Alias/seadsa`) (It requires boost)
 - **Andersen**: Context-insensitive points-to analysis implementation (without on-the-fly callgraph construction) (See `lib/Alias/Andersen`)
-- **FPA**: Function Pointer Analysis with multiple approaches (FLTA, MLTA, MLTADF, KELP) for resolving indirect function calls (See `lib/Alias/FPA`)
+- **FPA**: Function Pointer Analysis with multiple approaches (FLTA, MLTA, MLTADF, KELP (USENIX Security'24)) for resolving indirect function calls (See `lib/Alias/FPA`)
 - **DynAA**: Dynamic Alias Analysis Checker that validates static alias analysis results by observing pointer addresses at runtime (See `tools/dynaa`)
-- **OriginAA**: K-callsite sensitve and origin-sensitive (from https://github.com/bozhen-liu/AFG)
+- **OriginAA**: K-callsite sensitve and origin-sensitive analysis
 
 ### Intermediate Representations
 
@@ -43,6 +75,7 @@ The current version has been tested on x86 Linux and ARM Mac using LLVM-12 and L
 
 - **cJSON**: A lightweight JSON parser/generator for C with a simple API (See `include/Support/cJSON.h`)
 - **Transform**: Tranformations for LLVM bitcode
+- **CFL Reachability**: e.g.. [OOPSLA 2022]
 
 ## Binary Tools
 
@@ -89,31 +122,3 @@ The build system will automatically download and build Boost if it's not found o
 
 > **TODO**: Implement automatic download of LLVM and Z3 dependencies
 
-## Publications
-
-If you use Lotus in your research or work, please cite the following:
-
-```bibtex
-@misc{lotus2025,
-  title = {Lotus: A Versatile and Industrial-Scale Program Analysis Framework},
-  author = {ZJU Programming Languages and Automated Reasoning Group},
-  year = {2025},
-  url = {https://github.com/ZJU-Automated-Reasoning-Group/lotus},
-  note = {Program analysis framework built on LLVM}
-}
-```
-
-### Papers that use Lotus
-
-- **ISSTA 2025**: Program Analysis Combining Generalized Bit-Level and Word-Level Abstractions.  
-  Guangsheng Fan, Liqian Chen, Banghu Yin, Wenyu Zhang, Peisen Yao, and Ji Wang.  
-  *The ACM SIGSOFT International Symposium on Software Testing and Analysis.*
-- **S&P 2024**: Titan: Efficient Multi-target Directed Greybox Fuzzing.
-Heqing Huang, Peisen Yao*, Hung-Chun Chiu, Yiyuan Guo, and Charles Zhang.
-*The 45th IEEE Symposium on Security and Privacy (Oakland).*
-- **TSE 2024**: Fast and Precise Static Null Exception Analysis with Synergistic Preprocessing.  
-  Yi Sun, Chengpeng Wang, Gang Fan, Qingkai Shi, Xiangyu Zhang.  
-  *The IEEE Transactions on Software Engineering.*
-- **OOPSLA 2022**： Indexing the Extended Dyck-CFL Reachability for Context-Sensitive Program Analysis
-Qingkai Shi, Yongchao Wang, Peisen Yao, and Charles Zhang.
-*The 37th ACM SIGPLAN Conference on Objected Oriented Programming, Systems, Languages, and Applications.*
