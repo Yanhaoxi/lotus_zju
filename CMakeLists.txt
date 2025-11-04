@@ -46,6 +46,7 @@ include(cmake/FindZ3.cmake)
 include(cmake/ConfigureBoost.cmake)
 include(cmake/ConfigureClamCrab.cmake)
 include(cmake/ConfigureSVF.cmake)
+include(cmake/ConfigureSeaHorn.cmake)
 
 # Sea-dsa sanity checks option
 option(ENABLE_SANITY_CHECKS "Enable sea-dsa sanity checks." OFF)
@@ -55,17 +56,6 @@ if(ENABLE_SANITY_CHECKS)
 else()
     message(STATUS "Compiling sea-dsa without sanity checks")
 endif()
-
-# SeaHorn configuration
-set(SeaHorn_VERSION_INFO "dev")
-set(HAVE_CLAM ${HAVE_CLAM})
-set(HAVE_DSA ON)
-set(HAVE_LLVM_SEAHORN ON)
-configure_file(
-  ${CMAKE_SOURCE_DIR}/include/seahorn/config.h.cmake
-  ${CMAKE_BINARY_DIR}/include/seahorn/config.h
-)
-include_directories(${CMAKE_BINARY_DIR}/include)
 
 # Add subdirectories
 add_subdirectory(lib)
@@ -87,11 +77,3 @@ endif()
 # Add Python scripts and utilities
 add_subdirectory(scripts)
 add_subdirectory(yaml-configurations)
-
-# SeaHorn Verification Integration
-option(ENABLE_VERIFICATION "Enable verification components" ON)
-
-if(ENABLE_VERIFICATION)
-  message(STATUS "Building with verification support")
-  add_definitions(-DHAVE_VERIFICATION)
-endif()

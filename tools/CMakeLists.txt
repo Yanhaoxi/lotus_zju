@@ -9,6 +9,11 @@ if(ENABLE_CLAM)
     add_subdirectory(clam)
 endif()
 
+# Seahorn tools
+#if(ENABLE_SEAHORN)
+#    add_subdirectory(seahorn)
+#endif()
+
 # CFL reachability
 option(BUILD_CSR "Build indexing context-sensitive reachability solver" OFF)
 if(BUILD_CSR)

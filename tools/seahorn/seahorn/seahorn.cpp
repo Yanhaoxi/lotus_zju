@@ -5,8 +5,6 @@
 // This file is distributed under the MIT License. See LICENSE for details.
 //
 
-#include "llvm_seahorn/InitializePasses.h"
-#include "llvm_seahorn/Transforms/IPO.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Module.h"
@@ -43,9 +41,9 @@
 #include "seahorn/clam_Clam.hh"
 #endif
 
-#include "seadsa/DsaAnalysis.hh"
-#include "seadsa/InitializePasses.hh"
-#include "seadsa/support/RemovePtrToInt.hh"
+#include "Alias/seadsa/DsaAnalysis.hh"
+#include "Alias/seadsa/InitializePasses.hh"
+#include "Alias/seadsa/support/RemovePtrToInt.hh"
 
 #include "seahorn/Expr/Smt/EZ3.hh"
 #include "seahorn/Support/Stats.hh"
@@ -293,7 +291,7 @@ int main(int argc, char **argv) {
   llvm::initializeDsaInfoPassPass(Registry);
   llvm::initializeAllocSiteInfoPass(Registry);
   llvm::initializeCompleteCallGraphPass(Registry);
-  llvm::initializeSeaAnnotation2MetadataLegacyPass(Registry);
+  // llvm::initializeSeaAnnotation2MetadataLegacyPass(Registry); // Not available - llvm_seahorn library not present
   llvm::initializeGeneratePartialFnPassPass(Registry);
   // add an appropriate DataLayout instance for the module
   const llvm::DataLayout *dl = &module->getDataLayout();
@@ -304,7 +302,7 @@ int main(int argc, char **argv) {
 
   assert(dl && "Could not find Data Layout for the module");
 
-  pass_manager.add(llvm_seahorn::createSeaAnnotation2MetadataLegacyPass());
+  // pass_manager.add(llvm_seahorn::createSeaAnnotation2MetadataLegacyPass()); // Not available - llvm_seahorn library not present
   pass_manager.add(seahorn::createSeaBuiltinsWrapperPass());
   // turn all functions internal so that we can inline them if requested
   auto PreserveMain = [=](const llvm::GlobalValue &GV) {

@@ -9,8 +9,6 @@
 // SeaPP-- LLVM bitcode Pre-Processor for Verification
 ///
 
-#include "llvm_seahorn/InitializePasses.h"
-#include "llvm_seahorn/Transforms/IPO.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/Bitcode/BitcodeWriterPass.h"
 #include "llvm/IR/LLVMContext.h"
@@ -35,14 +33,14 @@
 #include "seahorn/InitializePasses.hh"
 #include "seahorn/Passes.hh"
 
-#include "seadsa/InitializePasses.hh"
-#include "seadsa/support/RemovePtrToInt.hh"
+#include "Alias/seadsa/InitializePasses.hh"
+#include "Alias/seadsa/support/RemovePtrToInt.hh"
 
 #ifdef HAVE_LLVM_SEAHORN
 #include "llvm_seahorn/Transforms/Scalar.h"
 #endif
 
-#include "seadsa/InitializePasses.hh"
+#include "Alias/seadsa/InitializePasses.hh"
 
 #include "seahorn/Expr/Smt/EZ3.hh"
 #include "seahorn/Support/SeaLog.hh"
@@ -396,7 +394,7 @@ int main(int argc, char **argv) {
   llvm::initializeDsaLibFuncInfoPass(Registry);
 
   llvm::initializeCompleteCallGraphPass(Registry);
-  llvm::initializeSeaAnnotation2MetadataLegacyPass(Registry);
+  // llvm::initializeSeaAnnotation2MetadataLegacyPass(Registry); // Not available - llvm_seahorn library not present
 
   llvm::initializeRemovePtrToIntPass(Registry);
 
@@ -409,10 +407,10 @@ int main(int argc, char **argv) {
 
   assert(dl && "Could not find Data Layout for the module");
 
-  pm_wrapper.add(llvm_seahorn::createSeaAnnotation2MetadataLegacyPass());
+  // pm_wrapper.add(llvm_seahorn::createSeaAnnotation2MetadataLegacyPass()); // Not available - llvm_seahorn library not present
   pm_wrapper.add(seahorn::createSeaBuiltinsWrapperPass());
   if (ReplaceLoopsWithNDFuncs) {
-    pm_wrapper.add(llvm_seahorn::createSeaLoopExtractorPass());
+    // pm_wrapper.add(llvm_seahorn::createSeaLoopExtractorPass()); // Not available - llvm_seahorn library not present
   }
 
   if (RenameNondet)
@@ -448,7 +446,7 @@ int main(int argc, char **argv) {
     pm_wrapper.add(llvm::createLowerSwitchPass());
     pm_wrapper.add(llvm::createLoopSimplifyPass());
     pm_wrapper.add(llvm::createLoopSimplifyCFGPass());
-    pm_wrapper.add(llvm_seahorn::createLoopRotatePass(/*1023*/));
+    pm_wrapper.add(llvm::createLoopRotatePass()); // Using standard LLVM version instead of llvm_seahorn
     pm_wrapper.add(llvm::createLCSSAPass());
     if (PeelLoops > 0)
       pm_wrapper.add(seahorn::createLoopPeelerPass(PeelLoops));
@@ -644,7 +642,7 @@ int main(int argc, char **argv) {
 
     // -- request seaopt to inline all functions
     if (InlineAll) {
-      pm_wrapper.add(llvm_seahorn::createSeaAnnotation2MetadataLegacyPass());
+      // pm_wrapper.add(llvm_seahorn::createSeaAnnotation2MetadataLegacyPass()); // Not available - llvm_seahorn library not present
       pm_wrapper.add(seahorn::createMarkInternalInlinePass());
     } else {
       // mark memory allocator/deallocators to be inlined

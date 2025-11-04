@@ -88,6 +88,10 @@ if(ENABLE_CLAM)
         
         include_directories(BEFORE ${CMAKE_BINARY_DIR}/include)
         add_definitions(-DHAVE_CLAM)
+        
+        # Set CLAM libraries - must include both ClamAnalysis and Crab
+        set(CLAM_LIBS ClamAnalysis Crab)
+        
         message(STATUS "CLAM integration enabled with CRAB")
     endif()
 endif()

@@ -1,4 +1,5 @@
 rebuild.sh
+lib/seahorn/Support/GitSHA1.cc
 .cache
 .clangd
 .vscode

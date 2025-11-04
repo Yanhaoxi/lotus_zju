@@ -21,8 +21,8 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/IPO.h"
 
-#include "seadsa/DsaAnalysis.hh"
-#include "seadsa/InitializePasses.hh"
+#include "Alias/seadsa/DsaAnalysis.hh"
+#include "Alias/seadsa/InitializePasses.hh"
 
 #include "seahorn/Passes.hh"
 

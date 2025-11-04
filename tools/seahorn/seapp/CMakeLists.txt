@@ -8,16 +8,21 @@ set (USED_LIBS
   SeaSupport
   ${LLVM_SEAHORN_LIBS}
   ${Boost_SYSTEM_LIBRARY}
-  SeaLlvmIpo
+  # SeaLlvmIpo  # Not available - from llvm-seahorn which wasn't migrated
+  ${CLAM_LIBS}
+  ${Z3_LIBRARIES}
   ${GMP_LIB}
   ${RT_LIB})
 
 set(LLVM_LINK_COMPONENTS irreader bitwriter ipo scalaropts instrumentation core 
   # XXX not clear why these last two are required
   codegen objcarcopts)
-add_llvm_executable(seapp DISABLE_LLVM_LINK_LLVM_DYLIB seapp.cc)
-target_link_libraries (seapp PRIVATE ${USED_LIBS})
+add_executable(seapp seapp.cc)
+set_target_properties(seapp PROPERTIES LINK_FLAGS "${LINK_FLAGS} -Wl,-search_paths_first")
+# Link LLVM components first to establish base dependencies
 llvm_config (seapp ${LLVM_LINK_COMPONENTS})
+# Then link our custom libraries
+target_link_libraries (seapp PRIVATE ${USED_LIBS})
 install(TARGETS seapp RUNTIME DESTINATION bin)
 
 if (SEAHORN_STATIC_EXE)
