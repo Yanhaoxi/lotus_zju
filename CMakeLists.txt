@@ -76,3 +76,11 @@ endif()
 # Add Python scripts and utilities
 add_subdirectory(scripts)
 add_subdirectory(yaml-configurations)
+
+# SeaHorn Verification Integration
+option(ENABLE_VERIFICATION "Enable verification components" ON)
+
+if(ENABLE_VERIFICATION)
+  message(STATUS "Building with verification support")
+  add_definitions(-DHAVE_VERIFICATION)
+endif()
