@@ -14,7 +14,7 @@
 
 #include <iostream>
 
-#include "Support/egraphs.h"
+#include "Utils/General/egraphs.h"
 
 enum class NodeKind {
   Constant, Variable,

@@ -1,6 +1,6 @@
 
 #include <gtest/gtest.h>
-#include "Support/egraphs.h"
+#include "Utils/General/egraphs.h"
 
 
 enum class NodeKind {

@@ -2,7 +2,7 @@
 // Enhanced version adapted from Clearblue's DebugInfoAnalysis for LLVM 14+
 
 #include "Checker/Report/DebugInfoAnalysis.h"
-#include "LLVMUtils/Demangle.h"
+#include "Utils/LLVM/Demangle.h"
 #include <llvm/IR/DebugInfo.h>
 #include <llvm/IR/DebugInfoMetadata.h>
 #include <llvm/IR/Instructions.h>

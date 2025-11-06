@@ -22,7 +22,7 @@
 #ifndef ALLOC_AA_ALLOCAA_H_
 #define ALLOC_AA_ALLOCAA_H_
 
-#include "LLVMUtils/SystemHeaders.h"
+#include "Utils/LLVM/SystemHeaders.h"
 
 
 class AllocAA {

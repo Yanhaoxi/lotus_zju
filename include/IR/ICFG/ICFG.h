@@ -16,7 +16,7 @@
 
 #include "IR/ICFG/ICFGEdge.h"
 #include "IR/ICFG/ICFGNode.h"
-#include "LLVMUtils/GenericGraph.h"
+#include "Utils/LLVM/GenericGraph.h"
 
 /// @brief Interprocedural Control-Flow Graph (ICFG).
 ///

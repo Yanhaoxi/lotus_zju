@@ -26,7 +26,7 @@
 //#include <set>
 //#include <unordered_map>
 
-#include "Support/ADT/DisjointSet.h"
+#include "Utils/General/ADT/DisjointSet.h"
 
 using namespace llvm;
 

@@ -23,7 +23,7 @@
  #define NOELLE_SRC_CORE_DOMINATORS_DOMINATORNODE_H_
  
  #include "llvm/Analysis/PostDominators.h"
- #include "LLVMUtils/SystemHeaders.h"
+ #include "Utils/LLVM/SystemHeaders.h"
  
  namespace noelle {
  

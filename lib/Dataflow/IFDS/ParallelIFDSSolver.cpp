@@ -17,8 +17,8 @@
 #include <llvm/IR/CFG.h>
 #include <llvm/Support/raw_ostream.h>
 
-#include <Support/ProgressBar.h>
-#include <LLVMUtils/ThreadPool.h>
+#include "Utils/General/ProgressBar.h"
+#include "Utils/LLVM/ThreadPool.h"
 
 namespace ifds {
 

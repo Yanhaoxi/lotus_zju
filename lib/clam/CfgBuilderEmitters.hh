@@ -2,8 +2,8 @@
 
 #include "clam/CrabIREmitter.hh"
 
-#include "llvm/Analysis/MemoryBuiltins.h"
-#include "llvm/IR/Instructions.h"
+#include <llvm/Analysis/MemoryBuiltins.h>
+#include <llvm/IR/Instructions.h>
 
 #include <memory>
 

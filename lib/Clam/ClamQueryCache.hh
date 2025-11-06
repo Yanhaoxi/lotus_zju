@@ -1,7 +1,8 @@
 #pragma once
 
-#include <clam/Clam.hh>
-#include <clam/ClamQueryAPI.hh>
+#include "clam/Clam.hh"
+#include "clam/ClamQueryAPI.hh"
+
 #include <llvm/ADT/DenseMap.h>
 #include <llvm/ADT/DenseSet.h>
 #include <llvm/ADT/Optional.h>

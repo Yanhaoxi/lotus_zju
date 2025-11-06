@@ -24,8 +24,8 @@
 #include "Alias/DyckAA/DyckModRefAnalysis.h"
 #include "Alias/DyckAA/DyckVFG.h"
 #include "Analysis/CFG/CFGReachability.h"
-#include "LLVMUtils/RecursiveTimer.h"
-#include "LLVMUtils/ThreadPool.h"
+#include "Utils/LLVM/RecursiveTimer.h"
+#include "Utils/LLVM/ThreadPool.h"
 
 DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, DyckModRefAnalysis *DMRA, Module *M) {
     // create a VFG for each function

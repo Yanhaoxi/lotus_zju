@@ -6,7 +6,7 @@
 #include <llvm/IR/DebugLoc.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/Support/raw_ostream.h>
-#include "Support/cJSON.h"
+#include "Utils/General/cJSON.h"
 
 namespace sarif {
 

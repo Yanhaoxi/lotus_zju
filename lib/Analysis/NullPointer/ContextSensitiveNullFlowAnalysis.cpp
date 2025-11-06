@@ -13,8 +13,8 @@
 #include "Alias/DyckAA/DyckAliasAnalysis.h"
 #include "Analysis/NullPointer/ContextSensitiveNullFlowAnalysis.h"
 #include "Analysis/NullPointer/AliasAnalysisAdapter.h"
-#include "LLVMUtils/API.h"
-#include "LLVMUtils/RecursiveTimer.h"
+#include "Utils/LLVM/API.h"
+#include "Utils/LLVM/RecursiveTimer.h"
 
 using namespace llvm;
 

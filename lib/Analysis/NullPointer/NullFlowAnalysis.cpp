@@ -20,8 +20,8 @@
 #include "Alias/DyckAA/DyckAliasAnalysis.h"
 #include "Alias/DyckAA/DyckValueFlowAnalysis.h"
 #include "Analysis/NullPointer/NullFlowAnalysis.h"
-#include "LLVMUtils/API.h"
-#include "LLVMUtils/RecursiveTimer.h"
+#include "Utils/LLVM/API.h"
+#include "Utils/LLVM/RecursiveTimer.h"
 
 static cl::opt<int> IncrementalLimits("nfa-limit", cl::init(10), cl::Hidden,
                                       cl::desc("Determine how many non-null edges we consider a round."));

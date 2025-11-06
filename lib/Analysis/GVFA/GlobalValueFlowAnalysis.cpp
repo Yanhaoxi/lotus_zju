@@ -18,7 +18,7 @@
 #include "Analysis/GVFA/ReachabilityAlgorithms.h"
 #include "Analysis/GVFA/GVFAUtils.h"
 #include "Checker/gvfa/GVFAVulnerabilityChecker.h"
-#include "LLVMUtils/RecursiveTimer.h"
+#include "Utils/LLVM/RecursiveTimer.h"
 
 using namespace llvm;
 

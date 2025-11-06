@@ -2,7 +2,7 @@
 #include "Checker/kint/KINTTaintAnalysis.h"
 #include "Checker/kint/Options.h"
 #include "Checker/kint/Log.h"
-#include "Support/range.h"
+#include "Utils/General/range.h"
 
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Constants.h>

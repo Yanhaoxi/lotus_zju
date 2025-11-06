@@ -2,9 +2,9 @@
 
 /* A wrapper object for a LLVM variable or constant */
 
-#include "llvm/ADT/Optional.h"
-#include "llvm/IR/Instructions.h"
-#include "llvm/Support/raw_ostream.h"
+#include <llvm/ADT/Optional.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/Support/raw_ostream.h>
 
 #include "clam/CfgBuilderParams.hh"
 #include "clam/HeapAbstraction.hh"

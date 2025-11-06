@@ -8,7 +8,7 @@
 #include <type_traits>
 #include <vector>
 
-#include "LLVMUtils/LLVMBgl.h"
+#include "Utils/LLVM/LLVMBgl.h"
 
 #include "boost/iterator/indirect_iterator.hpp"
 #include "boost/iterator/transform_iterator.hpp"

@@ -25,7 +25,7 @@
 #include "Alias/DyckAA/AAAnalyzer.h"
 #include "Alias/DyckAA/DyckVFG.h"
 #include "Alias/DyckAA/DyckModRefAnalysis.h"
-#include "LLVMUtils/RecursiveTimer.h"
+#include "Utils/LLVM/RecursiveTimer.h"
 
 static cl::opt<bool> PrintAliasSetInformation("print-alias-set-info", cl::init(false), cl::Hidden,
                                               cl::desc("Output alias sets and their relations"));

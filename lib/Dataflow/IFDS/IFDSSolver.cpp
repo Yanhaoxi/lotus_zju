@@ -9,11 +9,12 @@
  */
 
 #include "Dataflow/IFDS/IFDSSolvers.h"
+#include "Utils/General/ProgressBar.h"
 
 #include <llvm/IR/CFG.h>
 #include <llvm/Support/raw_ostream.h>
 
-#include <Support/ProgressBar.h>
+
 
 namespace ifds {
 

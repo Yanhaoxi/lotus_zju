@@ -1,5 +1,5 @@
 #include "Checker/Report/SARIF.h"
-#include "LLVMUtils/Demangle.h"
+#include "Utils/LLVM/Demangle.h"
 #include <llvm/IR/DebugInfoMetadata.h>
 #include <llvm/IR/Function.h>
 #include <llvm/Support/FileSystem.h>
