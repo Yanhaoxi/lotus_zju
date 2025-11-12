@@ -4,7 +4,7 @@
 * Provides callgraph analysis and queries for LLVM IR
 */
 
-#include <MCP/MCPServer.h>
+#include "Apps/MCP/MCPServer.h"
 #include <iostream>
 #include <fstream>
 

@@ -18,30 +18,6 @@ CLAM is an abstract interpretation framework that provides:
 - `Support/`: Utility functions
 - `Optimizer/`: Post-analysis optimizations
 
-## Integration with Lotus
-
-CLAM is integrated as a library that can be used by Lotus analyses:
-
-1. **Wrapper API**: See `include/Analysis/Clam/ClamAnalysis.h` for the wrapper interface
-2. **Usage Example**:
-```cpp
-#include "Analysis/Clam/ClamAnalysis.h"
-
-using namespace lotus::clam;
-
-// Create CLAM analysis
-auto clam = createClamAnalysis(module);
-
-// Run analysis
-clam::AnalysisParams params;
-clam->analyze(params);
-
-// Query invariants
-auto pre = clam->getPre(basicBlock);
-if (pre.has_value()) {
-  // Use invariants for more precise analysis
-}
-```
 
 ## Build Configuration
 
