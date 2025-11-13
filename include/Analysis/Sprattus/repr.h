@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <functional>
 #include <cctype>
+#include <vector>
 
 // automatically enable LLVM support if llvm-c/Core.h was included
 #ifdef LLVM_C_CORE_H

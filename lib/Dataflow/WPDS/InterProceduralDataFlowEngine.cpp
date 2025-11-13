@@ -15,7 +15,7 @@ struct CopyTransitionsFunctor : public wpds::util::TransActionFunctor<T> {
     
     CopyTransitionsFunctor(wpds::CA<T>* target) : targetCA(target) {}
     
-    void operator()(const wpds::CA<T>::catrans_t& t) override {
+    void operator()(const typename wpds::CA<T>::catrans_t& t) override {
         targetCA->add(t->from_state(), t->stack(), t->to_state(), 
                      t->semiring_element().get_ptr());
     }
