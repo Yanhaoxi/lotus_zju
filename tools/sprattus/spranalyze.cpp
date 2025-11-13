@@ -7,6 +7,7 @@
 #include "Analysis/Sprattus/FunctionContext.h"
 #include "Analysis/Sprattus/ModuleContext.h"
 #include "Analysis/Sprattus/PrettyPrinter.h"
+#include "Analysis/Sprattus/repr.h"
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
@@ -117,6 +118,16 @@ static cl::opt<int> WideningDelay("widening-delay",
 
 static cl::opt<int> WideningFrequency("widening-frequency",
     cl::desc("Widen every N iterations"), cl::init(-1));
+
+static cl::opt<bool> CheckAssertions(
+    "check-assertions",
+    cl::desc("Check for possibly violated assertions"),
+    cl::init(false));
+
+static cl::opt<bool> CheckMemSafety(
+    "check-memsafety",
+    cl::desc("Check for possibly invalid memory accesses (requires RTTI)"),
+    cl::init(false));
 
 int main(int argc, char** argv) {
     cl::ParseCommandLineOptions(argc, argv, 
@@ -313,6 +324,111 @@ int main(int argc, char** argv) {
         auto fragments = FragmentDecomposition::For(fctx);
         auto analyzer = Analyzer::New(fctx, fragments, domain);
 
+        // Check assertions if requested
+        if (CheckAssertions) {
+            int num_violations = 0;
+            for (auto& bb : *targetFunc) {
+                for (auto& instr : bb) {
+                    if (llvm::isa<llvm::CallInst>(instr)) {
+                        auto& call = llvm::cast<llvm::CallInst>(instr);
+                        auto* calledFunc = call.getCalledFunction();
+                        if (calledFunc && calledFunc->getName().str() == "__assert_fail") {
+                            if (!analyzer->at(&bb)->isBottom()) {
+                                num_violations++;
+                                PrettyPrinter pp(true);
+                                analyzer->at(&bb)->prettyPrint(pp);
+                                outs() << "\nViolated assertion at "
+                                      << bb.getName().str()
+                                      << ". Computed result:\n"
+                                      << pp.str() << "\n";
+                            }
+                        }
+                    }
+                }
+            }
+            if (num_violations) {
+                outs() << "===================================================="
+                      << "====================\n"
+                      << "  " << num_violations << " violated assertion"
+                      << ((num_violations == 1) ? "" : "s") << " detected.\n";
+            } else {
+                outs() << "No violated assertions detected.\n";
+            }
+            return (num_violations < 128) ? num_violations : 1;
+        }
+
+        // Check memory safety if requested
+        // NOTE: This feature requires RTTI to be enabled (dynamic_cast)
+        // Currently disabled as RTTI is not enabled in this build
+        if (CheckMemSafety) {
+            errs() << "Error: Memory safety checking requires RTTI to be enabled.\n";
+            errs() << "This feature is currently disabled in this build.\n";
+            return 1;
+            
+            /* Memory safety checking code (requires RTTI):
+            int num_violations = 0;
+            for (auto& bb : *targetFunc) {
+                bool contains_mem_op = false;
+                for (auto& inst : bb) {
+                    if (llvm::isa<llvm::StoreInst>(inst) ||
+                        llvm::isa<llvm::LoadInst>(inst))
+                        contains_mem_op = true;
+                }
+                if (!contains_mem_op)
+                    continue;
+                    
+                std::vector<const AbstractValue*> vals;
+                analyzer->after(&bb)->gatherFlattenedSubcomponents(&vals);
+                for (auto& instr : bb) {
+                    llvm::Value* ptr = nullptr;
+                    if (auto as_store = llvm::dyn_cast<llvm::StoreInst>(&instr)) {
+                        ptr = as_store->getPointerOperand();
+                    }
+                    if (auto as_load = llvm::dyn_cast<llvm::LoadInst>(&instr)) {
+                        ptr = as_load->getPointerOperand();
+                    }
+                    if (ptr) {
+                        bool is_okay = false;
+                        for (auto v : vals) {
+                            if (auto as_vr =
+                                    dynamic_cast<const domains::ValidRegion*>(v)) {
+                                if (as_vr->getRepresentedPointer() == ptr &&
+                                    as_vr->isValid()) {
+                                    is_okay = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!is_okay) {
+                            num_violations++;
+                            outs() << "Possibly invalid memory access to "
+                                  << repr(ptr) << " at " << bb.getName().str()
+                                  << "\n";
+                        } else {
+                            outs() << "Definitely valid memory access to "
+                                  << repr(ptr) << " at " << bb.getName().str()
+                                  << "\n";
+                        }
+                    }
+                }
+            }
+            if (num_violations) {
+                outs() << "\n"
+                      << "===================================================="
+                      << "====================\n"
+                      << " " << num_violations
+                      << " possibly invalid memory access"
+                      << ((num_violations == 1) ? "" : "es") << " detected.\n";
+            } else {
+                outs() << "\n"
+                      << "===================================================="
+                      << "====================\n"
+                      << "No possibly invalid memory accesses detected.\n";
+            }
+            return (num_violations < 128) ? num_violations : 1;
+            */
+        }
+
         // Show entry point results
         auto* entryResult = analyzer->at(&targetFunc->getEntryBlock());
         PrettyPrinter entryPp(true);
@@ -362,4 +478,3 @@ int main(int argc, char** argv) {
     }
     return 0;
 }
-
