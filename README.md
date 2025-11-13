@@ -60,7 +60,7 @@ Heqing Huang, Peisen Yao, Hung-Chun Chiu, Yiyuan Guo, and Charles Zhang.
 ### Abstract Interpretation
 
 - **CLAM**: Abstract interpretation-based static analysis tool with multiple abstract domains for verification and bug detection (See `tools/clam` and `lib/Apps/clam`)
-- **Sparta**: A header-only library for building abstract interpreters (See `include/Analysis/sparta`) (NOTE: this modules requies C++17 and boost)
+- **Sprattus**: Modular abstract interpretation framework with configurable domains and analyzers (See `lib/Analysis/Sprattus` and `include/Analysis/Sprattus`)
 
 ### Utilities
 

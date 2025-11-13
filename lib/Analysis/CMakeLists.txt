@@ -2,7 +2,7 @@ add_subdirectory(CFG)
 add_subdirectory(NullPointer)
 add_subdirectory(Concurrency)
 add_subdirectory(GVFA)
-add_subdirectory(sparta) # Relies on C++ 17
+add_subdirectory(Sprattus)
 
 
 

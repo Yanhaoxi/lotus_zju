@@ -1,0 +1,4 @@
+[10:2] store *(buff + 7)
+[11:18] load *(buff + 3)
+[11:6] load *(buff + 13)
+[12:3] store *buff

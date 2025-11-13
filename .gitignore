@@ -1,4 +1,5 @@
 rebuild.sh
+tmp_bc
 lib/Apps/seahorn/Support/GitSHA1.cc
 .cache
 .clangd

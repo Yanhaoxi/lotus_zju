@@ -1,0 +1,2 @@
+[11:3] load *[buff, buff + n-1]
+[11:3] store *[buff, buff + n-1]

@@ -1,0 +1,3 @@
+[17:6] load *ptr
+[18:17] load *(ptr + 8)
+[18:3] store *ptr

@@ -3,26 +3,30 @@ Utilities
 
 Lotus provides utility libraries and frameworks for program analysis.
 
-Sparta Abstract Interpretation Framework
------------------------------------------
+Sprattus Abstract Interpretation Framework
+------------------------------------------
 
-Header-only library for building abstract interpreters.
+Static analysis framework with configurable abstract domains and analyzers.
 
-**Location**: ``include/Analysis/sparta``
+**Location**: ``include/Analysis/Sprattus``
 
-**Features**: Generic framework, fixpoint iteration, WTO, flat sets
+**Build targets**: ``lib/Analysis/Sprattus`` (library) and ``tools/sprattus`` (CLI)
+
+**Features**: SSA-aware fixpoint iteration, composable abstract domains, Z3 integration
 
 **Usage**:
 .. code-block:: cpp
 
-   #include <Analysis/sparta/AbstractDomain.h>
-   class MyDomain : public AbstractDomain<MyDomain> {
-   public:
-       MyDomain join(const MyDomain& other) const;
-       bool leq(const MyDomain& other) const;
-   };
-   MonotonicFixpointIterator<MyDomain> iterator(cfg, domain);
-   iterator.run();
+   #include <Analysis/Sprattus/Analyzer.h>
+   #include <Analysis/Sprattus/Config.h>
+
+   sprattus::configparser::Config config("config/sprattus/01_const_function.conf");
+   sprattus::ModuleContext moduleCtx(module, config);
+   sprattus::FunctionContext funcCtx(function, &moduleCtx);
+   auto fragments = sprattus::FragmentDecomposition::For(funcCtx);
+   auto domain = sprattus::DomainConstructor(config);
+   auto analyzer = sprattus::Analyzer::New(funcCtx, fragments, domain);
+   analyzer->Run();
 
 cJSON
 -----
