@@ -182,3 +182,62 @@ Dynamic validation of static alias analysis results.
 * ``dynaa-log-dump``: Convert binary logs to readable format
 
 
+
+AliasAnalysisWrapper
+--------------------
+
+LLVM AliasAnalysis wrapper and integration utilities.
+
+**Location**: ``include/Alias/AliasAnalysisWrapper/``
+
+**Features**: Provides LLVM AA pass integration and result caching.
+
+AserPTA (Advanced Pointer Analysis)
+-----------------------------------
+
+Comprehensive pointer analysis framework with multiple context sensitivities.
+
+**Location**: ``include/Alias/AserPTA/``
+
+**Components**:
+* **PointerAnalysis/** – Core analysis engine with context sensitivity
+* **PreProcessing/** – IR preprocessing and normalization passes
+* **Util/** – Analysis utilities and graph writers
+
+**Context Sensitivities**:
+* ``NoCtx`` – Context-insensitive analysis
+* ``KCallSite`` – K-callsite sensitivity
+* ``KOrigin`` – Origin-sensitive analysis
+
+**Solver Types**:
+* ``PartialUpdateSolver`` – Incremental constraint solving
+* ``WavePropagation`` – SCC-based propagation
+* ``DeepPropagation`` – Cycle-aware propagation
+
+LotusAA
+-------
+
+Lotus-specific alias analysis framework.
+
+**Location**: ``include/Alias/LotusAA/``
+
+**Components**:
+* **Engine/** – Inter/intra-procedural analysis engines
+* **MemoryModel/** – Points-to graph and memory modeling
+* **Support/** – Configuration and utility functions
+
+**Features**: Modular design for extensible pointer analysis.
+
+UnderApproxAA
+-------------
+
+Under-approximate alias analysis for conservative results.
+
+**Location**: ``include/Alias/UnderApproxAA/``
+
+**Components**:
+* **Canonical** – Canonical form representations
+* **EquivDB** – Equivalence class database
+* **UnderApproxAA** – Core under-approximation algorithm
+
+**Features**: Conservative alias analysis for safety-critical applications.
