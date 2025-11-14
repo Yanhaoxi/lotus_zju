@@ -57,7 +57,7 @@
 ///
 /// **Registered Pass:**
 /// - Pass ID: "lotus-aa"
-/// - Description: "LotusAA: Flow-sensitive alias analysis"
+/// - Description: "LotusAA: Flow- and context-sensitive alias analysis"
 ///
 /// @see IntraLotusAA for per-function analysis
 /// @see CallGraphState for call graph management

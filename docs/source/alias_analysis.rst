@@ -131,6 +131,20 @@ Multiple algorithms for resolving indirect function calls.
 * ``-debug``: Enable debug output
 * ``-output-file=<path>``: Output file path
 
+SRAA
+----
+
+Strict Relation Alias Analysis built on interprocedural range analysis.
+
+**Location**: ``lib/Alias/SRAA``
+
+**Highlights**:
+* Proves ``NoAlias`` results by reasoning about strict inequalities on pointer offsets
+* Uses ``InterProceduralRA`` to infer value ranges and propagate constraints
+* Tracks primitive layouts of aggregate types to compare sub-field accesses
+
+**Usage**: Register the ``StrictRelations`` pass (``-sraa``) inside an LLVM pass pipeline or via the Lotus AA wrapper.
+
 OriginAA
 --------
 

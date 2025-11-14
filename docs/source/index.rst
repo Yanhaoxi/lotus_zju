@@ -12,18 +12,44 @@ Lotus is a comprehensive program analysis, verification, and optimization framew
 
 .. toctree::
    :maxdepth: 2
-   :caption: Analysis Components
+   :caption: Core Analyses
 
    alias_analysis
    data_flow_analysis
    numerical_abstract_interpretation
+   symbolic_abstraction
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Reasoning & Solvers
+
    smt_model_checking
-   cfl_reachability
-   concurrency_bug_checker
-   intermediate_representations
    constraint_solving
-   slicing_primitives
-   fuzzing_support
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Graph & Reachability
+
+   intermediate_representations
+   cfl_reachability
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Applications
+
+   apps/concurrency_bug_checker
+   apps/fuzzing_support
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Alias Deep Dives
+
+   alias/sraa
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Utilities
+
    utilities
 
 Features
