@@ -145,6 +145,7 @@ Strict Relation Alias Analysis built on interprocedural range analysis.
 
 **Usage**: Register the ``StrictRelations`` pass (``-sraa``) inside an LLVM pass pipeline or via the Lotus AA wrapper.
 
+
 OriginAA
 --------
 
