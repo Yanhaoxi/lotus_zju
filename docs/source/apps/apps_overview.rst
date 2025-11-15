@@ -84,12 +84,4 @@ Large-scale verification framework with SMT-based model checking.
 
 **Build Target**: ``tools/seahorn``
 
-**Usage**:
-.. code-block:: bash
-
-   ./build/bin/seahorn --horn-solve example.bc
-
-**Key Options**:
-* ``--horn-solve``: Enable Horn clause solving
-* ``--horn-cex``: Generate counterexamples
-* ``--horn-bmc``: Bounded model checking mode
+For a detailed usage and workflow description, see :doc:`seahorn`.

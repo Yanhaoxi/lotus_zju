@@ -1,11 +1,13 @@
 Solvers
 =======
 
-This section covers the constraint solvers and model checking components.
+This section documents the solver frameworks, constraint solving backends, and
+SMT-based model checking components used throughout Lotus.
 
 .. toctree::
    :maxdepth: 2
 
-   solvers
-   smt_model_checking
-   constraint_solving
+   cudd
+   fpsolve
+   smt
+   wpds

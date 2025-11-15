@@ -1,8 +1,15 @@
-Sprattus: Symbolic Abstraction Static Analysis
-==============================================
+Sprattus: Symbolic Abstraction Framework
+========================================
 
-``lib/Analysis/Sprattus``
--------------------------
+Location
+--------
+
+**Library**: ``lib/Analysis/Sprattus``
+
+**Headers**: ``include/Analysis/Sprattus``
+
+Overview
+--------
 
 Sprattus is a framework for static program analysis of low-level C
 and C++ programs on LLVM IR. It uses **Symbolic Abstraction** to provide a flexible interface for designing program analyses
@@ -11,9 +18,6 @@ in a compositional way.
 With Sprattus you describe the semantic properties you care about, not the
 effect of every LLVM instruction. The framework then derives sound static
 analyses that respect those semantics.
-
-Overview
---------
 
 Sprattus combines:
 
@@ -285,12 +289,12 @@ MemRange domain can express the result in terms of input parameters.
 Test Cases
 ----------
 
-Several test cases are available in ``tests/spartus/``:
+Several test cases are available in ``tests/sprattus/``:
 
 .. code-block:: shell
 
    # Simple assertion test
-   cd tests/spartus/assertions
+   cd tests/sprattus/assertions
    clang -c -emit-llvm simple_assert.c -o simple_assert.bc
    opt -mem2reg -instnamer simple_assert.bc -o simple_assert_ssa.bc
    ../../build/bin/sprattus-analyze simple_assert_ssa.bc
@@ -414,7 +418,7 @@ Support
 For questions or issues:
 
 - Check ``SPRATTUS_INTEGRATION_SUCCESS.md`` for known limitations
-- Review test cases in ``tests/spartus/``
+- Review test cases in ``tests/sprattus/``
 - Examine source code in ``lib/Analysis/Sprattus/``
 
 Conclusion

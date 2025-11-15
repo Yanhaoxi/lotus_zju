@@ -10,4 +10,3 @@ This section covers data flow analysis engines and tools.
    ifds_ide
    wpds
    npa
-   data_flow_analysis

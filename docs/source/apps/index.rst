@@ -8,4 +8,5 @@ This section covers the high-level applications and tools built on Lotus.
 
    apps_overview
    fuzzing_support
+   seahorn
    checker/index
