@@ -7,6 +7,12 @@
 Lotus is a program analysis, verification, and optimization framework. It provides several toolkits that can be used individually or in combination to perform different tasks.
 The current version has been tested on x86 Linux and ARM Mac using LLVM-12 and LLVM-14 with Z3-4.11.
 
+## Docs
+
+~~~~
+https://zju-automated-reasoning-group.github.io/lotus
+~~~~
+
 ## Publications
 
 If you use Lotus in your research or work, please cite the following:
@@ -21,11 +27,7 @@ If you use Lotus in your research or work, please cite the following:
 }
 ```
 
-## Docs
-
-~~~~
-https://zju-automated-reasoning-group.github.io/lotus
-~~~~
+Papers that use Lotus:
 
 - **ISSTA 2025**: Program Analysis Combining Generalized Bit-Level and Word-Level Abstractions. Guangsheng Fan, Liqian Chen, Banghu Yin, Wenyu Zhang, Peisen Yao, and Ji Wang.  
 - **S&P 2024**: Titan: Efficient Multi-target Directed Greybox Fuzzing.
@@ -87,3 +89,12 @@ The build system will automatically download and build Boost if it's not found o
 
 > **TODO**: Implement automatic download of LLVM and Z3 dependencies
 
+
+## Contributors 
+Primary contributors to this project:
+
+- rainoftime / cutelimination
+- qingkaishi
+- rhuab
+- Zahrinas
+- Rexxar-Jack-Remar

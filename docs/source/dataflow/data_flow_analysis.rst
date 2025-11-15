@@ -1,22 +1,17 @@
 Data Flow Analysis
 ===================
 
-Lotus provides IFDS/IDE frameworks and flow-sensitive analysis tools.
+This page documents **command-line tools** built on top of Lotus'
+dataflow engines.
+For the engines themselves, see :doc:`mono`, :doc:`ifds_ide`,
+and :doc:`wpds`.
 
 IFDS/IDE Framework
 ------------------
 
-Interprocedural Finite Distributive Subset and Interprocedural Distributive Environment solvers.
-
-**Location**: ``lib/Dataflow``
-
-**Features**: IFDS for subset problems, IDE for environment problems, interprocedural support.
-
-**Usage**:
-.. code-block:: cpp
-
-   #include <Dataflow/IFDS.h>
-   auto ifdsSolver = std::make_unique<IFDSSolver<Domain>>(problem);
+Lotus provides IFDS/IDE solvers in ``lib/Dataflow/IFDS``.
+They are used by several analyses and tools described below;
+see :doc:`ifds_ide` for algorithmic and API details.
 
 Taint Analysis
 --------------
