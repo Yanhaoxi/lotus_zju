@@ -12,6 +12,8 @@ set(SPRATTUS_SOURCES
     Analyzer.cpp
     FunctionContext.cpp
     ModuleContext.cpp
+    Checks.cpp
+    Reporting.cpp
     RepresentedValue.cpp
     ConcreteState.cpp
     Fragment.cpp

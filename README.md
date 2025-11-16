@@ -52,7 +52,7 @@ For detailed documentation on using the binary tools, see [TOOLS.md](TOOLS.md).
 
 ### Prerequisites
 
-- LLVM 12.0.0 or 14.0.0
+- LLVM 14.x
 - Z3 4.11
 - CMake 3.10+
 - C++14 compatible compiler
@@ -69,7 +69,7 @@ make -j$(nproc)
 
 **Notes**:
 
-- The build system assumes that the system has a supported LLVM (12.x or 14.x) and Z3 installed.
+- The build system assumes that the system has a supported LLVM (14.x) and Z3 installed.
 - If CMake cannot find LLVM automatically (for example, when using a custom or locally built LLVM),
   re-run CMake with:
 

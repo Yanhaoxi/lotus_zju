@@ -1,14 +1,11 @@
 #include "Analysis/Sprattus/Analyzer.h"
 
-#include <queue>
 #include <llvm/IR/CFG.h>
 #include <llvm/Support/Timer.h>
 
 #include "Analysis/Sprattus/utils.h"
 #include "Analysis/Sprattus/ValueMapping.h"
-#include "Analysis/Sprattus/Z3APIExtension.h"
 #include "Analysis/Sprattus/DomainConstructor.h"
-#include "Analysis/Sprattus/domains/Product.h"
 #include "Analysis/Sprattus/repr.h"
 #include "Analysis/Sprattus/Config.h"
 #include "Analysis/Sprattus/ModuleContext.h"
@@ -43,7 +40,7 @@ Analyzer::Analyzer(const FunctionContext& fctx, const FragmentDecomposition& fd,
     // Emit a CSV header in verbose output. Must match rows printed in
     // checkWithStats(). First column always contains "STATS" to make it
     // easy to filter out statistics using grep.
-    vout << "STATS,function,fragment,result,time,conflicts,added_eqs" << endl;
+    vout << "STATS,function,fragment,result,time,conflicts,added_eqs\n";
 }
 
 std::unique_ptr<Analyzer> Analyzer::New(const FunctionContext& fctx,
@@ -90,13 +87,12 @@ bool Analyzer::bestTransformer(const AbstractValue* input,
     z3::expr av_formula = input->toFormula(vm_before, FunctionContext_.getZ3());
 
 #ifndef NDEBUG
-    vout << "Analyzer::bestTransformer input->toFormula {{{" << endl
-         << av_formula << endl
-         << "}}}" << endl;
+    vout << "Analyzer::bestTransformer input->toFormula {{{\n"
+         << av_formula << "\n"
+         << "}}}\n";
 
     if (is_unsat(formula && av_formula)) {
-        vout << "Analyzer::bestTransformer input->toFormula is UNSATISFIABLE"
-             << endl;
+        vout << "Analyzer::bestTransformer input->toFormula is UNSATISFIABLE\n";
     }
 #endif
 
@@ -139,9 +135,8 @@ AbstractValue* Analyzer::at(llvm::BasicBlock* location)
                     createInitialValue(Domain_, location, false);
 
             if (Mode_ == ONLY_DYNAMIC) {
-                vout << "Results for non-abstraction point " << repr(location)
-                     << " are not being computed in the ONLY_DYNAMIC mode"
-                     << endl;
+            vout << "Results for non-abstraction point " << repr(location)
+                 << " are not being computed in the ONLY_DYNAMIC mode\n";
                 // result always will be a bottom
                 goto end;
             }
@@ -173,10 +168,10 @@ AbstractValue* Analyzer::at(llvm::BasicBlock* location)
         // the dynamically-computed value or bottom
         if (Mode_ != FULL) {
             vout << "Result at abstraction point " << repr(location)
-                 << " will not be computed in unsound mode." << endl;
+                 << " will not be computed in unsound mode.\n";
             {
                 VOutBlock vo("Already-present result");
-                vout << repr(*Results_[location].get()) << endl;
+                vout << repr(*Results_[location].get()) << "\n";
             }
             goto end;
         }
@@ -201,8 +196,8 @@ AbstractValue* Analyzer::at(llvm::BasicBlock* location)
             Infl_[location].clear();
 
             for (auto* to_update : invalid) {
-                vout << "Invalidating " + repr(to_update) + " because " +
-                            repr(location) + " was updated." << endl;
+        vout << "Invalidating " + repr(to_update) + " because " +
+                            repr(location) + " was updated.\n";
                 Stable_.erase(to_update);
             }
 
@@ -286,7 +281,7 @@ Analyzer::checkWithStats(z3::solver* solver,
     vout << "STATS," << repr(FunctionContext_.getFunction()) << ","
          << (uintptr_t)CurrentFragment_ << "," << repr(z3_answer) << ","
          << time_rec.getWallTime() << "," << conflicts << "," << added_eqs
-         << endl;
+         << "\n";
 
     return z3_answer;
 }
@@ -405,7 +400,7 @@ bool UnilateralAnalyzer::strongestConsequence(
         config.get<int>("Analyzer", "WideningFrequency", 10);
 
     while (true) {
-        vout << "loop iteration: " << ++loop_count << endl;
+        vout << "loop iteration: " << ++loop_count << "\n";
         {
             VOutBlock vob("candidate result");
             vout << *result;
@@ -425,14 +420,13 @@ bool UnilateralAnalyzer::strongestConsequence(
         if (z3_answer == z3::unsat)
             break;
 
-        vout << "model {{{" << endl
-             << solver->get_model() << "}}}" << endl;
+        vout << "model {{{\n" << solver->get_model() << "}}}\n";
 
         auto cstate = ConcreteState(vmap, solver->get_model());
         bool here_changed = result->updateWith(cstate);
 
         if (!here_changed) {
-            vout << "ERROR: updateWith() returned false" << endl;
+            vout << "ERROR: updateWith() returned false\n";
             {
                 VOutBlock vob("faulty abstract value");
                 vout << *result;
@@ -442,7 +436,7 @@ bool UnilateralAnalyzer::strongestConsequence(
 
         int widen_n = loop_count - widen_delay;
         if (widen_n >= 0 && (widen_n % widen_frequency) == 0) {
-            vout << "widening!" << endl;
+            vout << "widening!\n";
             result->widen();
         }
 
@@ -468,11 +462,9 @@ bool BilateralAnalyzer::strongestConsequence(AbstractValue* result,
 
     // TODO resource management and timeouts
     while (!((*result) <= (*lower))) {
-        vout << "*** lower ***" << endl
-             << *lower << endl;
-        vout << "*** upper ***" << endl
-             << *result << endl;
-        vout << "loop iteration: " << ++loop_count << endl;
+        vout << "*** lower ***\n" << *lower << "\n";
+        vout << "*** upper ***\n" << *result << "\n";
+        vout << "loop iteration: " << ++loop_count << "\n";
 
         auto p = std::unique_ptr<AbstractValue>(lower->clone());
         p->abstractConsequence(*result);
@@ -484,14 +476,14 @@ bool BilateralAnalyzer::strongestConsequence(AbstractValue* result,
         assert(z3_answer != z3::unknown);
 
         if (z3_answer == z3::unsat) {
-            vout << "unsat" << endl
-                 << "p {{{" << endl
-                 << *p << "}}}" << endl;
+            vout << "unsat\n"
+                 << "p {{{\n"
+                 << *p << "}}}\n";
             result->meetWith(*p);
         } else {
-            vout << "sat" << endl
-                 << "model {{{" << endl
-                 << solver.get_model() << "}}}" << endl;
+            vout << "sat\n"
+                 << "model {{{\n"
+                 << solver.get_model() << "}}}\n";
 
             auto cstate = ConcreteState(vmap, solver.get_model());
             if (lower->updateWith(cstate))

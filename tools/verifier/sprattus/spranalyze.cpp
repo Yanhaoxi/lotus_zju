@@ -6,9 +6,8 @@
 #include "Analysis/Sprattus/FragmentDecomposition.h"
 #include "Analysis/Sprattus/FunctionContext.h"
 #include "Analysis/Sprattus/ModuleContext.h"
-#include "Analysis/Sprattus/PrettyPrinter.h"
-#include "Analysis/Sprattus/repr.h"
-#include "Analysis/Sprattus/domains/MemRegions.h"
+#include "Analysis/Sprattus/Checks.h"
+#include "Analysis/Sprattus/Reporting.h"
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
@@ -22,7 +21,6 @@
 #include <cstdlib>
 #include <memory>
 #include <string>
-#include <set>
 
 using namespace llvm;
 using namespace sprattus;
@@ -295,25 +293,21 @@ int main(int argc, char** argv) {
         std::string memoryOrigin =
             classifyOrigin(!MemoryModelVariant.getValue().empty());
 
-        outs() << "Effective configuration:\n";
-        outs() << "  Config source: " << configSource << "\n";
-        outs() << "  Abstract domain (" << domainSource;
-        if (fallbackToFirst)
-            outs() << ", fallback";
-        if (domainSource == "built-in defaults")
-            outs() << ", default";
-        outs() << "): " << domain.name() << "\n";
-        outs() << "  Fragment strategy: " << fragmentStrategyValue << " ("
-               << fragmentOrigin << ")\n";
-        outs() << "  Analyzer: " << analyzerVariant
-               << (incremental ? " [incremental]" : " [non-incremental]")
-               << "\n";
-        outs() << "  Widening delay/frequency: " << wideningDelay << "/"
-               << wideningFrequency << " (" << wideningOrigin << ")\n";
-        outs() << "  Memory model: " << memoryVariant;
-        if (addressBits >= 0)
-            outs() << " (address bits=" << addressBits << ")";
-        outs() << " (" << memoryOrigin << ")\n\n";
+        printEffectiveConfiguration(
+            configSource,
+            domain.name(),
+            domainSource,
+            fallbackToFirst,
+            fragmentStrategyValue,
+            fragmentOrigin,
+            analyzerVariant,
+            incremental,
+            wideningDelay,
+            wideningFrequency,
+            wideningOrigin,
+            memoryVariant,
+            addressBits,
+            memoryOrigin);
 
         outs() << "Analyzing function: " << targetFunc->getName() << "\n";
 
@@ -328,153 +322,27 @@ int main(int argc, char** argv) {
 
         // Check assertions if requested
         if (CheckAssertions) {
-            int num_violations = 0;
-            for (auto& bb : *targetFunc) {
-                for (auto& instr : bb) {
-                    if (llvm::isa<llvm::CallInst>(instr)) {
-                        auto& call = llvm::cast<llvm::CallInst>(instr);
-                        auto* calledFunc = call.getCalledFunction();
-                        if (calledFunc && calledFunc->getName().str() == "__assert_fail") {
-                            if (!analyzer->at(&bb)->isBottom()) {
-                                num_violations++;
-                                PrettyPrinter pp(true);
-                                analyzer->at(&bb)->prettyPrint(pp);
-                                outs() << "\nViolated assertion at "
-                                      << bb.getName().str()
-                                      << ". Computed result:\n"
-                                      << pp.str() << "\n";
-                            }
-                        }
-                    }
-                }
-            }
-            if (num_violations) {
-                outs() << "===================================================="
-                      << "====================\n"
-                      << "  " << num_violations << " violated assertion"
-                      << ((num_violations == 1) ? "" : "s") << " detected.\n";
-            } else {
-                outs() << "No violated assertions detected.\n";
-            }
-            return (num_violations < 128) ? num_violations : 1;
+            return runAssertionCheck(analyzer.get(), targetFunc);
         }
 
         // Check memory safety if requested
         // NOTE: This feature requires RTTI to be enabled (dynamic_cast)
         // Currently disabled as RTTI is not enabled in this build
         if (CheckMemSafety) {          
-            // Memory safety checking code (requires RTTI):
-            int num_violations = 0;
-            // Track already-reported (pointer, basic block) pairs to avoid
-            // flooding the user with redundant messages for the same location.
-            std::set<std::pair<const llvm::Value*, const llvm::BasicBlock*>>
-                reported_invalid;
-            for (auto& bb : *targetFunc) {
-                bool contains_mem_op = false;
-                for (auto& inst : bb) {
-                    if (llvm::isa<llvm::StoreInst>(inst) ||
-                        llvm::isa<llvm::LoadInst>(inst))
-                        contains_mem_op = true;
-                }
-                if (!contains_mem_op)
-                    continue;
-                    
-                std::vector<const AbstractValue*> vals;
-                analyzer->after(&bb)->gatherFlattenedSubcomponents(&vals);
-                for (auto& instr : bb) {
-                    llvm::Value* ptr = nullptr;
-                    if (auto as_store = llvm::dyn_cast<llvm::StoreInst>(&instr)) {
-                        ptr = as_store->getPointerOperand();
-                    }
-                    if (auto as_load = llvm::dyn_cast<llvm::LoadInst>(&instr)) {
-                        ptr = as_load->getPointerOperand();
-                    }
-                    if (ptr) {
-                        bool is_okay = false;
-                        for (auto v : vals) {
-                            if (auto as_vr = dynamic_cast<
-                                    const sprattus::domains::ValidRegion*>(v)) {
-                                if (as_vr->getRepresentedPointer() == ptr &&
-                                    as_vr->isValid()) {
-                                    is_okay = true;
-                                    break;
-                                }
-                            }
-                        }
-                        if (!is_okay) {
-                            auto key = std::make_pair(ptr, &bb);
-                            auto inserted = reported_invalid.insert(key).second;
-                            if (inserted) {
-                                num_violations++;
-                                outs() << "Possibly invalid memory access to "
-                                      << repr(ptr) << " at "
-                                      << bb.getName().str() << "\n";
-                            }
-                        } else {
-                            outs() << "Definitely valid memory access to "
-                                  << repr(ptr) << " at " << bb.getName().str()
-                                  << "\n";
-                        }
-                    }
-                }
-            }
-            if (num_violations) {
-                outs() << "\n"
-                      << "===================================================="
-                      << "====================\n"
-                      << " " << num_violations
-                      << " possibly invalid memory access"
-                      << ((num_violations == 1) ? "" : "es") << " detected.\n";
-            } else {
-                outs() << "\n"
-                      << "===================================================="
-                      << "====================\n"
-                      << "No possibly invalid memory accesses detected.\n";
-            }
-            return (num_violations < 128) ? num_violations : 1;
+            return runMemSafetyCheck(analyzer.get(), targetFunc);
             
         }
 
         // Show entry point results
-        auto* entryResult = analyzer->at(&targetFunc->getEntryBlock());
-        PrettyPrinter entryPp(true);
-        entryResult->prettyPrint(entryPp);
-        outs() << "\nAnalysis result at entry:\n" << entryPp.str() << "\n";
+        printEntryResult(analyzer.get(), targetFunc);
 
         // Show results for all blocks if requested
-        if (ShowAllBlocks) {
-            outs() << "\nAnalysis results for all basic blocks:\n";
-            for (auto& BB : *targetFunc) {
-                outs() << "\n--- Basic block: " << BB.getName() << " ---\n";
-                
-                // Results at the beginning of the block (after phi nodes)
-                auto* atResult = analyzer->at(&BB);
-                PrettyPrinter atPp(true);
-                atResult->prettyPrint(atPp);
-                outs() << "At beginning:\n" << atPp.str() << "\n";
-                
-                // Results after the block
-                auto* afterResult = analyzer->after(&BB);
-                PrettyPrinter afterPp(true);
-                afterResult->prettyPrint(afterPp);
-                outs() << "After execution:\n" << afterPp.str() << "\n";
-            }
-        }
+        if (ShowAllBlocks)
+            printAllBlocksResults(analyzer.get(), targetFunc);
 
         // Show exit block results if requested
-        if (ShowExitBlocks) {
-            outs() << "\nAnalysis results at exit blocks:\n";
-            for (auto& BB : *targetFunc) {
-                // Check if this is an exit block (ends with return)
-                if (llvm::isa<llvm::ReturnInst>(BB.getTerminator())) {
-                    outs() << "\n--- Exit block: " << BB.getName() << " ---\n";
-                    auto* exitResult = analyzer->after(&BB);
-                    PrettyPrinter exitPp(true);
-                    exitResult->prettyPrint(exitPp);
-                    outs() << exitPp.str() << "\n";
-                }
-            }
-        }
+        if (ShowExitBlocks)
+            printExitBlocksResults(analyzer.get(), targetFunc);
 
         outs() << "Analysis completed successfully.\n";
 
