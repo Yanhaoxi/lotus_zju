@@ -1,3 +1,8 @@
+/**
+ * @file Analyzer.cpp
+ * @brief Fixpoint computation for Sprattus analyzers, including unilateral and
+ *        bilateral variants and optional use of incremental SMT solving.
+ */
 #include "Analysis/Sprattus/Analyzer.h"
 
 #include <llvm/IR/CFG.h>
@@ -108,6 +113,16 @@ bool Analyzer::bestTransformer(const AbstractValue* input,
     return res;
 }
 
+/**
+ * Lazily computes the abstract state at the beginning of a basic block.
+ *
+ * For non-abstraction points, this derives the state by composing a
+ * sub-fragment from the closest abstraction point. For abstraction points,
+ * it iterates a global fixpoint over all incoming fragments, using the
+ * influence relation `Infl_` to invalidate and recompute dependents when
+ * a point’s state gets refined. Dynamic results from `ResultStore` are
+ * merged in when available.
+ */
 AbstractValue* Analyzer::at(llvm::BasicBlock* location)
 {
     auto store = FunctionContext_.getModuleContext().getResultStore();
@@ -218,6 +233,14 @@ end:
     return Results_[location].get();
 }
 
+/**
+ * Returns the abstract state after executing a basic block.
+ *
+ * If the block is an abstraction point, this applies a single “body-only”
+ * transformer to the already stabilized entry state. Otherwise it composes
+ * an appropriate sub-fragment ending after the block and applies the best
+ * transformer starting from the nearest abstraction point.
+ */
 AbstractValue* Analyzer::after(llvm::BasicBlock* location)
 {
     auto itr = BBEndResults_.find(location);
@@ -306,6 +329,17 @@ Analyzer::createInitialValue(DomainConstructor& domain, llvm::BasicBlock* bb,
     return res;
 }
 
+/**
+ * Computes the best transformer for a fragment using a unilateral (forward)
+ * abstract interpretation scheme.
+ *
+ * The method optionally reuses an incremental SMT solver per fragment:
+ * it caches the fragment’s semantic formula and then, for each distinct
+ * input abstract value, adds a guarded copy of its formula under a fresh
+ * indicator variable. This allows multiple calls with different inputs
+ * to share solver state while keeping them logically separated via
+ * assumptions.
+ */
 bool UnilateralAnalyzer::bestTransformer(const AbstractValue* input,
                                          const Fragment& fragment,
                                          AbstractValue* result) const
@@ -388,6 +422,17 @@ bool UnilateralAnalyzer::bestTransformer(const AbstractValue* input,
     return res;
 }
 
+/**
+ * Model-enumeration loop for computing the strongest abstract consequence.
+ *
+ * Starting from the current abstract value `result`, repeatedly ask the
+ * solver for a model that violates `result` (by asserting ¬γ(result)).
+ * Each model is turned into a `ConcreteState` and joined into `result`
+ * via `updateWith`. Widening is triggered after a configurable number
+ * of iterations. The loop terminates once no counterexample model exists,
+ * at which point `result` is a greatest fixpoint below the concrete
+ * semantics and the original input.
+ */
 bool UnilateralAnalyzer::strongestConsequence(
     AbstractValue* result, const ValueMapping& vmap, z3::solver* solver,
     std::vector<z3::expr>* assumptions) const
@@ -446,6 +491,16 @@ bool UnilateralAnalyzer::strongestConsequence(
     return changed;
 }
 
+/**
+ * Bi-directional version of strongest consequence using widening and narrowing.
+ *
+ * Maintains a lower bound and an upper bound on the abstract post-state.
+ * In each iteration it computes an abstract consequence `p` between them
+ * and then either refines the upper bound (when `p` is unsatisfiable with
+ * the concrete semantics) or strengthens the lower bound using a concrete
+ * counterexample model. The process stops once the upper bound is below
+ * the lower bound in the lattice ordering.
+ */
 bool BilateralAnalyzer::strongestConsequence(AbstractValue* result,
                                              z3::expr phi,
                                              const ValueMapping& vmap) const

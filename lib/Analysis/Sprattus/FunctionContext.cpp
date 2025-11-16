@@ -1,3 +1,8 @@
+/**
+ * @file FunctionContext.cpp
+ * @brief Builds the SMT encoding for a single function: represented values,
+ *        edge predicates, and fragment-level path/semantic formulas.
+ */
 #include "Analysis/Sprattus/FunctionContext.h"
 
 #include "Analysis/Sprattus/repr.h"
@@ -166,6 +171,21 @@ z3::expr FunctionContext::getBasicBlockPhiCondition(const Fragment& frag,
     return result;
 }
 
+/**
+ * Builds the core semantic formula for a fragment.
+ *
+ * The result is a conjunction of:
+ *  - `code_formula`: per-instruction semantics guarded by path conditions
+ *    for body and PHI parts of basic blocks,
+ *  - `preservation_formula`: equalities preserving values not defined in
+ *    the fragment between its entry and exit,
+ *  - `mem_transfer`: memory-copy constraints along taken edges according
+ *    to the chosen `MemoryModel`,
+ *  - `cfg_formula`: structural constraints on edge variables encoding
+ *    reachability and single-successor choices, and
+ *  - `undef_formula` and `init_mem`: optional assumptions about undefined
+ *    behavior and initialization of the memory model.
+ */
 z3::expr FunctionContext::formulaFor(const Fragment& frag) const
 {
     using namespace llvm;

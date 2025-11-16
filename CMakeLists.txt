@@ -42,4 +42,3 @@ endif()
 
 # Add Python scripts and utilities
 add_subdirectory(scripts)
-add_subdirectory(yaml-configurations)

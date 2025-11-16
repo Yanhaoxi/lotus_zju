@@ -1,12 +1,14 @@
 #include "Analysis/Sprattus/ParamStrategy.h"
 #include "Analysis/Sprattus/FragmentDecomposition.h"
 #include "Analysis/Sprattus/Fragment.h"
+#include "Analysis/Sprattus/Z3APIExtension.h"
 
 namespace sprattus
 {
 ParamStrategy ParamStrategy::FromExpression(Expression e)
 {
     auto f = [e](const DomainConstructor::args& args) {
+        (void)args; // `args` is unused but kept for a uniform signature
         params_t result;
         llvm::SmallVector<Expression, 2> p;
         p.push_back(e);
@@ -19,6 +21,9 @@ ParamStrategy ParamStrategy::FromExpression(Expression e)
 
 ParamStrategy ParamStrategy::AllValues()
 {
+    // Instantiate a unary domain once for every value available at the
+    // program point. This is typically used for simple per-variable
+    // domains such as constant propagation.
     auto f = [](const DomainConstructor::args& args) {
         params_t result;
         auto vars =
@@ -38,6 +43,9 @@ ParamStrategy ParamStrategy::AllValues()
 
 ParamStrategy ParamStrategy::AllValuePairs(bool symmetric)
 {
+    // Instantiate a binary domain for every pair of values that share
+    // the same SMT sort (optionally only once per unordered pair when
+    // `symmetric` is true). Used for generic relational domains.
     auto f = [symmetric](const DomainConstructor::args& args) {
         params_t result;
         auto& fctx = *args.fctx;
@@ -66,6 +74,10 @@ ParamStrategy ParamStrategy::AllValuePairs(bool symmetric)
 
 ParamStrategy ParamStrategy::PackedPairs(bool symmetric)
 {
+    // Like `AllValuePairs` but restrict pairs to values that are used
+    // or defined within the same fragment (a “pack”) according to a
+    // loop-header-based fragment decomposition. This can significantly
+    // reduce the number of relational domains.
     auto f = [symmetric](const DomainConstructor::args& args) {
         params_t result;
         auto& fctx = *args.fctx;
@@ -98,6 +110,10 @@ ParamStrategy ParamStrategy::PackedPairs(bool symmetric)
 
 ParamStrategy ParamStrategy::ConstOffsets(bool symmetric)
 {
+    // Instantiate a binary domain for expressions that differ only by
+    // a constant offset (e.g. x + c, x - c, or constant GEPs). This is
+    // useful for numeric or pointer-offset relations and can optionally
+    // generate both directions when `symmetric` is false.
     auto f = [symmetric](const DomainConstructor::args& args) {
         params_t result;
         auto& fctx = *args.fctx;
@@ -191,6 +207,9 @@ ParamStrategy ParamStrategy::ConstOffsets(bool symmetric)
 
 ParamStrategy ParamStrategy::PointerPairs(bool symmetric)
 {
+    // Instantiate a binary domain for pairs of pointer-typed values
+    // with compatible SMT sorts (again optionally symmetric). Intended
+    // for pointer (dis)aliasing or offset relations.
     auto f = [symmetric](const DomainConstructor::args& args) {
         params_t result;
         auto& fctx = *args.fctx;
@@ -204,7 +223,7 @@ ParamStrategy ParamStrategy::PointerPairs(bool symmetric)
                 if (!vars[j]->getType()->isPointerTy())
                     continue;
 
-                if (i != j && hasCompatibleType(fctx, vars[i], vars[j])) {
+                if (i != j && params::hasCompatibleType(fctx, vars[i], vars[j])) {
                     llvm::SmallVector<Expression, 2> p;
                     p.push_back(vars[i]);
                     p.push_back(vars[j]);
@@ -221,6 +240,9 @@ ParamStrategy ParamStrategy::PointerPairs(bool symmetric)
 
 ParamStrategy ParamStrategy::NonPointerPairs(bool symmetric)
 {
+    // Instantiate a binary domain for pairs of non-pointer values with
+    // compatible SMT sorts. This is often used for purely numeric
+    // relational domains.
     auto f = [symmetric](const DomainConstructor::args& args) {
         params_t result;
         auto& fctx = *args.fctx;
@@ -234,7 +256,7 @@ ParamStrategy ParamStrategy::NonPointerPairs(bool symmetric)
                 if (vars[j]->getType()->isPointerTy())
                     continue;
 
-                if (i != j && hasCompatibleType(fctx, vars[i], vars[j])) {
+                if (i != j && params::hasCompatibleType(fctx, vars[i], vars[j])) {
                     llvm::SmallVector<Expression, 2> p;
                     p.push_back(vars[i]);
                     p.push_back(vars[j]);

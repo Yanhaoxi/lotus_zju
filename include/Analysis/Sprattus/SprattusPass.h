@@ -1,3 +1,7 @@
+/**
+ * @file SprattusPass.h
+ * @brief LLVM function pass that drives the Sprattus analyzer and rewrites IR.
+ */
 #pragma once
 
 #include "Analysis/Sprattus/utils.h"
@@ -9,6 +13,11 @@
 
 namespace sprattus
 {
+/**
+ * Runs the Sprattus abstract interpreter on a single function and applies
+ * local source-level optimizations such as constant propagation and redundant
+ * computation elimination to the LLVM IR.
+ */
 class SprattusPass : public llvm::FunctionPass
 {
   public:

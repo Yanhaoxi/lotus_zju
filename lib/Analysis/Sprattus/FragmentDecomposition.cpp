@@ -1,3 +1,8 @@
+/**
+ * @file FragmentDecomposition.cpp
+ * @brief Algorithms for selecting abstraction points and constructing acyclic
+ *        `Fragment`s between them for use by the Sprattus analyzer.
+ */
 #include "Analysis/Sprattus/FragmentDecomposition.h"
 
 #include "Analysis/Sprattus/repr.h"
@@ -159,6 +164,12 @@ std::set<llvm::BasicBlock*>
 FragmentDecomposition::GetAbstractionPoints(llvm::Function* func,
                                             strategy strat)
 {
+    // Abstraction points are locations where the analyzer may store and
+    // cut abstract states. Different strategies choose them as follows:
+    //  - Edges: every basic block becomes an abstraction point.
+    //  - Function: only entry and EXIT are used.
+    //  - Headers / Body / Backedges: identify loop back-edges and treat
+    //    either headers, bodies, or both as abstraction points.
     std::set<llvm::BasicBlock*> abs_points;
     abs_points.insert(&func->getEntryBlock());
     abs_points.insert(Fragment::EXIT);
@@ -202,6 +213,13 @@ Fragment FragmentDecomposition::SubFragment(const Fragment& parent,
                                             llvm::BasicBlock* end,
                                             bool includes_end_body)
 {
+    // Build a sub-fragment by intersecting all edges that:
+    //  - connect `start` to `end` without passing through other abstraction
+    //    points, and
+    //  - are already present in the parent fragment.
+    //
+    // This ensures that sub-fragments respect the original decomposition
+    // while giving the analyzer finer-grained paths between locations.
     std::set<llvm::BasicBlock*> abs_points = {start, end, parent.getStart(),
                                               parent.getEnd()};
 

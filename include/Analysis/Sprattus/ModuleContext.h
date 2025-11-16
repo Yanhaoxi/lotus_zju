@@ -1,3 +1,8 @@
+/**
+ * @file ModuleContext.h
+ * @brief Top-level Sprattus context for an LLVM module, owning the Z3 context,
+ *        configuration, and optional dynamic result store.
+ */
 #pragma once
 
 #include "Analysis/Sprattus/utils.h"
@@ -21,6 +26,13 @@ namespace sprattus
 class Analyzer;
 class FunctionContext;
 
+/**
+ * Encapsulates module-wide state needed by Sprattus analyses.
+ *
+ * Responsible for constructing per-function `FunctionContext`s, managing
+ * shared SMT infrastructure (Z3 context, data layout, library info), and
+ * optionally synthesizing summary formulas for functions.
+ */
 class ModuleContext
 {
   private:

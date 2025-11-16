@@ -1,3 +1,8 @@
+/**
+ * @file FragmentDecomposition.h
+ * @brief Utilities for partitioning a function's CFG into acyclic fragments
+ *        used as units of abstract interpretation.
+ */
 #pragma once
 
 #include "Analysis/Sprattus/FunctionContext.h"
@@ -9,6 +14,13 @@
 
 namespace sprattus
 {
+/**
+ * Computes and stores a decomposition of a function into `Fragment`s.
+ *
+ * Different strategies choose abstraction points (e.g. every edge, loop
+ * headers/bodies, whole-function) and then build maximal acyclic fragments
+ * between them to balance precision and solver cost.
+ */
 class FragmentDecomposition
 {
   public:

@@ -1,37 +1,17 @@
+/**
+ * @file ParamStrategy.h
+ * @brief Parameterization strategies and helpers for instantiating Sprattus
+ *        abstract domains over sets or pairs of LLVM values.
+ */
 #pragma once
+
+#include <z3++.h>
 
 #include "Analysis/Sprattus/domains/Product.h"
 #include "Analysis/Sprattus/DomainConstructor.h"
-#include "Analysis/Sprattus/Z3APIExtension.h"
 #include "Analysis/Sprattus/Expression.h"
 #include "Analysis/Sprattus/FragmentDecomposition.h"
-#include "Analysis/Sprattus/Fragment.h"
 #include "Analysis/Sprattus/ModuleContext.h"
-
-namespace
-{
-bool hasCompatibleType(const sprattus::FunctionContext& fctx, llvm::Value* a,
-                       llvm::Value* b)
-{
-    z3::sort sort_a = fctx.sortForType(a->getType());
-    z3::sort sort_b = fctx.sortForType(b->getType());
-
-    if ((Z3_sort)sort_a == sort_b)
-        return true;
-
-    unsigned int ptr_bits = fctx.getPointerSize();
-
-    if (a->getType()->isPointerTy() && sort_b.is_bv() &&
-        sort_b.bv_size() == ptr_bits)
-        return true;
-
-    if (b->getType()->isPointerTy() && sort_a.is_bv() &&
-        sort_a.bv_size() == ptr_bits)
-        return true;
-
-    return false;
-}
-}
 
 namespace sprattus
 {
@@ -65,7 +45,7 @@ class ParamStrategy
     ParamStrategy(
         int arity,
         std::function<params_t(const DomainConstructor::args&)> params_func)
-        : Arity_(arity), ParamsFunc_(params_func)
+        : Arity_(arity), ParamsFunc_(std::move(params_func))
     {
     }
 
@@ -101,6 +81,28 @@ class ParamStrategy
 namespace params
 {
 using sprattus::domains::Product;
+
+inline bool hasCompatibleType(const FunctionContext& fctx, llvm::Value* a,
+                              llvm::Value* b)
+{
+    z3::sort sort_a = fctx.sortForType(a->getType());
+    z3::sort sort_b = fctx.sortForType(b->getType());
+
+    if (Z3_sort(sort_a) == Z3_sort(sort_b))
+        return true;
+
+    unsigned int ptr_bits = fctx.getPointerSize();
+
+    if (a->getType()->isPointerTy() && sort_b.is_bv() &&
+        sort_b.bv_size() == ptr_bits)
+        return true;
+
+    if (b->getType()->isPointerTy() && sort_a.is_bv() &&
+        sort_a.bv_size() == ptr_bits)
+        return true;
+
+    return false;
+}
 
 template <typename T>
 unique_ptr<AbstractValue> ForValues(const FunctionContext& fctx,

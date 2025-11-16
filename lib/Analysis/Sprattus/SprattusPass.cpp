@@ -1,3 +1,9 @@
+/**
+ * @file SprattusPass.cpp
+ * @brief Implementation of the Sprattus optimization pass on top of Sprattus
+ *        abstract interpretation results.
+ */
+
 #include "Analysis/Sprattus/SprattusPass.h"
 
 #include "Analysis/Sprattus/utils.h"
@@ -141,6 +147,16 @@ SprattusPass::SprattusPass() : llvm::FunctionPass(SprattusPass::ID)
     VerboseEnable = Config_.Verbose;
 }
 
+/**
+ * Ensures that the abstract domain used by the analyzer contains the
+ * components needed by this pass.
+ *
+ * Starting from the domain specified in the configuration, this function
+ * checks whether it already includes constant-propagation and equality
+ * predicate components. If not, it wraps the base domain into a product
+ * with the missing domains so that analysis results expose the information
+ * required for the transformations implemented below.
+ */
 DomainConstructor
 SprattusPass::getAugmentedDomain(sprattus::FunctionContext& smtsem)
 {
@@ -263,6 +279,14 @@ bool SprattusPass::replaceUsesOfWithInBBAndPHISuccs(BasicBlock& bb, Value* from,
     return changed;
 }
 
+/**
+ * Given a proven constant-propagation fact, replaces uses of the variable
+ * with a concrete LLVM constant of matching type.
+ *
+ * The replacement is restricted to the current basic block and any PHI
+ * incoming values in successors so that SSA form remains valid and all
+ * transformed uses are control-flow reachable from the defining block.
+ */
 bool SprattusPass::performConstPropForBB(
     const FunctionContext& fctx, BasicBlock& bb,
     const sprattus::domains::SimpleConstProp* scp)
@@ -343,6 +367,16 @@ Value* SprattusPass::getReplacementCanditdate(const equals_t& eqs, Value* val)
         return candidate;
 }
 
+/**
+ * Performs redundancy elimination in a single basic block given a partition
+ * of equal values.
+ *
+ * For each equivalence class, this function chooses a dominating
+ * representative (prefer non-instructions when available to avoid
+ * recomputation) and rewrites uses of other members in the block and
+ * successor PHIs to that representative. This can eliminate duplicated
+ * computations without changing semantics.
+ */
 bool SprattusPass::performRedundancyReplForBB(const equals_t& eqs,
                                               BasicBlock& bb)
 {
@@ -381,6 +415,16 @@ bool SprattusPass::performRedundancyReplForBB(const equals_t& eqs,
     return changed;
 }
 
+/**
+ * Main entry point of the Sprattus optimization pass.
+ *
+ * For the current function, this wires together:
+ *  - creation of `ModuleContext` and `FunctionContext`,
+ *  - construction of a fragment decomposition and augmented domain,
+ *  - running the Sprattus analyzer, and
+ *  - applying constant propagation and redundancy elimination
+ *    based on the abstract results for each basic block.
+ */
 bool SprattusPass::runOnFunction(llvm::Function& function)
 {
     vout << "Perform SprattusPass on function `" << function.getName().str()

@@ -1,3 +1,8 @@
+/**
+ * @file Analyzer.h
+ * @brief Fixpoint engine that runs Sprattus abstract interpretation on a
+ *        function for a given abstract domain.
+ */
 #pragma once
 
 #include "Analysis/Sprattus/utils.h"
@@ -13,6 +18,13 @@ namespace sprattus
 {
 class ResultStore;
 
+/**
+ * Drives abstract interpretation over a single function.
+ *
+ * The analyzer owns the per-basic-block abstract states and exposes them
+ * through `at()` / `after()` queries while handling fixpoint iteration and
+ * optional use of dynamic (recorded) results.
+ */
 class Analyzer
 {
   public:

@@ -1,3 +1,8 @@
+/**
+ * @file FunctionContext.h
+ * @brief Per-function SMT encoding context for Sprattus, providing access to
+ *        represented LLVM values, memory model, and path/edge predicates.
+ */
 #pragma once
 
 #include "Analysis/Sprattus/utils.h"

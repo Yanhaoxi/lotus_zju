@@ -1,3 +1,8 @@
+/**
+ * @file ModuleContext.cpp
+ * @brief Module-level Sprattus integration: owns the Z3 context, dynamic
+ *        result database, and builds formulas/summaries for LLVM functions.
+ */
 #include "Analysis/Sprattus/ModuleContext.h"
 #include "Analysis/Sprattus/FunctionContext.h"
 #include "Analysis/Sprattus/Analyzer.h"

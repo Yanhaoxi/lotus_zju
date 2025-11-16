@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+# There are a few yaml config files in config/clam
 ## Requirements: pip3 install pyyaml
 
 import argparse
