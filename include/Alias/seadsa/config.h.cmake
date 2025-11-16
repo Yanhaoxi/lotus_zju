@@ -2,6 +2,6 @@
 #define _SEADSA_CONFIG_H_
 
 /* Define whether sanity checks are enabled */
-#cmakedefine SANITY_CHECKS ${SANITY_CHECKS}
+#cmakedefine SEADSA_SANITY_CHECKS
 
 #endif

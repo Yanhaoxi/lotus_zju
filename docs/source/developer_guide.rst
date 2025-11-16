@@ -23,7 +23,7 @@ Building from Source
    git clone https://github.com/ZJU-Automated-Reasoning-Group/lotus
    cd lotus
    mkdir build && cd build
-   cmake ../ -DLLVM_BUILD_PATH=/path/to/llvm/build -DCMAKE_BUILD_TYPE=Debug
+   cmake ../ -DCMAKE_BUILD_TYPE=Debug
    make -j$(nproc)
 
 Debug build enables assertions and debugging symbols.

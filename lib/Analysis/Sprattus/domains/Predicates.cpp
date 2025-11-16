@@ -25,7 +25,7 @@ unique_ptr<AbstractValue> NewEquality(Expression left, Expression right,
 
 bool Predicates::joinWith(const AbstractValue& av_other)
 {
-    auto other = static_cast<const Predicates&>(av_other);
+    auto other = dynamic_cast<const Predicates&>(av_other);
     if (other.isBottom()) {
         return false;
     }
@@ -50,7 +50,7 @@ bool Predicates::joinWith(const AbstractValue& av_other)
 
 bool Predicates::meetWith(const AbstractValue& av_other)
 {
-    auto other = static_cast<const Predicates&>(av_other);
+    auto other = dynamic_cast<const Predicates&>(av_other);
     if (other.isTop()) {
         return false;
     }
@@ -137,7 +137,7 @@ void Predicates::prettyPrint(PrettyPrinter& out) const
 
 bool Predicates::isJoinableWith(const AbstractValue& other) const
 {
-    if (auto* other_val = static_cast<const Predicates*>(&other)) {
+    if (auto* other_val = dynamic_cast<const Predicates*>(&other)) {
         if (other_val->Predicate_ == Predicate_) {
             return true;
         }

@@ -16,7 +16,7 @@ namespace domains
 
 bool Affine::joinWith(const AbstractValue& av_other)
 {
-    auto other = static_cast<const Affine&>(av_other);
+    auto other = dynamic_cast<const Affine&>(av_other);
 
     if (isTop() || other.isTop()) {
         bool changed = !isTop();
@@ -46,7 +46,7 @@ bool Affine::joinWith(const AbstractValue& av_other)
 
 bool Affine::meetWith(const AbstractValue& av_other)
 {
-    auto other = static_cast<const Affine&>(av_other);
+    auto other = dynamic_cast<const Affine&>(av_other);
 
     if (isBottom() || other.isBottom()) {
         bool changed = !isBottom();
@@ -125,7 +125,7 @@ void Affine::prettyPrint(PrettyPrinter& out) const
 
 bool Affine::isJoinableWith(const AbstractValue& other) const
 {
-    if (auto other_val = static_cast<const Affine*>(&other)) {
+    if (auto other_val = dynamic_cast<const Affine*>(&other)) {
         if (other_val->Left_ == Left_ && other_val->Right_ == Right_) {
             return true;
         }

@@ -76,7 +76,7 @@ BitMask::BitMask(const FunctionContext& fctx, RepresentedValue left,
 bool BitMask::joinWith(const AbstractValue& av_other)
 {
     assertValid();
-    auto& other = static_cast<const BitMask&>(av_other);
+    auto& other = dynamic_cast<const BitMask&>(av_other);
     bool changed;
     other.assertValid();
 
@@ -100,7 +100,7 @@ bool BitMask::joinWith(const AbstractValue& av_other)
 bool BitMask::meetWith(const AbstractValue& av_other)
 {
     assertValid();
-    auto& other = static_cast<const BitMask&>(av_other);
+    auto& other = dynamic_cast<const BitMask&>(av_other);
     other.assertValid();
 
     uint64_t new_zeros = Zeros_ & other.Zeros_;
@@ -197,7 +197,7 @@ void BitMask::resetToBottom()
 
 bool BitMask::isJoinableWith(const AbstractValue& other) const
 {
-    if (auto* other_val = static_cast<const BitMask*>(&other)) {
+    if (auto* other_val = dynamic_cast<const BitMask*>(&other)) {
         if (other_val->Left_ == Left_ && other_val->Right_ == Right_) {
             return true;
         }

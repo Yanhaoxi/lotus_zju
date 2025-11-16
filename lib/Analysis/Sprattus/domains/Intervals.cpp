@@ -23,7 +23,7 @@ bool Interval::isTop() const { return (Lower_ == Min_) && (Upper_ == Max_); }
 
 bool Interval::joinWith(const AbstractValue& av_other)
 {
-    auto other = static_cast<const Interval&>(av_other);
+    auto other = dynamic_cast<const Interval&>(av_other);
 
     if (Bottom_) {
         if (!other.isBottom()) {
@@ -47,7 +47,7 @@ bool Interval::joinWith(const AbstractValue& av_other)
 
 bool Interval::meetWith(const AbstractValue& av_other)
 {
-    auto other = static_cast<const Interval&>(av_other);
+    auto other = dynamic_cast<const Interval&>(av_other);
 
     if (Bottom_)
         return false;
@@ -107,8 +107,8 @@ z3::expr Interval::toFormula(const ValueMapping& vmap, z3::context& zctx) const
         result = zctx.bool_val(true);
     } else {
         unsigned bw = FunctionContext_.sortForType(Value_->getType()).bv_size();
-        z3::expr l = zctx.bv_val(static_cast<int64_t>(Lower_), bw);
-        z3::expr u = zctx.bv_val(static_cast<int64_t>(Upper_), bw);
+        z3::expr l = zctx.bv_val((long long int)Lower_, bw);
+        z3::expr u = zctx.bv_val((long long int)Upper_, bw);
         result = ((vmap[Value_] >= l) && (vmap[Value_] <= u));
     }
     return result;
@@ -128,7 +128,7 @@ int64_t Interval::getUpperBound() const
 
 void Interval::abstractConsequence(const AbstractValue& av_other)
 {
-    auto other = static_cast<const Interval&>(av_other);
+    auto other = dynamic_cast<const Interval&>(av_other);
     if (Bottom_)
         return;
 
@@ -164,7 +164,7 @@ void Interval::resetToBottom()
 
 bool Interval::isJoinableWith(const AbstractValue& other) const
 {
-    if (auto* other_val = static_cast<const Interval*>(&other)) {
+    if (auto* other_val = dynamic_cast<const Interval*>(&other)) {
         if (other_val->Value_ == Value_) {
             return true;
         }
@@ -221,7 +221,7 @@ bool ThresholdInterval::updateWith(const ConcreteState& cstate)
 
 void ThresholdInterval::abstractConsequence(const AbstractValue& av_other)
 {
-    auto other = static_cast<const ThresholdInterval&>(av_other);
+    auto other = dynamic_cast<const ThresholdInterval&>(av_other);
     if (Bottom_)
         return;
 
@@ -243,7 +243,7 @@ void ThresholdInterval::abstractConsequence(const AbstractValue& av_other)
 
 bool ThresholdInterval::isJoinableWith(const AbstractValue& other) const
 {
-    if (auto other_val = static_cast<const ThresholdInterval*>(&other)) {
+    if (auto other_val = dynamic_cast<const ThresholdInterval*>(&other)) {
         if (other_val->Value_ != Value_)
             return false;
         if (other_val->Thresholds_ != Thresholds_)

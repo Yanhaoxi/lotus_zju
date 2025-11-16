@@ -8,6 +8,7 @@
 #include "Analysis/Sprattus/ModuleContext.h"
 #include "Analysis/Sprattus/PrettyPrinter.h"
 #include "Analysis/Sprattus/repr.h"
+#include "Analysis/Sprattus/domains/MemRegions.h"
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
@@ -365,7 +366,7 @@ int main(int argc, char** argv) {
             errs() << "This feature is currently disabled in this build.\n";
             return 1;
             
-            /* Memory safety checking code (requires RTTI):
+            // Memory safety checking code (requires RTTI):
             int num_violations = 0;
             for (auto& bb : *targetFunc) {
                 bool contains_mem_op = false;
@@ -390,8 +391,8 @@ int main(int argc, char** argv) {
                     if (ptr) {
                         bool is_okay = false;
                         for (auto v : vals) {
-                            if (auto as_vr =
-                                    dynamic_cast<const domains::ValidRegion*>(v)) {
+                            if (auto as_vr = dynamic_cast<
+                                    const sprattus::domains::ValidRegion*>(v)) {
                                 if (as_vr->getRepresentedPointer() == ptr &&
                                     as_vr->isValid()) {
                                     is_okay = true;
@@ -426,7 +427,7 @@ int main(int argc, char** argv) {
                       << "No possibly invalid memory accesses detected.\n";
             }
             return (num_violations < 128) ? num_violations : 1;
-            */
+            
         }
 
         // Show entry point results

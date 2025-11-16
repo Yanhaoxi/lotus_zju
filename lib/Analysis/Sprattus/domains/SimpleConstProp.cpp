@@ -16,7 +16,7 @@ using namespace domains;
 
 bool SimpleConstProp::joinWith(const AbstractValue& av_other)
 {
-    auto other = static_cast<const SimpleConstProp&>(av_other);
+    auto other = dynamic_cast<const SimpleConstProp&>(av_other);
 
     if (isTop())
         return false;
@@ -49,7 +49,7 @@ bool SimpleConstProp::joinWith(const AbstractValue& av_other)
 
 bool SimpleConstProp::meetWith(const AbstractValue& av_other)
 {
-    auto other = static_cast<const SimpleConstProp&>(av_other);
+    auto other = dynamic_cast<const SimpleConstProp&>(av_other);
 
     if (isBottom())
         return false;
@@ -130,7 +130,7 @@ void SimpleConstProp::resetToBottom()
 
 bool SimpleConstProp::isJoinableWith(const AbstractValue& other) const
 {
-    if (auto* other_val = static_cast<const SimpleConstProp*>(&other)) {
+    if (auto* other_val = dynamic_cast<const SimpleConstProp*>(&other)) {
         if (other_val->Value_ == Value_ &&
             other_val->FunctionContext_ == FunctionContext_) {
 

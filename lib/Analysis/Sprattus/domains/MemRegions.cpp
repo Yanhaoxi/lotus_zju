@@ -57,7 +57,7 @@ NoAlias::NoAlias(const FunctionContext& fctx, const RepresentedValue left,
                  RepresentedValue right)
     : BooleanValue(fctx), Left_(left), Right_(right)
 {
-    MM_ = static_cast<const memory::BlockModel*>(&fctx.getMemoryModel());
+    MM_ = dynamic_cast<const memory::BlockModel*>(&fctx.getMemoryModel());
     if (!MM_) {
         llvm_unreachable("Inappropriate MemoryModel for ValidRegion domain!");
     }
@@ -96,7 +96,7 @@ z3::expr NoAlias::makePredicate(const ValueMapping& vmap) const
 ValidRegion::ValidRegion(const FunctionContext& fctx, RepresentedValue ptr)
     : BooleanValue(fctx), Ptr_(ptr)
 {
-    MM_ = static_cast<const memory::BlockModel*>(&fctx.getMemoryModel());
+    MM_ = dynamic_cast<const memory::BlockModel*>(&fctx.getMemoryModel());
     if (!MM_) {
         llvm_unreachable("Inappropriate MemoryModel for ValidRegion domain!");
     }
@@ -136,7 +136,7 @@ ConstantRegion::ConstantRegion(const FunctionContext& fctx,
                                RepresentedValue value)
     : SimpleConstProp(fctx, value), Ptr_(value)
 {
-    MM_ = static_cast<const memory::BlockModel*>(&fctx.getMemoryModel());
+    MM_ = dynamic_cast<const memory::BlockModel*>(&fctx.getMemoryModel());
     assert(MM_ && "Inappropriate MemoryModel for ConstantRegion domain!");
 }
 
@@ -194,7 +194,7 @@ z3::expr ConstantRegion::toFormula(const ValueMapping& vmap,
 
 bool ConstantRegion::isJoinableWith(const AbstractValue& other) const
 {
-    if (auto* other_val = static_cast<const ConstantRegion*>(&other)) {
+    if (auto* other_val = dynamic_cast<const ConstantRegion*>(&other)) {
         if (other_val->Value_ == Value_ &&
             other_val->FunctionContext_ == FunctionContext_) {
             return true;
@@ -220,7 +220,7 @@ VariableRegion::VariableRegion(const FunctionContext& fctx,
                                Expression factor)
     : BooleanValue(fctx), Ptr_(ptr), Expr_(expr), Fact_(factor)
 {
-    MM_ = static_cast<const memory::BlockModel*>(&fctx.getMemoryModel());
+    MM_ = dynamic_cast<const memory::BlockModel*>(&fctx.getMemoryModel());
     assert(MM_ && "Inappropriate MemoryModel for VariableRegion domain!");
 }
 
@@ -283,10 +283,10 @@ void MemoryRegion::prettyPrint(PrettyPrinter& out) const
     }
 
     for (auto& x : getValues()) {
-        if (x->isTop())
+        if (x->isTop() && !dynamic_cast<ValidRegion*>(x.get()))
             continue;
 
-        PrettyPrinter::Entry block(&out, "AbstractValue");
+        PrettyPrinter::Entry block(&out, typeid(*x).name());
         x->prettyPrint(out);
     }
 }

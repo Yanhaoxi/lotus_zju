@@ -22,7 +22,7 @@ namespace domains
 {
 bool NumRels::joinWith(const AbstractValue& av_other)
 {
-    auto other = static_cast<const NumRels&>(av_other);
+    auto other = dynamic_cast<const NumRels&>(av_other);
     bool changed = Rel_ != other.Rel_;
     Rel_ = Rel_ | other.Rel_;
     return changed;
@@ -30,7 +30,7 @@ bool NumRels::joinWith(const AbstractValue& av_other)
 
 bool NumRels::meetWith(const AbstractValue& av_other)
 {
-    auto other = static_cast<const NumRels&>(av_other);
+    auto other = dynamic_cast<const NumRels&>(av_other);
     bool changed = Rel_ != other.Rel_;
     Rel_ = Rel_ & other.Rel_;
     return changed;

@@ -19,24 +19,17 @@ LLVM Version Mismatch
 
 **Solution**:
 
-1. Specify LLVM path explicitly:
-
-.. code-block:: bash
-
-   cmake ../ -DLLVM_BUILD_PATH=/path/to/llvm-14/build
-
-2. Check LLVM version:
+1. Check that a supported LLVM version (12.x or 14.x) is installed and visible on ``PATH``:
 
 .. code-block:: bash
 
    llvm-config --version
 
-3. If multiple LLVM versions installed, use specific llvm-config:
+2. If multiple LLVM versions are installed, point CMake to the desired one explicitly:
 
 .. code-block:: bash
 
-   export LLVM_DIR=/path/to/llvm-14/lib/cmake/llvm
-   cmake ../
+   cmake ../ -DLLVM_BUILD_PATH=/path/to/llvm-14/lib/cmake/llvm
 
 Z3 Not Found
 ~~~~~~~~~~~~

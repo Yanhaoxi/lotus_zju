@@ -52,7 +52,7 @@ class AddrOffset : public AbstractValue, public PrintAsDereference
 
     virtual bool joinWith(const AbstractValue& av_other) override
     {
-        auto& other = static_cast<const AddrOffset&>(av_other);
+        auto& other = dynamic_cast<const AddrOffset&>(av_other);
         bool changed = false;
 
         if (isTop())
@@ -234,7 +234,7 @@ class AddrOffset : public AbstractValue, public PrintAsDereference
 
     virtual bool isJoinableWith(const AbstractValue& av_other) const override
     {
-        auto* other = static_cast<const AddrOffset*>(&av_other);
+        auto* other = dynamic_cast<const AddrOffset*>(&av_other);
         if (other == nullptr)
             return false;
         else
@@ -476,12 +476,17 @@ class MemoryAccessDescription : public Product
         */
 
         // rank values by accuracy
-        // Note: dynamic_cast disabled due to -fno-rtti, using simplified printing
-        auto& values = getValues();
-        if (!values.empty()) {
-            // Just print the first value for now
-            values[0]->prettyPrint(out);
-        }
+        std::vector<PrintAsDereference*> values;
+        for (auto& avalue : getValues())
+            values.push_back(dynamic_cast<PrintAsDereference*>(avalue.get()));
+
+        std::sort(values.begin(), values.end(),
+                  [](PrintAsDereference* a, PrintAsDereference* b) {
+                      return a->accuracy() > b->accuracy();
+                  });
+
+        // print only the best one
+        values[0]->printAsDereference(out);
     }
 
     static std::vector<std::pair<RepresentedValue, RepresentedValue>>

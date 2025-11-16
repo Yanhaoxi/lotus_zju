@@ -34,7 +34,7 @@ class RVExpression : public ExpressionBase
 
     bool operator==(const ExpressionBase& other_eb) const override
     {
-        auto* other = static_cast<const RVExpression*>(&other_eb);
+        auto* other = dynamic_cast<const RVExpression*>(&other_eb);
         if (!other)
             return false;
 
@@ -70,7 +70,7 @@ class ConstantExpression : public ExpressionBase
 
     bool operator==(const ExpressionBase& other_eb) const override
     {
-        auto* other = static_cast<const ConstantExpression*>(&other_eb);
+        auto* other = dynamic_cast<const ConstantExpression*>(&other_eb);
         if (!other)
             return false;
 
@@ -219,7 +219,7 @@ class BinopExpression : public ExpressionBase
 
     bool operator==(const ExpressionBase& other_eb) const override
     {
-        auto* other = static_cast<const BinopExpression*>(&other_eb);
+        auto* other = dynamic_cast<const BinopExpression*>(&other_eb);
         if (other) {
             return this->Op_ == other->Op_ && this->A_ == other->A_ &&
                    this->B_ == other->B_;
@@ -311,7 +311,7 @@ class Conversion : public ExpressionBase
 
     bool operator==(const ExpressionBase& other_eb) const override
     {
-        auto* other = static_cast<const Conversion*>(&other_eb);
+        auto* other = dynamic_cast<const Conversion*>(&other_eb);
         if (!other)
             return false;
 
@@ -380,7 +380,7 @@ class Z3Wrapper : public ExpressionBase
 
     bool operator==(const ExpressionBase& other_eb) const override
     {
-        auto* other = static_cast<const Z3Wrapper*>(&other_eb);
+        auto* other = dynamic_cast<const Z3Wrapper*>(&other_eb);
         if (other)
             return Repr_ == other->Repr_;
         else
@@ -441,19 +441,20 @@ Expression Expression::signExtend(unsigned bits) const
 
 bool Expression::operator==(const ExpressionBase& other_eb) const
 {
-    auto* other = static_cast<const Expression*>(&other_eb);
+    auto* other = dynamic_cast<const Expression*>(&other_eb);
 
     if (!other)
         return false;
 
-    // Note: typeid check removed due to -fno-rtti requirement
-    // This may lead to false comparisons but is acceptable for the integration
+    if (typeid(*Instance_) != typeid(*other->Instance_))
+        return false;
+
     return *Instance_ == *other->Instance_;
 }
 
 RepresentedValue Expression::asRepresentedValue() const
 {
-    auto* rv_expr = static_cast<RVExpression*>(Instance_.get());
+    auto* rv_expr = dynamic_cast<RVExpression*>(Instance_.get());
     if (rv_expr == nullptr)
         panic("A represented value expression is required in this context");
 
@@ -464,7 +465,7 @@ unsigned Expression::bits(const FunctionContext& fctx) const
 {
     // a bit of a hack to get a bit size even for RVExpressions of pointer
     // type
-    if (auto* as_rv = static_cast<RVExpression*>(Instance_.get())) {
+    if (auto* as_rv = dynamic_cast<RVExpression*>(Instance_.get())) {
         return fctx.bitsForType(as_rv->RV_->getType());
     }
 

@@ -57,33 +57,25 @@ For detailed documentation on using the binary tools, see [TOOLS.md](TOOLS.md).
 - CMake 3.10+
 - C++14 compatible compiler
 
-### Build LLVM
-
-```bash
-# Clone LLVM repository
-git clone https://github.com/llvm/llvm-project.git
-cd llvm-project
-
-# Checkout desired version
-git checkout llvmorg-14.0.0  # or llvmorg-12.0.0
-
-# Build LLVM
-mkdir build && cd build
-cmake -DCMAKE_BUILD_TYPE=Release ../llvm
-make -j$(nproc)  # Uses all available CPU cores
-```
-
 ### Build Lotus
 
 ```bash
 git clone https://github.com/ZJU-Automated-Reasoning-Group/lotus
 cd lotus
 mkdir build && cd build
-cmake ../ -DLLVM_BUILD_PATH=/path/to/llvm/build
+cmake ..
 make -j$(nproc)
 ```
 
-**Note**: The build system currently assumes that the system has the correct version of Z3 installed.
+**Notes**:
+
+- The build system assumes that the system has a supported LLVM (12.x or 14.x) and Z3 installed.
+- If CMake cannot find LLVM automatically (for example, when using a custom or locally built LLVM),
+  re-run CMake with:
+
+  ```bash
+  cmake .. -DLLVM_BUILD_PATH=/path/to/llvm/lib/cmake/llvm
+  ```
 
 The build system will automatically download and build Boost if it's not found on your system. You can specify a custom Boost installation path with `-DCUSTOM_BOOST_ROOT=/path/to/boost`.
 

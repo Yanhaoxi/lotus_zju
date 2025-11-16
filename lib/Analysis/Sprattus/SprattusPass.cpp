@@ -88,7 +88,7 @@ class EqDomain : public BooleanValue
 
     virtual bool isJoinableWith(const AbstractValue& other) const override
     {
-        auto* other_val = static_cast<const EqDomain*>(&other);
+        auto* other_val = dynamic_cast<const EqDomain*>(&other);
         if (other_val) {
             if (other_val->Left_ == Left_ && other_val->Right_ == Right_) {
                 return true;
@@ -117,7 +117,7 @@ template <typename T> bool containsDomain(const sprattus::AbstractValue* value)
     std::vector<const AbstractValue*> vec;
     value->gatherFlattenedSubcomponents(&vec);
     for (auto inner_val : vec) {
-        if (static_cast<const T*>(inner_val)) {
+        if (dynamic_cast<const T*>(inner_val)) {
             res = true;
             break;
         }
@@ -422,13 +422,13 @@ bool SprattusPass::runOnFunction(llvm::Function& function)
         // Perform the actual transformations for Constant Replacement
         // and find equal values for Redundant Computation Elimination
         for (auto& val : results) {
-            if (auto scp = static_cast<const SimpleConstProp*>(val)) {
+            if (auto scp = dynamic_cast<const SimpleConstProp*>(val)) {
                 // Constant Replacement transformation
                 if (!Config_.ConstantPropagation)
                     continue; // Do not perform this transformation
                 bool res = performConstPropForBB(*fctx.get(), bb, scp);
                 changed = changed || res;
-            } else if (auto pred = static_cast<const EqDomain*>(val)) {
+            } else if (auto pred = dynamic_cast<const EqDomain*>(val)) {
                 // Redundant Computation Elimination transformation
                 if (!Config_.RedundantComputationRemoval)
                     continue; // Do not perform this transformation

@@ -1,3 +1,11 @@
+# Sea-dsa sanity checks option (localized to seadsa)
+option(SEADSA_ENABLE_SANITY_CHECKS "Enable Sea-dsa sanity checks." OFF)
+if(SEADSA_ENABLE_SANITY_CHECKS)
+  message(STATUS "Sea-dsa: compiling with sanity checks")
+else()
+  message(STATUS "Sea-dsa: compiling without sanity checks")
+endif()
+
 # Configure seadsa config header
 configure_file(${CMAKE_SOURCE_DIR}/include/Alias/seadsa/config.h.cmake
   ${CMAKE_BINARY_DIR}/include/Alias/seadsa/config.h)
@@ -42,7 +50,7 @@ target_link_libraries(SeaDsaAnalysis PUBLIC
 )
 
 # Set compile definitions
-if (SANITY_CHECKS)
+if (SEADSA_ENABLE_SANITY_CHECKS)
   target_compile_definitions(SeaDsaAnalysis PRIVATE SEADSA_SANITY_CHECKS)
 endif()
 
