@@ -107,8 +107,8 @@ z3::expr Interval::toFormula(const ValueMapping& vmap, z3::context& zctx) const
         result = zctx.bool_val(true);
     } else {
         unsigned bw = FunctionContext_.sortForType(Value_->getType()).bv_size();
-        z3::expr l = zctx.bv_val((long long int)Lower_, bw);
-        z3::expr u = zctx.bv_val((long long int)Upper_, bw);
+        z3::expr l = zctx.bv_val((int64_t)Lower_, bw);
+        z3::expr u = zctx.bv_val((int64_t)Upper_, bw);
         result = ((vmap[Value_] >= l) && (vmap[Value_] <= u));
     }
     return result;
