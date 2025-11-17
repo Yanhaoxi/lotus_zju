@@ -14,6 +14,7 @@
 #include "Analysis/Sprattus/repr.h"
 #include "Analysis/Sprattus/Config.h"
 #include "Analysis/Sprattus/ModuleContext.h"
+#include "Analysis/Sprattus/Z3APIExtension.h"
 
 namespace sprattus
 {

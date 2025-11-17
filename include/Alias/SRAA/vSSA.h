@@ -22,7 +22,7 @@
 
 namespace llvm {
 
-class TerminatorInst;
+class Instruction;
 class BasicBlock;
 class Value;
 class PHINode;

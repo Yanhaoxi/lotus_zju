@@ -147,7 +147,7 @@ ValueMapping ValueMapping::before(const FunctionContext& fctx,
 ValueMapping ValueMapping::after(const FunctionContext& fctx,
                                  const Fragment& frag, llvm::Instruction* inst)
 {
-    assert(!llvm::isa<llvm::TerminatorInst>(inst));
+    assert(!inst->isTerminator());
 
     // Special case: This fragment is a loop and we're asked for a point after
     // the last instruction in it.
