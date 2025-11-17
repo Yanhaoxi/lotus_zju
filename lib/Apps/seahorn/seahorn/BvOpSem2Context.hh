@@ -30,21 +30,6 @@ enum class MetadataKind {
 };
 
 namespace MemoryFeatures {
-auto tracking_tag_of =
-    [](auto t) -> hana::type<typename decltype(t)::type::TrackingTag> {
-  return {};
-};
-
-auto fatmem_tag_of =
-    [](auto t) -> hana::type<typename decltype(t)::type::FatMemTag> {
-  return {};
-};
-
-auto widemem_tag_of =
-    [](auto t) -> hana::type<typename decltype(t)::type::WideMemTag> {
-  return {};
-};
-
 // This empty class is used as a 'tag' to mark containing classes as enabling
 // features
 // feature: tracking.
@@ -54,16 +39,30 @@ struct FatMem_tag {};
 // feature: Wide Memory.
 struct WideMem_tag {};
 
-auto has_tracking = [](auto t) {
+// Lambda objects defined with internal linkage to avoid ODR violations
+// Using static instead of constexpr for C++14 compatibility (constexpr lambdas require C++17)
+static const auto tracking_tag_of = [](auto t) -> hana::type<typename decltype(t)::type::TrackingTag> {
+  return {};
+};
+
+static const auto fatmem_tag_of = [](auto t) -> hana::type<typename decltype(t)::type::FatMemTag> {
+  return {};
+};
+
+static const auto widemem_tag_of = [](auto t) -> hana::type<typename decltype(t)::type::WideMemTag> {
+  return {};
+};
+
+static const auto has_tracking = [](auto t) {
   return hana::sfinae(tracking_tag_of)(t) ==
          hana::just(hana::type<Tracking_tag>{});
 };
 
-auto has_fatmem = [](auto t) {
+static const auto has_fatmem = [](auto t) {
   return hana::sfinae(fatmem_tag_of)(t) == hana::just(hana::type<FatMem_tag>{});
 };
 
-auto has_widemem = [](auto t) {
+static const auto has_widemem = [](auto t) {
   return hana::sfinae(widemem_tag_of)(t) ==
          hana::just(hana::type<WideMem_tag>{});
 };
