@@ -112,7 +112,7 @@ namespace llvmir_emul {
  {
      GenericValue Dest, Src = GC.getOperandValue(SrcVal, SF);
  
-     if (SrcVal->getType()->getTypeID() == Type::VectorTyID)
+     if (SrcVal->getType()->isVectorTy())
      {
          assert(SrcVal->getType()->getScalarType()->isDoubleTy() &&
                  DstTy->getScalarType()->isFloatTy() &&
@@ -154,7 +154,7 @@ namespace llvmir_emul {
  {
      GenericValue Dest, Src = GC.getOperandValue(SrcVal, SF);
  
-     if (SrcVal->getType()->getTypeID() == Type::VectorTyID)
+     if (SrcVal->getType()->isVectorTy())
      {
          assert(SrcVal->getType()->getScalarType()->isFloatTy() &&
                  DstTy->getScalarType()->isDoubleTy() && "Invalid FPExt instruction");
@@ -191,7 +191,7 @@ namespace llvmir_emul {
      Type *SrcTy = SrcVal->getType();
      GenericValue Dest, Src = GC.getOperandValue(SrcVal, SF);
  
-     if (SrcTy->getTypeID() == Type::VectorTyID)
+     if (SrcTy->isVectorTy())
      {
          Type *DstVecTy = DstTy->getScalarType();
          Type *SrcVecTy = SrcTy->getScalarType();
@@ -242,7 +242,7 @@ namespace llvmir_emul {
      Type *SrcTy = SrcVal->getType();
      GenericValue Dest, Src = GC.getOperandValue(SrcVal, SF);
  
-     if (SrcTy->getTypeID() == Type::VectorTyID)
+     if (SrcTy->isVectorTy())
      {
          Type *DstVecTy = DstTy->getScalarType();
          Type *SrcVecTy = SrcTy->getScalarType();
@@ -291,7 +291,7 @@ namespace llvmir_emul {
  {
      GenericValue Dest, Src = GC.getOperandValue(SrcVal, SF);
  
-     if (SrcVal->getType()->getTypeID() == Type::VectorTyID)
+     if (SrcVal->getType()->isVectorTy())
      {
          Type *DstVecTy = DstTy->getScalarType();
          unsigned size = Src.AggregateVal.size();
@@ -337,7 +337,7 @@ namespace llvmir_emul {
  {
      GenericValue Dest, Src = GC.getOperandValue(SrcVal, SF);
  
-     if (SrcVal->getType()->getTypeID() == Type::VectorTyID)
+     if (SrcVal->getType()->isVectorTy())
      {
          Type *DstVecTy = DstTy->getScalarType();
          unsigned size = Src.AggregateVal.size();
@@ -420,8 +420,7 @@ namespace llvmir_emul {
      Type *SrcTy = SrcVal->getType();
      GenericValue Dest, Src = GC.getOperandValue(SrcVal, SF);
  
-     if ((SrcTy->getTypeID() == Type::VectorTyID)
-             || (DstTy->getTypeID() == Type::VectorTyID))
+    if (SrcTy->isVectorTy() || DstTy->isVectorTy())
      {
          // vector src bitcast to vector dst or vector src bitcast to scalar dst or
          // scalar src bitcast to vector dst
@@ -434,7 +433,7 @@ namespace llvmir_emul {
          unsigned SrcNum;
          unsigned DstNum;
  
-         if (SrcTy->getTypeID() == Type::VectorTyID)
+         if (SrcTy->isVectorTy())
          {
              SrcElemTy = SrcTy->getScalarType();
              SrcBitSize = SrcTy->getScalarSizeInBits();
@@ -450,7 +449,7 @@ namespace llvmir_emul {
              SrcVec.AggregateVal.push_back(Src);
          }
  
-         if (DstTy->getTypeID() == Type::VectorTyID)
+         if (DstTy->isVectorTy())
          {
              DstElemTy = DstTy->getScalarType();
              DstBitSize = DstTy->getScalarSizeInBits();
@@ -542,7 +541,7 @@ namespace llvmir_emul {
          }
  
          // convert result from integer to specified type
-         if (DstTy->getTypeID() == Type::VectorTyID)
+         if (DstTy->isVectorTy())
          {
              if (DstElemTy->isDoubleTy())
              {

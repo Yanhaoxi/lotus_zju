@@ -435,56 +435,6 @@ std::string llvmObjToString(const T* t)
      }
  }
  
-//
-//=============================================================================
-// Terminator Instruction Implementations
-//=============================================================================
-//
-
-void LlvmIrEmulator::popStackAndReturnValueToCaller(
-        llvm::Type* retT,
-        llvm::GenericValue res)
-{
-    _ecStackRetired.emplace_back(_ecStack.back());
-    _ecStack.pop_back();
-
-    // Finished main. Put result into exit code...
-    //
-    if (_ecStack.empty())
-    {
-        if (retT && !retT->isVoidTy())
-        {
-            _exitValue = res;
-        }
-        else
-        {
-            // Matula: This memset is ok.
-            memset(&_exitValue.Untyped, 0, sizeof(_exitValue.Untyped));
-        }
-    }
-    // If we have a previous stack frame, and we have a previous call,
-    // fill in the return value...
-    //
-    else
-    {
-       LocalExecutionContext& callingEc = _ecStack.back();
-        if (CallBase* CB = callingEc.caller)
-        {
-            // Save result...
-            if (!CB->getType()->isVoidTy())
-            {
-                _globalEc.setValue(CB, res);
-            }
-            if (InvokeInst* II = dyn_cast<InvokeInst>(CB))
-            {
-                switchToNewBasicBlock(II->getNormalDest (), callingEc, _globalEc);
-            }
-            // We returned from the call...
-            callingEc.caller = nullptr;
-        }
-    }
-}
-
 // Terminator instruction visitors are implemented in instruction_visitors_terminator.cpp
 
 //

@@ -6,7 +6,10 @@
 
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Constants.h>
+// ConstantExpr is now part of Constants.h in newer LLVM versions
+#if __has_include(<llvm/IR/ConstantExpr.h>)
 #include <llvm/IR/ConstantExpr.h>
+#endif
 
 #include "Analysis/llvmir-emul/llvmir_emul.h"
 

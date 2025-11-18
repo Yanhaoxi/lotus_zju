@@ -14,6 +14,7 @@
 #include "Analysis/Sprattus/DomainConstructor.h"
 
 #include <vector>
+#include <algorithm>
 #include <z3++.h>
 
 namespace sprattus
@@ -71,6 +72,38 @@ z3::expr NumRels::toFormula(const ValueMapping& vmap, z3::context& zctx) const
     z3::expr result = zctx.bool_val(true);
     z3::expr left = Left_.toFormula(vmap);
     z3::expr right = Right_.toFormula(vmap);
+
+    // Ensure both expressions are bitvectors with matching bitwidths
+    // for comparison operations
+    unsigned left_bw = 0, right_bw = 0;
+    
+    if (left.is_bv()) {
+        left_bw = left.get_sort().bv_size();
+    } else if (left.is_bool()) {
+        // Convert boolean to 1-bit bitvector
+        left = z3::ite(left, zctx.bv_val(1, 1), zctx.bv_val(0, 1));
+        left_bw = 1;
+    }
+    
+    if (right.is_bv()) {
+        right_bw = right.get_sort().bv_size();
+    } else if (right.is_bool()) {
+        // Convert boolean to 1-bit bitvector
+        right = z3::ite(right, zctx.bv_val(1, 1), zctx.bv_val(0, 1));
+        right_bw = 1;
+    }
+    
+    // Now both should be bitvectors - adjust bitwidths to match
+    if (left_bw != 0 && right_bw != 0 && left_bw != right_bw) {
+        // Adjust bitwidths to match - use the larger bitwidth
+        unsigned target_bw = std::max(left_bw, right_bw);
+        if (left_bw < target_bw) {
+            left = z3_ext::zext(target_bw - left_bw, left);
+        }
+        if (right_bw < target_bw) {
+            right = z3_ext::zext(target_bw - right_bw, right);
+        }
+    }
 
     if ((Rel_ & EQUAL) == 0)
         result = result && (left != right);

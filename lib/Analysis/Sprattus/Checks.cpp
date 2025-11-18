@@ -16,23 +16,34 @@ using namespace sprattus;
 
 int runAssertionCheck(Analyzer* analyzer, Function* targetFunc) {
   int numViolations = 0;
+  int numAssertCalls = 0;
   for (auto& bb : *targetFunc) {
     for (auto& instr : bb) {
       if (llvm::isa<llvm::CallInst>(instr)) {
         auto& call = llvm::cast<llvm::CallInst>(instr);
         auto* calledFunc = call.getCalledFunction();
-        if (calledFunc && calledFunc->getName().str() == "__assert_fail") {
-          if (!analyzer->at(&bb)->isBottom()) {
-            numViolations++;
-            PrettyPrinter pp(true);
-            analyzer->at(&bb)->prettyPrint(pp);
-            outs() << "\nViolated assertion at " << bb.getName().str()
-                   << ". Computed result:\n"
-                   << pp.str() << "\n";
+        if (calledFunc) {
+          std::string funcName = calledFunc->getName().str();
+          // Check for various assertion function names
+          if (funcName == "__assert_fail" || 
+              funcName == "__assert_rtn" ||
+              (funcName.find("assert") != std::string::npos && calledFunc->doesNotReturn())) {
+            numAssertCalls++;
+            if (!analyzer->at(&bb)->isBottom()) {
+              numViolations++;
+              PrettyPrinter pp(true);
+              analyzer->at(&bb)->prettyPrint(pp);
+              outs() << "\nViolated assertion at " << bb.getName().str()
+                     << " (function: " << funcName << "). Computed result:\n"
+                     << pp.str() << "\n";
+            }
           }
         }
       }
     }
+  }
+  if (VerboseEnable) {
+    outs() << "Found " << numAssertCalls << " assertion call(s) in function.\n";
   }
   if (numViolations) {
     outs() << "============================================================"
@@ -40,7 +51,12 @@ int runAssertionCheck(Analyzer* analyzer, Function* targetFunc) {
            << "  " << numViolations << " violated assertion"
            << ((numViolations == 1) ? "" : "s") << " detected.\n";
   } else {
-    outs() << "No violated assertions detected.\n";
+    if (numAssertCalls == 0) {
+      outs() << "No assertion calls found in function.\n";
+    } else {
+      outs() << "No violated assertions detected (all " << numAssertCalls 
+             << " assertion(s) appear safe).\n";
+    }
   }
   return (numViolations < 128) ? numViolations : 1;
 }

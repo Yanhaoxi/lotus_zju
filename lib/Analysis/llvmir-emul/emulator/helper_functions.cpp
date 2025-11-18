@@ -11,11 +11,32 @@
 #include <llvm/Support/raw_ostream.h>
 
 #include "Analysis/llvmir-emul/llvmir_emul.h"
+#include <llvm/Support/MathExtras.h>
 
 using namespace llvm;
 
 namespace retdec {
 namespace llvmir_emul {
+
+//
+//=============================================================================
+// Shift Helper Functions
+//=============================================================================
+//
+
+/**
+ * getShiftAmount - Clamp shift amount to valid range for the value being shifted.
+ * In LLVM, shifts by >= bit width are undefined behavior, but we clamp them
+ * to prevent crashes during emulation.
+ */
+unsigned getShiftAmount(uint64_t shiftAmount, const llvm::APInt& valueToShift) {
+    unsigned bitWidth = valueToShift.getBitWidth();
+    // Clamp shift amount to [0, bitWidth)
+    if (shiftAmount >= bitWidth) {
+        return bitWidth - 1;
+    }
+    return static_cast<unsigned>(shiftAmount);
+}
  GenericValue executeSelectInst(
          GenericValue Src1,
          GenericValue Src2,

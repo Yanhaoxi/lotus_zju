@@ -19,15 +19,14 @@ namespace llvmir_emul {
          Dest.IntVal = APInt(1,Src1.IntVal.OP(Src2.IntVal)); \
          break;
  
- #define IMPLEMENT_VECTOR_INTEGER_ICMP(OP, TY)                              \
-     case Type::VectorTyID:                                                 \
-     {                                                                      \
-         assert(Src1.AggregateVal.size() == Src2.AggregateVal.size());      \
-         Dest.AggregateVal.resize( Src1.AggregateVal.size() );              \
-         for(uint32_t _i=0;_i<Src1.AggregateVal.size();_i++)                \
-             Dest.AggregateVal[_i].IntVal = APInt(1,                        \
-             Src1.AggregateVal[_i].IntVal.OP(Src2.AggregateVal[_i].IntVal));\
-     } break;
+#define IMPLEMENT_VECTOR_INTEGER_ICMP(OP, TY)                              \
+    {                                                                      \
+        assert(Src1.AggregateVal.size() == Src2.AggregateVal.size());      \
+        Dest.AggregateVal.resize( Src1.AggregateVal.size() );              \
+        for(uint32_t _i=0;_i<Src1.AggregateVal.size();_i++)                \
+            Dest.AggregateVal[_i].IntVal = APInt(1,                        \
+            Src1.AggregateVal[_i].IntVal.OP(Src2.AggregateVal[_i].IntVal));\
+    }
  
  // Handle pointers specially because they must be compared with only as much
  // width as the host has.  We _do not_ want to be comparing 64 bit values when
@@ -40,23 +39,26 @@ namespace llvmir_emul {
                  reinterpret_cast<void*>(reinterpret_cast<intptr_t>(Src2.PointerVal))); \
          break;
  
- GenericValue executeICMP_EQ(
-         GenericValue Src1,
-         GenericValue Src2,
-         Type *Ty)
- {
-     GenericValue Dest;
-     switch (Ty->getTypeID())
-     {
-         IMPLEMENT_INTEGER_ICMP(eq,Ty);
-         IMPLEMENT_VECTOR_INTEGER_ICMP(eq,Ty);
-         IMPLEMENT_POINTER_ICMP(==);
-         default:
-             dbgs() << "Unhandled type for ICMP_EQ predicate: " << *Ty << "\n";
-             llvm_unreachable(nullptr);
-     }
-     return Dest;
- }
+GenericValue executeICMP_EQ(
+        GenericValue Src1,
+        GenericValue Src2,
+        Type *Ty)
+{
+    GenericValue Dest;
+    if (Ty->isVectorTy()) {
+        IMPLEMENT_VECTOR_INTEGER_ICMP(eq,Ty);
+    } else {
+        switch (Ty->getTypeID())
+        {
+            IMPLEMENT_INTEGER_ICMP(eq,Ty);
+            IMPLEMENT_POINTER_ICMP(==);
+            default:
+                dbgs() << "Unhandled type for ICMP_EQ predicate: " << *Ty << "\n";
+                llvm_unreachable(nullptr);
+        }
+    }
+    return Dest;
+}
  
  GenericValue executeICMP_NE(
          GenericValue Src1,
@@ -64,14 +66,17 @@ namespace llvmir_emul {
          Type *Ty)
  {
      GenericValue Dest;
-     switch (Ty->getTypeID())
-     {
-         IMPLEMENT_INTEGER_ICMP(ne,Ty);
+     if (Ty->isVectorTy()) {
          IMPLEMENT_VECTOR_INTEGER_ICMP(ne,Ty);
-         IMPLEMENT_POINTER_ICMP(!=);
-         default:
-             dbgs() << "Unhandled type for ICMP_NE predicate: " << *Ty << "\n";
-             llvm_unreachable(nullptr);
+     } else {
+         switch (Ty->getTypeID())
+         {
+             IMPLEMENT_INTEGER_ICMP(ne,Ty);
+             IMPLEMENT_POINTER_ICMP(!=);
+             default:
+                 dbgs() << "Unhandled type for ICMP_NE predicate: " << *Ty << "\n";
+                 llvm_unreachable(nullptr);
+         }
      }
      return Dest;
  }
@@ -82,14 +87,17 @@ namespace llvmir_emul {
          Type *Ty)
  {
      GenericValue Dest;
-     switch (Ty->getTypeID())
-     {
-         IMPLEMENT_INTEGER_ICMP(ult,Ty);
+     if (Ty->isVectorTy()) {
          IMPLEMENT_VECTOR_INTEGER_ICMP(ult,Ty);
-         IMPLEMENT_POINTER_ICMP(<);
-         default:
-             dbgs() << "Unhandled type for ICMP_ULT predicate: " << *Ty << "\n";
-             llvm_unreachable(nullptr);
+     } else {
+         switch (Ty->getTypeID())
+         {
+             IMPLEMENT_INTEGER_ICMP(ult,Ty);
+             IMPLEMENT_POINTER_ICMP(<);
+             default:
+                 dbgs() << "Unhandled type for ICMP_ULT predicate: " << *Ty << "\n";
+                 llvm_unreachable(nullptr);
+         }
      }
      return Dest;
  }
@@ -100,14 +108,17 @@ namespace llvmir_emul {
          Type *Ty)
  {
      GenericValue Dest;
-     switch (Ty->getTypeID())
-     {
-         IMPLEMENT_INTEGER_ICMP(slt,Ty);
+     if (Ty->isVectorTy()) {
          IMPLEMENT_VECTOR_INTEGER_ICMP(slt,Ty);
-         IMPLEMENT_POINTER_ICMP(<);
-         default:
-             dbgs() << "Unhandled type for ICMP_SLT predicate: " << *Ty << "\n";
-             llvm_unreachable(nullptr);
+     } else {
+         switch (Ty->getTypeID())
+         {
+             IMPLEMENT_INTEGER_ICMP(slt,Ty);
+             IMPLEMENT_POINTER_ICMP(<);
+             default:
+                 dbgs() << "Unhandled type for ICMP_SLT predicate: " << *Ty << "\n";
+                 llvm_unreachable(nullptr);
+         }
      }
      return Dest;
  }
@@ -118,14 +129,17 @@ namespace llvmir_emul {
          Type *Ty)
  {
      GenericValue Dest;
-     switch (Ty->getTypeID())
-     {
-         IMPLEMENT_INTEGER_ICMP(ugt,Ty);
+     if (Ty->isVectorTy()) {
          IMPLEMENT_VECTOR_INTEGER_ICMP(ugt,Ty);
-         IMPLEMENT_POINTER_ICMP(>);
-         default:
-             dbgs() << "Unhandled type for ICMP_UGT predicate: " << *Ty << "\n";
-             llvm_unreachable(nullptr);
+     } else {
+         switch (Ty->getTypeID())
+         {
+             IMPLEMENT_INTEGER_ICMP(ugt,Ty);
+             IMPLEMENT_POINTER_ICMP(>);
+             default:
+                 dbgs() << "Unhandled type for ICMP_UGT predicate: " << *Ty << "\n";
+                 llvm_unreachable(nullptr);
+         }
      }
      return Dest;
  }
@@ -136,14 +150,17 @@ namespace llvmir_emul {
          Type *Ty)
  {
      GenericValue Dest;
-     switch (Ty->getTypeID())
-     {
-         IMPLEMENT_INTEGER_ICMP(sgt,Ty);
+     if (Ty->isVectorTy()) {
          IMPLEMENT_VECTOR_INTEGER_ICMP(sgt,Ty);
-         IMPLEMENT_POINTER_ICMP(>);
-         default:
-             dbgs() << "Unhandled type for ICMP_SGT predicate: " << *Ty << "\n";
-             llvm_unreachable(nullptr);
+     } else {
+         switch (Ty->getTypeID())
+         {
+             IMPLEMENT_INTEGER_ICMP(sgt,Ty);
+             IMPLEMENT_POINTER_ICMP(>);
+             default:
+                 dbgs() << "Unhandled type for ICMP_SGT predicate: " << *Ty << "\n";
+                 llvm_unreachable(nullptr);
+         }
      }
      return Dest;
  }
@@ -154,14 +171,17 @@ namespace llvmir_emul {
          Type *Ty)
  {
      GenericValue Dest;
-     switch (Ty->getTypeID())
-     {
-         IMPLEMENT_INTEGER_ICMP(ule,Ty);
+     if (Ty->isVectorTy()) {
          IMPLEMENT_VECTOR_INTEGER_ICMP(ule,Ty);
-         IMPLEMENT_POINTER_ICMP(<=);
-         default:
-             dbgs() << "Unhandled type for ICMP_ULE predicate: " << *Ty << "\n";
-             llvm_unreachable(nullptr);
+     } else {
+         switch (Ty->getTypeID())
+         {
+             IMPLEMENT_INTEGER_ICMP(ule,Ty);
+             IMPLEMENT_POINTER_ICMP(<=);
+             default:
+                 dbgs() << "Unhandled type for ICMP_ULE predicate: " << *Ty << "\n";
+                 llvm_unreachable(nullptr);
+         }
      }
      return Dest;
  }
@@ -172,14 +192,17 @@ namespace llvmir_emul {
          Type *Ty)
  {
      GenericValue Dest;
-     switch (Ty->getTypeID())
-     {
-         IMPLEMENT_INTEGER_ICMP(sle,Ty);
+     if (Ty->isVectorTy()) {
          IMPLEMENT_VECTOR_INTEGER_ICMP(sle,Ty);
-         IMPLEMENT_POINTER_ICMP(<=);
-         default:
-             dbgs() << "Unhandled type for ICMP_SLE predicate: " << *Ty << "\n";
-             llvm_unreachable(nullptr);
+     } else {
+         switch (Ty->getTypeID())
+         {
+             IMPLEMENT_INTEGER_ICMP(sle,Ty);
+             IMPLEMENT_POINTER_ICMP(<=);
+             default:
+                 dbgs() << "Unhandled type for ICMP_SLE predicate: " << *Ty << "\n";
+                 llvm_unreachable(nullptr);
+         }
      }
      return Dest;
  }
@@ -190,14 +213,17 @@ namespace llvmir_emul {
          Type *Ty)
  {
      GenericValue Dest;
-     switch (Ty->getTypeID())
-     {
-         IMPLEMENT_INTEGER_ICMP(uge,Ty);
+     if (Ty->isVectorTy()) {
          IMPLEMENT_VECTOR_INTEGER_ICMP(uge,Ty);
-         IMPLEMENT_POINTER_ICMP(>=);
-         default:
-             dbgs() << "Unhandled type for ICMP_UGE predicate: " << *Ty << "\n";
-             llvm_unreachable(nullptr);
+     } else {
+         switch (Ty->getTypeID())
+         {
+             IMPLEMENT_INTEGER_ICMP(uge,Ty);
+             IMPLEMENT_POINTER_ICMP(>=);
+             default:
+                 dbgs() << "Unhandled type for ICMP_UGE predicate: " << *Ty << "\n";
+                 llvm_unreachable(nullptr);
+         }
      }
      return Dest;
  }
@@ -208,15 +234,18 @@ namespace llvmir_emul {
          Type *Ty)
  {
      GenericValue Dest;
-     switch (Ty->getTypeID())
-     {
-             IMPLEMENT_INTEGER_ICMP(sge,Ty);
-             IMPLEMENT_VECTOR_INTEGER_ICMP(sge,Ty);
-             IMPLEMENT_POINTER_ICMP(>=);
-         default:
-             dbgs() << "Unhandled type for ICMP_SGE predicate: " << *Ty << "\n";
-             llvm_unreachable(nullptr);
-     }
+    if (Ty->isVectorTy()) {
+        IMPLEMENT_VECTOR_INTEGER_ICMP(sge,Ty);
+    } else {
+        switch (Ty->getTypeID())
+        {
+            IMPLEMENT_INTEGER_ICMP(sge,Ty);
+            IMPLEMENT_POINTER_ICMP(>=);
+            default:
+                dbgs() << "Unhandled type for ICMP_SGE predicate: " << *Ty << "\n";
+                llvm_unreachable(nullptr);
+        }
+    }
      return Dest;
  }
  
@@ -230,19 +259,19 @@ namespace llvmir_emul {
      Dest.AggregateVal.resize( Src1.AggregateVal.size() );               \
      for( uint32_t _i=0;_i<Src1.AggregateVal.size();_i++)                \
          Dest.AggregateVal[_i].IntVal = APInt(1,                         \
-         Src1.AggregateVal[_i].TY##Val OP Src2.AggregateVal[_i].TY##Val);\
-     break;
+         Src1.AggregateVal[_i].TY##Val OP Src2.AggregateVal[_i].TY##Val);
  
- #define IMPLEMENT_VECTOR_FCMP(OP)                                   \
-     case Type::VectorTyID:                                          \
-     if (cast<VectorType>(Ty)->getElementType()->isFloatTy())        \
-     {                                                               \
-         IMPLEMENT_VECTOR_FCMP_T(OP, Float);                         \
-     }                                                               \
-     else                                                            \
-     {                                                               \
-         IMPLEMENT_VECTOR_FCMP_T(OP, Double);                        \
-     }
+#define IMPLEMENT_VECTOR_FCMP(OP)                                   \
+    {                                                               \
+    if (cast<VectorType>(Ty)->getElementType()->isFloatTy())        \
+    {                                                               \
+        IMPLEMENT_VECTOR_FCMP_T(OP, Float);                         \
+    }                                                               \
+    else                                                            \
+    {                                                               \
+        IMPLEMENT_VECTOR_FCMP_T(OP, Double);                        \
+    }                                                               \
+    }
  
  GenericValue executeFCMP_OEQ(
          GenericValue Src1,
@@ -250,15 +279,18 @@ namespace llvmir_emul {
          Type *Ty)
  {
      GenericValue Dest;
-     switch (Ty->getTypeID())
-     {
-         IMPLEMENT_FCMP(==, Float);
-         case Type::X86_FP80TyID:
-         IMPLEMENT_FCMP(==, Double);
+     if (Ty->isVectorTy()) {
          IMPLEMENT_VECTOR_FCMP(==);
-         default:
-             dbgs() << "Unhandled type for FCmp EQ instruction: " << *Ty << "\n";
-             llvm_unreachable(nullptr);
+     } else {
+         switch (Ty->getTypeID())
+         {
+             IMPLEMENT_FCMP(==, Float);
+             case Type::X86_FP80TyID:
+             IMPLEMENT_FCMP(==, Double);
+             default:
+                 dbgs() << "Unhandled type for FCmp EQ instruction: " << *Ty << "\n";
+                 llvm_unreachable(nullptr);
+         }
      }
      return Dest;
  }
@@ -319,22 +351,25 @@ namespace llvmir_emul {
      // if vector input detect NaNs and fill mask
      MASK_VECTOR_NANS(Ty, Src1, Src2, false)
      GenericValue DestMask = Dest;
-     switch (Ty->getTypeID())
-     {
-         IMPLEMENT_FCMP(!=, Float);
-         case Type::X86_FP80TyID:
-         IMPLEMENT_FCMP(!=, Double);
+     if (Ty->isVectorTy()) {
          IMPLEMENT_VECTOR_FCMP(!=);
-         default:
-             dbgs() << "Unhandled type for FCmp NE instruction: " << *Ty << "\n";
-             llvm_unreachable(nullptr);
+     } else {
+         switch (Ty->getTypeID())
+         {
+             IMPLEMENT_FCMP(!=, Float);
+             case Type::X86_FP80TyID:
+             IMPLEMENT_FCMP(!=, Double);
+             default:
+                 dbgs() << "Unhandled type for FCmp NE instruction: " << *Ty << "\n";
+                 llvm_unreachable(nullptr);
+         }
      }
      // in vector case mask out NaN elements
      if (Ty->isVectorTy())
          for( size_t _i=0; _i<Src1.AggregateVal.size(); _i++)
              if (DestMask.AggregateVal[_i].IntVal == false)
                  Dest.AggregateVal[_i].IntVal = APInt(1,false);
- 
+
      return Dest;
  }
  
@@ -344,15 +379,18 @@ namespace llvmir_emul {
          Type *Ty)
  {
      GenericValue Dest;
-     switch (Ty->getTypeID())
-     {
-         IMPLEMENT_FCMP(<=, Float);
-         case Type::X86_FP80TyID:
-         IMPLEMENT_FCMP(<=, Double);
+     if (Ty->isVectorTy()) {
          IMPLEMENT_VECTOR_FCMP(<=);
-         default:
-             dbgs() << "Unhandled type for FCmp LE instruction: " << *Ty << "\n";
-             llvm_unreachable(nullptr);
+     } else {
+         switch (Ty->getTypeID())
+         {
+             IMPLEMENT_FCMP(<=, Float);
+             case Type::X86_FP80TyID:
+             IMPLEMENT_FCMP(<=, Double);
+             default:
+                 dbgs() << "Unhandled type for FCmp LE instruction: " << *Ty << "\n";
+                 llvm_unreachable(nullptr);
+         }
      }
      return Dest;
  }
@@ -363,15 +401,18 @@ namespace llvmir_emul {
          Type *Ty)
  {
      GenericValue Dest;
-     switch (Ty->getTypeID())
-     {
-         IMPLEMENT_FCMP(>=, Float);
-         case Type::X86_FP80TyID:
-         IMPLEMENT_FCMP(>=, Double);
+     if (Ty->isVectorTy()) {
          IMPLEMENT_VECTOR_FCMP(>=);
-     default:
-         dbgs() << "Unhandled type for FCmp GE instruction: " << *Ty << "\n";
-         llvm_unreachable(nullptr);
+     } else {
+         switch (Ty->getTypeID())
+         {
+             IMPLEMENT_FCMP(>=, Float);
+             case Type::X86_FP80TyID:
+             IMPLEMENT_FCMP(>=, Double);
+             default:
+                 dbgs() << "Unhandled type for FCmp GE instruction: " << *Ty << "\n";
+                 llvm_unreachable(nullptr);
+         }
      }
      return Dest;
  }
@@ -382,15 +423,18 @@ namespace llvmir_emul {
          Type *Ty)
  {
      GenericValue Dest;
-     switch (Ty->getTypeID())
-     {
-         IMPLEMENT_FCMP(<, Float);
-         case Type::X86_FP80TyID:
-         IMPLEMENT_FCMP(<, Double);
+     if (Ty->isVectorTy()) {
          IMPLEMENT_VECTOR_FCMP(<);
-         default:
-             dbgs() << "Unhandled type for FCmp LT instruction: " << *Ty << "\n";
-             llvm_unreachable(nullptr);
+     } else {
+         switch (Ty->getTypeID())
+         {
+             IMPLEMENT_FCMP(<, Float);
+             case Type::X86_FP80TyID:
+             IMPLEMENT_FCMP(<, Double);
+             default:
+                 dbgs() << "Unhandled type for FCmp LT instruction: " << *Ty << "\n";
+                 llvm_unreachable(nullptr);
+         }
      }
      return Dest;
  }
@@ -401,15 +445,18 @@ namespace llvmir_emul {
          Type *Ty)
  {
      GenericValue Dest;
-     switch (Ty->getTypeID())
-     {
-         IMPLEMENT_FCMP(>, Float);
-         case Type::X86_FP80TyID:
-         IMPLEMENT_FCMP(>, Double);
+     if (Ty->isVectorTy()) {
          IMPLEMENT_VECTOR_FCMP(>);
-         default:
-             dbgs() << "Unhandled type for FCmp GT instruction: " << *Ty << "\n";
-             llvm_unreachable(nullptr);
+     } else {
+         switch (Ty->getTypeID())
+         {
+             IMPLEMENT_FCMP(>, Float);
+             case Type::X86_FP80TyID:
+             IMPLEMENT_FCMP(>, Double);
+             default:
+                 dbgs() << "Unhandled type for FCmp GT instruction: " << *Ty << "\n";
+                 llvm_unreachable(nullptr);
+         }
      }
      return Dest;
  }
@@ -618,7 +665,7 @@ namespace llvmir_emul {
      {
          Dest.IntVal = APInt(1, val);
      }
- 
+
      return Dest;
  }
  

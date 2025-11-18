@@ -9,11 +9,79 @@
 #include <llvm/IR/InstrTypes.h>
 #include <llvm/IR/InstVisitor.h>
 #include <llvm/IR/Module.h>
+#include <llvm/IR/GetElementPtrTypeIterator.h>
  
 #include "Analysis/llvmir-emul/exceptions.h"
  
- namespace retdec {
- namespace llvmir_emul {
+namespace retdec {
+namespace llvmir_emul {
+
+// Forward declarations
+class LocalExecutionContext;
+class GlobalExecutionContext;
+
+// Helper function declarations
+unsigned getShiftAmount(uint64_t shiftAmount, const llvm::APInt& valueToShift);
+
+// Binary floating point operations
+void executeFAddInst(llvm::GenericValue &Dest, llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+void executeFSubInst(llvm::GenericValue &Dest, llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+void executeFMulInst(llvm::GenericValue &Dest, llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+void executeFDivInst(llvm::GenericValue &Dest, llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+void executeFRemInst(llvm::GenericValue &Dest, llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+
+// Comparison operations
+llvm::GenericValue executeICMP_EQ(llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+llvm::GenericValue executeICMP_NE(llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+llvm::GenericValue executeICMP_ULT(llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+llvm::GenericValue executeICMP_SLT(llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+llvm::GenericValue executeICMP_UGT(llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+llvm::GenericValue executeICMP_SGT(llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+llvm::GenericValue executeICMP_ULE(llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+llvm::GenericValue executeICMP_SLE(llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+llvm::GenericValue executeICMP_UGE(llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+llvm::GenericValue executeICMP_SGE(llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+llvm::GenericValue executeFCMP_OEQ(llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+llvm::GenericValue executeFCMP_ONE(llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+llvm::GenericValue executeFCMP_OLT(llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+llvm::GenericValue executeFCMP_OGT(llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+llvm::GenericValue executeFCMP_OLE(llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+llvm::GenericValue executeFCMP_OGE(llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+llvm::GenericValue executeFCMP_UEQ(llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+llvm::GenericValue executeFCMP_UNE(llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+llvm::GenericValue executeFCMP_ULT(llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+llvm::GenericValue executeFCMP_UGT(llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+llvm::GenericValue executeFCMP_ULE(llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+llvm::GenericValue executeFCMP_UGE(llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+llvm::GenericValue executeFCMP_ORD(llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+llvm::GenericValue executeFCMP_UNO(llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty);
+llvm::GenericValue executeFCMP_BOOL(llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::Type *Ty, const bool val);
+
+// Helper functions
+llvm::GenericValue executeSelectInst(llvm::GenericValue Src1, llvm::GenericValue Src2, llvm::GenericValue Src3, llvm::Type *Ty);
+void switchToNewBasicBlock(llvm::BasicBlock* Dest, LocalExecutionContext& SF, GlobalExecutionContext& GC);
+// gep_type_iterator is a typedef for generic_gep_type_iterator<> in GetElementPtrTypeIterator.h
+// Since the header is included, we can use the actual type
+// gep_type_iterator = generic_gep_type_iterator<User::const_op_iterator>
+llvm::GenericValue executeGEPOperation(llvm::Value *Ptr, llvm::gep_type_iterator I, llvm::gep_type_iterator E, LocalExecutionContext& SF, GlobalExecutionContext& GC);
+
+// Conversion operations
+llvm::GenericValue executeTruncInst(llvm::Value *SrcVal, llvm::Type *DstTy, LocalExecutionContext &SF, GlobalExecutionContext& GC);
+llvm::GenericValue executeZExtInst(llvm::Value *SrcVal, llvm::Type *DstTy, LocalExecutionContext &SF, GlobalExecutionContext& GC);
+llvm::GenericValue executeSExtInst(llvm::Value *SrcVal, llvm::Type *DstTy, LocalExecutionContext &SF, GlobalExecutionContext& GC);
+llvm::GenericValue executeFPTruncInst(llvm::Value *SrcVal, llvm::Type *DstTy, LocalExecutionContext &SF, GlobalExecutionContext& GC);
+llvm::GenericValue executeFPExtInst(llvm::Value *SrcVal, llvm::Type *DstTy, LocalExecutionContext &SF, GlobalExecutionContext& GC);
+llvm::GenericValue executeUIToFPInst(llvm::Value *SrcVal, llvm::Type *DstTy, LocalExecutionContext &SF, GlobalExecutionContext& GC);
+llvm::GenericValue executeSIToFPInst(llvm::Value *SrcVal, llvm::Type *DstTy, LocalExecutionContext &SF, GlobalExecutionContext& GC);
+llvm::GenericValue executeFPToUIInst(llvm::Value *SrcVal, llvm::Type *DstTy, LocalExecutionContext &SF, GlobalExecutionContext& GC);
+llvm::GenericValue executeFPToSIInst(llvm::Value *SrcVal, llvm::Type *DstTy, LocalExecutionContext &SF, GlobalExecutionContext& GC);
+llvm::GenericValue executePtrToIntInst(llvm::Value *SrcVal, llvm::Type *DstTy, LocalExecutionContext &SF, GlobalExecutionContext& GC);
+llvm::GenericValue executeIntToPtrInst(llvm::Value *SrcVal, llvm::Type *DstTy, LocalExecutionContext &SF, GlobalExecutionContext& GC);
+llvm::GenericValue executeBitCastInst(llvm::Value *SrcVal, llvm::Type *DstTy, LocalExecutionContext &SF, GlobalExecutionContext& GC);
+
+// Constant handling functions
+llvm::GenericValue getConstantExprValue(llvm::ConstantExpr* CE, LocalExecutionContext& SF, GlobalExecutionContext& GC);
+llvm::GenericValue getConstantValue(const llvm::Constant* C, llvm::Module* m);
  
  /**
   * AllocaHolder - Object to track all of the blocks of memory allocated by
@@ -232,27 +300,28 @@
          void visitInsertValueInst(llvm::InsertValueInst& I);
          void visitInstruction(llvm::Instruction& I);
  
-     private:
-         void run();
-         void callFunction(
-                 llvm::Function* f,
-                 llvm::ArrayRef<llvm::GenericValue> argVals);
- 
-         void logInstruction(llvm::Instruction* i);
- 
-         void popStackAndReturnValueToCaller(
-                 llvm::Type* retT,
-                 llvm::GenericValue res);
- 
-     public:
-         std::vector<LocalExecutionContext> _ecStackRetired;
- 
-     private:
-         llvm::IntrinsicLowering *IL = nullptr;
-         llvm::Module* _module = nullptr;
-         llvm::GenericValue _exitValue;
-         std::vector<LocalExecutionContext> _ecStack;
-         GlobalExecutionContext _globalEc;
+    protected:
+        void run();
+        void callFunction(
+                llvm::Function* f,
+                llvm::ArrayRef<llvm::GenericValue> argVals);
+
+        void logInstruction(llvm::Instruction* i);
+
+        void popStackAndReturnValueToCaller(
+                llvm::Type* retT,
+                llvm::GenericValue res);
+
+    public:
+        std::vector<LocalExecutionContext> _ecStackRetired;
+
+    protected:
+        // Made protected so derived classes (like MiriEmulator) can access them
+        llvm::IntrinsicLowering *IL = nullptr;
+        llvm::Module* _module = nullptr;
+        llvm::GenericValue _exitValue;
+        std::vector<LocalExecutionContext> _ecStack;
+        GlobalExecutionContext _globalEc;
  
          /// All visited instruction in order of their visitation.
          /// No cycling checks are performed at the moment -- one instruction

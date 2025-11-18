@@ -146,9 +146,7 @@ llvm::GenericValue getConstantExprValue(
          GenericValue Result;
          switch (C->getType()->getTypeID())
          {
-             default:
-                 break;
-             case Type::IntegerTyID:
+            case Type::IntegerTyID:
              case Type::X86_FP80TyID:
              case Type::FP128TyID:
              case Type::PPC_FP128TyID:
@@ -179,18 +177,20 @@ llvm::GenericValue getConstantExprValue(
                      }
                  }
                  break;
-             }
-             case Type::VectorTyID:
-                 // if the whole vector is 'undef' just reserve memory for the value.
-                 auto* VTy = dyn_cast<VectorType>(C->getType());
-                 Type *ElemTy = VTy->getElementType();
-                 unsigned int elemNum = VTy->getNumElements();
+            }
+            default:
+                if (C->getType()->isVectorTy()) {
+                // if the whole vector is 'undef' just reserve memory for the value.
+                auto* VTy = dyn_cast<VectorType>(C->getType());
+                Type *ElemTy = VTy->getElementType();
+                unsigned int elemNum = VTy->getElementCount().getFixedValue();
                  Result.AggregateVal.resize(elemNum);
-                 if (ElemTy->isIntegerTy())
-                     for (unsigned int i = 0; i < elemNum; ++i)
-                         Result.AggregateVal[i].IntVal =
-                                 APInt(ElemTy->getPrimitiveSizeInBits(), 0);
-                 break;
+                if (ElemTy->isIntegerTy())
+                    for (unsigned int i = 0; i < elemNum; ++i)
+                        Result.AggregateVal[i].IntVal =
+                                APInt(ElemTy->getPrimitiveSizeInBits(), 0);
+                break;
+                }
          }
          return Result;
      }
@@ -527,122 +527,120 @@ llvm::GenericValue getConstantExprValue(
                  llvm_unreachable("Unknown constant pointer type!");
              }
              break;
-         case Type::VectorTyID:
-         {
-             unsigned elemNum;
-             Type* ElemTy;
-             const ConstantDataVector *CDV = dyn_cast<ConstantDataVector>(C);
-             const ConstantVector *CV = dyn_cast<ConstantVector>(C);
-             const ConstantAggregateZero *CAZ = dyn_cast<ConstantAggregateZero>(C);
- 
-             if (CDV)
-             {
-                 elemNum = CDV->getNumElements();
-                 ElemTy = CDV->getElementType();
-             }
-             else if (CV || CAZ)
-             {
-                 VectorType* VTy = dyn_cast<VectorType>(C->getType());
-                 elemNum = VTy->getNumElements();
-                 ElemTy = VTy->getElementType();
-             }
-             else
-             {
-                 llvm_unreachable("Unknown constant vector type!");
-             }
- 
-             Result.AggregateVal.resize(elemNum);
-             // Check if vector holds floats.
-             if(ElemTy->isFloatTy())
-             {
-                 if (CAZ)
-                 {
-                     GenericValue floatZero;
-                     floatZero.FloatVal = 0.f;
-                     std::fill(Result.AggregateVal.begin(), Result.AggregateVal.end(),
-                             floatZero);
-                     break;
-                 }
-                 if(CV)
-                 {
-                     for (unsigned i = 0; i < elemNum; ++i)
-                         if (!isa<UndefValue>(CV->getOperand(i)))
-                             Result.AggregateVal[i].FloatVal = cast<ConstantFP>(
-                                     CV->getOperand(i))->getValueAPF().convertToFloat();
-                     break;
-                 }
-                 if(CDV)
-                     for (unsigned i = 0; i < elemNum; ++i)
-                         Result.AggregateVal[i].FloatVal = CDV->getElementAsFloat(i);
- 
-                 break;
-             }
-             // Check if vector holds doubles.
-             if (ElemTy->isDoubleTy())
-             {
-                 if (CAZ)
-                 {
-                     GenericValue doubleZero;
-                     doubleZero.DoubleVal = 0.0;
-                     std::fill(Result.AggregateVal.begin(), Result.AggregateVal.end(),
-                             doubleZero);
-                     break;
-                 }
-                 if(CV)
-                 {
-                     for (unsigned i = 0; i < elemNum; ++i)
-                         if (!isa<UndefValue>(CV->getOperand(i)))
-                             Result.AggregateVal[i].DoubleVal = cast<ConstantFP>(
-                                     CV->getOperand(i))->getValueAPF().convertToDouble();
-                     break;
-                 }
-                 if(CDV)
-                     for (unsigned i = 0; i < elemNum; ++i)
-                         Result.AggregateVal[i].DoubleVal = CDV->getElementAsDouble(i);
- 
-                 break;
-             }
-             // Check if vector holds integers.
-             if (ElemTy->isIntegerTy())
-             {
-                 if (CAZ)
-                 {
-                     GenericValue intZero;
-                     intZero.IntVal = APInt(ElemTy->getScalarSizeInBits(), 0ull);
-                     std::fill(Result.AggregateVal.begin(), Result.AggregateVal.end(),
-                             intZero);
-                     break;
-                 }
-                 if(CV)
-                 {
-                     for (unsigned i = 0; i < elemNum; ++i)
-                         if (!isa<UndefValue>(CV->getOperand(i)))
-                             Result.AggregateVal[i].IntVal = cast<ConstantInt>(
-                                     CV->getOperand(i))->getValue();
-                         else
-                         {
-                             Result.AggregateVal[i].IntVal =
-                                     APInt(CV->getOperand(i)->getType()->getPrimitiveSizeInBits(), 0);
-                         }
-                     break;
-                 }
-                 if(CDV)
-                     for (unsigned i = 0; i < elemNum; ++i)
-                         Result.AggregateVal[i].IntVal = APInt(
-                                 CDV->getElementType()->getPrimitiveSizeInBits(),
-                                 CDV->getElementAsInteger(i));
- 
-                 break;
-             }
-             llvm_unreachable("Unknown constant pointer type!");
-             break;
-         }
- 
-         default:
-             SmallString<256> Msg;
-             raw_svector_ostream OS(Msg);
-             OS << "ERROR: Constant unimplemented for type: " << *C->getType();
-             report_fatal_error(OS.str());
+        default:
+            if (C->getType()->isVectorTy()) {
+                unsigned elemNum;
+                Type* ElemTy;
+                const ConstantDataVector *CDV = dyn_cast<ConstantDataVector>(C);
+                const ConstantVector *CV = dyn_cast<ConstantVector>(C);
+                const ConstantAggregateZero *CAZ = dyn_cast<ConstantAggregateZero>(C);
+
+                if (CDV)
+                {
+                    elemNum = CDV->getNumElements();
+                    ElemTy = CDV->getElementType();
+                }
+                else if (CV || CAZ)
+                {
+                    VectorType* VTy = dyn_cast<VectorType>(C->getType());
+                    elemNum = VTy->getElementCount().getFixedValue();
+                    ElemTy = VTy->getElementType();
+                }
+                else
+                {
+                    llvm_unreachable("Unknown constant vector type!");
+                }
+
+                Result.AggregateVal.resize(elemNum);
+                // Check if vector holds floats.
+                if(ElemTy->isFloatTy())
+                {
+                    if (CAZ)
+                    {
+                        GenericValue floatZero;
+                        floatZero.FloatVal = 0.f;
+                        std::fill(Result.AggregateVal.begin(), Result.AggregateVal.end(),
+                                floatZero);
+                        break;
+                    }
+                    if(CV)
+                    {
+                        for (unsigned i = 0; i < elemNum; ++i)
+                            if (!isa<UndefValue>(CV->getOperand(i)))
+                                Result.AggregateVal[i].FloatVal = cast<ConstantFP>(
+                                        CV->getOperand(i))->getValueAPF().convertToFloat();
+                        break;
+                    }
+                    if(CDV)
+                        for (unsigned i = 0; i < elemNum; ++i)
+                            Result.AggregateVal[i].FloatVal = CDV->getElementAsFloat(i);
+
+                    break;
+                }
+                // Check if vector holds doubles.
+                if (ElemTy->isDoubleTy())
+                {
+                    if (CAZ)
+                    {
+                        GenericValue doubleZero;
+                        doubleZero.DoubleVal = 0.0;
+                        std::fill(Result.AggregateVal.begin(), Result.AggregateVal.end(),
+                                doubleZero);
+                        break;
+                    }
+                    if(CV)
+                    {
+                        for (unsigned i = 0; i < elemNum; ++i)
+                            if (!isa<UndefValue>(CV->getOperand(i)))
+                                Result.AggregateVal[i].DoubleVal = cast<ConstantFP>(
+                                        CV->getOperand(i))->getValueAPF().convertToDouble();
+                        break;
+                    }
+                    if(CDV)
+                        for (unsigned i = 0; i < elemNum; ++i)
+                            Result.AggregateVal[i].DoubleVal = CDV->getElementAsDouble(i);
+
+                    break;
+                }
+                // Check if vector holds integers.
+                if (ElemTy->isIntegerTy())
+                {
+                    if (CAZ)
+                    {
+                        GenericValue intZero;
+                        intZero.IntVal = APInt(ElemTy->getScalarSizeInBits(), 0ull);
+                        std::fill(Result.AggregateVal.begin(), Result.AggregateVal.end(),
+                                intZero);
+                        break;
+                    }
+                    if(CV)
+                    {
+                        for (unsigned i = 0; i < elemNum; ++i)
+                            if (!isa<UndefValue>(CV->getOperand(i)))
+                                Result.AggregateVal[i].IntVal = cast<ConstantInt>(
+                                        CV->getOperand(i))->getValue();
+                            else
+                            {
+                                Result.AggregateVal[i].IntVal =
+                                        APInt(CV->getOperand(i)->getType()->getPrimitiveSizeInBits(), 0);
+                            }
+                        break;
+                    }
+                    if(CDV)
+                        for (unsigned i = 0; i < elemNum; ++i)
+                            Result.AggregateVal[i].IntVal = APInt(
+                                    CDV->getElementType()->getPrimitiveSizeInBits(),
+                                    CDV->getElementAsInteger(i));
+
+                    break;
+                }
+                break;
+            } else {
+                SmallString<256> Msg;
+                raw_svector_ostream OS(Msg);
+                OS << "ERROR: Constant unimplemented for type: " << *C->getType();
+                report_fatal_error(OS.str());
+            }
      }
  
     return Result;
