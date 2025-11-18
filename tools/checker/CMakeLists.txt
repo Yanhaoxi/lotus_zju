@@ -44,11 +44,3 @@ target_link_libraries(lotus-concur
   ConcurrencyChecker
   CanaryReport
 )
-
-# Miri: Concrete Execution Bug Finder (not used for now)
-add_executable(lotus-miri lotus_miri.cpp)
-target_link_libraries(lotus-miri PRIVATE
-  llvmir-emul
-  CanaryReport
-  ${LLVM_LINK_COMPONENTS}
-)
