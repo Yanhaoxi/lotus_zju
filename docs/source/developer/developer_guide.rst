@@ -1077,7 +1077,7 @@ Community
 See Also
 --------
 
-- :doc:`../overview/architecture` - Framework architecture
+- :doc:`../user_guide/architecture` - Framework architecture
 - :doc:`api_reference` - API documentation
-- :doc:`../getting_started/tutorials` - Usage examples
+- :doc:`../user_guide/tutorials` - Usage examples
 

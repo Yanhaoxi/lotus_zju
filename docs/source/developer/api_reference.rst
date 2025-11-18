@@ -822,7 +822,7 @@ Compile and link:
 See Also
 --------
 
-- :doc:`../overview/architecture` - Understanding the framework architecture
-- :doc:`../getting_started/tutorials` - Practical usage examples
+- :doc:`../user_guide/architecture` - Understanding the framework architecture
+- :doc:`../user_guide/tutorials` - Practical usage examples
 - :doc:`developer_guide` - Extending Lotus
 

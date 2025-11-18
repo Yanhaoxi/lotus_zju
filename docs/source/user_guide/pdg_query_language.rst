@@ -833,7 +833,7 @@ See Also
 --------
 
 - :doc:`ir/intermediate_representations` - PDG construction details
-- :doc:`../getting_started/tutorials` - PDG usage examples
+- :doc:`tutorials` - PDG usage examples
 - :doc:`../developer/api_reference` - Programmatic PDG access
 - ``examples/pdg-queries/`` - More example queries
 

@@ -10,7 +10,7 @@ The current version has been tested on x86 Linux and ARM Mac using LLVM-14 with 
 ## Docs
 
 ~~~~
-https://zju-automated-reasoning-group.github.io/lotus
+https://zju-pl.github.io/lotus
 ~~~~
 
 ## Publications

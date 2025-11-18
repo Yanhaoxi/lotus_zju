@@ -805,9 +805,9 @@ Documentation
 ~~~~~~~~~~~~~
 
 - :doc:`index` - Main documentation
-- :doc:`../overview/architecture` - Framework architecture
+- :doc:`architecture` - Framework architecture
 - :doc:`../developer/api_reference` - API documentation
-- :doc:`../getting_started/tutorials` - Usage examples
+- :doc:`tutorials` - Usage examples
 - :doc:`../developer/developer_guide` - Extending Lotus
 
 Support Channels
@@ -873,7 +873,7 @@ See :doc:`../developer/developer_guide` for how to contribute code, documentatio
 See Also
 --------
 
-- :doc:`../getting_started/installation` - Installation guide
-- :doc:`../getting_started/quickstart` - Quick start guide  
+- :doc:`installation` - Installation guide
+- :doc:`quickstart` - Quick start guide  
 - :doc:`tools/index` - Tool documentation
 

@@ -7,7 +7,7 @@ bug detection, PDG querying, abstract interpretation, and model checking.
 This section focuses on the primary front-end binaries built from ``tools/``.
 The documentation is organized by subdirectory to match the source structure.
 
-For a feature-oriented walk-through, see :doc:`../getting_started/tutorials` and
+For a feature-oriented walk-through, see :doc:`../user_guide/tutorials` and
 :doc:`../user_guide/bug_detection`.
 
 Tools by Subdirectory
