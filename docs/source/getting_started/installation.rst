@@ -6,7 +6,7 @@ Installation guide for Lotus and its dependencies.
 Prerequisites
 -------------
 
-* LLVM 12.0.0 or 14.0.0
+* LLVM 14.0.0
 * Z3 4.11
 * CMake 3.10+
 * C++14 compatible compiler
@@ -59,9 +59,9 @@ Z3 Installation
 Troubleshooting
 ---------------
 
-* **LLVM not found**: Install LLVM 12.x or 14.x via your package manager (or from source).
+* **LLVM not found**: Install LLVM 14.x via your package manager (or from source).
   If you use a non-standard installation location, set ``LLVM_BUILD_PATH`` to the directory
   that contains ``LLVMConfig.cmake`` and re-run CMake.
 * **Z3 not found**: Install Z3 or set ``Z3_DIR``
 * **Boost issues**: Use ``CUSTOM_BOOST_ROOT`` or let system auto-download
-* **Build errors**: Use supported LLVM version (12.x or 14.x)
+* **Build errors**: Use supported LLVM version (14.x)

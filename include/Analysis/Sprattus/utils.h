@@ -14,13 +14,11 @@
 #include <llvm/Support/Compiler.h>
 #include <llvm/ADT/StringRef.h>
 
-// LLVM version compatibility - Lotus supports LLVM 12 and 14
-#if LLVM_VERSION_MAJOR == 12
-#define LLVM12 1
-#elif LLVM_VERSION_MAJOR == 14
+// LLVM version compatibility - Lotus supports LLVM 14
+#if LLVM_VERSION_MAJOR == 14
 #define LLVM14 1
 #else
-#error Unsupported version of LLVM (only 12 and 14 are supported)
+#error Unsupported version of LLVM (only 14 is supported)
 #endif
 
 // Dynamic analysis is disabled in Lotus integration

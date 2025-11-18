@@ -45,7 +45,7 @@ Command-Line Tool: lotus-gvfa
 ==============================
 
 The ``lotus-gvfa`` tool provides global value flow analysis for vulnerability
-detection, including null pointer analysis and taint analysis.
+detection, such as null pointer dereference analysis.
 
 .. code-block:: bash
 
@@ -54,7 +54,7 @@ detection, including null pointer analysis and taint analysis.
 Key Options
 -----------
 
-* ``-vuln-type=<type>`` – Vulnerability type to detect - 'nullpointer' or 'taint'
+* ``-vuln-type=<type>`` – Vulnerability type to detect - 'nullpointer'
   (default: 'nullpointer')
 * ``-test-cfl-reachability`` – Test CFL reachability queries for context-sensitive
   analysis

@@ -9,6 +9,7 @@
 # Available subprojects:
 #   - sprattus      (BUILD_SPRATTUS)
 #   - clam          (ENABLE_CLAM defined at top-level)
+#   - crabber       (ENABLE_CLAM defined at top-level, requires CRAB)
 #   - horn-ice      (BUILD_HORN_ICE)
 #   - seahorn       (ENABLE_SEAHORN, optional)
 

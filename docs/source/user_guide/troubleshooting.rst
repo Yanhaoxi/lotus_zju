@@ -19,7 +19,7 @@ LLVM Version Mismatch
 
 **Solution**:
 
-1. Check that a supported LLVM version (12.x or 14.x) is installed and visible on ``PATH``:
+1. Check that LLVM 14.x is installed and visible on ``PATH``:
 
 .. code-block:: bash
 

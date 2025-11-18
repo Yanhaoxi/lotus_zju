@@ -5,7 +5,7 @@
 # Lotus 
 
 Lotus is a program analysis, verification, and optimization framework. It provides several toolkits that can be used individually or in combination to perform different tasks.
-The current version has been tested on x86 Linux and ARM Mac using LLVM-12 and LLVM-14 with Z3-4.11.
+The current version has been tested on x86 Linux and ARM Mac using LLVM-14 with Z3-4.11.
 
 ## Docs
 

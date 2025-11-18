@@ -184,14 +184,7 @@ void ContextSensitiveLocalNullCheckAnalysis::tag() {
                     if (isa<ReturnInst>(&I)) {
                         NFA->add(F, Ctx, OpK, nullptr);
                     } else if (auto *CI = dyn_cast<CallInst>(&I)) {
-#if defined(LLVM12)
-                        if (K < CI->getNumArgOperands()) NFA->add(F, Ctx, CI, K);
-#elif defined(LLVM14)
-                        // refer to llvm-12/include/llvm/IR/InstrTypes.h:1321
                         if (K < CI->arg_size()) NFA->add(F, Ctx, CI, K);
-#else
-    #error "Unsupported LLVM version"
-#endif
                     } else {
                         // ... omit others
                     }

@@ -60,14 +60,14 @@ Features
 * **Constraint Solving**: SMT (Z3), BDD (CUDD), WPDS
 * **Data Flow Analysis**: IFDS/IDE framework, taint analysis
 * **Bug Detection**: Integer overflow, null pointer, buffer overflow detection
-* **LLVM Integration**: Built on LLVM 12/14 with comprehensive IR support
+* **LLVM Integration**: Built on LLVM 14 with comprehensive IR support
 
 Supported Platforms
 -------------------
 
 * x86 Linux
 * ARM Mac
-* LLVM 12.0.0 and 14.0.0
+* LLVM 14.0.0
 * Z3 4.11
 
 Publications
