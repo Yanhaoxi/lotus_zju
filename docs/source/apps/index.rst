@@ -6,7 +6,7 @@ This section covers the high-level applications and tools built on Lotus, organi
 Components
 ----------
 
-* **Checker** – Bug detection framework (``lib/Apps/Checker/``)
+* **Checker** – Bug detection framework (``lib/Checker/``)
 * **CLAM** – Abstract interpretation-based analyzer (``lib/Apps/clam/``)
 * **Fuzzing** – Directed greybox fuzzing support (``lib/Apps/Fuzzing/``)
 * **MCP** – Model Context Protocol server for call graph analysis (``lib/Apps/MCP/``)

@@ -3,9 +3,9 @@ Checker Framework
 
 The Checker Framework provides a unified infrastructure for static bug detection across multiple vulnerability categories. It integrates various analysis techniques to detect security vulnerabilities, concurrency bugs, and numerical errors in LLVM bitcode.
 
-**Location**: ``lib/Apps/Checker/``
+**Location**: ``lib/Checker/``
 
-**Headers**: ``include/Apps/Checker/``
+**Headers**: ``include/Checker/``
 
 **Tools**: ``tools/checker/`` (command-line frontends)
 
@@ -23,14 +23,14 @@ All checkers report bugs through the centralized ``BugReportMgr`` system, enabli
 Components
 ----------
 
-**Concurrency Checkers** (``lib/Apps/Checker/concurrency/``):
+**Concurrency Checkers** (``lib/Checker/concurrency/``):
 
 * ``ConcurrencyChecker.cpp`` – Main concurrency checker coordinator
 * ``DataRaceChecker.cpp`` – Data race detection using MHP (May Happen in Parallel) analysis
 * ``DeadlockChecker.cpp`` – Deadlock detection using lock set analysis
 * ``AtomicityChecker.cpp`` – Atomicity violation detection
 
-**GVFA Vulnerability Checkers** (``lib/Apps/Checker/gvfa/``):
+**GVFA Vulnerability Checkers** (``lib/Checker/gvfa/``):
 
 * ``NullPointerChecker.cpp`` – Null pointer dereference detection (CWE-476, CWE-690)
 * ``UseAfterFreeChecker.cpp`` – Use-after-free detection (CWE-416)
@@ -39,7 +39,7 @@ Components
 * ``InvalidUseOfStackAddressChecker.cpp`` – Stack address misuse detection (CWE-562)
 * ``GVFAVulnerabilityChecker.h`` – Base interface for all GVFA checkers
 
-**KINT Numerical Checkers** (``lib/Apps/Checker/kint/``):
+**KINT Numerical Checkers** (``lib/Checker/kint/``):
 
 * ``MKintPass.cpp`` – Main KINT pass for integer overflow, division by zero, array bounds checking
 * ``MKintPass_bugreport.cpp`` – Bug report generation for KINT
@@ -50,7 +50,7 @@ Components
 * ``Log.cpp`` – Logging utilities
 * ``Utils.cpp`` – Utility functions
 
-**Report System** (``lib/Apps/Checker/Report/``):
+**Report System** (``lib/Checker/Report/``):
 
 * ``BugReport.cpp`` – Bug report data structures with source location information
 * ``BugReportMgr.cpp`` – Centralized bug report management (singleton pattern)
@@ -102,8 +102,8 @@ All checkers integrate with the centralized ``BugReportMgr``:
 
 .. code-block:: cpp
 
-   #include "Apps/Checker/Report/BugReportMgr.h"
-   #include "Apps/Checker/gvfa/NullPointerChecker.h"
+   #include "Checker/Report/BugReportMgr.h"
+   #include "Checker/gvfa/NullPointerChecker.h"
    
    // Create checker
    auto checker = std::make_unique<NullPointerChecker>();

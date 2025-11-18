@@ -90,7 +90,7 @@ Core Components
    - **Null Pointer Analysis**: Multiple null checking algorithms
    - **Range Analysis**: Value range analysis for integers
 
-7. **Bug Detection** (``lib/Apps/Checker/``)
+7. **Bug Detection** (``lib/Checker/``)
    
    Security and safety bug detection:
    

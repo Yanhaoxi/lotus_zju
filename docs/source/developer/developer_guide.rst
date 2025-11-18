@@ -398,7 +398,7 @@ Adding a New Bug Checker
 Step 1: Define Checker Interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Create ``include/Apps/Checker/MyChecker.h``:
+Create ``include/Checker/MyChecker.h``:
 
 .. code-block:: cpp
 
@@ -406,7 +406,7 @@ Create ``include/Apps/Checker/MyChecker.h``:
    
    #include "llvm/Pass.h"
    #include "llvm/IR/Module.h"
-   #include "Apps/BugReportMgr.h"
+   #include "Checker/Report/BugReportMgr.h"
    #include <vector>
    
    namespace lotus {
@@ -442,11 +442,11 @@ Create ``include/Apps/Checker/MyChecker.h``:
 Step 2: Implement Checker
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Create ``lib/Apps/Checker/MyChecker.cpp``:
+Create ``lib/Checker/MyChecker.cpp``:
 
 .. code-block:: cpp
 
-   #include "Apps/Checker/MyChecker.h"
+   #include "Checker/MyChecker.h"
    #include "llvm/IR/Instructions.h"
    #include "llvm/Support/raw_ostream.h"
    
@@ -511,7 +511,7 @@ For SARIF/JSON output support:
 
 .. code-block:: cpp
 
-   #include "Apps/BugReportMgr.h"
+   #include "Checker/Report/BugReportMgr.h"
    
    bool MyChecker::runOnModule(Module &M) {
        // ... run checks ...

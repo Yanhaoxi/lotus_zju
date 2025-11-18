@@ -610,7 +610,7 @@ Include headers:
 
 .. code-block:: cpp
 
-   #include "Apps/Checker/kint/MKintPass.h"
+   #include "Checker/kint/MKintPass.h"
 
 Use programmatically:
 
@@ -761,7 +761,7 @@ Here's a complete example of building a custom analysis tool:
    #include "Alias/DyckAA/DyckAliasAnalysis.h"
    #include "IR/PDG/ProgramDependencyGraph.h"
    #include "Dataflow/TaintAnalysis/TaintAnalysis.h"
-   #include "Apps/Checker/kint/MKintPass.h"
+   #include "Checker/kint/MKintPass.h"
    
    using namespace llvm;
    

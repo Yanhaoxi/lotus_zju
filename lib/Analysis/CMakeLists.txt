@@ -3,7 +3,3 @@ add_subdirectory(NullPointer)
 add_subdirectory(Concurrency)
 add_subdirectory(GVFA)
 add_subdirectory(Sprattus)
-add_subdirectory(llvmir-emul)
-
-
-
