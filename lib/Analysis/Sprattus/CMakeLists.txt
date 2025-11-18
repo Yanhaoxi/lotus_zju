@@ -36,6 +36,9 @@ set(SPRATTUS_SOURCES
     domains/MemRange.cpp
     domains/MemRegions.cpp
     domains/Boolean.cpp
+    domains/Congruence.cpp
+    domains/Zones.cpp
+    domains/Octagon.cpp
 )
 
 # Create Sprattus library

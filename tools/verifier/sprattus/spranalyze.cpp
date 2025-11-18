@@ -100,7 +100,7 @@ static cl::opt<bool> ShowAllBlocks(
 
 static cl::opt<bool> ShowExitBlocks(
     "show-exit-blocks",
-    cl::desc("Show analysis results at exit blocks (return statements)"),
+    cl::desc("Show analysis results at exit blocks (return statements) [default: enabled]"),
     cl::init(false));
 
 static cl::opt<std::string> FragmentStrategy(
@@ -337,12 +337,14 @@ int main(int argc, char** argv) {
         printEntryResult(analyzer.get(), targetFunc);
 
         // Show results for all blocks if requested
-        if (ShowAllBlocks)
+        if (ShowAllBlocks) {
             printAllBlocksResults(analyzer.get(), targetFunc);
-
-        // Show exit block results if requested
-        if (ShowExitBlocks)
+        }
+        // Show exit block results by default (triggers actual analysis), 
+        // or if explicitly requested
+        else {
             printExitBlocksResults(analyzer.get(), targetFunc);
+        }
 
         outs() << "Analysis completed successfully.\n";
 

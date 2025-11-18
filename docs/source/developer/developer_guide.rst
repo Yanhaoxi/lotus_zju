@@ -20,7 +20,7 @@ Building from Source
 
 .. code-block:: bash
 
-   git clone https://github.com/ZJU-Automated-Reasoning-Group/lotus
+   git clone https://github.com/ZJU-PL/lotus
    cd lotus
    mkdir build && cd build
    cmake ../ -DCMAKE_BUILD_TYPE=Debug
@@ -1064,8 +1064,8 @@ Resources
 - **LLVM Documentation**: https://llvm.org/docs/
 - **LLVM Programmer's Manual**: https://llvm.org/docs/ProgrammersManual.html
 - **Writing LLVM Pass**: https://llvm.org/docs/WritingAnLLVMPass.html
-- **Lotus Repository**: https://github.com/ZJU-Automated-Reasoning-Group/lotus
-- **Issue Tracker**: https://github.com/ZJU-Automated-Reasoning-Group/lotus/issues
+- **Lotus Repository**: https://github.com/ZJU-PL/lotus
+- **Issue Tracker**: https://github.com/ZJU-PL/lotus/issues
 
 Community
 ---------

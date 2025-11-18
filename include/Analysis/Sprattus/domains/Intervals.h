@@ -22,6 +22,15 @@ class Interval : public AbstractValue
     int64_t Max_ = 0;
     int64_t Min_ = 0;
 
+    /*
+     * Previous bounds remembered for widening.  They store the interval that
+     * was produced in the previous iteration so we can tell which side keeps
+     * moving.  Initialised to the extreme values so that the very first
+     * widening step behaves as a no-op.
+     */
+    int64_t PrevLower_ = std::numeric_limits<int64_t>::min();
+    int64_t PrevUpper_ = std::numeric_limits<int64_t>::max();
+
     const FunctionContext& FunctionContext_;
     RepresentedValue Value_;
     int64_t Lower_ = 0;
@@ -49,6 +58,9 @@ class Interval : public AbstractValue
         int64_t bw = fctx.sortForType(value->getType()).bv_size();
         Max_ = (1L << (bw - 1L)) - 1L;
         Min_ = (-Max_) - 1L;
+
+        PrevLower_ = Min_;
+        PrevUpper_ = Max_;
 
         assert(checkValid());
     }
@@ -99,6 +111,8 @@ class Interval : public AbstractValue
 
     virtual void resetToBottom() override;
     virtual bool isJoinableWith(const AbstractValue& other) const override;
+
+    virtual void widen() override;
 
 #ifdef ENABLE_DYNAMIC
     template <class Archive> void save(Archive& archive) const

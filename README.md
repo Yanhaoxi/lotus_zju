@@ -22,7 +22,7 @@ If you use Lotus in your research or work, please cite the following:
   title = {Lotus: A Versatile and Industrial-Scale Program Analysis Framework},
   author = {ZJU Programming Languages and Automated Reasoning Group},
   year = {2025},
-  url = {https://github.com/ZJU-Automated-Reasoning-Group/lotus},
+  url = {https://github.com/ZJU-PL/lotus},
   note = {Program analysis framework built on LLVM}
 }
 ```
@@ -40,13 +40,13 @@ Heqing Huang, Peisen Yao, Hung-Chun Chiu, Yiyuan Guo, and Charles Zhang.
 
 For a detailed list of subsystems (alias analyses, intermediate representations,
 solvers, abstract interpreters, and utilities), see the
-[Major Components Overview](https://zju-automated-reasoning-group.github.io/lotus/major_components.html)
+[Major Components Overview](https://zju-pl.github.io/lotus/major_components.html)
 section of the documentation. The docs provide links to the relevant libraries,
 command-line tools, and example usage for each component.
 
 ## Binary Tools
 
-For detailed documentation on using the binary tools, see [TOOLS.md](TOOLS.md).
+For detailed documentation on using the binary tools, see [tools](https://zju-pl.github.io/lotus/tools.html).
 
 ## Installation
 
@@ -60,7 +60,7 @@ For detailed documentation on using the binary tools, see [TOOLS.md](TOOLS.md).
 ### Build Lotus
 
 ```bash
-git clone https://github.com/ZJU-Automated-Reasoning-Group/lotus
+git clone https://github.com/ZJU-PL/lotus
 cd lotus
 mkdir build && cd build
 cmake ..

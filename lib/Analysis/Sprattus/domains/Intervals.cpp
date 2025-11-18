@@ -79,9 +79,16 @@ bool Interval::updateWith(const ConcreteState& cstate)
         Bottom_ = false;
         Lower_ = val;
         Upper_ = val;
+        // Save current bounds as previous for next widening comparison
+        PrevLower_ = Lower_;
+        PrevUpper_ = Upper_;
         assert(checkValid());
         return true;
     } else {
+        // Save current bounds before potentially changing them
+        PrevLower_ = Lower_;
+        PrevUpper_ = Upper_;
+        
         if (val < Lower_) {
             Lower_ = val;
             assert(checkValid());
@@ -92,6 +99,7 @@ bool Interval::updateWith(const ConcreteState& cstate)
             assert(checkValid());
             return true;
         }
+        // no change to bounds
         return false;
     }
 }
@@ -170,6 +178,28 @@ bool Interval::isJoinableWith(const AbstractValue& other) const
         }
     }
     return false;
+}
+
+void Interval::widen()
+{
+    if (isBottom() || isTop()) {
+        PrevLower_ = Lower_;
+        PrevUpper_ = Upper_;
+        return;
+    }
+
+    // If lower bound is still monotonically increasing (>=), keep it.
+    // Otherwise we lost precision on that side -> send it to -inf.
+    if (Lower_ < PrevLower_)
+        Lower_ = Min_;
+
+    // If upper bound is still monotonically decreasing (<=), keep it.
+    // Otherwise send to +inf.
+    if (Upper_ > PrevUpper_)
+        Upper_ = Max_;
+
+    PrevLower_ = Lower_;
+    PrevUpper_ = Upper_;
 }
 
 int64_t ThresholdInterval::getUpperThreshold(int64_t i)

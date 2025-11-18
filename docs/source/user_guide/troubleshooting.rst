@@ -813,13 +813,13 @@ Documentation
 Support Channels
 ~~~~~~~~~~~~~~~~
 
-1. **GitHub Issues**: https://github.com/ZJU-Automated-Reasoning-Group/lotus/issues
+1. **GitHub Issues**: https://github.com/ZJU-PL/lotus/issues
 
    - Bug reports
    - Feature requests
    - Help with errors
 
-2. **GitHub Discussions**: https://github.com/ZJU-Automated-Reasoning-Group/lotus/discussions
+2. **GitHub Discussions**: https://github.com/ZJU-PL/lotus/discussions
 
    - General questions
    - Best practices

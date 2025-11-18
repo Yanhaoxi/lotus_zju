@@ -17,7 +17,7 @@ Building Lotus
 
 .. code-block:: bash
 
-   git clone https://github.com/ZJU-Automated-Reasoning-Group/lotus
+   git clone https://github.com/ZJU-PL/lotus
    cd lotus
    mkdir build && cd build
    cmake ..
