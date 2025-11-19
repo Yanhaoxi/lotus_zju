@@ -5,6 +5,7 @@ set(Concurrency_SOURCES
   MemUseDefAnalysis.cpp
   EscapeAnalysis.cpp
   HappensBeforeAnalysis.cpp
+  StaticThreadSharingAnalysis.cpp
 )
 add_library(Concurrency STATIC ${Concurrency_SOURCES})
 target_link_libraries(Concurrency CanaryLLVMUtils CanaryAliasAnalysisWrapper)
