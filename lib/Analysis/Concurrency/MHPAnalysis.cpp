@@ -587,7 +587,12 @@ void MHPAnalysis::processFunction(const Function *func, ThreadID tid) {
   if (!func || func->isDeclaration())
     return;
 
-  // Avoid reprocessing the same function for this thread
+  // Context-sensitive processing:
+  // We need to process the function for *this specific thread context*.
+  // However, to avoid infinite recursion, we track (function, thread_id).
+  // Note: This is still not fully context-sensitive (doesn't distinguish call sites),
+  // but it's better than the previous global visited set.
+  
   auto &visited = m_visited_functions_by_thread[tid];
   if (visited.find(func) != visited.end()) {
     return;
@@ -596,6 +601,12 @@ void MHPAnalysis::processFunction(const Function *func, ThreadID tid) {
 
   SyncNode *prev_node = nullptr;
   SyncNode *entry_node = nullptr;
+  
+  // If this is the entry function for the thread, we might have an existing entry node
+  if (m_tfg->getThreadEntry(tid) == func) {
+      entry_node = m_tfg->getThreadEntryNode(tid);
+      prev_node = entry_node;
+  }
 
   for (const BasicBlock &bb : *func) {
     for (const Instruction &inst : bb) {
@@ -652,14 +663,16 @@ void MHPAnalysis::processFunction(const Function *func, ThreadID tid) {
 
       if (!entry_node) {
         entry_node = node;
-        m_tfg->setThreadEntryNode(tid, entry_node);
+        if (m_tfg->getThreadEntry(tid) == func) {
+             m_tfg->setThreadEntryNode(tid, entry_node);
+        }
       }
 
       prev_node = node;
     }
   }
 
-  if (prev_node) {
+  if (prev_node && m_tfg->getThreadEntry(tid) == func) {
     m_tfg->setThreadExitNode(tid, prev_node);
   }
 }
@@ -675,6 +688,33 @@ void MHPAnalysis::handleThreadFork(const Instruction *fork_inst,
   // Allocate new thread ID
   ThreadID new_tid = allocateThreadID();
   ThreadID parent_tid = getThreadID(fork_inst);
+  
+  // Check if this fork site is inside a loop or part of recursion
+  const Function *func = fork_inst->getFunction();
+  const DominatorTree &DT = getDomTree(func);
+  
+  // Simple loop detection: check if fork_inst is in a loop
+  // We use a basic check: is there a backedge to a block that dominates fork_inst?
+  bool in_loop = false;
+  const BasicBlock *fork_bb = fork_inst->getParent();
+  
+  // Check for natural loops using dominance
+  for (const BasicBlock &bb : *func) {
+    for (const BasicBlock *succ : successors(&bb)) {
+      if (DT.dominates(succ, &bb)) { // Backedge found
+        // Check if this loop contains our fork_inst
+        if (DT.dominates(succ, fork_bb) && DT.dominates(fork_bb, &bb)) {
+           in_loop = true;
+           break;
+        }
+      }
+    }
+    if (in_loop) break;
+  }
+  
+  if (in_loop) {
+    m_multi_instance_threads.insert(new_tid);
+  }
   
   node->setForkedThread(new_tid);
 
@@ -1038,7 +1078,21 @@ bool MHPAnalysis::hasHappenBeforeRelation(const Instruction *i1,
 
 bool MHPAnalysis::isInSameThread(const Instruction *i1,
                                   const Instruction *i2) const {
-  return getThreadID(i1) == getThreadID(i2);
+  ThreadID t1 = getThreadID(i1);
+  ThreadID t2 = getThreadID(i2);
+  
+  if (t1 != t2) {
+    return false;
+  }
+  
+  // If they are in the same thread, we must check if this thread
+  // can have multiple active instances (e.g., created in a loop).
+  // If so, two instructions from the "same" static thread can run in parallel.
+  if (m_multi_instance_threads.count(t1)) {
+    return false; // Treat as potentially parallel
+  }
+  
+  return true;
 }
 
 bool MHPAnalysis::isOrderedByLocks(const Instruction *i1,
@@ -1124,54 +1178,13 @@ bool MHPAnalysis::isOrderedByForkJoin(const Instruction *i1,
   return false;
 }
 
-bool MHPAnalysis::isOrderedByCondVar(const Instruction *i1,
-                                       const Instruction *i2) const {
-  // Check if i1 and i2 are ordered by condition variable synchronization
-  // Happens-before: signal/broadcast happens-before the corresponding wait wake-up
-  
-  // Check if i1 is a signal and i2 is a wait on the same condition variable
-  if (m_thread_api->isTDCondSignal(i1) || m_thread_api->isTDCondBroadcast(i1)) {
-    if (m_thread_api->isTDCondWait(i2)) {
-      const Value *cond1 = m_thread_api->getCondVal(i1);
-      const Value *cond2 = m_thread_api->getCondVal(i2);
-      
-      // If they're on the same condition variable, there's a potential happens-before
-      // Conservative: assume signal happens-before any wait on same condvar
-      if (cond1 == cond2) {
-        return true;
-      }
-    }
-  }
-  
-  // Check graph edges for condition variable synchronization
-  SyncNode *node1 = m_tfg->getNode(i1);
-  SyncNode *node2 = m_tfg->getNode(i2);
-  
-  if (node1 && node2) {
-    // Check if there's a path from node1 to node2 in the TFG
-    // This would indicate a happens-before relation established during construction
-    std::unordered_set<const SyncNode *> visited;
-    std::deque<const SyncNode *> worklist;
-    worklist.push_back(node1);
-    visited.insert(node1);
-    
-    while (!worklist.empty()) {
-      const SyncNode *current = worklist.front();
-      worklist.pop_front();
-      
-      if (current == node2) {
-        return true;
-      }
-      
-      for (const SyncNode *succ : current->getSuccessors()) {
-        if (visited.find(succ) == visited.end()) {
-          visited.insert(succ);
-          worklist.push_back(succ);
-        }
-      }
-    }
-  }
-  
+bool MHPAnalysis::isOrderedByCondVar(const Instruction * /*i1*/,
+                                       const Instruction * /*i2*/) const {
+  // Condition variables do not impose a strict happens-before relation
+  // that prevents parallel execution in a general sense.
+  // A signal MIGHT happen before a wait returns, but the wait might also
+  // not have happened yet, or the signal might be lost.
+  // For MHP, we must be conservative.
   return false;
 }
 

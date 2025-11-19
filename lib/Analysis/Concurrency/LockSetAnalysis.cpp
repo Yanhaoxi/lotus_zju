@@ -83,7 +83,12 @@ LockSet LockSetAnalysis::getMustLockSetAt(const Instruction *inst) const {
 
 bool LockSetAnalysis::mayHoldLock(const Instruction *inst, LockID lock) const {
   auto lockset = getMayLockSetAt(inst);
-  return lockset.find(lock) != lockset.end();
+  for (auto held_lock : lockset) {
+    if (mayAlias(lock, held_lock)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 bool LockSetAnalysis::mustHoldLock(const Instruction *inst, LockID lock) const {
@@ -696,7 +701,7 @@ bool LockSetAnalysis::mayAlias(LockID lock1, LockID lock2) const {
   }
 
   // Conservative: assume may alias if no analysis available
-  return false;
+  return true;
 }
 
 LockID LockSetAnalysis::getCanonicalLock(LockID lock) const {
@@ -759,78 +764,78 @@ void LockSetAnalysis::computeFunctionSummary(Function *func) {
   
   auto &summary = m_function_summaries[func];
   if (summary.is_analyzed) {
-    return; // Already computed
+    return;
   }
   
   errs() << "Computing summary for function: " << func->getName() << "\n";
   
-  // Clear previous summary
+  // Run intraprocedural analysis to get flow-sensitive results
+  computeIntraproceduralLockSets(func);
+  
   summary.may_acquire.clear();
-  summary.may_release.clear();
   summary.must_acquire.clear();
+  summary.may_release.clear();
   summary.must_release.clear();
   
-  // Analyze all instructions in the function
-  for (inst_iterator I = inst_begin(func), E = inst_end(func); I != E; ++I) {
-    Instruction *inst = &*I;
+  // Collect return instructions
+  std::vector<const ReturnInst *> returns;
+  for (const BasicBlock &bb : *func) {
+    if (const ReturnInst *ret = dyn_cast<ReturnInst>(bb.getTerminator())) {
+      returns.push_back(ret);
+    }
+  }
+  
+  if (!returns.empty()) {
+    // Compute must_acquire (Intersection of exit sets)
+    auto it = m_must_locksets_exit.find(returns[0]);
+    if (it != m_must_locksets_exit.end()) {
+      summary.must_acquire = it->second;
+    }
     
-    // Check for lock acquire operations
-    if (m_thread_api->isTDAcquire(inst)) {
-      LockID lock = getLockValue(inst);
-      if (lock) {
-        summary.may_acquire.insert(lock);
-        
-        // For must-analysis, we need flow-sensitive analysis
-        // For now, conservatively assume must_acquire is subset of may_acquire
-        // A lock is must-acquired if it's on all paths
-        summary.must_acquire.insert(lock);
+    for (size_t i = 1; i < returns.size(); ++i) {
+      auto it = m_must_locksets_exit.find(returns[i]);
+      if (it != m_must_locksets_exit.end()) {
+        LockSet intersection;
+        std::set_intersection(summary.must_acquire.begin(), summary.must_acquire.end(),
+                              it->second.begin(), it->second.end(),
+                              std::inserter(intersection, intersection.begin()));
+        summary.must_acquire = intersection;
+      } else {
+        summary.must_acquire.clear();
       }
     }
     
-    // Check for lock release operations
-    if (m_thread_api->isTDRelease(inst)) {
-      LockID lock = getLockValue(inst);
-      if (lock) {
-        summary.may_release.insert(lock);
-        summary.must_release.insert(lock);
-      }
-    }
-    
-    // Handle calls to other functions
-    if (CallInst *call = dyn_cast<CallInst>(inst)) {
-      if (!m_thread_api->isTDAcquire(call) && !m_thread_api->isTDRelease(call)) {
-        auto callees = getCallees(call);
-        for (Function *callee : callees) {
-          if (callee && !callee->isDeclaration()) {
-            // Recursively compute callee summary first
-            computeFunctionSummary(callee);
-            
-            auto &callee_summary = m_function_summaries[callee];
-            
-            // Merge callee's effects into caller's summary
-            summary.may_acquire.insert(callee_summary.may_acquire.begin(),
-                                       callee_summary.may_acquire.end());
-            summary.may_release.insert(callee_summary.may_release.begin(),
-                                       callee_summary.may_release.end());
-            
-            // For must-analysis, be conservative with transitive calls
-            // Only propagate if this is the only path
-            if (callees.size() == 1) {
-              summary.must_acquire.insert(callee_summary.must_acquire.begin(),
-                                          callee_summary.must_acquire.end());
-              summary.must_release.insert(callee_summary.must_release.begin(),
-                                          callee_summary.must_release.end());
-            }
-          }
-        }
+    // Compute may_acquire (Union of exit sets)
+    for (const auto *ret : returns) {
+      auto it = m_may_locksets_exit.find(ret);
+      if (it != m_may_locksets_exit.end()) {
+        summary.may_acquire.insert(it->second.begin(), it->second.end());
       }
     }
   }
   
+  // Handle releases
+  // summary.must_release (used to update caller's must_locks) should contain MayReleased locks
+  // summary.may_release (used to update caller's may_locks) should contain MustReleased locks
+  
+  // We scan for all releases to populate summary.must_release (MayReleased)
+  for (inst_iterator I = inst_begin(func), E = inst_end(func); I != E; ++I) {
+    Instruction *inst = &*I;
+    if (m_thread_api->isTDRelease(inst)) {
+      LockID lock = getLockValue(inst);
+      if (lock) {
+        summary.must_release.insert(lock);
+      }
+    }
+  }
+  
+  // We leave summary.may_release empty (MustReleased) as we can't compute it safely
+  // This is safe for may-analysis (we won't remove locks that might still be held)
+  
   summary.is_analyzed = true;
   
-  errs() << "  May acquire: " << summary.may_acquire.size() << " locks\n";
-  errs() << "  May release: " << summary.may_release.size() << " locks\n";
+  errs() << "  May acquire (at exit): " << summary.may_acquire.size() << " locks\n";
+  errs() << "  Must acquire (at exit): " << summary.must_acquire.size() << " locks\n";
 }
 
 void LockSetAnalysis::applyFunctionSummary(const CallInst *call,

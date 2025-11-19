@@ -1,3 +1,7 @@
+/*
+Taken from Seahorn  
+(We have a duplicte on in lib/Apps/seahorn/Analysis/WeakTopologicalOrder.hh)
+*/
 #ifndef __WEAK_TOPOLOGICAL_ORDER__HH_
 #define __WEAK_TOPOLOGICAL_ORDER__HH_
 

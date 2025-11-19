@@ -3,6 +3,8 @@ set(Concurrency_SOURCES
   LockSetAnalysis.cpp
   MHPAnalysis.cpp
   MemUseDefAnalysis.cpp
+  EscapeAnalysis.cpp
+  HappensBeforeAnalysis.cpp
 )
 add_library(Concurrency STATIC ${Concurrency_SOURCES})
 target_link_libraries(Concurrency CanaryLLVMUtils CanaryAliasAnalysisWrapper)

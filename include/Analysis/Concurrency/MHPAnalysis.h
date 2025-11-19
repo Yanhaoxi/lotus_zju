@@ -407,6 +407,9 @@ private:
   // Thread ID allocation
   ThreadID m_next_thread_id = 1; // 0 is reserved for main thread
 
+  // Multi-instance thread tracking
+  std::unordered_set<ThreadID> m_multi_instance_threads;
+
   // Fork-join tracking
   std::unordered_map<ThreadID, const llvm::Instruction *>
       m_thread_fork_sites;                                   // Thread -> fork instruction
