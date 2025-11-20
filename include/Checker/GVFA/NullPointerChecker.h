@@ -34,11 +34,6 @@ public:
                             const Value *Sink,
                             const std::set<const Value *> *SinkInsts) override;
     
-    /// High-level detection method
-    int detectAndReport(Module *M, DyckGlobalValueFlowAnalysis *GVFA,
-                       bool contextSensitive = false, 
-                       bool verbose = false) override;
-    
     /// Set NullCheckAnalysis to improve precision
     void setNullCheckAnalysis(NullCheckAnalysis *NCA) { this->NCA = NCA; }
     

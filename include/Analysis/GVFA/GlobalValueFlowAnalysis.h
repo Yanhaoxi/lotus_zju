@@ -24,6 +24,10 @@ using namespace llvm;
 // Forward declaration to avoid circular dependency
 class GVFAVulnerabilityChecker;
 
+namespace gvfa {
+    class GVFAEngine;
+}
+
 // Vulnerability source/sink types
 using ValueSitePairType = std::pair<const Value *, int>;
 using VulnerabilitySourcesType = std::map<ValueSitePairType, int>;
@@ -41,18 +45,6 @@ public:
     long SnapshotedOnlineTime = 0;
 
 private:
-    // Reachability maps
-    std::unordered_map<const Value *, int> ReachabilityMap;
-    std::unordered_map<const Value *, int> BackwardReachabilityMap;
-    
-    // All-pairs reachability maps
-    std::unordered_map<const Value *, std::unordered_set<const Value *>> AllReachabilityMap;
-    std::unordered_map<const Value *, std::unordered_set<const Value *>> AllBackwardReachabilityMap;
-    
-    // Call site indexing
-    std::unordered_map<const CallInst *, int> CallSiteIndexMap;
-    std::unordered_map<std::pair<const CallInst *, const Function *>, int> CallSiteCalleePairIndexMap;
-    
     // Core components
     DyckVFG *VFG = nullptr;
     DyckAliasAnalysis *DyckAA = nullptr;
@@ -66,6 +58,9 @@ private:
     
     // Vulnerability checker
     std::unique_ptr<GVFAVulnerabilityChecker> VulnChecker;
+
+    // Analysis Engine
+    std::unique_ptr<gvfa::GVFAEngine> Engine;
 
 public:
     DyckGlobalValueFlowAnalysis(Module *M, DyckVFG *VFG, DyckAliasAnalysis *DyckAA, 
@@ -98,37 +93,12 @@ public:
     GVFAVulnerabilityChecker* getVulnerabilityChecker() const { return VulnChecker.get(); }
 
 private:
-    // Analysis algorithms
-    void optimizedRun();
-    void detailedRun();
-    void optimizedForwardRun(std::vector<std::pair<const Value *, int>> &Sources);
-    void detailedForwardRun(std::vector<std::pair<const Value *, int>> &Sources);
-    void optimizedBackwardRun();
-    void detailedBackwardRun();
-    void extendSources(std::vector<std::pair<const Value *, int>> &Sources);
-    
-    // Reachability algorithms
-    void forwardReachability(const Value *Node, int Mask);
-    void backwardReachability(const Value *Node);
-    void detailedForwardReachability(const Value *Node, const Value *Src);
-    void detailedBackwardReachability(const Value *Node, const Value *Sink);
+    // Online reachability helpers
     bool onlineReachability(const Value *Target);
     bool onlineForwardReachability(const Value *Node, std::unordered_set<const Value *> &visited);
     bool onlineBackwardReachability(const Value *Node, const Value *Target, std::unordered_set<const Value *> &visited);
     
-    // Helper functions
-    int count(const Value *V, int Mask);
-    bool count(const Value *V);
-    int backwardCount(const Value *V);
-    bool allCount(const Value *V, const Value *Src);
-    bool allBackwardCount(const Value *V, const Value *Sink);
-    int getCallSiteID(const CallInst *CI);
-    int getCallSiteID(const CallInst *CI, const Function *Callee);
-    void processCallSite(const CallInst *CI, const Value *Node, int Mask, std::queue<std::pair<const Value *, int>> &WorkQueue);
-    void processReturnSite(const ReturnInst *RI, const Value *Node, int Mask, std::queue<std::pair<const Value *, int>> &WorkQueue);
-    bool isValueFlowEdge(const Value *From, const Value *To) const;
-    std::vector<const Value *> getSuccessors(const Value *V) const;
-    std::vector<const Value *> getPredecessors(const Value *V) const;
+    // CFL helpers
     void initializeCFLAnalyzer();
     bool performCFLReachabilityQuery(const Value *From, const Value *To, bool Forward) const;
     bool cflReachabilityQuery(const Value *From, const Value *To, bool Forward) const;

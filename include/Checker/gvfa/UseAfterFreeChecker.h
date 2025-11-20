@@ -24,11 +24,6 @@ public:
     void reportVulnerability(int bugTypeId, const Value *Source, 
                             const Value *Sink,
                             const std::set<const Value *> *SinkInsts) override;
-    
-    /// High-level detection method
-    int detectAndReport(Module *M, DyckGlobalValueFlowAnalysis *GVFA,
-                       bool contextSensitive = false, 
-                       bool verbose = false) override;
 };
 
 #endif // CHECKER_GVFA_USEAFTERFREECHECKER_H

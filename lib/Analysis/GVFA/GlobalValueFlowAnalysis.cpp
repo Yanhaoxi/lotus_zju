@@ -2,8 +2,8 @@
  * @file GlobalValueFlowAnalysis.cpp
  * @brief Global Value Flow Analysis using Dyck VFG
  *
- * Tracks data flow from vulnerability sources to sinks with optimized
- * and detailed analysis modes, plus context-sensitive CFL reachability.
+ * Tracks data flow from vulnerability sources to sinks with optimized (fast)
+ * and detailed (precise) analysis modes, plus context-sensitive CFL reachability.
  */
 
 #include <llvm/IR/Argument.h>
@@ -15,12 +15,14 @@
 
 
 #include "Analysis/GVFA/GlobalValueFlowAnalysis.h"
-#include "Analysis/GVFA/ReachabilityAlgorithms.h"
 #include "Analysis/GVFA/GVFAUtils.h"
+#include "Analysis/GVFA/FastGVFAEngine.h"
+#include "Analysis/GVFA/PreciseGVFAEngine.h"
 #include "Utils/LLVM/RecursiveTimer.h"
 #include "Checker/GVFA/GVFAVulnerabilityChecker.h"
 
 using namespace llvm;
+using namespace gvfa;
 
 #define DEBUG_TYPE "dyck-gvfa"
 
@@ -29,8 +31,8 @@ static cl::opt<bool> EnableOnlineQuery("enable-online-query",
                                        cl::desc("enable online query"),
                                        cl::init(false));
 
-static cl::opt<bool> EnableOptVFA("enable-opt-vfa",
-                                 cl::desc("enable optimized value flow analysis"),
+static cl::opt<bool> EnableFastVFA("enable-fast-vfa",
+                                 cl::desc("enable fast (bit-vector) value flow analysis"),
                                  cl::init(true), cl::ReallyHidden);
 
 // Mutex for thread-safe online query timing
@@ -79,283 +81,9 @@ void DyckGlobalValueFlowAnalysis::printOnlineQueryTime(llvm::raw_ostream &O, con
 }
 
 //===----------------------------------------------------------------------===//
-// Reachability tracking
-//===----------------------------------------------------------------------===//
-
-// Count reachability with bit mask
-
-int DyckGlobalValueFlowAnalysis::count(const Value *V, int Mask) {
-    auto It = ReachabilityMap.find(V);
-    if (It != ReachabilityMap.end()) {
-        return Mask & ~(Mask & It->second);
-    } else {
-        ReachabilityMap[V] = 0;
-        return Mask;
-    }
-}
-
-// Check if value counted
-
-bool DyckGlobalValueFlowAnalysis::count(const Value *V) {
-    auto It = ReachabilityMap.find(V);
-    if (It != ReachabilityMap.end()) {
-        return true;
-    } else {
-        ReachabilityMap[V] = 1;
-        return false;
-    }
-}
-
-
-// Count backward reachability
-
-int DyckGlobalValueFlowAnalysis::backwardCount(const Value *V) {
-    auto It = BackwardReachabilityMap.find(V);
-    if (It != BackwardReachabilityMap.end()) {
-        return It->second;
-    } else {
-        BackwardReachabilityMap[V] = 1;
-        return 0;
-    }
-}
-
-
-// Track all-pairs reachability
-
-bool DyckGlobalValueFlowAnalysis::allCount(const Value *V, const Value *Src) {
-    auto &Set = AllReachabilityMap[V];
-    if (Set.count(Src)) {
-        return true;
-    } else {
-        Set.insert(Src);
-        return false;
-    }
-}
-
-
-// Track all-pairs backward reachability
-
-bool DyckGlobalValueFlowAnalysis::allBackwardCount(const Value *V, const Value *Sink) {
-    auto &Set = AllBackwardReachabilityMap[V];
-    if (Set.count(Sink)) {
-        return true;
-    } else {
-        Set.insert(Sink);
-        return false;
-    }
-}
-
-
-//===----------------------------------------------------------------------===//
-// Query interfaces
-//===----------------------------------------------------------------------===//
-
-// Check reachability with mask
-
-int DyckGlobalValueFlowAnalysis::reachable(const Value *V, int Mask) {
-    AllQueryCounter++;
-    TIME_ONLINE_QUERY(onlineReachability(V) ? 1 : 0);
-    
-    auto It = ReachabilityMap.find(V);
-    int UncoveredMask = (It != ReachabilityMap.end()) ? (Mask & ~(Mask & It->second)) : Mask;
-    if (!UncoveredMask) SuccsQueryCounter++;
-    return Mask & ~UncoveredMask;
-}
-
-// Check source reachability
-
-bool DyckGlobalValueFlowAnalysis::srcReachable(const Value *V, const Value *Src) const {
-    auto It = AllReachabilityMap.find(V);
-    return (It != AllReachabilityMap.end()) && It->second.count(Src);
-}
-
-// Check backward reachability
-
-bool DyckGlobalValueFlowAnalysis::backwardReachable(const Value *V) {
-    if (Sinks.empty()) return true;
-    AllQueryCounter++;
-    TIME_ONLINE_QUERY(onlineReachability(V));
-    
-    auto It = BackwardReachabilityMap.find(V);
-    if (It == BackwardReachabilityMap.end() || It->second == 0) {
-        SuccsQueryCounter++;
-        return false;
-    }
-    return true;
-}
-
-// Check sink reachability
-
-bool DyckGlobalValueFlowAnalysis::backwardReachableSink(const Value *V) {
-    AllQueryCounter++;
-    TIME_ONLINE_QUERY(onlineReachability(V));
-    
-    auto It = AllBackwardReachabilityMap.find(V);
-    if (It != AllBackwardReachabilityMap.end() && !It->second.empty()) {
-        return true;
-    }
-    SuccsQueryCounter++;
-    return false;
-}
-
-// Check all sinks reachability
-
-bool DyckGlobalValueFlowAnalysis::backwardReachableAllSinks(const Value *V) {
-    auto It = AllBackwardReachabilityMap.find(V);
-    if (It == AllBackwardReachabilityMap.end()) {
-        return false;
-    }
-    if (It->second.size() != Sinks.size()) {
-        return false;
-    }
-    return true;
-}
-
-//===----------------------------------------------------------------------===//
-// VFG navigation helpers - delegating to utility functions
-//===----------------------------------------------------------------------===//
-
-std::vector<const Value *> DyckGlobalValueFlowAnalysis::getSuccessors(const Value *V) const {
-    return GVFAUtils::getSuccessors(V, VFG);
-}
-
-std::vector<const Value *> DyckGlobalValueFlowAnalysis::getPredecessors(const Value *V) const {
-    return GVFAUtils::getPredecessors(V, VFG);
-}
-
-bool DyckGlobalValueFlowAnalysis::isValueFlowEdge(const Value *From, const Value *To) const {
-    return GVFAUtils::isValueFlowEdge(From, To, VFG);
-}
-
-//===----------------------------------------------------------------------===//
-// Call site management - delegating to utility functions
-//===----------------------------------------------------------------------===//
-
-int DyckGlobalValueFlowAnalysis::getCallSiteID(const CallInst *CI) {
-    return GVFAUtils::getCallSiteID(CI, CallSiteIndexMap);
-}
-
-int DyckGlobalValueFlowAnalysis::getCallSiteID(const CallInst *CI, const Function *Callee) {
-    return GVFAUtils::getCallSiteID(CI, Callee, CallSiteCalleePairIndexMap);
-}
-
-//===----------------------------------------------------------------------===//
-// Source extension using alias analysis - optimized with iterative approach
-//===----------------------------------------------------------------------===//
-
-/**
- * Extends the source set using alias analysis information.
- *
- * This function uses alias analysis to find additional sources that may
- * alias with the current sources. It processes function arguments, return
- * values, and follows VFG predecessors to build a comprehensive source set.
- *
- * NOTE: this can increas the false positives, if the alias analysis is not precise.
- * @param Sources The vector of source-value pairs to extend
- */
-void DyckGlobalValueFlowAnalysis::extendSources(std::vector<std::pair<const Value *, int>> &Sources) {
-    std::unordered_map<const Value *, int> NewSrcMap;
-    std::queue<std::pair<const Value *, int>> WorkQueue;
-    
-    // Initialize work queue with current sources
-    for (const auto &Source : Sources) {
-        WorkQueue.push(Source);
-        NewSrcMap[Source.first] = Source.second;
-    }
-    
-    Sources.clear();
-    
-    auto count_lambda = [&NewSrcMap, this](const Value *V, int Mask) -> int {
-        int Uncovered = 0;
-        
-        auto It = NewSrcMap.find(V);
-        if (It != NewSrcMap.end()) {
-            Uncovered = Mask & ~(Mask & It->second);
-        } else {
-            NewSrcMap[V] = 0;
-            Uncovered = Mask;
-        }
-        return this->count(V, Uncovered);
-    };
-    
-    // Process work queue iteratively
-    while (!WorkQueue.empty()) {
-        auto front = WorkQueue.front();
-        const Value *CurrentValue = front.first;
-        int CurrentMask = front.second;
-        WorkQueue.pop();
-        
-        if (count_lambda(CurrentValue, CurrentMask) == 0) {
-            continue;
-        }
-        
-        NewSrcMap[CurrentValue] |= CurrentMask;
-        
-        // Process function arguments and returns
-        if (auto *Arg = dyn_cast<Argument>(CurrentValue)) {
-            const Function *F = Arg->getParent();
-            
-            // Find call sites that call this function
-            for (auto *User : F->users()) {
-                if (auto *CI = dyn_cast<CallInst>(User)) {
-                    if (CI->getCalledFunction() == F) {
-                        unsigned ArgIdx = Arg->getArgNo();
-                        if (ArgIdx < CI->arg_size()) {
-                            auto *ActualArg = CI->getArgOperand(ArgIdx);
-                            if (int UncoveredMask = count_lambda(ActualArg, CurrentMask)) {
-                                WorkQueue.emplace(ActualArg, UncoveredMask);
-                            }
-                        }
-                    }
-                }
-            }
-        } else if (auto *CI = dyn_cast<CallInst>(CurrentValue)) {
-            // Handle return values
-            if (auto *F = CI->getCalledFunction()) {
-                for (auto &BB : *F) {
-                    for (auto &I : BB) {
-                        if (auto *RI = dyn_cast<ReturnInst>(&I)) {
-                            if (RI->getReturnValue()) {
-                                if (int UncoveredMask = count_lambda(RI->getReturnValue(), CurrentMask)) {
-                                    WorkQueue.emplace(RI->getReturnValue(), UncoveredMask);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } else {
-            // Follow VFG predecessors
-            if (auto *Node = VFG->getVFGNode(const_cast<Value *>(CurrentValue))) {
-                for (auto It = Node->in_begin(); It != Node->in_end(); ++It) {
-                    auto *Pred = It->first->getValue();
-                    if (int UncoveredMask = count_lambda(Pred, CurrentMask)) {
-                        WorkQueue.emplace(Pred, UncoveredMask);
-                    }
-                }
-            }
-        }
-    }
-    
-    // Re-init sources using NewSrcMap
-    for (auto &It : NewSrcMap) {
-        if (It.second) {
-            Sources.emplace_back(It.first, It.second);
-        }
-    }
-}
-
-//===----------------------------------------------------------------------===//
 // Main analysis entry point
 //===----------------------------------------------------------------------===//
 
-/**
- * Runs the global value flow analysis.
- *
- * This is the main entry point that orchestrates the entire analysis process.
- * It retrieves sources and sinks from the vulnerability checker, then runs
- * either the optimized or detailed analysis based on configuration.
- */
 void DyckGlobalValueFlowAnalysis::run() {
     if (!VulnChecker) {
         errs() << "Warning: No vulnerability checker set\n";
@@ -380,145 +108,230 @@ void DyckGlobalValueFlowAnalysis::run() {
     outs() << "#Sources: " << SourcesVec.size() << "\n";
     outs() << "#Sinks: " << Sinks.size() << "\n";
     
-    if (EnableOptVFA.getValue()) {
-        optimizedRun();
+    if (EnableFastVFA.getValue()) {
+        Engine = std::make_unique<FastGVFAEngine>(M, VFG, DyckAA, DyckMRA, SourcesVec, Sinks);
     } else {
-        detailedRun();
-    }
-}
-
-/**
- * Runs the optimized version of the analysis.
- *
- * This version uses bit-masked reachability tracking for better performance
- * at the cost of less detailed information. It processes sources iteratively
- * and maintains separate forward and backward reachability maps.
- */
-void DyckGlobalValueFlowAnalysis::optimizedRun() {
-    RecursiveTimer Timer("DyckGVFA-Optimized");
-    
-    ReachabilityMap.clear();
-    while (!SourcesVec.empty()) {
-        LLVM_DEBUG(dbgs() << "[DEBUG] SrcVecSzBeforeExtend: " << SourcesVec.size() << "\n");
-        extendSources(SourcesVec);
-        LLVM_DEBUG(dbgs() << "[DEBUG] SrcVecSzAfterExtend: " << SourcesVec.size() << "\n");
-        optimizedForwardRun(SourcesVec);
+        Engine = std::make_unique<PreciseGVFAEngine>(M, VFG, DyckAA, DyckMRA, SourcesVec, Sinks);
     }
     
-    LLVM_DEBUG({
-        unsigned I = 0; 
-        for (auto &It : ReachabilityMap) {
-            if (It.second) ++I;
-        } 
-        dbgs() << "[DEBUG] ReachableNodesSz: " << I << "\n";
-    });
-    
-    outs() << "[Opt-Indexing FW] Map Size: " << ReachabilityMap.size() << "\n";
-    
-    BackwardReachabilityMap.clear();
-    optimizedBackwardRun();
-    
-    outs() << "[Opt-Indexing BW] Map Size: " << BackwardReachabilityMap.size() << "\n";
-}
-
-/**
- * Runs the detailed version of the analysis.
- *
- * This version maintains detailed all-pairs reachability information,
- * providing complete source-to-sink mappings at the cost of higher
- * memory usage and computation time.
- */
-void DyckGlobalValueFlowAnalysis::detailedRun() {
-    RecursiveTimer Timer("DyckGVFA-Detailed");
-    
-    AllReachabilityMap.clear();
-    while (!SourcesVec.empty()) {
-        LLVM_DEBUG(dbgs() << "[DEBUG] SrcVecSzBeforeExtend: " << SourcesVec.size() << "\n");
-        extendSources(SourcesVec);
-        LLVM_DEBUG(dbgs() << "[DEBUG] SrcVecSzAfterExtend: " << SourcesVec.size() << "\n");
-        detailedForwardRun(SourcesVec);
-    }
-    
-    outs() << "[Indexing FW] Map Size: " << AllReachabilityMap.size() << "\n";
-    
-    AllBackwardReachabilityMap.clear();
-        detailedBackwardRun();
-    
-    outs() << "[Indexing BW] Map Size: " << AllBackwardReachabilityMap.size() << "\n";
+    Engine->run();
 }
 
 //===----------------------------------------------------------------------===//
-// Forward analysis
+// Query interfaces
 //===----------------------------------------------------------------------===//
 
-/**
- * Runs the optimized forward analysis.
- *
- * @param Sources The vector of source-value pairs to analyze
- */
-void DyckGlobalValueFlowAnalysis::optimizedForwardRun(std::vector<std::pair<const Value *, int>> &Sources) {
-    auto SourceList = std::move(Sources);
-    for (const auto &Src : SourceList) {
-        forwardReachability(Src.first, Src.second);
+int DyckGlobalValueFlowAnalysis::reachable(const Value *V, int Mask) {
+    AllQueryCounter++;
+    TIME_ONLINE_QUERY(onlineReachability(V) ? 1 : 0);
+    
+    if (Engine) {
+        int res = Engine->reachable(V, Mask);
+        if (res) SuccsQueryCounter++;
+        return res;
     }
+    return 0;
 }
 
-/**
- * Runs the detailed forward analysis.
- *
- * @param Sources The vector of source-value pairs to analyze
- */
-void DyckGlobalValueFlowAnalysis::detailedForwardRun(std::vector<std::pair<const Value *, int>> &Sources) {
-    auto SourceList = std::move(Sources);
-    for (const auto &Src : SourceList) {
-        detailedForwardReachability(Src.first, Src.first);
+bool DyckGlobalValueFlowAnalysis::srcReachable(const Value *V, const Value *Src) const {
+    if (Engine) {
+        return Engine->srcReachable(V, Src);
     }
+    return false;
 }
 
-//===----------------------------------------------------------------------===//
-// Backward analysis  
-//===----------------------------------------------------------------------===//
-
-/**
- * Runs the optimized backward analysis.
- *
- * This function performs backward reachability analysis from all sinks
- * to identify values that can reach the sinks.
- */
-void DyckGlobalValueFlowAnalysis::optimizedBackwardRun() {
-    for (const auto &Sink : Sinks) {
-        backwardReachability(Sink.first);
+bool DyckGlobalValueFlowAnalysis::backwardReachable(const Value *V) {
+    if (Sinks.empty()) return true;
+    AllQueryCounter++;
+    TIME_ONLINE_QUERY(onlineReachability(V));
+    
+    if (Engine) {
+        bool res = Engine->backwardReachable(V);
+        if (res) SuccsQueryCounter++;
+        return res;
     }
+    return false;
 }
 
-/**
- * Runs the detailed backward analysis.
- *
- * This function performs detailed backward reachability analysis maintaining
- * complete sink-to-source mappings.
- */
-void DyckGlobalValueFlowAnalysis::detailedBackwardRun() {
-    for (const auto &Sink : Sinks) {
-        detailedBackwardReachability(Sink.first, Sink.first);
+bool DyckGlobalValueFlowAnalysis::backwardReachableSink(const Value *V) {
+    AllQueryCounter++;
+    TIME_ONLINE_QUERY(onlineReachability(V));
+    
+    if (Engine) {
+        bool res = Engine->backwardReachableSink(V);
+        if (res) SuccsQueryCounter++;
+        return res;
     }
+    return false;
+}
+
+bool DyckGlobalValueFlowAnalysis::backwardReachableAllSinks(const Value *V) {
+    if (Engine) {
+        return Engine->backwardReachableAllSinks(V);
+    }
+    return false;
 }
 
 std::vector<const Value *> DyckGlobalValueFlowAnalysis::getWitnessPath(
     const Value *From, const Value *To) const {
+    if (Engine) {
+        return Engine->getWitnessPath(From, To);
+    }
+    return {};
+}
+
+//===----------------------------------------------------------------------===//
+// Online queries (Copied from ReachabilityAlgorithms.cpp)
+//===----------------------------------------------------------------------===//
+
+bool DyckGlobalValueFlowAnalysis::onlineReachability(const Value *Target) {
+    for (const auto &Sink : Sinks) {
+        std::unordered_set<const Value *> visited;
+        if (onlineBackwardReachability(Sink.first, Target, visited)) return true;
+    }
+    return false;
+}
+
+bool DyckGlobalValueFlowAnalysis::onlineForwardReachability(const Value *V, 
+                                                      std::unordered_set<const Value *> &visited) {
+    std::queue<const Value *> WorkQueue;
+    WorkQueue.push(V);
     
-    // In detailed mode, use AllReachabilityMap to guide the search
-    // This avoids exploring paths that don't connect the source to target
-    if (!AllReachabilityMap.empty()) {
-        // Check if target is reachable from source
-        auto It = AllReachabilityMap.find(To);
-        if (It == AllReachabilityMap.end() || !It->second.count(From)) {
-            return {}; // Not reachable in detailed map
-        }
+    while (!WorkQueue.empty()) {
+        const Value *CurrentValue = WorkQueue.front();
+        WorkQueue.pop();
         
-        // Use guided BFS: only follow edges through values reachable from source
-        return GVFAUtils::getWitnessPathGuided(From, To, VFG, AllReachabilityMap);
+        if (!visited.insert(CurrentValue).second) continue;
+        
+        if (Sinks.count(CurrentValue)) return true;
+        
+        if (auto *Node = VFG->getVFGNode(const_cast<Value *>(CurrentValue))) {
+            for (auto It = Node->begin(); It != Node->end(); ++It) {
+                auto *Succ = It->first->getValue();
+                if (visited.find(Succ) == visited.end()) {
+                    WorkQueue.push(Succ);
+                }
+            }
+        }
     }
     
-    // In optimized mode, fall back to regular BFS
-    return GVFAUtils::getWitnessPath(From, To, VFG);
+    return false;
+}
+
+bool DyckGlobalValueFlowAnalysis::onlineBackwardReachability(const Value *V, const Value *Target,
+                                                       std::unordered_set<const Value *> &visited) {
+    std::queue<const Value *> WorkQueue;
+    WorkQueue.push(V);
+    
+    while (!WorkQueue.empty()) {
+        const Value *CurrentValue = WorkQueue.front();
+        WorkQueue.pop();
+        
+        if (!visited.insert(CurrentValue).second) continue;
+        
+        if (CurrentValue == Target) return true;
+        
+        if (auto *Node = VFG->getVFGNode(const_cast<Value *>(CurrentValue))) {
+            for (auto It = Node->in_begin(); It != Node->in_end(); ++It) {
+                auto *Pred = It->first->getValue();
+                if (visited.find(Pred) == visited.end()) {
+                    WorkQueue.push(Pred);
+                }
+            }
+        }
+    }
+    
+    return false;
+}
+
+//===----------------------------------------------------------------------===//
+// CFL Reachability (Copied from ReachabilityAlgorithms.cpp)
+//===----------------------------------------------------------------------===//
+
+void DyckGlobalValueFlowAnalysis::initializeCFLAnalyzer() {
+    // Lightweight CFL analyzer works directly with VFG's existing label structure
+}
+
+bool DyckGlobalValueFlowAnalysis::cflReachable(const Value *From, const Value *To) const {
+    return cflReachabilityQuery(From, To, true);
+}
+
+bool DyckGlobalValueFlowAnalysis::cflBackwardReachable(const Value *From, const Value *To) const {
+    return cflReachabilityQuery(To, From, false);
+}
+
+bool DyckGlobalValueFlowAnalysis::contextSensitiveReachable(const Value *From, const Value *To) const {
+    return cflReachable(From, To);
+}
+
+bool DyckGlobalValueFlowAnalysis::contextSensitiveBackwardReachable(const Value *From, const Value *To) const {
+    return cflBackwardReachable(From, To);
+}
+
+bool DyckGlobalValueFlowAnalysis::performCFLReachabilityQuery(const Value *From, const Value *To, bool Forward) const {
+    return cflReachabilityQuery(From, To, Forward);
+}
+
+bool DyckGlobalValueFlowAnalysis::cflReachabilityQuery(const Value *From, const Value *To, bool Forward) const {
+    std::unordered_set<const Value *> visited;
+    std::queue<std::pair<const Value *, std::vector<int>>> workQueue;
+    
+    workQueue.push(std::make_pair(From, std::vector<int>()));
+    
+    while (!workQueue.empty()) {
+        auto front = workQueue.front();
+        const Value *current = front.first;
+        std::vector<int> callStack = front.second;
+        workQueue.pop();
+        
+        if (current == To) return true;
+        if (!visited.insert(current).second) continue;
+        
+        auto *currentNode = VFG->getVFGNode(const_cast<Value *>(current));
+        if (!currentNode) continue;
+        
+        if (Forward) {
+            for (auto edgeIt = currentNode->begin(); edgeIt != currentNode->end(); ++edgeIt) {
+                auto *nextValue = edgeIt->first->getValue();
+                int label = edgeIt->second;
+                
+                std::vector<int> newCallStack = callStack;
+                
+                if (label > 0) {
+                    newCallStack.push_back(label);
+                } else if (label < 0) {
+                    if (newCallStack.empty() || newCallStack.back() != -label) continue;
+                    newCallStack.pop_back();
+                }
+                
+                if (visited.find(nextValue) == visited.end()) {
+                    workQueue.push(std::make_pair(nextValue, std::move(newCallStack)));
+                }
+            }
+        } else {
+            for (auto edgeIt = currentNode->in_begin(); edgeIt != currentNode->in_end(); ++edgeIt) {
+                auto *prevValue = edgeIt->first->getValue();
+                int label = edgeIt->second;
+                
+                std::vector<int> newCallStack = callStack;
+                
+                if (label < 0) {
+                    newCallStack.push_back(-label);
+                } else if (label > 0) {
+                    if (newCallStack.empty() || newCallStack.back() != label) continue;
+                    newCallStack.pop_back();
+                }
+                
+                if (visited.find(prevValue) == visited.end()) {
+                    workQueue.push(std::make_pair(prevValue, std::move(newCallStack)));
+                }
+            }
+        }
+    }
+    
+    return false;
+}
+
+int DyckGlobalValueFlowAnalysis::getValueNodeID(const Value *V) const {
+    return reinterpret_cast<intptr_t>(V);
 }
