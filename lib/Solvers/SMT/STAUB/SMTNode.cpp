@@ -1,6 +1,6 @@
-#include "SMTNode.h"
-#include "STAUBExceptions.h"
-#include "STAUBUtil.h"
+#include "Solvers/SMT/STAUB/SMTNode.h"
+#include "Solvers/SMT/STAUB/STAUBExceptions.h"
+#include "Solvers/SMT/STAUB/STAUBUtil.h"
 
 
 #ifndef PAIR

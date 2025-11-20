@@ -10,7 +10,7 @@ public:
     using FactType = llvm::APInt;  // Fact type for Phase 2
     
 private:
-    using D = GenKillDomain;
+    using D = GenKillTransferDomain;
     using Exp = Exp0<D>;
     using E = E0<D>;
 
@@ -29,7 +29,7 @@ public:
             }
         }
         bitWidth = (bit == 0) ? 1 : bit;
-        GenKillDomain::setBitWidth(bitWidth);
+        GenKillTransferDomain::setBitWidth(bitWidth);
     }
 
     FactType getEntryValue() const {
@@ -65,7 +65,7 @@ public:
 
 InterproceduralRD::Result InterproceduralRD::run(llvm::Module &M, bool verbose) {
     RDAnalysis analysis(M);
-    auto engineResult = InterproceduralEngine<GenKillDomain, RDAnalysis>::run(M, analysis, verbose);
+    auto engineResult = InterproceduralEngine<GenKillTransferDomain, RDAnalysis>::run(M, analysis, verbose);
     
     InterproceduralRD::Result res;
     res.summaries = engineResult.summaries;

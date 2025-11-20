@@ -7,7 +7,7 @@
 namespace npa {
 
 /**
- * GenKillDomain – Domain of Transfer Functions for Gen/Kill Problems
+ * GenKillTransferDomain – Domain of Transfer Functions for Gen/Kill Problems
  * Elements are pairs (Kill, Gen) representing f(x) = (x \ Kill) U Gen
  * 
  * Composition (extend):
@@ -18,7 +18,7 @@ namespace npa {
  * f1(x) U f2(x) = ((x \ K1) U G1) U ((x \ K2) U G2)
  *               = (x \ (K1 n K2)) U (G1 U G2)
  */
-class GenKillDomain {
+class GenKillTransferDomain {
 public:
     using value_type = std::pair<llvm::APInt, llvm::APInt>;
     using test_type = bool;
@@ -76,6 +76,9 @@ public:
 private:
     static unsigned BitWidth;
 };
+
+/// Backwards-compatible alias: older code may still refer to GenKillDomain.
+using GenKillDomain = GenKillTransferDomain;
 
 } // namespace npa
 

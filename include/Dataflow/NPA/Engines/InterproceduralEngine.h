@@ -9,12 +9,28 @@
 #include <sstream>
 #include <deque>
 #include <unordered_map>
-#include <unordered_set>
 #include <map>
+#include <vector>
+#include <set>
 
 namespace npa {
 
-template <class D, class Analysis>
+// k-CFA context type
+using CallSiteID = const llvm::Instruction*;
+using CallString = std::vector<CallSiteID>;
+
+// Helper to stringify call string
+[[maybe_unused]] static inline std::string getCallStringSuffix(const CallString& cs) {
+    if (cs.empty()) return "";
+    std::ostringstream oss;
+    oss << "@CS";
+    for (auto *site : cs) {
+        oss << ":" << (const void*)site;
+    }
+    return oss.str();
+}
+
+template <class D, class Analysis, int K = 0>
 class InterproceduralEngine {
 public:
     using Exp = Exp0<D>;
@@ -24,46 +40,77 @@ public:
 
     struct Result {
         // Summary at Function Exit (Phase 1)
-        std::map<const llvm::Function*, Val> summaries;
+        // Keyed by Function + Context
+        std::map<std::string, Val> summaries;
+        
         // Fact at Basic Block Entry (Phase 2)
-        std::map<const llvm::BasicBlock*, Fact> blockEntryFacts;
+        std::map<std::string, Fact> blockEntryFacts;
     };
 
-    static std::string getBlockSymbol(const llvm::BasicBlock *BB) {
+    static std::string getBlockSymbol(const llvm::BasicBlock *BB, const CallString& cs) {
         std::ostringstream oss;
-        oss << (const void*)BB;
+        oss << (const void*)BB << getCallStringSuffix(cs);
         return oss.str();
     }
 
-    static std::string getFuncSymbol(const llvm::Function *F) {
-        if (F->hasName()) return F->getName().str();
+    static std::string getFuncSymbol(const llvm::Function *F, const CallString& cs) {
+        if (F->hasName()) return F->getName().str() + getCallStringSuffix(cs);
         std::ostringstream oss;
-        oss << "Func_" << (const void*)F;
+        oss << "Func_" << (const void*)F << getCallStringSuffix(cs);
         return oss.str();
+    }
+
+    // Helper to append call site to context
+    static CallString pushContext(const CallString& cs, const llvm::Instruction* site) {
+        CallString next = cs;
+        next.push_back(site);
+        if (next.size() > K) next.erase(next.begin()); // Keep last K
+        return next;
     }
 
     static Result run(llvm::Module &M, Analysis &analysis, bool verbose = false) {
         std::vector<std::pair<Symbol, E>> eqns;
+        
+        // 1. Phase 1: Build Equations & Summaries (Worklist driven for Reachable Contexts)
+        
+        // Worklist of (Function, Context)
+        std::deque<std::pair<llvm::Function*, CallString>> worklist;
+        std::set<std::pair<llvm::Function*, CallString>> visited;
+        
+        llvm::Function *Main = M.getFunction("main");
+        if (Main) {
+            worklist.push_back({Main, {}});
+            visited.insert({Main, {}});
+        } else {
+             for (auto &F : M) {
+                if (!F.isDeclaration()) {
+                     worklist.push_back({&F, {}});
+                     visited.insert({&F, {}});
+                }
+            }
+        }
 
-        // 1. Phase 1: Build Equations & Summaries
-        for (auto &F : M) {
-            if (F.isDeclaration()) continue;
-
-            std::string fSym = getFuncSymbol(&F);
+        while(!worklist.empty()) {
+            auto item = worklist.front();
+            worklist.pop_front();
+            llvm::Function *F = item.first;
+            CallString cs = item.second;
+            
+            std::string fSym = getFuncSymbol(F, cs);
             E exitExpr = nullptr;
 
-            for (auto &BB : F) {
-                std::string bSym = getBlockSymbol(&BB);
+            for (auto &BB : *F) {
+                std::string bSym = getBlockSymbol(&BB, cs);
 
                 // Entry to Block (Joins from Predecessors)
                 E inExpr = nullptr;
-                if (&BB == &F.getEntryBlock()) {
+                if (&BB == &F->getEntryBlock()) {
                     inExpr = Exp::term(D::zero());
                 } else {
                     bool hasPreds = false;
                     for (auto *Pred : predecessors(&BB)) {
                         hasPreds = true;
-                        std::string predSym = getBlockSymbol(Pred);
+                        std::string predSym = getBlockSymbol(Pred, cs); // Intra-procedural: same context
                         auto pHole = Exp::hole(predSym);
                         if (!inExpr) inExpr = pHole;
                         else inExpr = Exp::ndet(inExpr, pHole);
@@ -74,25 +121,23 @@ public:
                 // Block Body (Instruction Transfer Functions)
                 E currentPath = inExpr;
                 for (auto &I : BB) {
-                    // 1. Handle Interprocedural Call (Summary Application)
                     if (auto *CI = llvm::dyn_cast<llvm::CallInst>(&I)) {
                         if (auto *Callee = CI->getCalledFunction()) {
                             if (!Callee->isDeclaration()) {
-                                // Apply Callee Summary: f(x) -> Summary_Callee(x)
-                                currentPath = Exp::call(getFuncSymbol(Callee), currentPath);
+                                CallString calleeCS = pushContext(cs, CI);
+                                if (visited.find({Callee, calleeCS}) == visited.end()) {
+                                    visited.insert({Callee, calleeCS});
+                                    worklist.push_back({Callee, calleeCS});
+                                }
+                                currentPath = Exp::call(getFuncSymbol(Callee, calleeCS), currentPath);
                             }
                         }
                     }
-
-                    // 2. Handle Local Instruction Effect (delegated to Analysis)
-                    // This includes the definition generated by the CallInst itself
                     currentPath = analysis.getTransfer(I, currentPath);
                 }
 
-                // Register Block Equation (Summary from Entry -> Block Exit)
                 eqns.emplace_back(bSym, currentPath);
 
-                // Update Function Exit (Joins from Return Blocks)
                 if (llvm::succ_begin(&BB) == llvm::succ_end(&BB)) {
                     if (!exitExpr) exitExpr = Exp::hole(bSym);
                     else exitExpr = Exp::ndet(exitExpr, Exp::hole(bSym));
@@ -105,67 +150,59 @@ public:
 
         // Solve Summaries (Newtonian)
         auto rawRes = NewtonSolver<D>::solve(eqns, verbose);
-        std::unordered_map<std::string, Val> solvedMap;
+        
+        // Convert result to map for random access
+        // Note: NPA I0::eval uses std::map, so we use that here
+        std::map<Symbol, Val> solvedMap;
         for (auto &p : rawRes.first) solvedMap[p.first] = p.second;
 
         // 2. Phase 2: Top-Down Propagation
         Result res;
-        
-        // Store Summaries
-        for (auto &F : M) {
-            if (F.isDeclaration()) continue;
-            std::string sym = getFuncSymbol(&F);
-            if (solvedMap.count(sym)) res.summaries[&F] = solvedMap[sym];
-            else res.summaries[&F] = D::zero();
-        }
+        res.summaries = solvedMap; // Store all computed summaries
 
-        // Setup Worklist
-        std::deque<llvm::Function*> worklist;
-        std::unordered_set<llvm::Function*> inWorklist;
-        std::unordered_map<const llvm::Function*, Fact> funcInput;
+        // Worklist for Phase 2 (Function, Context)
+        std::deque<std::pair<llvm::Function*, CallString>> worklist2;
+        std::set<std::pair<llvm::Function*, CallString>> inWorklist2;
+        std::unordered_map<std::string, Fact> funcInput; 
 
-        // Initialize Entry Points
-        // For now, we assume 'main' or process all if no main (library mode)
-        // TODO: Let Analysis specify entry points?
-        llvm::Function *Main = M.getFunction("main");
         if (Main) {
-            funcInput[Main] = analysis.getEntryValue();
-            worklist.push_back(Main);
-            inWorklist.insert(Main);
+            std::string sym = getFuncSymbol(Main, {});
+            funcInput[sym] = analysis.getEntryValue();
+            worklist2.push_back({Main, {}});
+            inWorklist2.insert({Main, {}});
         } else {
              for (auto &F : M) {
                 if (!F.isDeclaration()) {
-                     funcInput[&F] = analysis.getEntryValue(); // or D::zero()?
-                     worklist.push_back(&F);
-                     inWorklist.insert(&F);
+                     std::string sym = getFuncSymbol(&F, {});
+                     funcInput[sym] = analysis.getEntryValue();
+                     worklist2.push_back({&F, {}});
+                     inWorklist2.insert({&F, {}});
                 }
             }
         }
 
-        while (!worklist.empty()) {
-            llvm::Function *F = worklist.front();
-            worklist.pop_front();
-            inWorklist.erase(F);
+        while (!worklist2.empty()) {
+            auto item = worklist2.front();
+            worklist2.pop_front();
+            llvm::Function *F = item.first;
+            CallString cs = item.second;
+            inWorklist2.erase(item);
 
-            Fact inputVal = funcInput[F];
+            std::string fSym = getFuncSymbol(F, cs);
+            Fact inputVal = funcInput[fSym];
 
             for (auto &BB : *F) {
-                std::string bSym = getBlockSymbol(&BB);
+                std::string bSym = getBlockSymbol(&BB, cs);
                 if (!solvedMap.count(bSym)) continue;
 
                 // Compute Facts at Block Entry
-                // We have Summary(FuncEntry -> BlockExit).
-                // We need Summary(FuncEntry -> BlockEntry).
-                // We can reconstruct it from Predecessors' BlockExit summaries.
-                
                 Val entryToBlockStart = D::zero();
                 if (&BB == &F->getEntryBlock()) {
-                    // Identity (Zero in Gen/Kill)
                     entryToBlockStart = D::zero();
                 } else {
                     bool first = true;
                     for (auto *Pred : predecessors(&BB)) {
-                        std::string pSym = getBlockSymbol(Pred);
+                        std::string pSym = getBlockSymbol(Pred, cs);
                         if (solvedMap.count(pSym)) {
                             if (first) { entryToBlockStart = solvedMap[pSym]; first=false; }
                             else { entryToBlockStart = D::combine(entryToBlockStart, solvedMap[pSym]); }
@@ -173,139 +210,61 @@ public:
                     }
                 }
                 
-                // Propagate Global Input -> Block Entry
-                // Fact = (Input \ K_path) U G_path
-                // Fact = D::extend(PathSummary, Input) ?? No.
-                // extend(a, b) = a o b. 
-                // PathSummary(x) = (x \ K) U G.
-                // So Fact = PathSummary applied to Input.
-                // Wait. 'extend' composes functions. 'inputVal' is a Value?
-                // In GenKillDomain, value_type IS a function (summary). 
-                // But in Phase 2, we are propagating Concrete Facts (e.g. BitVectors).
-                // The GenKillDomain uses (APInt, APInt) as the value.
-                // But the *Fact* we want to track (e.g. Definitions) is just an APInt.
-                // 
-                // CRITICAL DIFFERENCE: 
-                // In Phase 1, the Domain D represents SUMMARIES (Functions).
-                // In Phase 2, we are propagating FACTS (Values).
-                // 
-                // This Engine assumes D is the domain for Phase 1.
-                // How do we represent Facts?
-                // The Analysis must provide a method to apply Summary to Fact.
-                // `Val apply(Val summary, Fact f)`?
-                // 
-                // In InterproceduralRD.cpp, we hacked it:
-                // `llvm::APInt actual = (inputVal & ~summary.first) | summary.second;`
-                // `inputVal` was APInt. `summary` was (APInt, APInt).
-                // This implies FactType != DomainType.
-                // 
-                // But NPA.h assumes we are solving for D::value_type.
-                // In Phase 2, we are not using NPA solver, we are just propagating.
-                // So `funcInput` should map to `Analysis::Fact`.
-                // 
-                // Let's update the template.
-                
-                auto pathSummary = entryToBlockStart;
-                auto blockEntryFact = analysis.applySummary(pathSummary, inputVal);
-                res.blockEntryFacts[&BB] = blockEntryFact;
+                auto blockEntryFact = analysis.applySummary(entryToBlockStart, inputVal);
+                res.blockEntryFacts[bSym] = blockEntryFact;
 
-                // Process Calls in Block to propagate to Callees
-                // We need partial summary from BlockEntry -> CallSite
-                
-                E currentPath = Exp::term(D::zero()); // Identity summary
+                // Process Calls to propagate to Callees
+                E currentPath = Exp::term(D::zero());
                 
                 for (auto &I : BB) {
                     if (auto *CI = llvm::dyn_cast<llvm::CallInst>(&I)) {
                         if (auto *Callee = CI->getCalledFunction()) {
                             if (Callee->isDeclaration()) continue;
                             
-                            // Calculate Summary(FuncEntry -> CallSite)
-                            // = Summary(BlockEntry -> CallSite) o Summary(FuncEntry -> BlockEntry)
-                            // = currentPath o entryToBlockStart
+                            // 1. Propagate facts to callee
+                            CallString calleeCS = pushContext(cs, CI);
+                            std::string calleeFSym = getFuncSymbol(Callee, calleeCS);
                             
-                            // Note: D::extend(outer, inner) = outer o inner
-                            // Evaluate currentPath expression to get summary value
-                            std::map<Symbol, Val> env;
-                            for (auto &kv : solvedMap) env[kv.first] = kv.second;
-                            Val currentPathVal = I0<D>::eval(false, env, currentPath);
+                            // Eval summary path to call site
+                            Val currentPathVal = I0<D>::eval(false, solvedMap, currentPath);
                             Val totalToCall = D::extend(currentPathVal, entryToBlockStart);
                             
-                            // Calculate Fact at CallSite
                             auto factAtCall = analysis.applySummary(totalToCall, inputVal);
                             
                             // Update Callee Input
-                            if (!funcInput.count(Callee)) {
-                                funcInput[Callee] = factAtCall;
-                                if (!inWorklist.count(Callee)) {
-                                    worklist.push_back(Callee);
-                                    inWorklist.insert(Callee);
+                            if (!funcInput.count(calleeFSym)) {
+                                funcInput[calleeFSym] = factAtCall;
+                                if (inWorklist2.find({Callee, calleeCS}) == inWorklist2.end()) {
+                                    worklist2.push_back({Callee, calleeCS});
+                                    inWorklist2.insert({Callee, calleeCS});
                                 }
                             } else {
-                                auto oldVal = funcInput[Callee];
+                                auto oldVal = funcInput[calleeFSym];
                                 auto newVal = analysis.joinFacts(oldVal, factAtCall);
-                                // Check inequality (Analysis specific)
                                 if (!analysis.factsEqual(oldVal, newVal)) {
-                                    funcInput[Callee] = newVal;
-                                    if (!inWorklist.count(Callee)) {
-                                        worklist.push_back(Callee);
-                                        inWorklist.insert(Callee);
+                                    funcInput[calleeFSym] = newVal;
+                                    if (inWorklist2.find({Callee, calleeCS}) == inWorklist2.end()) {
+                                        worklist2.push_back({Callee, calleeCS});
+                                        inWorklist2.insert({Callee, calleeCS});
                                     }
                                 }
                             }
                         }
                     }
                     
-                    // Update local path summary
-                    // Note: We don't apply the Interproc summary here (Call summary), 
-                    // because we are inside the caller looking at the path *to* the next instruction.
-                    // But wait. If we have `x = foo()`, the effect on dataflow IS the summary of foo.
-                    // Yes. So `currentPath` MUST include the summary of `foo` if we want to support 
-                    // calls that are not the last instruction.
-                    
+                    // 2. Update local path
                     if (auto *CI = llvm::dyn_cast<llvm::CallInst>(&I)) {
                          if (auto *Callee = CI->getCalledFunction()) {
                              if (!Callee->isDeclaration()) {
-                                 // Interproc effect
-                                 currentPath = Exp::call(getFuncSymbol(Callee), currentPath);
+                                 CallString calleeCS = pushContext(cs, CI);
+                                 currentPath = Exp::call(getFuncSymbol(Callee, calleeCS), currentPath);
                              }
                          }
                     }
-                    
-                    // Local effect
                     currentPath = analysis.getTransfer(I, currentPath);
-                    
-                    // Evaluate current path to keep it collapsed (optimization)
-                    // We need an evaluator. I0? 
-                    // Or just trust Exp structure?
-                    // To compose, we really want the value.
-                    // We can use I0::eval with empty environment if it's just constants?
-                    // No, Exp::call needs environment (summaries).
-                    // But we computed summaries in Phase 1! `solvedMap`.
-                    
-                    // Problem: `Exp` is a tree. We want to flatten it using `solvedMap`.
-                    // We can write a small helper or use I0.
-                    std::map<Symbol, Val> env; // Needs to be populated with solvedMap? 
-                    // Yes, I0 needs `nu` (the fixed point solution).
-                    // `solvedMap` contains Function Summaries (indexed by Func Symbol).
-                    
-                    // Let's assume we can evaluate `currentPath` using `solvedMap`.
-                    // But `solvedMap` has keys like "Func_0x...".
-                    
-                    // Optimization: We don't want to build a huge Exp tree in the loop.
-                    // We want to eagerly evaluate.
-                    // But we can't easily call I0 here without setting up the map every time?
-                    // Actually we can just pass `solvedMap` as `nu`.
-                    
-                    // Wait, I0 requires map<Symbol, Val>. `solvedMap` IS that.
-                    // So:
-                    // currentPathVal = I0<D>::eval(false, solvedMap, currentPath);
-                    // currentPath = Exp::term(currentPathVal);
-                    
-                    // This keeps the path summary flat (just a constant term).
                 }
             }
         }
-
         return res;
     }
 };
@@ -313,4 +272,3 @@ public:
 } // namespace npa
 
 #endif
-

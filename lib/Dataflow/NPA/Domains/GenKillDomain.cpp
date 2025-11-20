@@ -2,7 +2,7 @@
 
 namespace npa {
 
-unsigned GenKillDomain::BitWidth = 1;
+unsigned GenKillTransferDomain::BitWidth = 1;
 
 } // namespace npa
 

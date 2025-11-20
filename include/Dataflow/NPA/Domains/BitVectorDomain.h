@@ -7,14 +7,14 @@
 namespace npa {
 
 /**
- * BitVectorDomain – idempotent semiring over APInt
+ * BitSetDomain – idempotent semiring over APInt modelling sets of dataflow facts
  * combine : bitwise OR (\u222a)
  * extend  : bitwise AND (\u2229) – path concatenation keeps bits set on all steps
  * zero    : all-zero vector (\u2205)
  * Note: width is fixed per analysis instance. Helper factory below creates
  *       sized elements so that static interface in NPA remains satisfied.
  */
-class BitVectorDomain {
+class BitSetDomain {
 public:
   using value_type = llvm::APInt;
   using test_type  = bool;            // no symbolic guards for now
@@ -52,6 +52,9 @@ public:
 private:
   static unsigned BitWidth; // defined in BitVectorDomain.cpp
 };
+
+/// Backwards-compatible alias: older code may still refer to BitVectorDomain.
+using BitVectorDomain = BitSetDomain;
 
 } // namespace npa
 

@@ -1,6 +1,6 @@
-#include "SMTFormula.h"
-#include "STAUBExceptions.h"
-#include "STAUBUtil.h"
+#include "Solvers/SMT/STAUB/SMTFormula.h"
+#include "Solvers/SMT/STAUB/STAUBExceptions.h"
+#include "Solvers/SMT/STAUB/STAUBUtil.h"
 #include <regex>
 
 #define PLACEHOLDER_WIDTH 2

@@ -2,7 +2,7 @@
 
 namespace npa {
 
-unsigned BitVectorDomain::BitWidth = 1;
+unsigned BitSetDomain::BitWidth = 1;
 
 } // namespace npa
 
