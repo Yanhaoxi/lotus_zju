@@ -1,12 +1,20 @@
 # AserPTA - LLVM Pointer Analysis Framework
 
 
+## Publications
+
+- ICSE 22: PUS: A Fast and Highly Efficient Solver for Inclusion-based Pointer Analysis.  Peiming Liu, Yanze Li, Brad Swain and Jeff Huang.
+https://peimingliu.github.io/asset/pic/PUS.pdf
+- PLDI 21: When Threads Meet Events: Efficient and Precise Static Race Detection with Origins. Bozhen Liu, Peiming Liu, Yanze Li, Chia-Che Tsai, Dilma Da Silva and Jeff Huang.
+
+
+## Features
+
 - **Multiple Context Sensitivities**:
   - Context-insensitive (`NoCtx`)
   - K-call-site sensitivity (`KCallSite<K>`)
   - K-origin sensitivity (`KOrigin<K>`)
-  - Hybrid context sensitivity
-
+ 
 - **Memory Models**:
   - **Field-Insensitive (FI)**: Treats entire objects as single entities
   - **Field-Sensitive (FS)**: Models individual struct fields separately

@@ -1,5 +1,5 @@
-#include "Dataflow/NPA/ReachingDefinitions.h"
-#include "Dataflow/NPA/BitVectorInfo.h"
+#include "Dataflow/NPA/Clients/ReachingDefinitions.h"
+#include "Dataflow/NPA/Info/BitVectorInfo.h"
 #include <unordered_map>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/CFG.h>
@@ -70,4 +70,3 @@ BitVectorSolver::Result ReachingDefinitions::run(llvm::Function &F, SolverStrate
 }
 
 } // namespace npa
-

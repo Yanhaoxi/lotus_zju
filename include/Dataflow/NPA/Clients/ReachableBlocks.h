@@ -1,7 +1,7 @@
 #ifndef NPA_REACHABLE_BLOCKS_H
 #define NPA_REACHABLE_BLOCKS_H
 
-#include "Dataflow/NPA/BitVectorSolver.h"
+#include "Dataflow/NPA/Engines/BitVectorSolver.h"
 #include <llvm/IR/Function.h>
 #include <set>
 

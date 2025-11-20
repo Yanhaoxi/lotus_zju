@@ -1,4 +1,4 @@
-#include "Dataflow/NPA/BitVectorSolver.h"
+#include "Dataflow/NPA/Engines/BitVectorSolver.h"
 #include <sstream>
 
 namespace npa {

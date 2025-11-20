@@ -2,8 +2,8 @@
 #define NPA_BIT_VECTOR_SOLVER_H
 
 #include "Dataflow/NPA/NPA.h"
-#include "Dataflow/NPA/BitVectorDomain.h"
-#include "Dataflow/NPA/BitVectorInfo.h"
+#include "Dataflow/NPA/Domains/BitVectorDomain.h"
+#include "Dataflow/NPA/Info/BitVectorInfo.h"
 #include <unordered_map>
 
 namespace npa {

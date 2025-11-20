@@ -1,5 +1,5 @@
-#include "Dataflow/NPA/ReachableBlocks.h"
-#include "Dataflow/NPA/BitVectorInfo.h"
+#include "Dataflow/NPA/Clients/ReachableBlocks.h"
+#include "Dataflow/NPA/Info/BitVectorInfo.h"
 #include <llvm/IR/CFG.h>
 
 namespace npa {

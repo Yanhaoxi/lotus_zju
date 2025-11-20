@@ -1,4 +1,4 @@
-#include "Dataflow/NPA/BitVectorDomain.h"
+#include "Dataflow/NPA/Domains/BitVectorDomain.h"
 
 namespace npa {
 

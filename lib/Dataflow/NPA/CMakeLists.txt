@@ -1,8 +1,12 @@
-# NPA sources (simplified structure - files moved to parent directory)
+# NPA sources 
 set(NPA_SOURCES
-  BitVectorDomain.cpp
-  BitVectorSolver.cpp
-  ReachingDefinitions.cpp
-  ReachableBlocks.cpp
+  Domains/BitVectorDomain.cpp
+  Domains/GenKillDomain.cpp
+  Engines/BitVectorSolver.cpp
+  Clients/ReachingDefinitions.cpp
+  Clients/ReachableBlocks.cpp
+  Clients/InterproceduralRD.cpp
 )
+
 add_library(NPADataFlow STATIC ${NPA_SOURCES})
+
