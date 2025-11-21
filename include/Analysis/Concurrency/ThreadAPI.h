@@ -62,14 +62,13 @@ private:
   static ThreadAPI *tdAPI;
 
   /// Get the function type if it is a threadAPI function
-  inline TD_TYPE getType(const Function *F) const {
-    if (F) {
-      TDAPIMap::const_iterator it = tdAPIMap.find(F->getName().str());
-      if (it != tdAPIMap.end())
-        return it->second;
-    }
-    return TD_DUMMY;
-  }
+  TD_TYPE getType(const Function *F) const;
+
+  /// Load configuration from a file
+  void loadConfig(const std::string &filename);
+
+  /// Add a new entry to the API map
+  void addEntry(const std::string &name, TD_TYPE type);
 
 public:
   /// Return a static reference

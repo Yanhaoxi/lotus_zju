@@ -1,5 +1,7 @@
 
 #include "Analysis/Concurrency/ThreadAPI.h"
+#include "Analysis/Concurrency/LanguageModel/OpenMP.h"
+#include "Analysis/Concurrency/LanguageModel/Cpp11.h"
 #include <llvm/ADT/StringMap.h> // for StringMap
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
@@ -8,6 +10,8 @@
 
 #include <iomanip>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <set>
 #include <stdio.h>
 
@@ -89,6 +93,84 @@ void ThreadAPI::init() {
     tdAPIMap[p->n] = p->t;
   }
 }
+
+void ThreadAPI::addEntry(const std::string &name, TD_TYPE type) {
+  tdAPIMap[name] = type;
+}
+
+static ThreadAPI::TD_TYPE stringToType(const std::string &s) {
+    if (s == "TD_FORK") return ThreadAPI::TD_FORK;
+    if (s == "TD_JOIN") return ThreadAPI::TD_JOIN;
+    if (s == "TD_DETACH") return ThreadAPI::TD_DETACH;
+    if (s == "TD_ACQUIRE") return ThreadAPI::TD_ACQUIRE;
+    if (s == "TD_TRY_ACQUIRE") return ThreadAPI::TD_TRY_ACQUIRE;
+    if (s == "TD_RELEASE") return ThreadAPI::TD_RELEASE;
+    if (s == "TD_EXIT") return ThreadAPI::TD_EXIT;
+    if (s == "TD_CANCEL") return ThreadAPI::TD_CANCEL;
+    if (s == "TD_COND_WAIT") return ThreadAPI::TD_COND_WAIT;
+    if (s == "TD_COND_SIGNAL") return ThreadAPI::TD_COND_SIGNAL;
+    if (s == "TD_COND_BROADCAST") return ThreadAPI::TD_COND_BROADCAST;
+    if (s == "TD_MUTEX_INI") return ThreadAPI::TD_MUTEX_INI;
+    if (s == "TD_MUTEX_DESTROY") return ThreadAPI::TD_MUTEX_DESTROY;
+    if (s == "TD_CONDVAR_INI") return ThreadAPI::TD_CONDVAR_INI;
+    if (s == "TD_CONDVAR_DESTROY") return ThreadAPI::TD_CONDVAR_DESTROY;
+    if (s == "TD_BAR_INIT") return ThreadAPI::TD_BAR_INIT;
+    if (s == "TD_BAR_WAIT") return ThreadAPI::TD_BAR_WAIT;
+    if (s == "HARE_PAR_FOR") return ThreadAPI::HARE_PAR_FOR;
+    return ThreadAPI::TD_DUMMY;
+}
+
+void ThreadAPI::loadConfig(const std::string &filename) {
+  std::ifstream file(filename);
+  if (!file.is_open()) {
+    // It's okay if config file doesn't exist, we have defaults
+    return;
+  }
+
+  std::string line;
+  while (std::getline(file, line)) {
+    if (line.empty() || line[0] == '#') continue;
+    std::stringstream ss(line);
+    std::string name, typeStr;
+    if (ss >> name >> typeStr) {
+        TD_TYPE type = stringToType(typeStr);
+        if (type != TD_DUMMY) {
+            addEntry(name, type);
+        }
+    }
+  }
+}
+
+ThreadAPI::TD_TYPE ThreadAPI::getType(const Function *F) const {
+    if (!F) return TD_DUMMY;
+    
+    // 1. Exact match (including loaded config)
+    TDAPIMap::const_iterator it = tdAPIMap.find(F->getName().str());
+    if (it != tdAPIMap.end())
+      return it->second;
+
+    StringRef name = F->getName();
+
+    // 2. OpenMP Support
+    if (OpenMPModel::isFork(name)) return TD_FORK;
+    if (OpenMPModel::isBarrier(name)) return TD_BAR_WAIT;
+    if (OpenMPModel::isSetLock(name) || OpenMPModel::isSetNestLock(name) || OpenMPModel::isCriticalStart(name)) return TD_ACQUIRE;
+    if (OpenMPModel::isUnsetLock(name) || OpenMPModel::isUnsetNestLock(name) || OpenMPModel::isCriticalEnd(name)) return TD_RELEASE;
+    
+    // 3. C++11 Support
+    if (Cpp11Model::isFork(name)) return TD_FORK;
+    if (Cpp11Model::isJoin(name)) return TD_JOIN;
+    if (Cpp11Model::isDetach(name)) return TD_DETACH;
+    if (Cpp11Model::isAcquire(name)) return TD_ACQUIRE;
+    if (Cpp11Model::isTryAcquire(name)) return TD_TRY_ACQUIRE;
+    if (Cpp11Model::isRelease(name)) return TD_RELEASE;
+    if (Cpp11Model::isCondWait(name)) return TD_COND_WAIT;
+    if (Cpp11Model::isCondSignal(name)) return TD_COND_SIGNAL;
+    if (Cpp11Model::isCondBroadcast(name)) return TD_COND_BROADCAST;
+
+    return TD_DUMMY;
+}
+
 
 /*!
  * Get the callee function from an instruction
