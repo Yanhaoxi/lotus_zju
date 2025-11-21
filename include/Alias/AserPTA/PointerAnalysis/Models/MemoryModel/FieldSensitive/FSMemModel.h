@@ -58,7 +58,12 @@ class FSMemModel {
             c = CT::getGlobalCtx();
         }
         auto it = memBlockMap.find(std::make_pair(c, v));
-        assert(it != memBlockMap.end() && "can not find the memory block");
+        if (it == memBlockMap.end()) {
+            // This can happen for external / declaration-only globals or
+            // constants we do not model. Be conservative and return nullptr.
+            LOG_DEBUG("FSMemModel: cannot find memory block for value {}", *v);
+            return nullptr;
+        }
         return it->second;
     }
 
@@ -341,6 +346,14 @@ private:
 
             auto *ptr = memBlock->getObjectAt(offset);
 
+            // The offset might fall into padding or into a region that is not
+            // indexable according to our memory layout. In that case we do not
+            // create any constraints but still advance the offset.
+            if (ptr == nullptr) {
+                offset += DL.getTypeAllocSize(C->getType());
+                return;
+            }
+
             if (ptr->getObjNodeOrNull() == nullptr) {
                 createNode<PT>(ptr);
             }
@@ -351,18 +364,26 @@ private:
                 auto off = llvm::APInt(DL.getIndexTypeSizeInBits(GEP->getType()), 0);
                 auto baseValue = GEP->stripAndAccumulateConstantOffsets(DL, off, true);
                 // objNode can be none, when it is a external symbol, which does not have initializers.
-                auto FSobj = getMemBlock(CT::getGlobalCtx(), baseValue)->getObjectAt(off.getSExtValue());
-                // FIXME: Field-sensitive object can be nullptr, because we handle i8* as scalar object
-                // however, it should be the most conservative type in LLVM (void *) probably should handle
-                // it as a field-insensitive object.
-                if (FSobj != nullptr) {
-                    // the obj node can also be null because of external object
-                    // TODO: figure out whether the order of the global variables' definition is the same
-                    // as the def-use order.
-                    objNode = FSobj->getObjNodeOrNull();
+                if (baseValue != nullptr) {
+                    if (auto *baseBlock = getMemBlock(CT::getGlobalCtx(), baseValue)) {
+                        auto FSobj = baseBlock->getObjectAt(off.getSExtValue());
+                        // FIXME: Field-sensitive object can be nullptr, because we handle i8* as scalar object
+                        // however, it should be the most conservative type in LLVM (void *) probably should handle
+                        // it as a field-insensitive object.
+                        if (FSobj != nullptr) {
+                            // the obj node can also be null because of external object
+                            // TODO: figure out whether the order of the global variables' definition is the same
+                            // as the def-use order.
+                            objNode = FSobj->getObjNodeOrNull();
+                        }
+                    }
                 }
             } else {
-                objNode = getMemBlock(CT::getGlobalCtx(), C)->getObjectAt(0)->getObjNode();
+                if (auto *baseBlock = getMemBlock(CT::getGlobalCtx(), C)) {
+                    if (auto *baseObj = baseBlock->getObjectAt(0)) {
+                        objNode = baseObj->getObjNodeOrNull();
+                    }
+                }
             }
 
             if (objNode != nullptr) {
@@ -433,8 +454,14 @@ private:
 
             // 1st, get the memory block of the global variable
             MemBlock<ctx> *memBlock = getMemBlock(CT::getGlobalCtx(), gVar);
-            // 2nd, recursively initialize the global variable
-            processInitializer<PT>(memBlock, gVar->getInitializer(), offset, DL);
+            if (memBlock != nullptr) {
+                // 2nd, recursively initialize the global variable
+                processInitializer<PT>(memBlock, gVar->getInitializer(), offset, DL);
+            } else {
+                // For declaration-only globals or ones we have not modeled, we
+                // conservatively skip initialization to avoid crashing.
+                LOG_DEBUG("FSMemModel: skip initializing global without MemBlock: {}", *gVar);
+            }
         }
         // else an extern symbol, conservatively can point to anything, simply skip it for now
     }

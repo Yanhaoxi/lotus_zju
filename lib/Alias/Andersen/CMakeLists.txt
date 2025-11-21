@@ -9,4 +9,9 @@ add_library(Andersen SHARED
 	ExternalLibrary.cpp
 	NodeFactory.cpp
 )
+
+target_compile_options(Andersen PRIVATE
+	-DSPDLOG_ACTIVE_LEVEL=2
+)
+
 target_link_libraries(Andersen PRIVATE ${andersen_llvm_libs})

@@ -4,14 +4,19 @@
 #include <llvm/Support/raw_ostream.h>
 
 #include <limits>
+#include <sstream>
 
 #include "Alias/Andersen/NodeFactory.h"
+#include "Alias/Andersen/Log.h"
 
 
 using namespace llvm;
 
 const unsigned AndersNodeFactory::InvalidIndex =
     std::numeric_limits<unsigned int>::max();
+
+// Limit diagnostic spam for invalid node index queries.
+static unsigned InvalidMergeTargetWarnings = 0;
 
 AndersNodeFactory::AndersNodeFactory() {
   // Note that we can't use std::vector::emplace_back() here because
@@ -109,7 +114,7 @@ AndersNodeFactory::getValueNodeForConstant(const llvm::Constant *c) const {
     case Instruction::BitCast:
       return getValueNodeForConstant(ce->getOperand(0));
     default:
-      errs() << "Constant Expr not yet handled: " << *ce << "\n";
+      LOG_ERROR("Constant Expr not yet handled: {}", *ce);
       llvm_unreachable(0);
     }
   }
@@ -150,7 +155,7 @@ AndersNodeFactory::getObjectNodeForConstant(const llvm::Constant *c) const {
     case Instruction::BitCast:
       return getObjectNodeForConstant(ce->getOperand(0));
     default:
-      errs() << "Constant Expr not yet handled: " << *ce << "\n";
+      LOG_ERROR("Constant Expr not yet handled: {}", *ce);
       llvm_unreachable(0);
     }
   }
@@ -181,7 +186,20 @@ void AndersNodeFactory::mergeNode(NodeIndex n0, NodeIndex n1) {
 }
 
 NodeIndex AndersNodeFactory::getMergeTarget(NodeIndex n) {
-  assert(n < nodes.size());
+  // Be robust against invalid indices that may be introduced by unexpected
+  // constraints. In optimized builds assertions are disabled, so explicitly
+  // guard here to avoid out-of-bounds access and hard crashes.
+  if (LLVM_UNLIKELY(n >= nodes.size())) {
+    if (InvalidMergeTargetWarnings < 10) {
+      LOG_WARN("Andersen: getMergeTarget called with invalid node index {} (numNodes = {})", n, nodes.size());
+      if (InvalidMergeTargetWarnings == 9)
+        LOG_WARN("Andersen: further invalid node index warnings suppressed");
+      ++InvalidMergeTargetWarnings;
+    }
+    // Map any invalid index to the universal pointer node to keep the analysis
+    // sound but conservative instead of crashing.
+    return getUniversalPtrNode();
+  }
   NodeIndex ret = nodes[n].mergeTarget;
   if (ret != n) {
     std::vector<NodeIndex> path(1, n);
@@ -197,7 +215,15 @@ NodeIndex AndersNodeFactory::getMergeTarget(NodeIndex n) {
 }
 
 NodeIndex AndersNodeFactory::getMergeTarget(NodeIndex n) const {
-  assert(n < nodes.size());
+  if (LLVM_UNLIKELY(n >= nodes.size())) {
+    if (InvalidMergeTargetWarnings < 10) {
+      LOG_WARN("Andersen: getMergeTarget (const) called with invalid node index {} (numNodes = {})", n, nodes.size());
+      if (InvalidMergeTargetWarnings == 9)
+        LOG_WARN("Andersen: further invalid node index warnings suppressed");
+      ++InvalidMergeTargetWarnings;
+    }
+    return getUniversalPtrNode();
+  }
   NodeIndex ret = nodes[n].mergeTarget;
   while (ret != nodes[ret].mergeTarget)
     ret = nodes[ret].mergeTarget;
@@ -224,37 +250,47 @@ void AndersNodeFactory::dumpNode(NodeIndex idx) const {
 }
 
 void AndersNodeFactory::dumpNodeInfo() const {
-  errs() << "\n----- Print AndersNodeFactory Info -----\n";
+  LOG_DEBUG("\n----- Print AndersNodeFactory Info -----");
   for (auto const &node : nodes) {
-    dumpNode(node.getIndex());
-    errs() << ", val = ";
+    std::stringstream ss;
+    const AndersNode &n = nodes.at(node.getIndex());
+    if (n.type == AndersNode::VALUE_NODE)
+      ss << "[V #" << n.idx << "]";
+    else if (n.type == AndersNode::OBJ_NODE)
+      ss << "[O #" << n.idx << "]";
+    else
+      assert(false && "Wrong type number!");
+    ss << ", val = ";
     const Value *val = node.getValue();
     if (val == nullptr)
-      errs() << "nullptr";
+      ss << "nullptr";
     else if (isa<Function>(val))
-      errs() << "  <func> " << val->getName();
-    else
-      errs() << *val;
-    errs() << "\n";
+      ss << "  <func> " << val->getName().str();
+    else {
+      std::string valStr;
+      raw_string_ostream rso(valStr);
+      rso << *val;
+      rso.flush();
+      ss << valStr;
+    }
+    LOG_DEBUG("{}", ss.str());
   }
 
-  errs() << "\nReturn Map:\n";
+  LOG_DEBUG("\nReturn Map:");
   for (auto const &mapping : returnMap)
-    errs() << mapping.first->getName() << "  -->>  [Node #" << mapping.second
-           << "]\n";
-  errs() << "\nVararg Map:\n";
+    LOG_DEBUG("{}  -->>  [Node #{}]", mapping.first->getName().str(), mapping.second);
+  LOG_DEBUG("\nVararg Map:");
   for (auto const &mapping : varargMap)
-    errs() << mapping.first->getName() << "  -->>  [Node #" << mapping.second
-           << "]\n";
-  errs() << "----- End of Print -----\n";
+    LOG_DEBUG("{}  -->>  [Node #{}]", mapping.first->getName().str(), mapping.second);
+  LOG_DEBUG("----- End of Print -----");
 }
 
 void AndersNodeFactory::dumpRepInfo() const {
-  errs() << "\n----- Print Node Merge Info -----\n";
+  LOG_DEBUG("\n----- Print Node Merge Info -----");
   for (NodeIndex i = 0, e = nodes.size(); i < e; ++i) {
     NodeIndex rep = getMergeTarget(i);
     if (rep != i)
-      errs() << i << " -> " << rep << "\n";
+      LOG_DEBUG("{} -> {}", i, rep);
   }
-  errs() << "----- End of Print -----\n";
+  LOG_DEBUG("----- End of Print -----");
 }

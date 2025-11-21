@@ -10,9 +10,11 @@
 #include <deque>
 #include <set>
 #include <unordered_map>
+#include <vector>
 
 #include "Alias/Andersen/Andersen.h"
 #include "Alias/Andersen/CycleDetector.h"
+#include "Alias/Andersen/Log.h"
 #include "Alias/Andersen/SparseBitVectorGraph.h"
 
 #define DEBUG_TYPE "andersen"
@@ -136,25 +138,37 @@ protected:
   }
 
   void dumpPredecessorGraph() const {
-    errs() << "\n----- Predecessor Graph -----\n";
+    LOG_DEBUG("\n----- Predecessor Graph -----");
     for (auto const &mapping : predGraph) {
-      printPredecessorGraphNode(errs(), mapping.first);
-      errs() << "  -->  ";
+      std::string nodeStr;
+      raw_string_ostream rso(nodeStr);
+      printPredecessorGraphNode(rso, mapping.first);
+      std::string prefix = nodeStr + "  -->  ";
       const SparseBitVectorGraphNode &sNode = mapping.second;
+      std::vector<std::string> idxStrs;
       for (auto const &idx : sNode) {
-        printPredecessorGraphNode(errs(), idx);
-        errs() << ", ";
+        std::string idxStr;
+        raw_string_ostream idxRso(idxStr);
+        printPredecessorGraphNode(idxRso, idx);
+        idxRso.flush();
+        idxStrs.push_back(idxStr);
       }
-      errs() << '\n';
+      std::string result = prefix;
+      for (size_t i = 0; i < idxStrs.size(); ++i) {
+        if (i > 0)
+          result += ", ";
+        result += idxStrs[i];
+      }
+      LOG_DEBUG("{}", result);
     }
-    errs() << "----- End of Print -----\n";
+    LOG_DEBUG("----- End of Print -----");
   }
 
   void writePredecessorGraphToFile() const {
     std::error_code errInfo;
     ToolOutputFile outFile("dots/pred.dot", errInfo, sys::fs::OF_Text);
     if (errInfo) {
-      errs() << errInfo.message() << '\n';
+      LOG_ERROR("Failed to open output file: {}", errInfo.message());
       return;
     }
 

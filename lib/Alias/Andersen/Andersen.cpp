@@ -4,7 +4,10 @@
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/raw_ostream.h>
 
+#include <sstream>
+
 #include "Alias/Andersen/Andersen.h"
+#include "Alias/Andersen/Log.h"
 
 #define DEBUG_TYPE "andersen"
 
@@ -64,11 +67,13 @@ bool Andersen::getPointsToSet(const llvm::Value *v,
 }
 
 bool Andersen::runOnModule(const Module &M) {
+  LOG_INFO("Starting Andersen analysis on module: {}", M.getName().str());
   collectConstraints(M);
   
   // Update statistics after constraint collection
   NumConstraints = constraints.size();
   NumValueNodes = nodeFactory.getNumNodes();
+  LOG_INFO("Collected {} constraints and created {} value nodes", NumConstraints, NumValueNodes);
   for (const auto &c : constraints) {
     switch (c.getType()) {
     case AndersConstraint::ADDR_OF:
@@ -95,15 +100,16 @@ bool Andersen::runOnModule(const Module &M) {
     dumpConstraints();
 
   solveConstraints();
+  LOG_INFO("Andersen analysis completed successfully");
 
   if (DumpDebugInfo) {
-    errs() << "\n";
+    LOG_DEBUG("");
     dumpPtsGraphPlainVanilla();
   }
 
   if (DumpResultInfo) {
     nodeFactory.dumpNodeInfo();
-    errs() << "\n";
+    LOG_DEBUG("");
     dumpPtsGraphPlainVanilla();
   }
 
@@ -145,16 +151,15 @@ void Andersen::dumpConstraint(const AndersConstraint &item) const {
 }
 
 void Andersen::dumpConstraints() const {
-  errs() << "\n----- Constraints -----\n";
+  LOG_DEBUG("\n----- Constraints -----");
   for (auto const &item : constraints)
     dumpConstraint(item);
-  errs() << "----- End of Print -----\n";
+  LOG_DEBUG("----- End of Print -----");
 }
 
 void Andersen::dumpConstraintsPlainVanilla() const {
   for (auto const &item : constraints) {
-    errs() << item.getType() << " " << item.getDest() << " " << item.getSrc()
-           << " 0\n";
+    LOG_DEBUG("{} {} {} 0", item.getType(), item.getDest(), item.getSrc());
   }
 }
 
@@ -163,10 +168,11 @@ void Andersen::dumpPtsGraphPlainVanilla() const {
     NodeIndex rep = nodeFactory.getMergeTarget(i);
     auto ptsItr = ptsGraph.find(rep);
     if (ptsItr != ptsGraph.end()) {
-      errs() << i << " ";
+      std::stringstream ss;
+      ss << i;
       for (auto v : ptsItr->second)
-        errs() << v << " ";
-      errs() << "\n";
+        ss << " " << v;
+      LOG_DEBUG("{}", ss.str());
     }
   }
 }

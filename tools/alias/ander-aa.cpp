@@ -11,6 +11,7 @@
 
 #include "Alias/Andersen/Andersen.h"
 #include "Alias/Andersen/AndersenAA.h"
+#include "Alias/Andersen/Log.h"
 
 #include <llvm/Analysis/MemoryLocation.h>
 #include <llvm/IR/LLVMContext.h>
@@ -29,6 +30,16 @@
 #include <memory>
 
 using namespace llvm;
+
+// Log level enum
+enum class LogLevel {
+    TRACE,    // Most verbose (all messages)
+    DEBUG,    // Debug messages and above
+    INFO,     // Informational messages and above (default)
+    WARN,     // Warnings and errors only
+    ERR,      // Errors only
+    OFF       // No logging
+};
 
 // Command line options
 static cl::opt<std::string> InputFilename(cl::Positional, 
@@ -63,6 +74,23 @@ static cl::opt<bool> OnlyStatistics("s",
 static cl::opt<bool> VerifyInput("verify", 
                                  cl::desc("Verify input module before analysis"), 
                                  cl::init(true));
+
+// Logging options
+static cl::opt<LogLevel> LogLevelOpt("log-level",
+                                     cl::desc("Set the logging level"),
+                                     cl::values(
+                                         clEnumValN(LogLevel::TRACE, "trace", "Display all messages including trace information"),
+                                         clEnumValN(LogLevel::DEBUG, "debug", "Display all messages including debug information"),
+                                         clEnumValN(LogLevel::INFO, "info", "Display informational messages and above (default)"),
+                                         clEnumValN(LogLevel::WARN, "warn", "Display warnings and errors only"),
+                                         clEnumValN(LogLevel::ERR, "error", "Display errors only"),
+                                         clEnumValN(LogLevel::OFF, "off", "Suppress all log output")
+                                     ),
+                                     cl::init(LogLevel::INFO));
+
+static cl::opt<bool> QuietLogging("quiet",
+                                  cl::desc("Suppress most log output (equivalent to --log-level=off)"),
+                                  cl::init(false));
 
 // Helper to print value name or operand
 static void printValue(const Value *V, raw_ostream &OS) {
@@ -139,6 +167,40 @@ int main(int argc, char **argv) {
     cl::ParseCommandLineOptions(argc, argv, 
         "Andersen's Pointer Analysis Tool\n\n"
         "Subset-based, flow-insensitive, field-sensitive pointer analysis.\n");
+
+    // Initialize spdlog based on command-line options
+    spdlog::level::level_enum spdlogLevel;
+    LogLevel effectiveLevel = QuietLogging ? LogLevel::OFF : LogLevelOpt;
+    
+    switch (effectiveLevel) {
+        case LogLevel::TRACE:
+            spdlogLevel = spdlog::level::trace;
+            break;
+        case LogLevel::DEBUG:
+            spdlogLevel = spdlog::level::debug;
+            break;
+        case LogLevel::INFO:
+            spdlogLevel = spdlog::level::info;
+            break;
+        case LogLevel::WARN:
+            spdlogLevel = spdlog::level::warn;
+            break;
+        case LogLevel::ERR:
+            spdlogLevel = spdlog::level::err;
+            break;
+        case LogLevel::OFF:
+            spdlogLevel = spdlog::level::off;
+            break;
+        default:
+            spdlogLevel = spdlog::level::info;
+            break;
+    }
+    
+    spdlog::set_level(spdlogLevel);
+    // Enable colored output - use %^ and %$ markers to enable colors for the level name
+    // %^ starts color formatting, %$ ends it
+    // The default logger already uses ansicolor_stdout_sink_mt on Unix which supports colors
+    spdlog::set_pattern("%^[%l]%$ %v");
 
     LLVMContext Context;
     SMDiagnostic Err;

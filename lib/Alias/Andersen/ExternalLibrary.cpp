@@ -8,6 +8,7 @@
 #include <cstring>
 
 #include "Alias/Andersen/Andersen.h"
+#include "Alias/Andersen/Log.h"
 
 
 using namespace llvm;
@@ -140,7 +141,7 @@ bool Andersen::addConstraintForExternalLibrary(const CallBase *cs,
                "Failed to find arg0 node");
         constraints.emplace_back(AndersConstraint::STORE, ptrIndex, objIndex);
       } else {
-        errs() << f->getName() << '\n';
+        LOG_ERROR("unrecognized malloc call: {}", f->getName().str());
         assert(false && "unrecognized malloc call");
       }
     } else {

@@ -16,6 +16,7 @@
 
 
 #include "Alias/Andersen/Andersen.h"
+#include "Alias/Andersen/Log.h"
 
 #define DEBUG_TYPE "andersen"
 
@@ -388,7 +389,7 @@ void Andersen::collectConstraintsForInstruction(const Instruction *inst) {
       NodeIndex dstIndex = nodeFactory.getValueNodeFor(inst);
       assert(dstIndex != AndersNodeFactory::InvalidIndex &&
              "Failed to find insertvalue dst node");
-      
+
       // Conservative: the result aggregate may contain any pointers from:
       // 1. The original aggregate
       Value *aggOperand = inst->getOperand(0);
@@ -396,31 +397,79 @@ void Andersen::collectConstraintsForInstruction(const Instruction *inst) {
       if (srcIndex != AndersNodeFactory::InvalidIndex) {
         constraints.emplace_back(AndersConstraint::COPY, dstIndex, srcIndex);
       }
-      
+
       // 2. The inserted value (if it's a pointer)
       Value *insertedVal = inst->getOperand(1);
       if (insertedVal->getType()->isPointerTy()) {
         NodeIndex insertedIndex = nodeFactory.getValueNodeFor(insertedVal);
         assert(insertedIndex != AndersNodeFactory::InvalidIndex &&
                "Failed to find insertvalue inserted value node");
-        constraints.emplace_back(AndersConstraint::COPY, dstIndex, insertedIndex);
+        constraints.emplace_back(AndersConstraint::COPY, dstIndex,
+                                 insertedIndex);
       }
     }
     break;
   }
-  // We have no intention to support exception-handling in the near future
+  // We have no intention to support exception-handling in the near future. Just
+  // ignore EH-related instructions instead of crashing.
   case Instruction::LandingPad:
-  case Instruction::Resume:
-  // Atomic instructions can be modeled by their non-atomic counterparts. To be
-  // supported
-  case Instruction::AtomicRMW:
+  case Instruction::Resume: {
+    break;
+  }
+  // Atomic instructions can be modeled conservatively by their non-atomic
+  // counterparts.
+  case Instruction::AtomicRMW: {
+    const auto *ar = cast<AtomicRMWInst>(inst);
+
+    // Load-like effect: the result is the old value in memory.
+    if (ar->getType()->isPointerTy()) {
+      NodeIndex ptrIndex = nodeFactory.getValueNodeFor(ar->getPointerOperand());
+      if (ptrIndex != AndersNodeFactory::InvalidIndex) {
+        NodeIndex resIndex = nodeFactory.getValueNodeFor(ar);
+        assert(resIndex != AndersNodeFactory::InvalidIndex &&
+               "Failed to find atomicrmw result node");
+        constraints.emplace_back(AndersConstraint::LOAD, resIndex, ptrIndex);
+      }
+    }
+
+    // Store-like effect: the new value is written back to memory.
+    const Value *valOp = ar->getValOperand();
+    if (valOp->getType()->isPointerTy()) {
+      NodeIndex srcIndex = nodeFactory.getValueNodeFor(valOp);
+      if (srcIndex != AndersNodeFactory::InvalidIndex) {
+        NodeIndex dstIndex =
+            nodeFactory.getValueNodeFor(ar->getPointerOperand());
+        assert(dstIndex != AndersNodeFactory::InvalidIndex &&
+               "Failed to find atomicrmw pointer node");
+        constraints.emplace_back(AndersConstraint::STORE, dstIndex, srcIndex);
+      }
+    }
+    break;
+  }
   case Instruction::AtomicCmpXchg: {
-    errs() << *inst << "\n";
-    llvm_unreachable("not implemented yet");
+    const auto *cx = cast<AtomicCmpXchgInst>(inst);
+
+    // Store-like effect: if the exchanged-in value is a pointer, it may be
+    // written to memory.
+    const Value *newVal = cx->getNewValOperand();
+    if (newVal->getType()->isPointerTy()) {
+      NodeIndex srcIndex = nodeFactory.getValueNodeFor(newVal);
+      if (srcIndex != AndersNodeFactory::InvalidIndex) {
+        NodeIndex dstIndex =
+            nodeFactory.getValueNodeFor(cx->getPointerOperand());
+        assert(dstIndex != AndersNodeFactory::InvalidIndex &&
+               "Failed to find cmpxchg pointer node");
+        constraints.emplace_back(AndersConstraint::STORE, dstIndex, srcIndex);
+      }
+    }
+
+    // The result of cmpxchg is a struct {T, i1}; we do not currently model the
+    // loaded value here.
+    break;
   }
   default: {
     if (inst->getType()->isPointerTy()) {
-      errs() << *inst << "\n";
+      LOG_ERROR("pointer-related inst not handled: {}", *inst);
       llvm_unreachable("pointer-related inst not handled!");
     }
     break;
