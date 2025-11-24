@@ -267,6 +267,7 @@ protected:
             // get a copy of the points to,
             // since indirect call resolution will add more elements to the pts
             // and thus corrupt the iterator
+            // TODO: is this a good idea?
             typename PT::PtsTy pointsTo(PT::getPointsTo(ptrID));
             for (auto it = pointsTo.begin(), eit = pointsTo.end(); it != eit; it++) {
                 auto node = (*consGraph)[*it];

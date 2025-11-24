@@ -79,6 +79,32 @@ protected:
         return reanalyze;
     }
 
+    // Hook for subclasses to populate call graph with pre-built results (e.g., from DyckAA, FPA)
+    // This is called AFTER buildInitModel() but BEFORE constructConsGraph(), so the call graph
+    // can be populated before constraint graph construction begins.
+    //
+    // IMPORTANT: The call graph affects constraint graph construction because:
+    // 1. buildInitCallGraph() (called during constructConsGraph()) traverses the call graph
+    // 2. For each call edge, it calls processCallSite() which adds constraints
+    // 3. Indirect calls need to be resolved BEFORE this traversal happens
+    //
+    // To use this hook:
+    // 1. Override this method in your solver subclass
+    // 2. Use getLangModel() to access the language model
+    // 3. Query your pre-built call graph (e.g., DyckAA, FPA) for indirect call resolutions
+    // 4. For each resolved indirect call, you need to call the module's resolveCallTo() method
+    //    However, this requires callbacks (beforeNewNode, onNewDirect, onNewInDirect, onNewEdge)
+    //    which are defined in ConsGraphBuilder. You may need to:
+    //    - Access the language model's internal ConsGraphBuilder instance, OR
+    //    - Manually populate the call graph structure before constructConsGraph() runs
+    //
+    // Returns true if any indirect calls were resolved (currently unused, but may be useful
+    // for future optimizations)
+    virtual bool populatePreBuiltCallGraph() {
+        // Default implementation: no pre-built call graph
+        return false;
+    }
+
     // seems like the scc becomes the bottleneck, need to merge large scc
     // return the super node of the scc
     CGNodeTy *processCopySCC(const std::vector<CGNodeTy *> &scc) {
@@ -250,8 +276,10 @@ protected:
             } while (reanalyze);
         } else {
             // Run solver once without on-the-fly callgraph construction
-            // FIXME: we need to use a pre-built call graph (e.g., DyckAA or some type-based approach)
-            // A problem is: it might be hard to "hook" resolveFunPtrs to update the call graph.
+            // NOTE: To use a pre-built call graph (e.g., DyckAA, FPA), override
+            // populatePreBuiltCallGraph() in your solver subclass. This hook is called
+            // in analyze() BEFORE constructConsGraph(), allowing the call graph to be
+            // populated before constraint graph construction begins.
             static_cast<SubClass *>(this)->runSolver(*langModel);
         }
         // llvm::outs() << this->getConsGraph()->getNodeNum();
@@ -328,6 +356,13 @@ public:
 
         // using language model to construct language model
         langModel.reset(LMT::buildInitModel(module, entry));
+        
+        // Hook point: populate call graph with pre-built results (e.g., DyckAA, FPA)
+        // This must happen BEFORE constructConsGraph() because the call graph
+        // affects which functions are visited and which constraints are generated
+        // TODO: should we call the "hook" functioh here? Or elsewhere
+        // populatePreBuiltCallGraph();
+        
         LMT::constructConsGraph(langModel.get());
 
         consGraph = LMT::getConsGraph(langModel.get());

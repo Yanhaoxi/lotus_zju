@@ -1,0 +1,192 @@
+/**
+ * @file ThreadFlowGraph.h
+ * @brief Thread Flow Graph representation for concurrency analysis
+ *
+ * This file defines the core classes for representing thread control flow
+ * and synchronization in multithreaded programs.
+ *
+ * @author Lotus Analysis Framework
+ * @date 2025
+ */
+
+#ifndef THREAD_FLOW_GRAPH_H
+#define THREAD_FLOW_GRAPH_H
+
+#include <llvm/ADT/SmallVector.h>
+#include <llvm/ADT/StringRef.h>
+#include <llvm/IR/BasicBlock.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/Instruction.h>
+#include <llvm/Support/raw_ostream.h>
+
+#include <memory>
+#include <unordered_map>
+#include <vector>
+
+namespace mhp {
+
+// ============================================================================
+// Type Definitions
+// ============================================================================
+
+using ThreadID = size_t;
+
+// ============================================================================
+// Synchronization Node Types
+// ============================================================================
+
+/**
+ * @brief Types of synchronization nodes in the thread-flow graph
+ */
+enum class SyncNodeType {
+  THREAD_START,       ///< Program entry point
+  THREAD_FORK,        ///< pthread_create or similar
+  THREAD_JOIN,        ///< pthread_join or similar
+  THREAD_EXIT,        ///< pthread_exit or return from thread function
+  LOCK_ACQUIRE,       ///< Lock acquisition (mutex lock)
+  LOCK_RELEASE,       ///< Lock release (mutex unlock)
+  COND_WAIT,          ///< Condition variable wait
+  COND_SIGNAL,        ///< Condition variable signal
+  COND_BROADCAST,     ///< Condition variable broadcast
+  BARRIER_WAIT,       ///< Barrier synchronization
+  REGULAR_INST,       ///< Regular instruction
+  FUNCTION_CALL,      ///< Function call (non-thread API)
+  FUNCTION_RETURN     ///< Function return
+};
+
+/**
+ * @brief Synchronization node in the thread-flow graph
+ */
+class SyncNode {
+public:
+  SyncNode(const llvm::Instruction *inst, SyncNodeType type, ThreadID tid)
+      : m_instruction(inst), m_type(type), m_thread_id(tid), m_node_id(next_id++) {}
+
+  const llvm::Instruction *getInstruction() const { return m_instruction; }
+  SyncNodeType getType() const { return m_type; }
+  ThreadID getThreadID() const { return m_thread_id; }
+  size_t getNodeID() const { return m_node_id; }
+
+  // Synchronization-specific data
+  void setLockValue(const llvm::Value *lock) { m_lock_value = lock; }
+  const llvm::Value *getLockValue() const { return m_lock_value; }
+
+  void setCondValue(const llvm::Value *cond) { m_cond_value = cond; }
+  const llvm::Value *getCondValue() const { return m_cond_value; }
+
+  void setForkedThread(ThreadID tid) { m_forked_thread = tid; }
+  ThreadID getForkedThread() const { return m_forked_thread; }
+
+  void setJoinedThread(ThreadID tid) { m_joined_thread = tid; }
+  ThreadID getJoinedThread() const { return m_joined_thread; }
+
+  // Predecessors and successors
+  void addPredecessor(SyncNode *pred) { m_predecessors.push_back(pred); }
+  void addSuccessor(SyncNode *succ) { m_successors.push_back(succ); }
+
+  const std::vector<SyncNode *> &getPredecessors() const {
+    return m_predecessors;
+  }
+  const std::vector<SyncNode *> &getSuccessors() const {
+    return m_successors;
+  }
+
+  // For debugging
+  void print(llvm::raw_ostream &os) const;
+  std::string toString() const;
+
+private:
+  const llvm::Instruction *m_instruction;
+  SyncNodeType m_type;
+  ThreadID m_thread_id;
+  size_t m_node_id;
+
+  // Synchronization-specific data
+  const llvm::Value *m_lock_value = nullptr;
+  const llvm::Value *m_cond_value = nullptr;
+  ThreadID m_forked_thread = 0;
+  ThreadID m_joined_thread = 0;
+
+  // Graph structure
+  std::vector<SyncNode *> m_predecessors;
+  std::vector<SyncNode *> m_successors;
+
+  static size_t next_id;
+};
+
+// ============================================================================
+// Thread Flow Graph
+// ============================================================================
+
+/**
+ * @brief Thread-flow graph representation
+ *
+ * Represents the control flow and synchronization structure of a multithreaded
+ * program. Each thread has its own flow graph, and synchronization edges
+ * connect different threads.
+ */
+class ThreadFlowGraph {
+public:
+  ThreadFlowGraph() = default;
+  ~ThreadFlowGraph();
+
+  // Node management
+  SyncNode *createNode(const llvm::Instruction *inst, SyncNodeType type,
+                       ThreadID tid);
+  SyncNode *getNode(const llvm::Instruction *inst) const;
+  const std::vector<SyncNode *> &getAllNodes() const { return m_all_nodes; }
+
+  // Thread management
+  void addThread(ThreadID tid, const llvm::Function *entry);
+  const llvm::Function *getThreadEntry(ThreadID tid) const;
+  std::vector<ThreadID> getAllThreads() const;
+
+  // Entry and exit nodes
+  void setThreadEntryNode(ThreadID tid, SyncNode *entry);
+  void setThreadExitNode(ThreadID tid, SyncNode *exit);
+  SyncNode *getThreadEntryNode(ThreadID tid) const;
+  SyncNode *getThreadExitNode(ThreadID tid) const;
+
+  // Graph construction helpers
+  void addIntraThreadEdge(SyncNode *from, SyncNode *to);
+  void addInterThreadEdge(SyncNode *from, SyncNode *to);
+
+  // Query interface
+  std::vector<SyncNode *> getNodesOfType(SyncNodeType type) const;
+  std::vector<SyncNode *> getNodesInThread(ThreadID tid) const;
+
+  // Debugging and visualization
+  void print(llvm::raw_ostream &os) const;
+  void printAsDot(llvm::raw_ostream &os) const;
+  void dumpToFile(const std::string &filename) const;
+
+private:
+  std::vector<SyncNode *> m_all_nodes;
+  std::unordered_map<const llvm::Instruction *, SyncNode *> m_inst_to_node;
+  std::unordered_map<ThreadID, const llvm::Function *> m_thread_entries;
+  std::unordered_map<ThreadID, SyncNode *> m_thread_entry_nodes;
+  std::unordered_map<ThreadID, SyncNode *> m_thread_exit_nodes;
+};
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
+/**
+ * @brief Get string name for synchronization node type
+ */
+llvm::StringRef getSyncNodeTypeName(SyncNodeType type);
+
+/**
+ * @brief Check if a node type represents a synchronization operation
+ */
+bool isSynchronizationNode(SyncNodeType type);
+
+/**
+ * @brief Check if a node type represents thread creation/termination
+ */
+bool isThreadBoundaryNode(SyncNodeType type);
+
+} // namespace mhp
+
+#endif // THREAD_FLOW_GRAPH_H
