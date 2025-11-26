@@ -1,7 +1,7 @@
 // Module optimizer that runs LLVM's standard optimization pipelines.
 // This provides a simple interface for applying O0, O1, O2, or O3 optimizations.
 
-#include "Transform/ModuleOptimizer.h"
+#include "Optimization/ModuleOptimizer.h"
 
 #include <llvm/Analysis/CGSCCPassManager.h>
 #include <llvm/Analysis/LoopAnalysisManager.h>

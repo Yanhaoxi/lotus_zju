@@ -1,6 +1,7 @@
 add_subdirectory(Alias)
 add_subdirectory(Utils)
 add_subdirectory(Transform)
+add_subdirectory(Optimization)
 add_subdirectory(Solvers)
 add_subdirectory(IR)
 add_subdirectory(Analysis)

@@ -4,7 +4,6 @@ add_library(CanaryTransform STATIC
         LowerGlobalConstantArraySelect.cpp
         LowerSelect.cpp
         MergeReturn.cpp
-        ModuleOptimizer.cpp
         NameBlock.cpp
         RemoveDeadBlock.cpp
         RemoveNoRetFunction.cpp
@@ -17,5 +16,4 @@ add_library(CanaryTransform STATIC
         MergeGEP.cpp
         SimplifyExtractValue.cpp
         SimplifyInsertValue.cpp
-
 )
