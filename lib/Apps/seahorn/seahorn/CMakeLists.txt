@@ -63,9 +63,9 @@ llvm_map_components_to_libnames(llvm_codegen_libs codegen)
 target_link_libraries(seahorn.LIB PRIVATE ${llvm_codegen_libs})
 
 add_subdirectory(Smt)
-if (HAVE_CLAM)
-  target_link_libraries (seahorn.LIB PRIVATE ${CLAM_LIBS})
-endif()
+#if (HAVE_CLAM)
+#  target_link_libraries (seahorn.LIB PRIVATE ${CLAM_LIBS})
+#endif()
 
 
 set_target_properties (seahorn.LIB PROPERTIES OUTPUT_NAME "seahorn")

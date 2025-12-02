@@ -1,14 +1,12 @@
 # Examples CMakeLists.txt
 
 set(EXAMPLES
-  AndersenExample.cpp
   EGraphExample.cpp
-  PDGExample.cpp
-  PointerAnalysisExample.cpp
+  how-to/build-pdg/PDGExample.cpp
+  how-to/query-alias-info/PointerAnalysisExample.cpp
 )
 
 set(EXAMPLES_NAMES
-  AndersenExample
   EGraphExample
   PDGExample
   PointerAnalysisExample
@@ -20,15 +18,13 @@ set(EXAMPLES_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
 llvm_map_components_to_libnames(llvm_libs irreader analysis)
 
 # Add executables and include directories
-foreach(idx RANGE 0 3)
+foreach(idx RANGE 0 2)
   list(GET EXAMPLES_NAMES ${idx} example_name)
   list(GET EXAMPLES ${idx} example_file)
   add_executable(${example_name} ${example_file})
   target_include_directories(${example_name} PUBLIC ${EXAMPLES_INCLUDE_DIR})
 endforeach()
 
-# AndersenExample needs Andersen and LLVM libs
-target_link_libraries(AndersenExample PRIVATE Andersen ${llvm_libs})
 
 # PDGExample needs CanaryPDG and LLVM libs
 target_link_libraries(PDGExample PRIVATE CanaryPDG ${llvm_libs})
@@ -37,7 +33,6 @@ target_link_libraries(PDGExample PRIVATE CanaryPDG ${llvm_libs})
 target_link_libraries(PointerAnalysisExample PRIVATE 
     CanaryAliasAnalysisWrapper 
     CanaryUnderApproxAA
-    Andersen
     CanaryDyckAA
     CanaryAllocAA
     SeaDsaAnalysis

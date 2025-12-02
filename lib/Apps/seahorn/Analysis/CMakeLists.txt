@@ -13,6 +13,6 @@ add_library (SeaAnalysis STATIC
   SeaBuiltinsInfo.cc
   )
 
-if (HAVE_CLAM)
-  target_link_libraries (SeaAnalysis PRIVATE ${CLAM_LIBS})
-endif()
+#if (HAVE_CLAM)
+#  target_link_libraries (SeaAnalysis PRIVATE ${CLAM_LIBS})
+#endif()

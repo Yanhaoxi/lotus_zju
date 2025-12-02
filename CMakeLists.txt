@@ -29,7 +29,7 @@ add_subdirectory(lib)
 add_subdirectory(tools)
 add_subdirectory(benchmarks)
 
-option(BUILD_EXAMPLES "Build examples" OFF)
+option(BUILD_EXAMPLES "Build examples" ON)
 if(BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
