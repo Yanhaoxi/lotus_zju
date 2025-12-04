@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Analysis/Sprattus/utils.h"
+#include "Analysis/Sprattus/Utils.h"
 #include "Analysis/Sprattus/FunctionContext.h"
 
 #include <z3++.h>

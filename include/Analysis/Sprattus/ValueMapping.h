@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Analysis/Sprattus/utils.h"
+#include "Analysis/Sprattus/Utils.h"
 #include "Analysis/Sprattus/Fragment.h"
 
 #include <llvm/IR/BasicBlock.h>

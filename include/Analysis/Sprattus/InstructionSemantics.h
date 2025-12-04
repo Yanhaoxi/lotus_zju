@@ -5,7 +5,7 @@
  * arbitrary LLVM instructions.
  */
 
-#include "Analysis/Sprattus/utils.h"
+#include "Analysis/Sprattus/Utils.h"
 #include <map>
 #include <set>
 

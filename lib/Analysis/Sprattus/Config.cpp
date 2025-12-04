@@ -1,6 +1,6 @@
 #include "Analysis/Sprattus/Config.h"
 
-#include "Analysis/Sprattus/utils.h"
+#include "Analysis/Sprattus/Utils.h"
 
 #include <llvm/Support/MemoryBuffer.h>
 #include <llvm/Support/raw_ostream.h>

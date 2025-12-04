@@ -1,5 +1,5 @@
 // Sprattus static analysis tool
-#include "Analysis/Sprattus/utils.h"
+#include "Analysis/Sprattus/Utils.h"
 #include "Analysis/Sprattus/Analyzer.h"
 #include "Analysis/Sprattus/Config.h"
 #include "Analysis/Sprattus/DomainConstructor.h"

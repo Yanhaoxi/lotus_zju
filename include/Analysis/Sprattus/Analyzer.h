@@ -5,7 +5,7 @@
  */
 #pragma once
 
-#include "Analysis/Sprattus/utils.h"
+#include "Analysis/Sprattus/Utils.h"
 #include "Analysis/Sprattus/AbstractValue.h"
 #include "Analysis/Sprattus/Fragment.h"
 #include "Analysis/Sprattus/FragmentDecomposition.h"
@@ -205,4 +205,7 @@ class BilateralAnalyzer : public Analyzer
     virtual bool strongestConsequence(AbstractValue* result, z3::expr phi,
                                       const ValueMapping& vmap) const;
 };
+
+
+
 } // namespace sprattus

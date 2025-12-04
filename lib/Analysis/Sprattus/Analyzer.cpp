@@ -13,7 +13,7 @@
 #include <llvm/IR/CFG.h>
 #include <llvm/Support/Timer.h>
 
-#include "Analysis/Sprattus/utils.h"
+#include "Analysis/Sprattus/Utils.h"
 #include "Analysis/Sprattus/ValueMapping.h"
 #include "Analysis/Sprattus/DomainConstructor.h"
 #include "Analysis/Sprattus/repr.h"

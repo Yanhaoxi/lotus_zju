@@ -6,7 +6,7 @@
 
 #include "Analysis/Sprattus/SprattusPass.h"
 
-#include "Analysis/Sprattus/utils.h"
+#include "Analysis/Sprattus/Utils.h"
 #include "Analysis/Sprattus/repr.h"
 
 #include "Analysis/Sprattus/ModuleContext.h"

@@ -3,7 +3,7 @@
 
 # Sprattus library sources
 set(SPRATTUS_SOURCES
-    utils.cpp
+    Utils.cpp
     Analyzer.cpp
     UnilateralAnalyzer.cpp
     BilateralAnalyzer.cpp

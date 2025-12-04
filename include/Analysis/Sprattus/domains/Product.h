@@ -5,7 +5,7 @@
 
 #include <llvm/IR/CFG.h>
 
-#include "Analysis/Sprattus/utils.h"
+#include "Analysis/Sprattus/Utils.h"
 #include "Analysis/Sprattus/ResultStore.h"
 #include "Analysis/Sprattus/AbstractValue.h"
 #include "Analysis/Sprattus/FunctionContext.h"

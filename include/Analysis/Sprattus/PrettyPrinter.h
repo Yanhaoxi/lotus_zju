@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Analysis/Sprattus/utils.h"
+#include "Analysis/Sprattus/Utils.h"
 #include <sstream>
 #include <type_traits>
 #include <map>

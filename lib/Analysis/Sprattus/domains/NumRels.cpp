@@ -2,7 +2,7 @@
 
 #include "Analysis/Sprattus/ResultStore.h"
 #include "Analysis/Sprattus/DomainConstructor.h"
-#include "Analysis/Sprattus/utils.h"
+#include "Analysis/Sprattus/Utils.h"
 #include "Analysis/Sprattus/FunctionContext.h"
 #include "Analysis/Sprattus/RepresentedValue.h"
 #include "Analysis/Sprattus/Z3APIExtension.h"

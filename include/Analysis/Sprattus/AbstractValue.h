@@ -14,7 +14,7 @@
 #include <llvm/IR/Value.h>
 #include <llvm/IR/LLVMContext.h>
 
-#include "Analysis/Sprattus/utils.h"
+#include "Analysis/Sprattus/Utils.h"
 #include "Analysis/Sprattus/ConcreteState.h"
 #include "Analysis/Sprattus/ValueMapping.h"
 #include "Analysis/Sprattus/PrettyPrinter.h"

@@ -7,7 +7,7 @@
 #include "Analysis/Sprattus/ParamStrategy.h"
 #include "Analysis/Sprattus/domains/Combinators.h"
 #include "Analysis/Sprattus/Expression.h"
-#include "Analysis/Sprattus/utils.h"
+#include "Analysis/Sprattus/Utils.h"
 
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Type.h>
