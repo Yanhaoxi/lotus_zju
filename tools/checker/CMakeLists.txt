@@ -3,12 +3,12 @@
 llvm_map_components_to_libnames(LLVM_LINK_COMPONENTS
   Coroutines
   Target
+  #Passes
 )
 
 # Global Value Flow Analysis Tool (unified, includes null pointer analysis)
 add_executable(lotus-gvfa lotus_gvfa.cpp)
 target_link_libraries(lotus-gvfa PRIVATE
-  GVFA
   GVFAChecker
   CanaryReport
   Annotation
@@ -18,8 +18,7 @@ target_link_libraries(lotus-gvfa PRIVATE
 
 # Kint: A Bug-Finding Tool for C Programs
 set(LLVM_LINK_COMPONENTS_KINT
-        LLVMPasses
-)
+        LLVMPasses)
 
 add_executable(lotus-kint lotus_kint.cpp)
 target_link_libraries(lotus-kint PRIVATE
