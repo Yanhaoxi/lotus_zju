@@ -1,13 +1,13 @@
 // Sprattus static analysis tool
-#include "Analysis/Sprattus/Utils.h"
-#include "Analysis/Sprattus/Analyzer.h"
-#include "Analysis/Sprattus/Config.h"
-#include "Analysis/Sprattus/DomainConstructor.h"
-#include "Analysis/Sprattus/FragmentDecomposition.h"
-#include "Analysis/Sprattus/FunctionContext.h"
-#include "Analysis/Sprattus/ModuleContext.h"
-#include "Analysis/Sprattus/Checks.h"
-#include "Analysis/Sprattus/Reporting.h"
+#include "Analysis/Sprattus/Utils/Utils.h"
+#include "Analysis/Sprattus/Analyzers/Analyzer.h"
+#include "Analysis/Sprattus/Utils/Config.h"
+#include "Analysis/Sprattus/Core/DomainConstructor.h"
+#include "Analysis/Sprattus/Core/FragmentDecomposition.h"
+#include "Analysis/Sprattus/Core/FunctionContext.h"
+#include "Analysis/Sprattus/Core/ModuleContext.h"
+#include "Analysis/Sprattus/Core/Checks.h"
+#include "Analysis/Sprattus/Utils/Reporting.h"
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>

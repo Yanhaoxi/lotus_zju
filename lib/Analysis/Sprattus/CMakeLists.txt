@@ -3,42 +3,47 @@
 
 # Sprattus library sources
 set(SPRATTUS_SOURCES
-    Utils.cpp
-    Analyzer.cpp
-    UnilateralAnalyzer.cpp
-    BilateralAnalyzer.cpp
-    FunctionContext.cpp
-    ModuleContext.cpp
-    Checks.cpp
-    Reporting.cpp
-    RepresentedValue.cpp
-    ConcreteState.cpp
-    Fragment.cpp
-    FragmentDecomposition.cpp
-    InstructionSemantics.cpp
-    ValueMapping.cpp
-    Z3APIExtension.cpp
-    MemoryModel.cpp
-    FloatingPointModel.cpp
-    DomainConstructor.cpp
-    Config.cpp
-    SprattusPass.cpp
-    PrettyPrinter.cpp
-    ResultStore.cpp
-    Expression.cpp
-    ParamStrategy.cpp
-    domains/NumRels.cpp
-    domains/SimpleConstProp.cpp
-    domains/BitMask.cpp
-    domains/Affine.cpp
-    domains/Predicates.cpp
-    domains/Intervals.cpp
-    domains/MemRange.cpp
-    domains/MemRegions.cpp
-    domains/Boolean.cpp
-    domains/Congruence.cpp
-    domains/Zones.cpp
-    domains/Octagon.cpp
+    # Analyzers
+    Analyzers/Analyzer.cpp
+    Analyzers/UnilateralAnalyzer.cpp
+    Analyzers/BilateralAnalyzer.cpp
+    Analyzers/OMTAnalyzer.cpp
+    # Core components
+    Core/Fragment.cpp
+    Core/FragmentDecomposition.cpp
+    Core/Expression.cpp
+    Core/ConcreteState.cpp
+    Core/InstructionSemantics.cpp
+    Core/MemoryModel.cpp
+    Core/FloatingPointModel.cpp
+    Core/FunctionContext.cpp
+    Core/ModuleContext.cpp
+    Core/RepresentedValue.cpp
+    Core/ValueMapping.cpp
+    Core/DomainConstructor.cpp
+    Core/SprattusPass.cpp
+    Core/Checks.cpp
+    Core/ResultStore.cpp
+    Core/ParamStrategy.cpp
+    # Utilities
+    Utils/Utils.cpp
+    Utils/Config.cpp
+    Utils/PrettyPrinter.cpp
+    Utils/Reporting.cpp
+    Utils/Z3APIExtension.cpp
+    # Abstract Domains
+    Domains/NumRels.cpp
+    Domains/SimpleConstProp.cpp
+    Domains/BitMask.cpp
+    Domains/Affine.cpp
+    Domains/Predicates.cpp
+    Domains/Intervals.cpp
+    Domains/MemRange.cpp
+    Domains/MemRegions.cpp
+    Domains/Boolean.cpp
+    Domains/Congruence.cpp
+    Domains/Zones.cpp
+    Domains/Octagon.cpp
 )
 
 # Create Sprattus library
