@@ -53,13 +53,13 @@ See :doc:`../solvers/index` for solver APIs.
 Abstract Interpretation
 -----------------------
 
-See :doc:`../tools/verifier/clam/index` for CLAM and :doc:`../tools/verifier/sprattus/index`
+See :doc:`../tools/verifier/clam/index` for CLAM and :doc:`../tools/verifier/symbolic_abstraction/index`
 for higher-level abstractions.
 
 * **CLAM** – Modular AI-driven static analyzer with multiple abstract domains
   (``tools/clam`` and ``lib/Apps/clam``).
-* **Sprattus** – Configurable abstract interpretation framework with domain
-  composition (``lib/Analysis/Sprattus`` and ``include/Analysis/Sprattus``).
+* **SymbolicAbstraction** – Configurable abstract interpretation framework with domain
+  composition (``lib/Analysis/SymbolicAbstraction`` and ``include/Analysis/SymbolicAbstraction``).
 
 Utilities and Reachability
 --------------------------

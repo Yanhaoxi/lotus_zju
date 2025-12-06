@@ -29,27 +29,27 @@ checking safety properties over LLVM bitcode.
 
 For detailed documentation, see :doc:`clam/index`.
 
-Sprattus – Symbolic Abstraction Framework
+SymbolicAbstraction – Symbolic Abstraction Framework
 ------------------------------------------
 
-Sprattus is a framework for static program analysis using symbolic abstraction
+SymbolicAbstraction is a framework for static program analysis using symbolic abstraction
 to provide a flexible interface for designing program analyses in a
 compositional way.
 
-**Binary**: ``sprattus``  
-**Location**: ``tools/verifier/sprattus/``
+**Binary**: ``symbolic_abstraction``  
+**Location**: ``tools/verifier/symbolic_abstraction/``
 
 **Quick Start**:
 
 .. code-block:: bash
 
    # Analyze all functions
-   ./build/bin/sprattus example.bc
+   ./build/bin/symbolic_abstraction example.bc
 
    # Analyze specific function
-   ./build/bin/sprattus --function=foo example.bc
+   ./build/bin/symbolic_abstraction --function=foo example.bc
 
-For detailed documentation, see :doc:`sprattus/index`.
+For detailed documentation, see :doc:`symbolic_abstraction/index`.
 
 SeaHorn – Verification Framework
 ---------------------------------

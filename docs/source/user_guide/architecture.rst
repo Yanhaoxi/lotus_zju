@@ -18,7 +18,7 @@ Lotus is organized into several major subsystems that work together to provide a
    ┌────────────────┴─────────────────────────────────────────────┐
    │                    Analysis Applications                      │
    │  - Bug Checkers (Kint, GVFA, Taint, Concurrency)            │
-   │  - Abstract Interpreters (CLAM, Sprattus)                    │
+   │  - Abstract Interpreters (CLAM, SymbolicAbstraction)                    │
    │  - Fuzzing Support (Titan)                                   │
    └────┬────────────┬────────────┬────────────┬─────────────────┘
         │            │            │            │
@@ -74,12 +74,12 @@ Core Components
    - **BDD Solver**: CUDD-based symbolic set operations
    - **WPDS**: Weighted pushdown systems for interprocedural reachability
 
-5. **Abstract Interpretation** (``lib/Apps/clam/``, ``lib/Analysis/Sprattus/``)
+5. **Abstract Interpretation** (``lib/Apps/clam/``, ``lib/Analysis/SymbolicAbstraction/``)
    
    Numerical and symbolic abstract domains:
    
    - **CLAM**: Abstract interpretation with multiple domains (intervals, zones, octagons, polyhedra)
-   - **Sprattus**: Configurable abstract interpretation with domain composition
+   - **SymbolicAbstraction**: Configurable abstract interpretation with domain composition
 
 6. **Analysis Utilities** (``lib/Analysis/``, ``include/Analysis/``)
    

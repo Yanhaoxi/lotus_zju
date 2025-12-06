@@ -115,7 +115,7 @@ Passes that implement light-weight optimizations or orchestrate multiple transfo
 
 **Typical use cases**:
 
-- Build an analysis-friendly optimization pipeline before running CLAM, Sprattus,
+- Build an analysis-friendly optimization pipeline before running CLAM, SymbolicAbstraction,
   or alias analyses.
 - Experiment with different levels of inlining and loop/vector transformations.
 - Replace floating-point operations in environments without hardware FP support.
