@@ -16,4 +16,5 @@ add_library(CanaryTransform STATIC
         MergeGEP.cpp
         SimplifyExtractValue.cpp
         SimplifyInsertValue.cpp
+        CastElimPass.cpp
 )
