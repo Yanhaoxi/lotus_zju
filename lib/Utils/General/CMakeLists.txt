@@ -8,4 +8,5 @@ add_library(CanarySupport STATIC
         cJSON.cpp
         TreeStream.cpp
         System.cpp
+        WrappedInterval.cpp
 )
