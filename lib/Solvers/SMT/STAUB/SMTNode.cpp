@@ -7,6 +7,11 @@
 #define PAIR std::pair<APInt,unsigned>
 #endif
 
+// STAUB translates unbounded SMT terms into bounded encodings and back into
+// LLVM IR. Each node wrapper (Bool/Bitvector/Integer/Real/Floating) keeps the
+// Z3 expression alongside the LLVM builder/context so we can emit equivalent
+// LLVM or new SMT constraints while preserving widths (`integer_width`) and
+// overflow semantics.
 
 namespace STAUB
 {
@@ -40,6 +45,8 @@ namespace STAUB
     }
     //============================RealNode=====================================
 
+    // Real terms are currently unsupported for LLVM lowering; we still track
+    // precision/constant information so integer abstraction remains sound.
     bool RealNode::IsComparison(expr expression) //static
     {
         Z3_decl_kind k = expression.decl().decl_kind();

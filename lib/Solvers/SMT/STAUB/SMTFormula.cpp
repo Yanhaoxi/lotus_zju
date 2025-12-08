@@ -9,6 +9,10 @@
 #define PAIR std::pair<APInt,unsigned>
 #endif
 
+// Parses an SMT-LIB string, mirrors its declarations as LLVM arguments, and
+// builds Boolean assertion nodes for later lowering to LLVM or bounded SMT.
+// Int/Real variables are given a placeholder bitwidth (`PLACEHOLDER_WIDTH`)
+// and are widened later when computing bounds.
 namespace STAUB
 {
     SMTFormula::SMTFormula(context& t_scx, LLVMContext& t_lcx, Module* t_lmodule, IRBuilder<>& t_builder, std::string t_string) : scx(t_scx), lcx(t_lcx), lmodule(t_lmodule), builder(t_builder), string(t_string), contents(t_scx)
@@ -95,8 +99,8 @@ namespace STAUB
 
         for (expr e : contents)
         {
-            //std::cout << e.to_string() << "\n";  //expression.decl().decl_kind()
-            //std::cout << (e.arg(0).decl().decl_kind() == Z3_OP_INTERNAL) << "\n";
+            // Each top-level assertion is wrapped in a BooleanNode. PLACEHOLDER_WIDTH
+            // is a temporary stand-in; later analyses choose concrete widths.
             assertions.push_back(BooleanNode(scx, lcx, lmodule, builder, PLACEHOLDER_WIDTH, variables, e));
         }
         //exit(0);

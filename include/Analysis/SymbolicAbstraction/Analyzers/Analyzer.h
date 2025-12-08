@@ -206,6 +206,28 @@ class BilateralAnalyzer : public Analyzer
                                       const ValueMapping& vmap) const;
 };
 
+class OMTAnalyzer : public Analyzer
+{
+  private:
+    enum class OptimizeStatus { Sat, Unsat, Unknown };
+
+    OptimizeStatus runOptimize(const z3::expr& objective, const z3::expr& phi,
+                               const ValueMapping& vmap, AbstractValue* target,
+                               bool maximize, unsigned timeout_ms) const;
+
+    bool fallbackEnumerate(AbstractValue* result, const ValueMapping& vmap,
+                           const z3::expr& phi) const;
+
+  public:
+    OMTAnalyzer(const FunctionContext& s, const FragmentDecomposition& fd,
+                const DomainConstructor& ad, mode_t mode)
+        : Analyzer(s, fd, ad, mode)
+    {
+    }
+
+    virtual bool strongestConsequence(AbstractValue* result, z3::expr phi,
+                                      const ValueMapping& vmap) const override;
+};
 
 
 } // namespace symbolic_abstraction

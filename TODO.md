@@ -97,7 +97,7 @@ Some related publications
 
 ## 5. Numerical Analysis
 
-* Integrate abstract interpretation frameworks (e.g., IKOS, CLAM/Crab)
+
 
 ## 6. Data Flow Analysis
 

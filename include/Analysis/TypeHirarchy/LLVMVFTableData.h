@@ -13,6 +13,7 @@
 #include "llvm/Support/raw_ostream.h"
 
 #include <string>
+#include <vector>
 
 namespace lotus {
 struct LLVMVFTableData {

@@ -66,6 +66,8 @@ std::unique_ptr<Analyzer> Analyzer::New(const FunctionContext& fctx,
         return make_unique<UnilateralAnalyzer>(fctx, frag, domain, mode);
     } else if (variant == "BilateralAnalyzer") {
         return make_unique<BilateralAnalyzer>(fctx, frag, domain, mode);
+    } else if (variant == "OMTAnalyzer") {
+        return make_unique<OMTAnalyzer>(fctx, frag, domain, mode);
     } else {
         llvm_unreachable("unknown analyzer variant");
     }

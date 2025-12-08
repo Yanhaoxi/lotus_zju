@@ -87,3 +87,4 @@ LLVMVFTable::getVFVectorFromIRVTable(const llvm::ConstantStruct &VT,
   return VFS;
 }
 } // namespace lotus
+

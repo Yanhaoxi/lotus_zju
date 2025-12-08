@@ -151,22 +151,22 @@ z3::expr Octagon::toFormula(const ValueMapping &vmap, z3::context &ctx) const {
     // Add constraints for each finite bound
     if (C_[0] != INF) {
         z3::expr c0 = ctx.bv_val((uint64_t)C_[0], bw);
-        result = result && ((x - y) <= c0);
+        result = result && z3::sle(x - y, c0);
     }
     
     if (C_[1] != INF) {
         z3::expr c1 = ctx.bv_val((uint64_t)C_[1], bw);
-        result = result && ((y - x) <= c1);
+        result = result && z3::sle(y - x, c1);
     }
     
     if (C_[2] != INF) {
         z3::expr c2 = ctx.bv_val((uint64_t)C_[2], bw);
-        result = result && ((x + y) <= c2);
+        result = result && z3::sle(x + y, c2);
     }
     
     if (C_[3] != INF) {
         z3::expr c3 = ctx.bv_val((uint64_t)C_[3], bw);
-        result = result && ((ctx.bv_val(0, bw) - x - y) <= c3);
+        result = result && z3::sle(ctx.bv_val(0, bw) - x - y, c3);
     }
     
     return result;

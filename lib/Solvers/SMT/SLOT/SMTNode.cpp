@@ -16,6 +16,11 @@
 #define X_FP_CONVERT "to fp conversion"
 #define X_FP_OP "floating point operation"
 
+// This file translates Z3 expressions (SMT-LIB terms) into LLVM IR. Each
+// wrapper class (`BooleanNode`, `BitvectorNode`, `FloatingNode`) walks a Z3
+// AST, builds the corresponding LLVM Value, and throws descriptive exceptions
+// for operations we do not support. The helpers here intentionally stay close
+// to Z3 terminology so the mapping is easy to audit when a new opcode appears.
 
 namespace SLOT
 {
@@ -65,6 +70,9 @@ namespace SLOT
         assert(contents.is_bool());
     }
 
+    // Convert a boolean SMT subtree into LLVM. Variables map to LLVM arguments,
+    // constants become `i1` literals, and expressions are lowered opcode by
+    // opcode, matching Z3's boolean, bitvector, and floating-point comparisons.
     Value* BooleanNode::ToLLVM()
     {
         if (IsVariable())
@@ -262,7 +270,10 @@ namespace SLOT
         assert(contents.is_bv());
     }
 
-    //TODO: fill in this function
+    // Lower a bitvector SMT node into LLVM integer operations. We preserve
+    // Z3's exact semantics for edge cases (e.g., division by zero, rotate
+    // counts that exceed the width) by guarding with selects instead of
+    // relying on LLVM's undefined behavior.
     Value * BitvectorNode::ToLLVM()
     {
         if (IsVariable())
@@ -572,7 +583,10 @@ namespace SLOT
         assert(contents.is_fpa());
     }
 
-    //TODO: fill in this function
+    // Translate floating-point SMT operations into LLVM. The lowering prefers
+    // native instructions when the rounding mode is "nearest even"; otherwise
+    // it uses constrained intrinsics so the rounding mode and exception
+    // behavior stay explicit in the IR.
     Value * FloatingNode::ToLLVM()
     {
         if (IsVariable())

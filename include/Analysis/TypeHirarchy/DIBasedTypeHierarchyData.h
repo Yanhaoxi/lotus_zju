@@ -15,7 +15,9 @@
 
 #include <cstdint>
 #include <deque>
+#include <utility>
 #include <string>
+#include <vector>
 
 namespace lotus {
 /// \brief A structure that is used to store already calculated type hierarchy
@@ -40,3 +42,4 @@ struct DIBasedTypeHierarchyData {
 } // namespace lotus
 
 #endif // LOTUS_ANALYSIS_TYPEHIERARCHY_DIBASEDTYPEHIERARCHYDATA_H
+

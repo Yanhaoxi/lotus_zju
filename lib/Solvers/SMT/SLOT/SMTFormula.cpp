@@ -12,8 +12,10 @@ namespace SLOT
 
     SMTFormula::SMTFormula(LLVMContext& t_lcx, Module* t_lmodule, IRBuilder<>& t_builder, std::string t_string, std::string t_func_name) : lcx(t_lcx), lmodule(t_lmodule), builder(t_builder), string(t_string), contents(c), func_name(t_func_name)
     {
-        //context c;
-        //Regular expression matching to get variables
+        // Parse the SMT-LIB input eagerly so we can predeclare LLVM arguments with
+        // the same shape as the SMT variables. We keep one static Z3 context to
+        // avoid recreating sorts on every translation.
+        // Regular expression matching to get variables
         std::string s = string;
         std::smatch m;
         std::regex e (R"(\((declare-fun\s(\|.*\||[\~\!\@\$\%\^\&\*_\-\+\=\<\>\.\?\/A-Za-z0-9]+)\s*\(\s*\)\s*(\(\s*_\s*FloatingPoint\s*(\d+)\s*(\d+)\s*\)|Float16|Float32|Float64|Float128|FPN|Bool|\(\s*_\s*BitVec\s*(\d+)\s*\))\s*|declare-const\s(\|.*\||[\~\!\@\$\%\^\&\*_\-\+\=\<\>\.\?\/A-Za-z0-9]+)\s*(\(\s*_\s*FloatingPoint\s*(\d+)\s*(\d+)\s*\)|Float16|Float32|Float64|Float128|FPN|Bool|\(\s*_\s*BitVec\s*(\d+)\s*\))\s*)\))");
@@ -100,7 +102,6 @@ namespace SLOT
             assertions.push_back(BooleanNode(lcx, lmodule, builder, variables, e));
         }
 
-        //assert(assertions.size() >= 1);
     }
 
     void SMTFormula::ToLLVM()

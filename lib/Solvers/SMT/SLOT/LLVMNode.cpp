@@ -13,6 +13,9 @@
 #define LLVM_FUNCTION_NAME "SMT"
 #endif
 
+// LLVMNode is the entry point for translating LLVM IR back into Z3 expressions.
+// The subclasses mirror LLVM concepts (arguments, constants, instructions) and
+// use a factory to pick the correct translator for each Value subclass.
 
 namespace SLOT
 {

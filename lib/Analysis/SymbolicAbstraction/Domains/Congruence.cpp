@@ -3,10 +3,8 @@
 
 #include "Analysis/SymbolicAbstraction/Core/FunctionContext.h"
 #include "Analysis/SymbolicAbstraction/Core/ParamStrategy.h"
-#include "Analysis/SymbolicAbstraction/Utils/Z3APIExtension.h"
 #include "Analysis/SymbolicAbstraction/Utils/PrettyPrinter.h"
 #include "Analysis/SymbolicAbstraction/Core/DomainConstructor.h"
-#include "Analysis/SymbolicAbstraction/Domains/Product.h"
 
 #include <z3++.h>
 
@@ -16,6 +14,7 @@ using std::unique_ptr;
 
 bool Congruence::joinWith(const AbstractValue &av_other) {
     auto &other = dynamic_cast<const Congruence &>(av_other);
+    assert(isJoinableWith(other));
 
     if (isBottom()) {
         Top_ = other.Top_;
@@ -90,6 +89,7 @@ bool Congruence::joinWith(const AbstractValue &av_other) {
 
 bool Congruence::meetWith(const AbstractValue &av_other) {
     auto &other = dynamic_cast<const Congruence &>(av_other);
+    assert(isJoinableWith(other));
 
     if (isTop()) {
         Top_ = other.Top_;

@@ -11,6 +11,9 @@ namespace SLOT
 
     LLVMFunction::LLVMFunction(bool t_shiftToMultiply, context& t_scx, Function* t_contents) : shiftToMultiply(t_shiftToMultiply), scx(t_scx), contents(t_contents), extraVariables(t_scx)
     {
+        // Mirror the LLVM function signature in the SMT world. Each LLVM
+        // argument becomes a Z3 constant with a matching sort; we keep the
+        // names identical so later lookups stay straightforward.
         scx.set_rounding_mode(RNE);
         for (Argument* arg = contents->arg_begin(); arg < contents->arg_end(); arg++)
         {
@@ -67,6 +70,9 @@ namespace SLOT
 
     expr LLVMFunction::ToSMT()
     {
+        // Recurse from the return value down the CFG, combining any additional
+        // constraints introduced for helper variables (e.g., bitcasts) so the
+        // solver sees the full set of equations.
         expr fromChildren = LLVMNode::MakeLLVMNode(shiftToMultiply, scx, *this, ((ReturnInst *)contents->getEntryBlock().getTerminator())->getOperand(0))->ToSMT();
         return (LLVMFunction::varCounter == 0) ? fromChildren : (extraVariables && fromChildren);    
     }

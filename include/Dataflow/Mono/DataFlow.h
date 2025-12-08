@@ -8,5 +8,6 @@
 #include "Dataflow/Mono/DataFlowAnalysis.h"
 #include "Dataflow/Mono/ReachableAnalysis.h"
 #include "Dataflow/Mono/LiveVariablesAnalysis.h"
+#include "Dataflow/Mono/CallStringInterProceduralDataFlow.h"
 
 #endif // ANALYSIS_DATAFLOW_H_

@@ -147,12 +147,12 @@ z3::expr Zone::toFormula(const ValueMapping &vmap, z3::context &ctx) const {
     
     if (Upper_ != INF) {
         z3::expr ub = ctx.bv_val((uint64_t)Upper_, bw);
-        result = result && (diff <= ub);
+        result = result && z3::sle(diff, ub);
     }
     
     if (Lower_ != NINF) {
         z3::expr lb = ctx.bv_val((uint64_t)Lower_, bw);
-        result = result && (diff >= lb);
+        result = result && z3::sge(diff, lb);
     }
     
     return result;
