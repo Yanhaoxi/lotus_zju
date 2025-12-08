@@ -1,4 +1,4 @@
-#include "Utils/General/UnionFind.h"
+#include "Utils/General/ADT/UnionFind.h"
 
 using namespace std;
 
