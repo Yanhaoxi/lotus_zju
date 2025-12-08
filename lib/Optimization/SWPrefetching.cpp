@@ -1,5 +1,15 @@
 // from https://github.com/SabaJamilan/Profile-Guided-Software-Prefetching
 // EuroSys 22: APT-GET: profile-guided timely software prefetching
+//
+// Implements an LLVM FunctionPass that injects software prefetches using
+// profile-derived distances. The pass:
+//  - loads sample FDO profiles (or user-provided LBR distances),
+//  - discovers loop-carried induction variables that feed load addresses, and
+//  - clones the dependence chain to compute a future address before issuing
+//    `llvm.prefetch`.
+// The logic operates directly on IR instructions and relies on structural
+// patterns (single backedge, Add/GEP induction), so we keep comments that
+// document the expected shapes to make maintenance easier.
 #include "Optimization/SWPrefetching.h"
 #include "llvm/CodeGen/MachineModuleInfo.h"
 #include "llvm/IR/DebugInfoMetadata.h"
@@ -19,12 +29,16 @@
 using namespace llvm;
 using namespace sampleprof;
 
+// Indicates that we found at least one function with samples; toggles profile
+// based prefetch distance computation.
 bool AutoFDOMapping;
 
 static cl::opt<std::string> PrefetchFile("input-file", cl::desc("Specify input filename for mypass"), cl::value_desc("filename"));
 
 cl::list<std::string> LBR_dist("dist", cl::desc("Specify offset value from LBR"), cl::OneOrMore);
 
+// State caches for indirect/stride prefetch generation. They are populated
+// when we first see an indirect load and reused for related stride loads.
 SmallVector<Instruction*,10> IndirectLoads;
 SmallVector<Instruction*,20> IndirectInstrs;
 SmallVector<Instruction*,10> IndirectPhis;
@@ -33,6 +47,8 @@ int64_t IndirectPrefetchDist;
 
 namespace llvm {
     using Hints = SampleRecord::CallTargetMap;
+    // Fetch the profile hint (call target map) associated with the debug
+    // location of `Inst`. Returns an empty error_code when no sample exists.
     ErrorOr<Hints> getHints(const llvm::Instruction &Inst, const llvm::sampleprof::FunctionSamples *TopSamples) {
      if (const auto &Loc = Inst.getDebugLoc()){
        if (const auto *Samples = TopSamples->findFunctionSamples(Loc)){
@@ -79,6 +95,10 @@ bool SWPrefetchingLLVMPass::doInitialization(Module &M) {
 
 
 
+// Depth-first search from `I` along operands restricted to the same loop.
+// Captures the first PHI encountered (the induction variable) alongside every
+// instruction/load on the path so they can later be cloned for address
+// recomputation. Returns true when a PHI is found.
  bool SWPrefetchingLLVMPass::SearchAlgorithm(Instruction* I ,LoopInfo &LI, Instruction* &Phi, SmallVector<Instruction*,10> &Loads ,SmallVector<Instruction*,20> &Instrs, SmallVector<Instruction*,10> &Phis){
    bool PhiFound = false;
    Use* OperandList = I->getOperandList();
@@ -117,6 +137,9 @@ bool SWPrefetchingLLVMPass::doInitialization(Module &M) {
 }
 
 
+// Similar to SearchAlgorithm but keeps the full dependency chain of `I` that
+// stays inside the loop. Used for cases with a single PHI to pair indirect and
+// stride loads. Returns true when a loop-carried PHI is part of the chain.
 bool SWPrefetchingLLVMPass::IsDep(Instruction* I ,LoopInfo &LI, Instruction* &Phi,SmallVector<Instruction*,10> &DependentLoadsToCurLoad,SmallVector<Instruction*,20> &DependentInstrsToCurLoad, SmallVector<Instruction*,10> &Phis){
   bool PhiFound = false;
   Use* OperandList = I->getOperandList();
@@ -157,6 +180,9 @@ bool SWPrefetchingLLVMPass::IsDep(Instruction* I ,LoopInfo &LI, Instruction* &Ph
 }
 
 
+// Best-effort helper that looks into the exiting block to detect an Add that
+// updates the induction variable by a constant. Returns nullptr when the
+// canonical pattern is not matched.
 ConstantInt* SWPrefetchingLLVMPass::getValueAddedToIndVarInLoopIterxxx(Loop* L){
   SetVector<Instruction*> BBInsts;
   auto B = L->getExitingBlock();
@@ -191,6 +217,8 @@ ConstantInt* SWPrefetchingLLVMPass::getValueAddedToIndVarInLoopIterxxx(Loop* L){
 }
 
 
+// Detect a simple induction PHI whose backedge value is itself plus a
+// constant. Rejects loops with multiple backedges or irregular headers.
 PHINode* SWPrefetchingLLVMPass::getCanonicalishInductionVariable(Loop* L) {
   BasicBlock *H = L->getHeader();
   BasicBlock *Incoming = nullptr, *Backedge = nullptr;
@@ -225,6 +253,7 @@ PHINode* SWPrefetchingLLVMPass::getCanonicalishInductionVariable(Loop* L) {
 }
 
 
+// Try to return the invariant operand used in the loop's exiting comparison.
 Value* SWPrefetchingLLVMPass::getLoopEndCondxxx(Loop* L){
   SetVector<Instruction*> BBInsts;
   auto B = L->getExitingBlock();
@@ -251,6 +280,8 @@ Value* SWPrefetchingLLVMPass::getLoopEndCondxxx(Loop* L){
 }
 
 
+// Locate the compare guarding the loop exit that involves the given Add
+// instruction (the induction update).
 CmpInst* SWPrefetchingLLVMPass::getCompareInstrADD(Loop* L, Instruction* nextInd){
    SetVector<Instruction*> BBInsts;
    auto B = L->getExitingBlock();
@@ -273,6 +304,8 @@ CmpInst* SWPrefetchingLLVMPass::getCompareInstrADD(Loop* L, Instruction* nextInd
 }
 
 
+// Locate the exiting compare that references the provided GEP-based induction
+// update.
 CmpInst* SWPrefetchingLLVMPass::getCompareInstrGetElememntPtr(Loop* L, Instruction* nextInd){
    SetVector<Instruction*> BBInsts;
    auto B = L->getExitingBlock();
@@ -295,6 +328,9 @@ CmpInst* SWPrefetchingLLVMPass::getCompareInstrGetElememntPtr(Loop* L, Instructi
 }
 
 
+// Basic structural guard: ensure the loop header has exactly one incoming
+// backedge from inside the loop. Returns false for multi-backedge or malformed
+// loops to avoid unsafe transformations.
 bool SWPrefetchingLLVMPass::CheckLoopCond(Loop* L) {
   bool OKtoPrefetch =false;
   BasicBlock *H = L->getHeader();
@@ -323,6 +359,7 @@ bool SWPrefetchingLLVMPass::CheckLoopCond(Loop* L) {
 }
 
 
+// Fetch the instruction that feeds `curPN` along the loop backedge.
 Instruction* SWPrefetchingLLVMPass::GetIncomingValue(Loop* L, llvm::Instruction* curPN) {  
   BasicBlock *H = L->getHeader();
   BasicBlock *Backedge = nullptr;
@@ -341,6 +378,8 @@ Instruction* SWPrefetchingLLVMPass::GetIncomingValue(Loop* L, llvm::Instruction*
 }
 
 
+// Extract the constant increment from a canonical Add used to update an
+// induction variable.
 ConstantInt* SWPrefetchingLLVMPass::getValueAddedToIndVar(Loop* L, Instruction* nextInd){
   bool Changed = false;
   if(L->makeLoopInvariant(nextInd->getOperand(1),Changed)) {
@@ -357,6 +396,12 @@ ConstantInt* SWPrefetchingLLVMPass::getValueAddedToIndVar(Loop* L, Instruction* 
 }
 
 
+// Clone the chain of instructions that feeds `curLoad`, advance the induction
+// variable by `prefetchDist`, and emit a `llvm.prefetch`. Handles two cases:
+//  - indirect/stride loads (where we must cache state to prefetch dependent
+//    stride loads later), and
+//  - direct loads with a single PHI.
+// Returns true when at least one prefetch was inserted.
 bool SWPrefetchingLLVMPass::InjectPrefeches(Instruction* curLoad,  LoopInfo &LI,  SmallVector<llvm::Instruction*, 10> &CapturedPhis, SmallVector<llvm::Instruction*, 10> &CapturedLoads, SmallVector<Instruction*,20> &CapturedInstrs, int64_t prefetchDist, bool ItIsIndirectLoad){
    
    Loop* IndirectLoadLoop;
@@ -921,6 +966,9 @@ bool SWPrefetchingLLVMPass::InjectPrefeches(Instruction* curLoad,  LoopInfo &LI,
 }
 
 
+// Handle the simple case where a single PHI drives the address. Clones the
+// dependence chain, advances the PHI by `prefetchDist`, and inserts a
+// prefetch. This helper is used both for indirect loads and stride loads.
 bool SWPrefetchingLLVMPass::InjectPrefechesOnePhiPartTwo(Instruction* I, LoopInfo &LI,Instruction*  Phi, SmallVector<Instruction*,20> &DepInstrs, int64_t prefetchDist){
   bool done =false;
   bool nonCanonical=false; 
@@ -1085,6 +1133,9 @@ bool SWPrefetchingLLVMPass::InjectPrefechesOnePhiPartTwo(Instruction* I, LoopInf
       return done;
 }
 
+// Entry point for the single-PHI case: tries to prefetch the current load and
+// (if found) its stride partner. Delegates to PartTwo for the actual cloning
+// and prefetch insertion.
 bool SWPrefetchingLLVMPass::InjectPrefechesOnePhiPartOne(Instruction* I, LoopInfo &LI, SmallVector<llvm::Instruction*, 10> &Phi, SmallVector<llvm::Instruction*, 10> &CapturedLoads, SmallVector<Instruction*,20> &DepInstrs, int64_t prefetchDist, bool ItIsIndirectLoad){
   bool done=false;
   Instruction* phi =nullptr;     
@@ -1114,6 +1165,12 @@ bool SWPrefetchingLLVMPass::InjectPrefechesOnePhiPartOne(Instruction* I, LoopInf
   return done;
 }
 
+// Main pass driver. For each load inside loops it:
+//  - queries profile hints (if available) to obtain a prefetch distance,
+//  - discovers the dependence chain and controlling PHIs,
+//  - emits prefetches using either the multi-PHI (indirect) path or the
+//    simpler single-PHI path.
+// Falls back to user-provided LBR distances when no profile was loaded.
 bool SWPrefetchingLLVMPass::runOnFunction(Function &F) {
   bool modified = false;
   LoopInfo &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();

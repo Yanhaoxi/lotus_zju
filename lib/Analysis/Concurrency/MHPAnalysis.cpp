@@ -221,21 +221,12 @@ void ThreadRegionAnalysis::computeOrderingConstraints() {
   // 3. Lock ordering
 
   for (size_t i = 0; i < m_regions.size(); ++i) {
-    auto &region_i = m_regions[i];
-
     for (size_t j = 0; j < m_regions.size(); ++j) {
       if (i == j)
         continue;
 
-      auto &region_j = m_regions[j];
-
-      // Same thread: check control flow order
-      if (region_i->thread_id == region_j->thread_id) {
-        if (region_i->region_id < region_j->region_id) {
-          region_i->must_precede.insert(j);
-          region_j->must_follow.insert(i);
-        }
-      }
+      // Same thread: conservatively avoid imposing a total order.
+      // We only add ordering when it is proven elsewhere at instruction level.
 
       // Different threads: check synchronization
       
@@ -243,30 +234,10 @@ void ThreadRegionAnalysis::computeOrderingConstraints() {
       // 1. Fork node must precede child thread entry
       // 2. Child thread exit must precede join node
       
-      // Check if region_i contains a fork that creates region_j's thread
-      for (const Instruction *inst : region_i->instructions) {
-        SyncNode *node = m_tfg.getNode(inst);
-        if (node && node->getType() == SyncNodeType::THREAD_FORK) {
-          if (node->getForkedThread() == region_j->thread_id) {
-            // Fork must precede everything in child thread
-            region_i->must_precede.insert(j);
-            region_j->must_follow.insert(i);
-          }
-        }
-      }
-      
-      // Check if region_i is in a child thread and region_j contains the join
-      for (const Instruction *inst : region_j->instructions) {
-        SyncNode *node = m_tfg.getNode(inst);
-        if (node && node->getType() == SyncNodeType::THREAD_JOIN) {
-          if (node->getJoinedThread() == region_i->thread_id) {
-            // Child thread must precede join
-            region_i->must_precede.insert(j);
-            region_j->must_follow.insert(i);
-          }
-        }
-      }
-      
+      // Cross-thread fork/join ordering is handled at instruction granularity
+      // via happens-before checks elsewhere; adding region-wide constraints
+      // here risks unsound under-approximation of may-parallel pairs.
+
       // Note: Lock-based ordering is complex and would require tracking
       // which lock acquisition happens first in the global execution.
       // This would need a more sophisticated lock order analysis.
@@ -690,23 +661,9 @@ void MHPAnalysis::handleBarrier(const Instruction *barrier_inst,
   
   // Track this barrier wait
   m_barrier_waits[barrier].push_back(barrier_inst);
-  
-  // Add happens-before edges: all previous barrier waits happen-before this one
-  // and this one happens-before all future barrier waits
-  // This creates a total order among all threads at the barrier
-  if (m_barrier_waits.find(barrier) != m_barrier_waits.end()) {
-    for (const Instruction *prev_wait : m_barrier_waits[barrier]) {
-      if (prev_wait != barrier_inst) {
-        SyncNode *prev_node = m_tfg->getNode(prev_wait);
-        if (prev_node) {
-          // Conservative: create bidirectional happens-before at barriers
-          // All threads synchronize with each other
-          m_tfg->addInterThreadEdge(prev_node, node);
-          m_tfg->addInterThreadEdge(node, prev_node);
-        }
-      }
-    }
-  }
+  // Do NOT add inter-thread edges between waits; that would over-constrain
+  // potential parallelism of the waits themselves. Barrier ordering is instead
+  // captured by checking pre/post relationships within a thread.
 }
 
 void MHPAnalysis::analyzeLockSets() {
@@ -932,16 +889,9 @@ bool MHPAnalysis::isOrderedByForkJoin(const Instruction *i1,
       const Instruction *fork_site = m_thread_fork_sites.at(current);
       
       // Simple check: if i1 is in same function as fork and comes before it
-      if (i1->getFunction() == fork_site->getFunction()) {
-        // Check program order in same function
-        for (const_inst_iterator I = inst_begin(i1->getFunction()),
-                                 E = inst_end(i1->getFunction());
-             I != E; ++I) {
-          if (&*I == i1)
-            return true; // i1 before fork
-          if (&*I == fork_site)
-            return false; // fork before i1
-        }
+      if (i1->getFunction() == fork_site->getFunction() &&
+          isReachableWithoutBackEdges(i1, fork_site)) {
+        return true; // proven i1 before fork
       }
     }
     current = parent;
@@ -955,15 +905,9 @@ bool MHPAnalysis::isOrderedByForkJoin(const Instruction *i1,
       if (getThreadID(join_inst) == tid1) {
         // Join is in same thread as i1
         // Check if join comes before i1
-        if (join_inst->getFunction() == i1->getFunction()) {
-          for (const_inst_iterator I = inst_begin(i1->getFunction()),
-                                   E = inst_end(i1->getFunction());
-               I != E; ++I) {
-            if (&*I == join_inst)
-              return true; // join before i1, so tid2 before i1
-            if (&*I == i1)
-              return false; // i1 before join
-          }
+        if (join_inst->getFunction() == i1->getFunction() &&
+            isReachableWithoutBackEdges(join_inst, i1)) {
+          return true; // join before i1, so tid2 before i1
         }
       }
     }
@@ -986,18 +930,7 @@ bool MHPAnalysis::isOrderedByBarrier(const Instruction *i1,
                                       const Instruction *i2) const {
   // Check if i1 and i2 are ordered by barrier synchronization
   // At a barrier, all threads synchronize with each other
-  
-  // Check if both are barrier waits on the same barrier
-  if (m_thread_api->isTDBarWait(i1) && m_thread_api->isTDBarWait(i2)) {
-    const Value *bar1 = m_thread_api->getBarrierVal(i1);
-    const Value *bar2 = m_thread_api->getBarrierVal(i2);
-    
-    if (bar1 == bar2) {
-      // Same barrier: they synchronize (happens-before in both directions actually)
-      return true;
-    }
-  }
-  
+
   // Check if instruction happens before or after a barrier
   // If i1 is before a barrier wait and i2 is the barrier or after it
   ThreadID tid1 = getThreadID(i1);

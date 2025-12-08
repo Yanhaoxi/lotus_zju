@@ -550,9 +550,10 @@ LockSet LockSetAnalysis::transfer(const Instruction *inst,
     LockID lock = getLockValue(inst);
     if (lock) {
       out_set.erase(lock);
-      
-      // Also remove aliases if any
-      if (m_alias_analysis) {
+
+      // Only in must-analysis do we safely drop aliasing locks.
+      // In may-analysis this would under-approximate the held set.
+      if (is_must && m_alias_analysis) {
         LockSet to_remove;
         for (auto l : out_set) {
           if (mayAlias(l, lock)) {
@@ -585,7 +586,18 @@ LockSet LockSetAnalysis::transfer(const Instruction *inst,
         auto callees = getCallees(call);
         for (Function *callee : callees) {
           if (callee && !callee->isDeclaration()) {
-            applyFunctionSummary(call, callee, out_set, out_set);
+            // Keep may- and must-lock flows independent to preserve soundness.
+            if (!is_must) {
+              LockSet may_only = out_set;
+              LockSet must_dummy = out_set;
+              applyFunctionSummary(call, callee, may_only, must_dummy);
+              out_set = std::move(may_only);
+            } else {
+              LockSet may_dummy = out_set;
+              LockSet must_only = out_set;
+              applyFunctionSummary(call, callee, may_dummy, must_only);
+              out_set = std::move(must_only);
+            }
           }
         }
       }
