@@ -1,11 +1,8 @@
-<p align="center">
-  <img src="docs/logo.jpg" alt="Lotus Logo" width="100"/>
-</p>
 
 # Lotus 
 
 Lotus is a program analysis, verification, and optimization framework. It provides several toolkits that can be used individually or in combination to perform different tasks.
-The current version has been tested on x86 Linux and ARM Mac using LLVM-14 with Z3-4.11.
+The current version has been tested on x86/ARM Linux and ARM Mac using LLVM-14 with Z3-4.11.
 
 ## Docs
 
@@ -32,8 +29,8 @@ Papers that use Lotus:
 - **ISSTA 2025**: Program Analysis Combining Generalized Bit-Level and Word-Level Abstractions. Guangsheng Fan, Liqian Chen, Banghu Yin, Wenyu Zhang, Peisen Yao, and Ji Wang.  
 - **S&P 2024**: Titan: Efficient Multi-target Directed Greybox Fuzzing.
 Heqing Huang, Peisen Yao, Hung-Chun Chiu, Yiyuan Guo, and Charles Zhang.
-- **USENIX Security 2024**: Unleashing the Power of Type-Based Call Graph Construction by Using Regional Pointer Information. Yuandao Cai, Yibo Jin, Charles Zhang. 
-- **TSE 2024**: Fast and Precise Static Null Exception Analysis with Synergistic Preprocessing. Yi Sun, Chengpeng Wang, Gang Fan, Qingkai Shi, Xiangyu Zhang.  
+- **USENIX Security 2024**: Unleashing the Power of Type-Based Call Graph Construction by Using Regional Pointer Information. Yuandao Cai, Yibo Jin, and Charles Zhang. 
+- **TSE 2024**: Fast and Precise Static Null Exception Analysis with Synergistic Preprocessing. Yi Sun, Chengpeng Wang, Gang Fan, Qingkai Shi, and Xiangyu Zhang.  
 - **OOPSLA 2022**: Indexing the Extended Dyck-CFL Reachability for Context-Sensitive Program Analysis. Qingkai Shi, Yongchao Wang, Peisen Yao, and Charles Zhang.
 
 ## Components

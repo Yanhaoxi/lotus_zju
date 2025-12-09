@@ -59,7 +59,8 @@ private:
         bool operator==(const Summary& other) const {
             return call == other.call && 
                    call_fact == other.call_fact && 
-                   return_fact == other.return_fact;
+                   return_fact == other.return_fact &&
+                   phi == other.phi;
         }
     };
     
@@ -68,7 +69,8 @@ private:
             size_t h1 = std::hash<const llvm::CallInst*>{}(s.call);
             size_t h2 = std::hash<Fact>{}(s.call_fact);
             size_t h3 = std::hash<Fact>{}(s.return_fact);
-            return h1 ^ (h2 << 1) ^ (h3 << 2);
+            size_t h4 = std::hash<EdgeFunctionPtr>{}(s.phi);
+            return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3);
         }
     };
 
