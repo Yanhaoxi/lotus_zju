@@ -6,7 +6,7 @@ This section covers the core analysis components and frameworks in Lotus.
 Lotus provides several reusable analysis utilities and frameworks under
 ``lib/Analysis``. These components complement the alias analyses and
 high-level analyzers such as CLAM (numerical abstract interpretation) and
-SymbolicAbstraction (symbolic abstraction).
+SymbolicAbstraction (symbolic abstraction) built in ``lib/Verification``.
 
 Overview
 --------
@@ -21,7 +21,7 @@ At a glance:
   data-flow reasoning. See :doc:`gvfa`.
 - **NullPointer** (``lib/Analysis/NullPointer``): A family of nullness and
   null-flow analyses. See :doc:`null_pointer`.
-- **SymbolicAbstraction** (``lib/Analysis/SymbolicAbstraction``): Symbolic abstraction framework for
+- **SymbolicAbstraction** (``lib/Verification/SymbolicAbstraction``): Symbolic abstraction framework for
   abstract interpretation with composable domains. See :doc:`symbolic_abstraction`.
 
 Higher-level analyzers such as CLAM and SymbolicAbstraction build on these components;

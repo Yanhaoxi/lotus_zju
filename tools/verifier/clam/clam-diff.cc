@@ -4,10 +4,10 @@
 
 #include <llvm/Support/CommandLine.h>
 
-#include "Apps/clam/CrabDomain.hh"
-#include "Apps/clam/CrabDomainParser.hh"
-#include "Apps/clam/Support/Debug.hh"
-#include "Apps/clam/crab/read_json.hh"
+#include "Verification/clam/CrabDomain.hh"
+#include "Verification/clam/CrabDomainParser.hh"
+#include "Verification/clam/Support/Debug.hh"
+#include "Verification/clam/crab/read_json.hh"
 
 #include <crab/support/os.hpp>
 #include <crab/support/debug.hpp>

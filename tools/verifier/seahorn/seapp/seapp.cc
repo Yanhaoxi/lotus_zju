@@ -30,8 +30,8 @@
 
 #include "llvm/IR/Verifier.h"
 
-#include "Apps/seahorn/InitializePasses.hh"
-#include "Apps/seahorn/Passes.hh"
+#include "Verification/seahorn/InitializePasses.hh"
+#include "Verification/seahorn/Passes.hh"
 
 #include "Alias/seadsa/InitializePasses.hh"
 #include "Alias/seadsa/support/RemovePtrToInt.hh"
@@ -42,12 +42,12 @@
 
 #include "Alias/seadsa/InitializePasses.hh"
 
-#include "Apps/seahorn/Expr/Smt/EZ3.hh"
-#include "Apps/seahorn/Support/SeaLog.hh"
-#include "Apps/seahorn/Support/Stats.hh"
-#include "Apps/seahorn/Transforms/Utils/NameValues.hh"
+#include "Verification/seahorn/Expr/Smt/EZ3.hh"
+#include "Verification/seahorn/Support/SeaLog.hh"
+#include "Verification/seahorn/Support/Stats.hh"
+#include "Verification/seahorn/Transforms/Utils/NameValues.hh"
 
-#include "Apps/seahorn/config.h"
+#include "Verification/seahorn/config.h"
 
 void print_seapp_version(llvm::raw_ostream &OS) {
   OS << "SeaHorn (http://seahorn.github.io/):\n"

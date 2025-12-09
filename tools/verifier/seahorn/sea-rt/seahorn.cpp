@@ -1,4 +1,4 @@
-#include "Apps/seahorn/seahorn.h"
+#include "Verification/seahorn/seahorn.h"
 #include <cstdint>
 #include <cstdio>
 #include <stdarg.h>

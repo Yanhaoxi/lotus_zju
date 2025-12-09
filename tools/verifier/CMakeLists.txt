@@ -3,23 +3,17 @@
 # Exposes toggles for the various verifier toolchains and delegates
 # to their existing CMake configurations within this directory.
 #
-# This file is intended to be included from the top-level with:
-#   add_subdirectory(tools/verifier)
-#
 # Available subprojects:
-#   - symbolic_abstraction      (BUILD_SYMBOLIC_ABSTRACTION)
-#   - clam          (ENABLE_CLAM defined at top-level)
-#   - crabber       (ENABLE_CLAM defined at top-level, requires CRAB)
+#   - symbolic_abstraction
+#   - clam          (ENABLE_CLAM, defined at top-level)
+#   - crabber       (ENABLE_CLAM, defined at top-level, requires CRAB)
 #   - horn-ice      (BUILD_HORN_ICE)
-#   - seahorn       (ENABLE_SEAHORN, optional)
+#   - seahorn       (ENABLE_SEAHORN, defined at top-level)
 
 # SymbolicAbstraction
-option(BUILD_SYMBOLIC_ABSTRACTION "Build SymbolicAbstraction verifier tools" ON)
-if(BUILD_SYMBOLIC_ABSTRACTION)
-    add_subdirectory(symbolic-abstraction)
-endif()
+add_subdirectory(symbolic-abstraction)
 
-# CLAM tools (clam, clam-diff, clam-pp)
+# CLAM tools (clam, clam-diff, clam-pp) (optional)
 if(ENABLE_CLAM)
     add_subdirectory(clam)
 endif()

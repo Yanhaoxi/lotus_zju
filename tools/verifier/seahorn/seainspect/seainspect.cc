@@ -24,7 +24,7 @@
 #include "Alias/seadsa/DsaAnalysis.hh"
 #include "Alias/seadsa/InitializePasses.hh"
 
-#include "Apps/seahorn/Passes.hh"
+#include "Verification/seahorn/Passes.hh"
 
 static llvm::cl::opt<std::string>
     InputFilename(llvm::cl::Positional,

@@ -3,7 +3,7 @@ CLAM – Abstract Interpretation Framework
 
 CLAM is a static analysis framework based on abstract interpretation over numerical abstract domains. It provides invariant generation and property checking for LLVM bitcode.
 
-**Location**: ``lib/Apps/clam/``
+**Location**: ``lib/Verification/clam/``
 
 **Headers**: ``include/Apps/clam/``
 
@@ -25,7 +25,7 @@ CLAM computes sound over-approximations of program behaviors by interpreting pro
 Components
 ----------
 
-**Core Library** (``lib/Apps/clam/``):
+**Core Library** (``lib/Verification/clam/``):
 
 * ``Clam.cc`` – Main analysis engine and pass registration
 * ``CfgBuilder.cc`` – LLVM IR to CRAB IR translation
@@ -33,20 +33,20 @@ Components
 * ``SeaDsaHeapAbstraction.cc`` – Sea-DSA integration
 * ``ClamQueryCache.cc`` – Query result caching
 
-**Abstract Domains** (``lib/Apps/clam/crab/domains/``):
+**Abstract Domains** (``lib/Verification/clam/crab/domains/``):
 
 * Intervals, zones, octagons, polyhedra
 * Disjunctive domains and term domains
 * Domain-specific optimizations
 
-**Property Checkers** (``lib/Apps/clam/Properties/``):
+**Property Checkers** (``lib/Verification/clam/Properties/``):
 
 * ``NullCheck.cc`` – Null pointer dereference detection
 * ``BndCheck.cc`` – Buffer bounds checking
 * ``UafCheck.cc`` – Use-after-free detection
 * ``MemoryCheckUtils.cc`` – Memory safety utilities
 
-**Transforms** (``lib/Apps/clam/Transforms/``):
+**Transforms** (``lib/Verification/clam/Transforms/``):
 
 * ``DevirtFunctions.cc`` – Function devirtualization
 * ``LowerSelect.cc`` – Select instruction lowering
@@ -63,7 +63,7 @@ Components
 Build Targets
 -------------
 
-* ``ClamAnalysis`` – Core library (``lib/Apps/clam/``)
+* ``ClamAnalysis`` – Core library (``lib/Verification/clam/``)
 * ``clam`` – Command-line analyzer
 * ``clam-pp`` – Preprocessor
 * ``clam-diff`` – Differential analyzer

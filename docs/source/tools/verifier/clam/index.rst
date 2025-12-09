@@ -13,9 +13,9 @@ Overview
 CLAM computes sound over-approximations of program behaviors by interpreting
 the program over different numerical domains.
 
-**Headers**: ``include/Apps/clam``
+**Headers**: ``include/Verification/clam``
 
-**Implementation**: ``lib/Apps/clam`` (core library), ``tools/verifier/clam`` (command-line frontends)
+**Implementation**: ``lib/Verification/clam`` (core library), ``tools/verifier/clam`` (command-line frontends)
 
 **Key features**:
 

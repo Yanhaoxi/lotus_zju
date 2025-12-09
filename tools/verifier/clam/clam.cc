@@ -2,7 +2,7 @@
 // Clam -- Abstract Interpretation-based Analyzer for LLVM bitcode
 ///
 
-#include "Apps/clam/config.h"
+#include "Verification/clam/config.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/Bitcode/BitcodeWriterPass.h"
 #include "llvm/IR/LLVMContext.h"
@@ -23,8 +23,8 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/IPO.h"
 
-#include "Apps/clam/Clam.hh"
-#include "Apps/clam/Passes.hh"
+#include "Verification/clam/Clam.hh"
+#include "Verification/clam/Passes.hh"
 
 #include "Alias/seadsa/InitializePasses.hh"
 #include "Alias/seadsa/support/RemovePtrToInt.hh"

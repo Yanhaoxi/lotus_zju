@@ -25,7 +25,11 @@ target_link_libraries(clam
   SeaDsaAnalysis
 )
 
-target_include_directories(clam PRIVATE ${CLAM_TOOLS_INCLUDES})
+target_include_directories(clam PRIVATE 
+  ${CMAKE_SOURCE_DIR}/include
+  SYSTEM ${CRAB_ROOT}/include
+  ${LLVM_INCLUDE_DIRS}
+)
 target_compile_definitions(clam PRIVATE ${CLAM_TOOLS_DEFINITIONS})
 
 install(TARGETS clam RUNTIME DESTINATION bin)
@@ -45,7 +49,11 @@ target_link_libraries(clam-diff
   ${CLAM_DIFF_LLVM_LIBS}
 )
 
-target_include_directories(clam-diff PRIVATE ${CLAM_TOOLS_INCLUDES})
+target_include_directories(clam-diff PRIVATE 
+  ${CMAKE_SOURCE_DIR}/include
+  SYSTEM ${CRAB_ROOT}/include
+  ${LLVM_INCLUDE_DIRS}
+)
 target_compile_definitions(clam-diff PRIVATE ${CLAM_TOOLS_DEFINITIONS})
 
 
@@ -61,7 +69,11 @@ target_link_libraries(clam-pp
   SeaDsaAnalysis
 )
 
-target_include_directories(clam-pp PRIVATE ${CLAM_TOOLS_INCLUDES})
+target_include_directories(clam-pp PRIVATE 
+  ${CMAKE_SOURCE_DIR}/include
+  SYSTEM ${CRAB_ROOT}/include
+  ${LLVM_INCLUDE_DIRS}
+)
 target_compile_definitions(clam-pp PRIVATE ${CLAM_TOOLS_DEFINITIONS})
 
 install(TARGETS clam-pp RUNTIME DESTINATION bin)

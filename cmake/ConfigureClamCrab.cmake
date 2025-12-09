@@ -1,7 +1,4 @@
 # CLAM and CRAB configuration
-option(ENABLE_CLAM "Enable CLAM abstract interpretation framework" ON)
-option(DOWNLOAD_CRAB "Download and build CRAB if not found" ON)
-set(CUSTOM_CRAB_ROOT "" CACHE PATH "Path to custom CRAB installation (optional)")
 
 if(ENABLE_CLAM)
     # Determine CRAB root directory
@@ -71,7 +68,9 @@ if(ENABLE_CLAM)
         # Add CRAB as subdirectory
         add_subdirectory(${CRAB_ROOT} ${CMAKE_BINARY_DIR}/crab)
         
-        # Include CRAB headers
+        # Include CRAB headers (legacy global include for compatibility)
+        # Individual targets should use target_include_directories with SYSTEM
+        # to suppress warnings from third-party CRAB library
         include_directories(BEFORE ${CRAB_ROOT}/include)
         
         # Configure CLAM config.h
@@ -82,11 +81,11 @@ if(ENABLE_CLAM)
         set(CLAM_IS_TOPLEVEL FALSE)
         
         configure_file(
-            ${CMAKE_CURRENT_SOURCE_DIR}/include/Apps/clam/config.h.cmake
-            ${CMAKE_BINARY_DIR}/include/Apps/clam/config.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/include/Verification/clam/config.h.cmake
+            ${CMAKE_BINARY_DIR}/include/Verification/clam/config.h
         )
         
-        include_directories(BEFORE ${CMAKE_BINARY_DIR}/include ${CMAKE_BINARY_DIR}/include/Apps)
+        include_directories(BEFORE ${CMAKE_BINARY_DIR}/include ${CMAKE_BINARY_DIR}/include/Verification)
         add_definitions(-DHAVE_CLAM)
         
         # Set CLAM libraries - must include both ClamAnalysis and Crab

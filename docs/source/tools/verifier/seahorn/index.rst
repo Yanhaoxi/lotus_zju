@@ -107,5 +107,5 @@ SeaHorn can be integrated with:
 - **Z3/Spacer** – Default CHC solver (``--horn-solver=spacer``)
 
 For more details on the SeaHorn framework architecture and components, see
-:doc:`../../../apps/seahorn`.
+:doc:`../../../verification/seahorn`.
 

@@ -20,9 +20,23 @@ include(cmake/ConfigureLLVM.cmake)
 # Include dependency configuration modules
 include(cmake/FindZ3.cmake)
 include(cmake/ConfigureBoost.cmake)
-include(cmake/ConfigureClamCrab.cmake)
-include(cmake/ConfigureSVF.cmake)
-include(cmake/ConfigureSeaHorn.cmake)
+
+option(ENABLE_CLAM "Enable CLAM abstract interpretation framework" ON)
+option(DOWNLOAD_CRAB "Download and build CRAB if not found" ON)
+set(CUSTOM_CRAB_ROOT "" CACHE PATH "Path to custom CRAB installation (optional)")
+if (ENABLE_CLAM)
+    include(cmake/ConfigureClamCrab.cmake)
+endif()
+
+option(ENABLE_SVF "Enable SVF" OFF)
+if (ENABLE_SVF)
+    include(cmake/ConfigureSVF.cmake)
+endif()
+
+option(ENABLE_SEAHORN "Enable SeaHorn" ON)
+if (ENABLE_SEAHORN)
+    include(cmake/ConfigureSeaHorn.cmake)
+endif()
 
 # Add subdirectories
 add_subdirectory(lib)

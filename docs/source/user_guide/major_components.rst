@@ -57,9 +57,9 @@ See :doc:`../tools/verifier/clam/index` for CLAM and :doc:`../tools/verifier/sym
 for higher-level abstractions.
 
 * **CLAM** – Modular AI-driven static analyzer with multiple abstract domains
-  (``tools/clam`` and ``lib/Apps/clam``).
+  (``tools/verifier/clam`` and ``lib/Verification/clam``).
 * **SymbolicAbstraction** – Configurable abstract interpretation framework with domain
-  composition (``lib/Analysis/SymbolicAbstraction`` and ``include/Analysis/SymbolicAbstraction``).
+  composition (``lib/Verification/SymbolicAbstraction`` and ``include/Analysis/SymbolicAbstraction``).
 
 Utilities and Reachability
 --------------------------

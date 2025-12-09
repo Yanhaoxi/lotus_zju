@@ -5,7 +5,7 @@ A framework for static program analysis using symbolic abstraction  on LLVM IR.
 
 **Headers**: ``include/Analysis/SymbolicAbstraction``
 
-**Implementation**: ``lib/Analysis/SymbolicAbstraction``
+**Implementation**: ``lib/Verification/SymbolicAbstraction``
 
 **Main components**:
 

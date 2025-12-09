@@ -1,6 +1,6 @@
 /*
 Taken from Seahorn  
-(We have a duplicte on in lib/Apps/seahorn/Analysis/WeakTopologicalOrder.hh)
+(We have a duplicate in lib/Verification/seahorn/Analysis/WeakTopologicalOrder.hh)
 */
 #ifndef __WEAK_TOPOLOGICAL_ORDER__HH_
 #define __WEAK_TOPOLOGICAL_ORDER__HH_
@@ -346,7 +346,7 @@ private:
     }
   }
 
-  struct getHead : public std::unary_function<wto_component_t, vertex_t> {
+  struct getHead {
     getHead() {}
     vertex_t operator()(const wto_component_t &c) const { return c.head(); }
   };

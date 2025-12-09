@@ -22,8 +22,8 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/IPO.h"
 
-#include "Apps/clam/Passes.hh"
-#include "Apps/clam/config.h"
+#include "Verification/clam/Passes.hh"
+#include "Verification/clam/config.h"
 
 #ifdef HAVE_LLVM_SEAHORN
 #include "llvm_seahorn/Transforms/Scalar.h"

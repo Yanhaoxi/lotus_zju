@@ -22,34 +22,34 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/IPO.h"
 
-#include "Apps/seahorn/HornCex.hh"
-#include "Apps/seahorn/HornSolver.hh"
-#include "Apps/seahorn/HornWrite.hh"
-#include "Apps/seahorn/HornifyModule.hh"
-#include "Apps/seahorn/Houdini.hh"
-#include "Apps/seahorn/InitializePasses.hh"
-#include "Apps/seahorn/Passes.hh"
-#include "Apps/seahorn/PredicateAbstraction.hh"
-#include "Apps/seahorn/Support/SeaLog.hh"
-#include "Apps/seahorn/Transforms/Scalar/LowerCstExpr.hh"
-#include "Apps/seahorn/Transforms/Scalar/LowerGvInitializers.hh"
-#include "Apps/seahorn/Transforms/Scalar/PromoteVerifierCalls.hh"
-#include "Apps/seahorn/Transforms/Utils/RemoveUnreachableBlocksPass.hh"
-#include "Apps/seahorn/config.h"
+#include "Verification/seahorn/HornCex.hh"
+#include "Verification/seahorn/HornSolver.hh"
+#include "Verification/seahorn/HornWrite.hh"
+#include "Verification/seahorn/HornifyModule.hh"
+#include "Verification/seahorn/Houdini.hh"
+#include "Verification/seahorn/InitializePasses.hh"
+#include "Verification/seahorn/Passes.hh"
+#include "Verification/seahorn/PredicateAbstraction.hh"
+#include "Verification/seahorn/Support/SeaLog.hh"
+#include "Verification/seahorn/Transforms/Scalar/LowerCstExpr.hh"
+#include "Verification/seahorn/Transforms/Scalar/LowerGvInitializers.hh"
+#include "Verification/seahorn/Transforms/Scalar/PromoteVerifierCalls.hh"
+#include "Verification/seahorn/Transforms/Utils/RemoveUnreachableBlocksPass.hh"
+#include "Verification/seahorn/config.h"
 
 #ifdef HAVE_CLAM
-#include "Apps/seahorn/clam_Clam.hh"
+#include "Verification/seahorn/clam_Clam.hh"
 #endif
 
 #include "Alias/seadsa/DsaAnalysis.hh"
 #include "Alias/seadsa/InitializePasses.hh"
 #include "Alias/seadsa/support/RemovePtrToInt.hh"
 
-#include "Apps/seahorn/Expr/Smt/EZ3.hh"
-#include "Apps/seahorn/Support/Stats.hh"
-#include "Apps/seahorn/Transforms/Utils/NameValues.hh"
+#include "Verification/seahorn/Expr/Smt/EZ3.hh"
+#include "Verification/seahorn/Support/Stats.hh"
+#include "Verification/seahorn/Transforms/Utils/NameValues.hh"
 
-#include "Apps/seahorn/Support/GitSHA1.h"
+#include "Verification/seahorn/Support/GitSHA1.h"
 void print_seahorn_version(llvm::raw_ostream &OS) {
   OS << "SeaHorn (http://seahorn.github.io/):\n"
      << "  SeaHorn version " << SEAHORN_VERSION_INFO << "-" << g_GIT_SHA1

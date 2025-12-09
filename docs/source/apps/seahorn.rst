@@ -12,7 +12,7 @@ solvers to prove program correctness or produce counterexamples. It integrates
 with Lotus analyses and solver backends to support complex verification
 pipelines.
 
-**Location**: ``lib/Apps/seahorn/``
+**Location**: ``lib/Verification/seahorn/``
 
 **Build Targets**:
 
