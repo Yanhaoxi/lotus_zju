@@ -17,6 +17,7 @@
 #include <llvm/IR/Dominators.h>
 #include <map>
 #include <set>
+#include <mutex>
 
 #include "Alias/LotusAA/MemoryModel/Types.h"
 #include "Alias/LotusAA/Support/Compat.h"
@@ -86,6 +87,9 @@ private:
 
   // Cached dominator trees for each function
   std::map<Function *, DominatorTree *, llvm_cmp> dominatorTrees_;
+
+  // Guards shared structures accessed from worker threads
+  std::mutex domMutex_;
 
   friend class PTGraph;
   friend class IntraLotusAA;

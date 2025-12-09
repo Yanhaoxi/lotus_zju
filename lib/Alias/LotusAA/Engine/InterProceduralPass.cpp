@@ -73,7 +73,12 @@
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Dominators.h>
 #include <llvm/Support/CommandLine.h>
+#include <llvm/Support/ThreadPool.h>
+#include <llvm/Support/Threading.h>
 #include <llvm/Support/raw_ostream.h>
+
+#include <algorithm>
+#include <future>
 
 using namespace llvm;
 using namespace std;
@@ -82,32 +87,32 @@ using namespace std;
 static cl::opt<bool> lotus_cg(
     "lotus-cg",
     cl::desc("Use LotusAA to build call graph"),
-    cl::init(LotusConfig::DebugOptions::DEFAULT_ENABLE_CG), 
-    cl::Hidden);
+    cl::init(LotusConfig::DebugOptions::DEFAULT_ENABLE_CG));
 
 static cl::opt<int> lotus_restrict_cg_iter(
     "lotus-restrict-cg-iter",
     cl::desc("Maximum iterations for call graph construction"),
-    cl::init(LotusConfig::CallGraphLimits::DEFAULT_MAX_ITERATIONS), 
-    cl::Hidden);
+    cl::init(LotusConfig::CallGraphLimits::DEFAULT_MAX_ITERATIONS));
 
 static cl::opt<bool> lotus_enable_global_heuristic(
     "lotus-enable-global-heuristic",
     cl::desc("Enable heuristic for global pointer handling"),
-    cl::init(LotusConfig::Heuristics::DEFAULT_ENABLE_GLOBAL_HEURISTIC), 
-    cl::Hidden);
+    cl::init(LotusConfig::Heuristics::DEFAULT_ENABLE_GLOBAL_HEURISTIC));
 
 static cl::opt<bool> lotus_print_pts(
     "lotus-print-pts",
     cl::desc("Print LotusAA points-to results"),
-    cl::init(LotusConfig::DebugOptions::DEFAULT_PRINT_PTS), 
-    cl::Hidden);
+    cl::init(LotusConfig::DebugOptions::DEFAULT_PRINT_PTS));
 
 static cl::opt<bool> lotus_print_cg(
     "lotus-print-cg",
     cl::desc("Print LotusAA call graph results"),
-    cl::init(LotusConfig::DebugOptions::DEFAULT_PRINT_CG), 
-    cl::Hidden);
+    cl::init(LotusConfig::DebugOptions::DEFAULT_PRINT_CG));
+
+static cl::opt<unsigned> lotus_parallel_threads(
+    "lotus-aa-threads",
+    cl::desc("Number of threads for LotusAA (0 = auto)"),
+    cl::init(0));
 
 char LotusAA::ID = 0;
 static RegisterPass<LotusAA> X("lotus-aa",
@@ -281,29 +286,139 @@ void LotusAA::computePtsCgIteratively(Module &M, std::vector<Function *> &func_s
     changed_func.insert(&F);
   }
 
+  ThreadPoolStrategy strategy =
+      hardware_concurrency(lotus_parallel_threads.getValue());
+  const unsigned workerCount =
+      std::max(1u, strategy.compute_thread_count());
+
+  llvm::ThreadPool threadPool(strategy);
+  const unsigned poolMax = std::max(1u, threadPool.getThreadCount());
+
   while (changed && iteration < lotus_restrict_cg_iter) {
-    outs() << "[LotusAA] Iteration " << (iteration + 1) << "\n";
+    outs() << "[LotusAA] Iteration " << (iteration + 1)
+           << " using " << poolMax << " thread(s)\n";
+    if (poolMax == 1 && lotus_parallel_threads.getValue() > 1) {
+      outs() << "[LotusAA] Requested " << lotus_parallel_threads.getValue()
+             << " threads, but only 1 is available (LLVM threads disabled or "
+             << "hardware_concurrency limited).\n";
+    }
 
     initFuncProcessingSeq(M, func_seq);
     changed = false;
 
-    // Analyze functions bottom-up
-    for (int i = func_seq.size() - 1; i >= 0; i--) {
-      Function *func = func_seq[i];
+    // Build dependency counts (caller depends on its callees)
+    std::map<Function *, unsigned, llvm_cmp> pendingCallees;
+    for (Function *func : func_seq) {
+      unsigned deps = 0;
+      for (Function *callee : callGraphState_.getCallees(func)) {
+        if (!callGraphState_.isBackEdge(func, callee))
+          deps++;
+      }
+      pendingCallees[func] = deps;
+    }
 
-      if (!changed_func.count(func) && iteration > 0)
-        continue;
+  std::mutex depsMutex;
+    std::vector<Function *> ready;
+    for (auto &item : pendingCallees) {
+      if (item.second == 0)
+        ready.push_back(item.first);
+    }
 
-      outs() << "[LotusAA] Analyzing " << func->getName() 
-             << " (" << (func_seq.size() - i) << "/" << func_seq.size() << ")\r";
-      outs().flush();
+    struct AnalysisResult {
+      Function *Func;
+      IntraLotusAA *OldResult;
+      IntraLotusAA *NewResult;
+      bool InterfaceChanged;
+      bool Skipped;
+    };
 
-      bool interface_changed = computePTA(func);
+    std::mutex queueMutex;
+    std::mutex resultsMutex;
+    std::mutex changedMutex;
+    std::vector<AnalysisResult> results;
+    results.reserve(func_seq.size());
 
-      if (interface_changed) {
-        // Mark callers for reanalysis
-        for (Function *caller : callGraphState_.getCallers(func)) {
-          if (!callGraphState_.isBackEdge(caller, func)) {
+    auto propagateReady = [&](Function *completed) {
+      std::vector<Function *> newlyReady;
+      {
+        std::lock_guard<std::mutex> dlock(depsMutex);
+        for (Function *caller : callGraphState_.getCallers(completed)) {
+          if (callGraphState_.isBackEdge(caller, completed))
+            continue;
+          auto it = pendingCallees.find(caller);
+          if (it == pendingCallees.end() || it->second == 0)
+            continue;
+          it->second--;
+          if (it->second == 0)
+            newlyReady.push_back(caller);
+        }
+      }
+      if (!newlyReady.empty()) {
+        std::lock_guard<std::mutex> qlock(queueMutex);
+        ready.insert(ready.end(), newlyReady.begin(), newlyReady.end());
+      }
+    };
+
+    auto worker = [&]() {
+      while (true) {
+        Function *func = nullptr;
+        {
+          std::lock_guard<std::mutex> qlock(queueMutex);
+          if (!ready.empty()) {
+            func = ready.back();
+            ready.pop_back();
+          }
+        }
+
+        if (!func)
+          break;
+
+        bool needsAnalysis = (iteration == 0) || changed_func.count(func);
+        AnalysisResult res{func, intraResults_[func], nullptr, false, false};
+
+        if (!needsAnalysis) {
+          res.Skipped = true;
+        } else {
+          std::unique_ptr<IntraLotusAA> new_result(new IntraLotusAA(func, this));
+          new_result->computePTA();
+          if (lotus_cg)
+            new_result->computeCG();
+
+          res.InterfaceChanged =
+              res.OldResult ? !res.OldResult->isSameInterface(new_result.get())
+                            : true;
+          res.NewResult = new_result.release();
+        }
+
+        {
+          std::lock_guard<std::mutex> rlock(resultsMutex);
+          results.push_back(res);
+        }
+
+        propagateReady(func);
+      }
+    };
+
+    std::vector<std::shared_future<void>> futures;
+    futures.reserve(poolMax);
+    for (unsigned i = 0; i < poolMax; ++i) {
+      futures.emplace_back(threadPool.async(worker));
+    }
+    for (auto &f : futures)
+      f.get();
+
+    // Merge results sequentially to avoid concurrent writes to shared maps
+    for (AnalysisResult &res : results) {
+      if (!res.Skipped && res.NewResult) {
+        intraResults_[res.Func] = res.NewResult;
+        if (res.OldResult && res.OldResult != res.NewResult)
+          delete res.OldResult;
+      }
+
+      if (res.InterfaceChanged) {
+        changed = true;
+        for (Function *caller : callGraphState_.getCallers(res.Func)) {
+          if (!callGraphState_.isBackEdge(caller, res.Func)) {
             changed_func.insert(caller);
           }
         }
@@ -314,6 +429,9 @@ void LotusAA::computePtsCgIteratively(Module &M, std::vector<Function *> &func_s
 
     // Update CG if enabled
     if (lotus_cg) {
+      // Save callers that need reanalysis before clearing changed_func
+      // These are functions whose callees had interface changes
+      set<Function *> callersNeedingReanalysis = changed_func;
       changed_func.clear();
       
       for (int i = func_seq.size() - 1; i >= 0; i--) {
@@ -367,6 +485,9 @@ void LotusAA::computePtsCgIteratively(Module &M, std::vector<Function *> &func_s
 
       // Detect back edges in updated call graph
       callGraphState_.detectBackEdges(changed_func);
+      
+      // Merge back callers that need reanalysis due to interface changes
+      changed_func.insert(callersNeedingReanalysis.begin(), callersNeedingReanalysis.end());
       
       if (!changed_func.empty())
         changed = true;
@@ -429,6 +550,8 @@ IntraLotusAA *LotusAA::getPtGraph(Function *F) {
 }
 
 DominatorTree *LotusAA::getDomTree(Function *F) {
+  std::lock_guard<std::mutex> lock(domMutex_);
+
   // Check if already computed
   auto it = dominatorTrees_.find(F);
   if (it != dominatorTrees_.end())
