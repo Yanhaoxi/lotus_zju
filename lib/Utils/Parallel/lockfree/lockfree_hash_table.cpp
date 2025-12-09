@@ -1,4 +1,4 @@
-#include "Utils/General/lockfree/lockfree_hash_table.h"
+#include "Utils/Parallel/lockfree/lockfree_hash_table.h"
 #include <cstdint>
 #include <iostream>
 #include <algorithm>

@@ -1,4 +1,4 @@
-#include "Utils/General/MultiThreading.h"
+#include "Utils/Parallel/MultiThreading.h"
 
 // Initializes a pthread mutex.
 PPMutex::PPMutex() {
