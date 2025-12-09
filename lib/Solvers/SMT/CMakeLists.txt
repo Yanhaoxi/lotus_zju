@@ -13,3 +13,5 @@ add_library(CanarySMT STATIC
         SMTLIB2Solver.cpp
         Z3Expr.cpp
 )
+
+add_subdirectory(SymAbs)
