@@ -12,6 +12,8 @@ add_library (SeaSmt STATIC
   )
 
 target_link_libraries(SeaSmt PRIVATE ${Z3_LIBRARY})
+# Suppress deprecation warnings
+target_compile_options(SeaSmt PRIVATE -Wno-deprecated-declarations)
 
 if (YICES2_FOUND)
   target_link_libraries(SeaSmt PRIVATE ${YICES2_LIBRARY})

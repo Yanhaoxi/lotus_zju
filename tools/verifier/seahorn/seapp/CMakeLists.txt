@@ -25,6 +25,8 @@ endif()
 llvm_config (seapp ${LLVM_LINK_COMPONENTS})
 # Then link our custom libraries
 target_link_libraries (seapp PRIVATE ${USED_LIBS})
+# Suppress deprecation warnings
+target_compile_options(seapp PRIVATE -Wno-deprecated-declarations)
 install(TARGETS seapp RUNTIME DESTINATION bin)
 
 if (SEAHORN_STATIC_EXE)

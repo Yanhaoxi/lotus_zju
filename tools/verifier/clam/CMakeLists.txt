@@ -31,6 +31,8 @@ target_include_directories(clam PRIVATE
   ${LLVM_INCLUDE_DIRS}
 )
 target_compile_definitions(clam PRIVATE ${CLAM_TOOLS_DEFINITIONS})
+# Suppress deprecation warnings
+target_compile_options(clam PRIVATE -Wno-deprecated-declarations)
 
 install(TARGETS clam RUNTIME DESTINATION bin)
 
@@ -55,7 +57,8 @@ target_include_directories(clam-diff PRIVATE
   ${LLVM_INCLUDE_DIRS}
 )
 target_compile_definitions(clam-diff PRIVATE ${CLAM_TOOLS_DEFINITIONS})
-
+# Suppress deprecation warnings
+target_compile_options(clam-diff PRIVATE -Wno-deprecated-declarations)
 
 install(TARGETS clam-diff RUNTIME DESTINATION bin)
 
@@ -75,6 +78,8 @@ target_include_directories(clam-pp PRIVATE
   ${LLVM_INCLUDE_DIRS}
 )
 target_compile_definitions(clam-pp PRIVATE ${CLAM_TOOLS_DEFINITIONS})
+# Suppress deprecation warnings
+target_compile_options(clam-pp PRIVATE -Wno-deprecated-declarations)
 
 install(TARGETS clam-pp RUNTIME DESTINATION bin)
 

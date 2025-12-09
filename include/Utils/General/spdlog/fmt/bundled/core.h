@@ -224,6 +224,16 @@ template <typename T>
 struct std_string_view {};
 #endif
 
+template <typename Char>
+FMT_CONSTEXPR size_t char_traits_length(const Char* s) {
+    return std::char_traits<Char>::length(s);
+}
+
+template <typename Char>
+FMT_CONSTEXPR int char_traits_compare(const Char* lhs, const Char* rhs, size_t count) {
+    return std::char_traits<Char>::compare(lhs, rhs, count);
+}
+
 // Casts nonnegative integer to unsigned.
 template <typename Int>
 FMT_CONSTEXPR typename std::make_unsigned<Int>::type to_unsigned(Int value) {
@@ -263,7 +273,7 @@ public:
       the size with ``std::char_traits<Char>::length``.
       \endrst
      */
-    basic_string_view(const Char* s) : data_(s), size_(std::char_traits<Char>::length(s)) {}
+    basic_string_view(const Char* s) : data_(s), size_(internal::char_traits_length(s)) {}
 
     /** Constructs a string reference from a ``std::basic_string`` object. */
     template <typename Alloc>
@@ -290,7 +300,7 @@ public:
     // Lexicographically compare this string reference to other.
     int compare(basic_string_view other) const {
         size_t str_size = size_ < other.size_ ? size_ : other.size_;
-        int result = std::char_traits<Char>::compare(data_, other.data_, str_size);
+        int result = internal::char_traits_compare(data_, other.data_, str_size);
         if (result == 0) result = size_ == other.size_ ? 0 : (size_ < other.size_ ? -1 : 1);
         return result;
     }
@@ -309,6 +319,19 @@ using wstring_view = basic_string_view<wchar_t>;
 #ifndef __cpp_char8_t
 // A UTF-8 code unit type.
 enum char8_t : unsigned char {};
+
+namespace internal {
+template <>
+inline size_t char_traits_length<char8_t>(const char8_t* s) {
+    return std::char_traits<char>::length(reinterpret_cast<const char*>(s));
+}
+
+template <>
+inline int char_traits_compare<char8_t>(const char8_t* lhs, const char8_t* rhs, size_t count) {
+    return std::char_traits<char>::compare(reinterpret_cast<const char*>(lhs),
+                                           reinterpret_cast<const char*>(rhs), count);
+}
+}  // namespace internal
 #endif
 
 /** Specifies if ``T`` is a character type. Can be specialized by users. */

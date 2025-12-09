@@ -37,6 +37,8 @@ endif()
 llvm_config (seahorn ${LLVM_LINK_COMPONENTS})
 # Then link our custom libraries
 target_link_libraries (seahorn PRIVATE ${USED_LIBS})
+# Suppress deprecation warnings
+target_compile_options(seahorn PRIVATE -Wno-deprecated-declarations)
 install(TARGETS seahorn RUNTIME DESTINATION bin)
 
 if (SEAHORN_STATIC_EXE)
