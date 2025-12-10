@@ -1,3 +1,4 @@
+#define IFDS_SOLVER_IMPL
 /*
  * Sequential IFDS Solver Implementation
  *
@@ -153,22 +154,22 @@ bool IFDSSolver<Problem>::propagate_path_edge(const PathEdgeType& edge) {
 }
 
 template<typename Problem>
-void IFDSSolver<Problem>::process_normal_edge(const llvm::Instruction* curr,
-                                              const llvm::Instruction* next,
-                                              const Fact& fact) {
-    FactSet new_facts = m_problem.normal_flow(curr, fact);
+void IFDSSolver<Problem>::process_normal_edge(const PathEdgeType& current_edge,
+                                              const llvm::Instruction* next) {
+    FactSet new_facts = m_problem.normal_flow(current_edge.target_node, current_edge.target_fact);
 
     for (const auto& new_fact : new_facts) {
-        propagate_path_edge(PathEdgeType(curr, fact, next, new_fact));
+        propagate_path_edge(PathEdgeType(current_edge.start_node, current_edge.start_fact,
+                                         next, new_fact));
     }
 }
 
 template<typename Problem>
-void IFDSSolver<Problem>::process_call_edge(const llvm::CallInst* call,
-                                           const llvm::Function* callee,
-                                           const Fact& fact) {
+void IFDSSolver<Problem>::process_call_edge(const PathEdgeType& current_edge,
+                                           const llvm::CallInst* call,
+                                           const llvm::Function* callee) {
     // ALWAYS generate call-to-return edges (textbook IFDS requirement)
-    process_call_to_return_edge(call, fact);
+    process_call_to_return_edge(current_edge, call);
     
     if (!callee || callee->isDeclaration()) {
         return;
@@ -178,10 +179,11 @@ void IFDSSolver<Problem>::process_call_edge(const llvm::CallInst* call,
     const llvm::Instruction* callee_entry = &callee->getEntryBlock().front();
 
     // Apply call flow function
-    FactSet call_facts = m_problem.call_flow(call, callee, fact);
+    FactSet call_facts = m_problem.call_flow(call, callee, current_edge.target_fact);
 
     for (const auto& call_fact : call_facts) {
-        propagate_path_edge(PathEdgeType(call, fact, callee_entry, call_fact));
+        propagate_path_edge(PathEdgeType(current_edge.start_node, current_edge.start_fact,
+                                         callee_entry, call_fact));
     }
 
     // Check if we have existing summary edges for this call and apply retroactively
@@ -190,11 +192,12 @@ void IFDSSolver<Problem>::process_call_edge(const llvm::CallInst* call,
         const llvm::Instruction* return_site = get_return_site(call);
         if (return_site) {
             for (const auto& summary : summary_it->second) {
-                if (summary.call_fact == fact) {
+                if (summary.call_fact == current_edge.target_fact) {
                     FactSet return_facts = m_problem.return_flow(call, callee,
                                                                summary.return_fact, summary.call_fact);
                     for (const auto& return_fact : return_facts) {
-                        propagate_path_edge(PathEdgeType(call, fact, return_site, return_fact));
+                        propagate_path_edge(PathEdgeType(current_edge.start_node, current_edge.start_fact,
+                                                       return_site, return_fact));
                     }
                 }
             }
@@ -203,8 +206,8 @@ void IFDSSolver<Problem>::process_call_edge(const llvm::CallInst* call,
 }
 
 template<typename Problem>
-void IFDSSolver<Problem>::process_return_edge(const llvm::ReturnInst* ret,
-                                              const Fact& fact) {
+void IFDSSolver<Problem>::process_return_edge(const PathEdgeType& current_edge,
+                                              const llvm::ReturnInst* ret) {
     const llvm::Function* func = ret->getFunction();
 
     // Find all call sites for this function
@@ -222,14 +225,14 @@ void IFDSSolver<Problem>::process_return_edge(const llvm::ReturnInst* ret,
                 const Fact& call_fact = path_edge.target_fact;
                 
                 // Create summary edge
-                SummaryEdgeType new_summary(call, call_fact, fact);
+                SummaryEdgeType new_summary(call, call_fact, current_edge.target_fact);
                 
                 // Only process if this is a new summary
                 if (m_summary_edges.insert(new_summary).second) {
                     m_summary_index[call].insert(new_summary);
                     
                     // Apply return flow
-                    FactSet return_facts = m_problem.return_flow(call, func, fact, call_fact);
+                    FactSet return_facts = m_problem.return_flow(call, func, current_edge.target_fact, call_fact);
                     for (const auto& return_fact : return_facts) {
                         propagate_path_edge(PathEdgeType(path_edge.start_node, path_edge.start_fact,
                                                        return_site, return_fact));
@@ -241,15 +244,16 @@ void IFDSSolver<Problem>::process_return_edge(const llvm::ReturnInst* ret,
 }
 
 template<typename Problem>
-void IFDSSolver<Problem>::process_call_to_return_edge(const llvm::CallInst* call,
-                                                      const Fact& fact) {
+void IFDSSolver<Problem>::process_call_to_return_edge(const PathEdgeType& current_edge,
+                                                      const llvm::CallInst* call) {
     const llvm::Instruction* return_site = get_return_site(call);
     if (!return_site) return;
 
-    FactSet ctr_facts = m_problem.call_to_return_flow(call, fact);
+    FactSet ctr_facts = m_problem.call_to_return_flow(call, current_edge.target_fact);
 
     for (const auto& ctr_fact : ctr_facts) {
-        propagate_path_edge(PathEdgeType(call, fact, return_site, ctr_fact));
+        propagate_path_edge(PathEdgeType(current_edge.start_node, current_edge.start_fact,
+                                         return_site, ctr_fact));
     }
 }
 
@@ -404,31 +408,30 @@ void IFDSSolver<Problem>::run_tabulation() {
         m_worklist.pop_back();
 
         const llvm::Instruction* curr = current_edge.target_node;
-        const Fact& fact = current_edge.target_fact;
 
         // Process different instruction types
         if (auto* call = llvm::dyn_cast<llvm::CallInst>(curr)) {
             if (!llvm::isa<llvm::InvokeInst>(curr)) {
                 auto it = m_call_to_callee.find(call);
                 if (it != m_call_to_callee.end()) {
-                    process_call_edge(call, it->second, fact);
+                    process_call_edge(current_edge, call, it->second);
                 } else {
-                    process_call_to_return_edge(call, fact);
+                    process_call_to_return_edge(current_edge, call);
                 }
             } else {
                 auto* invoke = llvm::cast<llvm::InvokeInst>(curr);
                 if (const llvm::Function* callee = invoke->getCalledFunction()) {
-                    process_call_edge(call, callee, fact);
+                    process_call_edge(current_edge, call, callee);
                 } else {
-                    process_call_to_return_edge(call, fact);
+                    process_call_to_return_edge(current_edge, call);
                 }
             }
         } else if (auto* ret = llvm::dyn_cast<llvm::ReturnInst>(curr)) {
-            process_return_edge(ret, fact);
+            process_return_edge(current_edge, ret);
         } else {
             auto succs = get_successors(curr);
             for (const llvm::Instruction* succ : succs) {
-                process_normal_edge(curr, succ, fact);
+                process_normal_edge(current_edge, succ);
             }
         }
 
@@ -465,8 +468,4 @@ const llvm::Function* IFDSSolver<Problem>::get_main_function(const llvm::Module&
 // ============================================================================
 
 } // namespace ifds
-
-// Explicit instantiation for commonly used solver(s)
-#include <Dataflow/IFDS/Clients/IFDSTaintAnalysis.h>
-template class ifds::IFDSSolver<ifds::TaintAnalysis>;
 

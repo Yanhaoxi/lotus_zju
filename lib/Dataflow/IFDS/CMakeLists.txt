@@ -20,6 +20,8 @@ set(IFDS_SOURCES ${IFDS_FRAMEWORK_SOURCES} ${IFDS_CLIENT_SOURCES})
 
 add_library(IFDS STATIC ${IFDS_SOURCES})
 
-# Link with Checker library for taint configuration and Support library for progress bar
+# Allow headers to include .cpp template implementations
+target_include_directories(IFDS PUBLIC ${CMAKE_SOURCE_DIR}/lib)
+
 target_link_libraries(IFDS Annotation CanarySupport)
 

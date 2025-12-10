@@ -83,10 +83,10 @@ private:
 
     // Core IFDS Tabulation Algorithm Methods
     bool propagate_path_edge(const PathEdgeType& edge);
-    void process_normal_edge(const llvm::Instruction* curr, const llvm::Instruction* next, const Fact& fact);
-    void process_call_edge(const llvm::CallInst* call, const llvm::Function* callee, const Fact& fact);
-    void process_return_edge(const llvm::ReturnInst* ret, const Fact& fact);
-    void process_call_to_return_edge(const llvm::CallInst* call, const Fact& fact);
+    void process_normal_edge(const PathEdgeType& current_edge, const llvm::Instruction* next);
+    void process_call_edge(const PathEdgeType& current_edge, const llvm::CallInst* call, const llvm::Function* callee);
+    void process_return_edge(const PathEdgeType& current_edge, const llvm::ReturnInst* ret);
+    void process_call_to_return_edge(const PathEdgeType& current_edge, const llvm::CallInst* call);
 
     // Helper methods
     const llvm::Instruction* get_return_site(const llvm::CallInst* call) const;
@@ -202,10 +202,10 @@ private:
 
     // Core IFDS Tabulation Algorithm Methods (thread-safe versions)
     bool propagate_path_edge(const PathEdgeType& edge);
-    void process_normal_edge(const llvm::Instruction* curr, const llvm::Instruction* next, const Fact& fact);
-    void process_call_edge(const llvm::CallInst* call, const llvm::Function* callee, const Fact& fact);
-    void process_return_edge(const llvm::ReturnInst* ret, const Fact& fact);
-    void process_call_to_return_edge(const llvm::CallInst* call, const Fact& fact);
+    void process_normal_edge(const PathEdgeType& current_edge, const llvm::Instruction* next);
+    void process_call_edge(const PathEdgeType& current_edge, const llvm::CallInst* call, const llvm::Function* callee);
+    void process_return_edge(const PathEdgeType& current_edge, const llvm::ReturnInst* ret);
+    void process_call_to_return_edge(const PathEdgeType& current_edge, const llvm::CallInst* call);
 
     // Worklist operations
     std::vector<PathEdgeType> get_worklist_batch();
@@ -231,3 +231,8 @@ private:
 };
 
 } // namespace ifds
+
+#ifndef IFDS_SOLVER_IMPL
+#include "Dataflow/IFDS/IFDSSolver.cpp"
+#include "Dataflow/IFDS/ParallelIFDSSolver.cpp"
+#endif

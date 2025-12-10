@@ -1,3 +1,4 @@
+#define IFDS_IDE_SOLVER_IMPL
 /*
  * IDE Solver Implementation
  * 
@@ -154,8 +155,8 @@ void IDESolver<Problem>::solve(const llvm::Module& module) {
         return m_problem.bottom_value();
     };
 
-    auto queue_edge = [&](const llvm::Instruction* inst, const Fact& fact, 
-                          EdgeFunctionPtr phi, const Value& incoming_value) {
+            auto queue_edge = [&](const llvm::Instruction* inst, const Fact& fact, 
+                                  EdgeFunctionPtr phi, const Value& incoming_value) {
         PathEdge pe{inst, fact, phi};
         auto& fact_map = m_values[inst];
         auto current_it = fact_map.find(fact);
@@ -212,8 +213,10 @@ void IDESolver<Problem>::solve(const llvm::Module& module) {
             if (ret_site) {
                 for (const auto& tgt_fact : m_problem.call_to_return_flow(call, fact)) {
                     auto ef = m_problem.call_to_return_edge_function(call, fact, tgt_fact);
-                    EdgeFunctionPtr new_phi = compose_cached(make_edge_function(ef), phi);
-                    queue_edge(ret_site, tgt_fact, new_phi, (*new_phi)(currVal));
+                    EdgeFunctionPtr edge_fn = make_edge_function(ef);
+                    EdgeFunctionPtr new_phi = compose_cached(edge_fn, phi);
+                    Value result_val = (*edge_fn)(currVal);
+                    queue_edge(ret_site, tgt_fact, new_phi, result_val);
                 }
             }
 
@@ -222,8 +225,10 @@ void IDESolver<Problem>::solve(const llvm::Module& module) {
                 const llvm::Instruction* callee_entry = &callee->getEntryBlock().front();
                 for (const auto& callee_fact : m_problem.call_flow(call, callee, fact)) {
                     auto ef = m_problem.call_edge_function(call, fact, callee_fact);
-                    EdgeFunctionPtr new_phi = compose_cached(make_edge_function(ef), phi);
-                    queue_edge(callee_entry, callee_fact, new_phi, (*new_phi)(currVal));
+                    EdgeFunctionPtr edge_fn = make_edge_function(ef);
+                    EdgeFunctionPtr new_phi = compose_cached(edge_fn, phi);
+                    Value result_val = (*edge_fn)(currVal);
+                    queue_edge(callee_entry, callee_fact, new_phi, result_val);
                 }
 
                 // Apply existing summaries retroactively
@@ -233,7 +238,7 @@ void IDESolver<Problem>::solve(const llvm::Module& module) {
                         if (summary.call_fact == fact) {
                             // Apply summary: compose call edge + summary + return edge
                             EdgeFunctionPtr composed = compose_cached(summary.phi, phi);
-                            Value result_val = (*composed)(currVal);
+                            Value result_val = (*summary.phi)(currVal);
                             queue_edge(ret_site, summary.return_fact, composed, result_val);
                         }
                     }
@@ -274,7 +279,7 @@ void IDESolver<Problem>::solve(const llvm::Module& module) {
                             // Apply summary to this call edge
                             EdgeFunctionPtr final_phi = compose_cached(summary_phi, call_pe.phi);
                             Value call_val = get_value_or_bottom(call_pe.inst, call_pe.fact);
-                            Value result_val = (*final_phi)(call_val);
+                            Value result_val = (*summary_phi)(call_val);
                             queue_edge(ret_site, ret_fact, final_phi, result_val);
                         }
                     }
@@ -288,8 +293,10 @@ void IDESolver<Problem>::solve(const llvm::Module& module) {
                 for (const llvm::Instruction* succ : succ_it->second) {
                     for (const auto& tgt_fact : m_problem.normal_flow(curr, fact)) {
                         auto ef = m_problem.normal_edge_function(curr, fact, tgt_fact);
-                        EdgeFunctionPtr new_phi = compose_cached(make_edge_function(ef), phi);
-                        queue_edge(succ, tgt_fact, new_phi, (*new_phi)(currVal));
+                        EdgeFunctionPtr edge_fn = make_edge_function(ef);
+                        EdgeFunctionPtr new_phi = compose_cached(edge_fn, phi);
+                        Value result_val = (*edge_fn)(currVal);
+                        queue_edge(succ, tgt_fact, new_phi, result_val);
                     }
                 }
             }

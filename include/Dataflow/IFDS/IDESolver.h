@@ -133,3 +133,7 @@ private:
 };
 
 } // namespace ifds
+
+#ifndef IFDS_IDE_SOLVER_IMPL
+#include "Dataflow/IFDS/IDESolver.cpp"
+#endif
