@@ -102,6 +102,11 @@ protected:
     // for future optimizations)
     virtual bool populatePreBuiltCallGraph() {
         // Default implementation: no pre-built call graph
+        // auto *lm = this->getLangModel(); // or use LMT traits
+        // 1) query your pre-built CG (e.g., DyckAA/FPA) for indirect call resolutions
+        // 2) for each resolved (callsite -> target), call
+        //    lm->getCtxModule()->resolveCallTo(...) via ConsGraphBuilder callbacks,
+        //    or whatever accessor you expose to the module
         return false;
     }
 
@@ -356,13 +361,16 @@ public:
 
         // using language model to construct language model
         langModel.reset(LMT::buildInitModel(module, entry));
-        
-        // Hook point: populate call graph with pre-built results (e.g., DyckAA, FPA)
-        // This must happen BEFORE constructConsGraph() because the call graph
-        // affects which functions are visited and which constraints are generated
-        // TODO: should we call the "hook" functioh here? Or elsewhere
-        // populatePreBuiltCallGraph();
-        
+        // If on-the-fly call graph construction is disabled, let subclasses
+        // populate the call graph ahead of constraint graph construction.
+        if (!ConfigUseOnTheFlyCallGraph) {
+            bool populated = static_cast<SubClass *>(this)->populatePreBuiltCallGraph();
+            if (!populated) {
+                LOG_WARN("on-the-fly call graph disabled, but populatePreBuiltCallGraph() was not overridden; "
+                         "indirect calls may remain unresolved");
+            }
+        }
+
         LMT::constructConsGraph(langModel.get());
 
         consGraph = LMT::getConsGraph(langModel.get());

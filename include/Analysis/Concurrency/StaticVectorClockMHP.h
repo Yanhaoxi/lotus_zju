@@ -1,0 +1,181 @@
+/**
+ * @file StaticVectorClockMHP.h
+ * @brief Static vector clock based MHP analysis (SVC-MHP)
+ *
+ * This analysis implements the static vector clock algorithm described in
+ * "May-Happen-in-Parallel Analysis with Static Vector Clocks" (CGO'18).
+ * It reuses the thread-flow graph builder and constructs context-sensitive
+ * static threads (keyed by fork-site contexts). It then computes static vector
+ * clocks following the transfer rules in the paper to answer MHP/HB queries.
+ */
+
+#ifndef STATIC_VECTOR_CLOCK_MHP_H
+#define STATIC_VECTOR_CLOCK_MHP_H
+
+#include "Analysis/Concurrency/ThreadAPI.h"
+#include "Analysis/Concurrency/ThreadFlowGraph.h"
+
+#include <llvm/IR/Instruction.h>
+#include <llvm/IR/Module.h>
+#include <llvm/Support/raw_ostream.h>
+
+#include <memory>
+#include <set>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+
+namespace mhp {
+
+using StaticThreadID = size_t;
+
+/**
+ * @brief Static Vector Clock MHP Analysis (SVC-MHP)
+ *
+ * The analysis builds on the existing ThreadFlowGraph constructed by
+ * MHPAnalysis, computes static vector clocks for every synchronization
+ * node, and answers MHP queries by comparing those clocks.
+ *
+ * Usage:
+ *   StaticVectorClockMHP svc(module);
+ *   svc.analyze();
+ *   bool parallel = svc.mayHappenInParallel(instA, instB);
+ *   svc.printResults(errs());
+ */
+class StaticVectorClockMHP {
+public:
+  explicit StaticVectorClockMHP(llvm::Module &module);
+
+  /// Run the SVC-MHP analysis.
+  void analyze();
+
+  /// Query whether two instructions may execute in parallel.
+  bool mayHappenInParallel(const llvm::Instruction *i1,
+                           const llvm::Instruction *i2) const;
+
+  /// Query happens-before using static vector clocks.
+  bool happensBefore(const llvm::Instruction *i1,
+                     const llvm::Instruction *i2) const;
+
+  /// Print a compact statistics summary.
+  void printStatistics(llvm::raw_ostream &os) const;
+
+  /// Print debug information about the computed clocks and pairs.
+  void printResults(llvm::raw_ostream &os) const;
+
+private:
+  struct Context {
+    std::vector<size_t> fork_sites; // sequence of SyncNode IDs (fork sites)
+
+    bool operator==(const Context &other) const { return fork_sites == other.fork_sites; }
+  };
+
+  struct ContextHash {
+    size_t operator()(const Context &c) const {
+      size_t h = 1469598103934665603ULL;
+      for (size_t v : c.fork_sites) {
+        h ^= v + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2);
+      }
+      return h;
+    }
+  };
+
+  struct LogicClockElem {
+    enum class Kind { Node, Start, Terminated };
+    Kind kind;
+    size_t node_id; // valid when kind == Node
+
+    bool operator==(const LogicClockElem &o) const {
+      return kind == o.kind && node_id == o.node_id;
+    }
+  };
+
+  struct LogicClockElemHash {
+    size_t operator()(const LogicClockElem &e) const {
+      return (static_cast<size_t>(e.kind) * 1315423911u) ^ (e.node_id + 0x9e3779b9 + (e.node_id << 6) + (e.node_id >> 2));
+    }
+  };
+
+  using LogicClockSet = std::unordered_set<LogicClockElem, LogicClockElemHash>;
+
+  struct StaticVectorClock {
+    // static thread id -> logic clock set
+    std::unordered_map<StaticThreadID, LogicClockSet> entries;
+
+    bool mergeFrom(const StaticVectorClock &other);
+    bool leq(const StaticVectorClock &other) const;
+  };
+
+  struct StaticThread {
+    StaticThreadID id;
+    Context ctx;
+    ThreadID base_tid;               // originating TFG thread
+    const SyncNode *entry = nullptr; // entry node in this static thread
+    std::vector<const SyncNode *> nodes;
+  };
+
+  llvm::Module &m_module;
+
+  // Thread-flow graph owned by this analysis
+  ThreadAPI *m_thread_api = nullptr;
+  std::unique_ptr<ThreadFlowGraph> m_tfg;
+
+  // Static thread management
+  std::unordered_map<Context, StaticThreadID, ContextHash> m_ctx_to_stid;
+  std::vector<StaticThread> m_static_threads;
+
+  // Mapping: SyncNode -> owning static thread id
+  std::unordered_map<const SyncNode *, StaticThreadID> m_node_to_static_thread;
+  std::unordered_map<const llvm::Instruction *, StaticThreadID> m_inst_to_static_thread;
+
+  // Static vector clocks per node
+  std::unordered_map<const SyncNode *, StaticVectorClock> m_node_clocks;
+
+  std::set<std::pair<const llvm::Instruction *, const llvm::Instruction *>>
+      m_mhp_pairs;
+
+  // Construction
+  void buildThreadFlowGraph();
+  void processFunction(const llvm::Function *func, ThreadID tid);
+  void mapInstructionToThread(const llvm::Instruction *inst, ThreadID tid);
+  ThreadID allocateThreadID();
+  void handleThreadFork(const llvm::Instruction *fork_inst, SyncNode *node);
+  void handleThreadJoin(const llvm::Instruction *join_inst, SyncNode *node);
+  void handleLockAcquire(const llvm::Instruction *lock_inst, SyncNode *node);
+  void handleLockRelease(const llvm::Instruction *unlock_inst, SyncNode *node);
+  void handleCondWait(const llvm::Instruction *wait_inst, SyncNode *node);
+  void handleCondSignal(const llvm::Instruction *signal_inst, SyncNode *node);
+  void handleBarrier(const llvm::Instruction *barrier_inst, SyncNode *node);
+  void buildStaticThreads();
+  StaticThreadID getOrCreateStaticThread(const Context &ctx, ThreadID base_tid,
+                                         const SyncNode *entry);
+
+  // Clock computation
+  void computeStaticVectorClocks();
+  StaticVectorClock initialClockFor(const StaticThread &st) const;
+  bool transfer(const SyncNode *node);
+  StaticVectorClock mergePredecessorClocks(const SyncNode *node) const;
+  void addEventToClock(const SyncNode *node, StaticVectorClock &sv) const;
+  bool happensBefore(const StaticVectorClock &lhs, const StaticVectorClock &rhs) const;
+
+  // Queries
+  void computeMHPPairs();
+
+  // Thread bookkeeping reused from the TFG builder
+  ThreadID m_next_thread_id = 1; // 0 reserved for main
+  std::unordered_map<const llvm::Instruction *, ThreadID> m_inst_to_thread;
+  std::unordered_map<ThreadID, const llvm::Instruction *> m_thread_fork_sites;
+  std::unordered_map<ThreadID, ThreadID> m_thread_parents;
+  std::unordered_map<ThreadID, std::vector<ThreadID>> m_thread_children;
+  std::unordered_map<const llvm::Instruction *, ThreadID> m_join_to_thread;
+  std::unordered_map<const llvm::Value *, ThreadID> m_pthread_value_to_thread;
+  std::unordered_map<ThreadID, const llvm::Value *> m_thread_to_pthread_value;
+  std::unordered_map<ThreadID, std::unordered_set<const llvm::Function *>> m_visited_functions_by_thread;
+  std::unordered_map<const llvm::Value *, std::vector<const llvm::Instruction *>> m_condvar_signals;
+  std::unordered_map<const llvm::Value *, std::vector<const llvm::Instruction *>> m_condvar_waits;
+  std::unordered_map<const llvm::Value *, std::vector<const llvm::Instruction *>> m_barrier_waits;
+};
+
+} // namespace mhp
+
+#endif // STATIC_VECTOR_CLOCK_MHP_H

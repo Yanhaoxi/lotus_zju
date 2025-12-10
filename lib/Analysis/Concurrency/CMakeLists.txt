@@ -2,6 +2,7 @@ set(Concurrency_SOURCES
   ThreadAPI.cpp
   LockSetAnalysis.cpp
   MHPAnalysis.cpp
+  StaticVectorClockMHP.cpp
   ThreadFlowGraph.cpp
   MemUseDefAnalysis.cpp
   EscapeAnalysis.cpp
