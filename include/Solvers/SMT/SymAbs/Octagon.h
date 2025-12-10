@@ -22,9 +22,13 @@ struct OctagonalConstraint {
     int lambda_i;  // ±1
     int lambda_j;  // ±1
     int64_t bound; // d
+    bool unary;    // true when constraint only involves var_i
     
+    OctagonalConstraint(z3::expr v, int lambda, int64_t d)
+        : var_i(v), var_j(v), lambda_i(lambda), lambda_j(0), bound(d), unary(true) {}
+
     OctagonalConstraint(z3::expr vi, z3::expr vj, int li, int lj, int64_t d)
-        : var_i(vi), var_j(vj), lambda_i(li), lambda_j(lj), bound(d) {}
+        : var_i(vi), var_j(vj), lambda_i(li), lambda_j(lj), bound(d), unary(false) {}
 };
 
 /**
@@ -42,5 +46,10 @@ std::vector<OctagonalConstraint> alpha_oct_V(
     z3::expr phi,
     const std::vector<z3::expr>& variables,
     const AbstractionConfig& config = AbstractionConfig{});
+
+/**
+ * @brief Convert an octagonal constraint to a Z3 integer inequality.
+ */
+z3::expr oct_constraint_to_expr(const OctagonalConstraint& c);
 
 } // namespace SymAbs

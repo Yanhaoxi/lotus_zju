@@ -51,7 +51,7 @@ add_library (seahorn.LIB STATIC
   DfCoiAnalysis.cc
   )
 
-target_include_directories(seahorn.LIB PUBLIC
+target_include_directories(seahorn.LIB PRIVATE
   ${CMAKE_SOURCE_DIR}/include
   ${CMAKE_SOURCE_DIR}/include/Apps
   ${CMAKE_BINARY_DIR}/include

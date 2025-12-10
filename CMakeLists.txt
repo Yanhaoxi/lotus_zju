@@ -49,7 +49,7 @@ if(BUILD_EXAMPLES)
 endif()
 
 # Add tests if enabled
-option(BUILD_TESTS "Build tests" OFF)
+option(BUILD_TESTS "Build tests" ON)
 if(BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)

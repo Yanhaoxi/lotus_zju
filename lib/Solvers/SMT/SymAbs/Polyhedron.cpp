@@ -4,6 +4,10 @@
  * 
  * Computes a convex polyhedron over-approximating φ by iteratively finding
  * extremal points (vertices) and computing their convex hull.
+
+ Important: The polyhedron abstraction uses polyhedra over integer variables to abstract formulas over bit-vectors.
+ - Bit-vector to integer conversion: bv_signed_to_int converts bit-vectors to signed integers using two's complement
+ - Inequality construction: In build_inequality, inequalities are built over integer expressions. Variables are converted via bv_signed_to_int, and coefficients are Z3 integer constants.
  */
 
 #include "Solvers/SMT/SymAbs/SymbolicAbstraction.h"

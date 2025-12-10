@@ -33,6 +33,13 @@ add_executable(seahorn seahorn.cpp)
 if(APPLE)
   set_target_properties(seahorn PROPERTIES LINK_FLAGS "${LINK_FLAGS} -Wl,-search_paths_first")
 endif()
+# Add include directories needed by seahorn executable
+target_include_directories(seahorn PRIVATE
+  ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_SOURCE_DIR}/include/Apps
+  ${CMAKE_BINARY_DIR}/include
+  ${CMAKE_BINARY_DIR}/include/Apps
+)
 # Link LLVM components first to establish base dependencies
 llvm_config (seahorn ${LLVM_LINK_COMPONENTS})
 # Then link our custom libraries
