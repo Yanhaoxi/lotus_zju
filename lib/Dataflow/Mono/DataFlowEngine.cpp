@@ -1,61 +1,57 @@
 #include "Dataflow/Mono/DataFlowEngine.h"
 
-DataFlowEngine::DataFlowEngine() : AA(nullptr), MSSA(nullptr) {
-  return;
-}
+DataFlowEngine::DataFlowEngine() : AA(nullptr), MSSA(nullptr) {}
 
-DataFlowEngine::DataFlowEngine(AAResults *AA, MemorySSA *MSSA) 
-    : AA(AA), MSSA(MSSA) {
-  return;
-}
+DataFlowEngine::DataFlowEngine(AAResults *AA, MemorySSA *MSSA)
+    : AA(AA), MSSA(MSSA) {}
 
-DataFlowResult *DataFlowEngine::applyForward(
+std::unique_ptr<DataFlowResult> DataFlowEngine::applyForward(
     Function *f,
-    std::function<void(Instruction *, DataFlowResult *)> computeGEN,
-    std::function<void(Instruction *inst, std::set<Value *> &IN)> initializeIN,
-    std::function<void(Instruction *inst, std::set<Value *> &OUT)>
-        initializeOUT,
-    std::function<void(Instruction *inst,
-                       Instruction *predecessor,
-                       std::set<Value *> &IN,
-                       DataFlowResult *df)> computeIN,
-    std::function<void(Instruction *inst,
-                       std::set<Value *> &OUT,
-                       DataFlowResult *df)> computeOUT) {
+    const std::function<void(Instruction *, DataFlowResult *)> &computeGEN,
+    const std::function<void(Instruction *inst, std::set<Value *> &IN)>
+        &initializeIN,
+    const std::function<void(Instruction *inst, std::set<Value *> &OUT)>
+        &initializeOUT,
+    const std::function<void(Instruction *inst,
+                             Instruction *predecessor,
+                             std::set<Value *> &IN,
+                             DataFlowResult *df)> &computeIN,
+    const std::function<void(Instruction *inst,
+                             std::set<Value *> &OUT,
+                             DataFlowResult *df)> &computeOUT) {
 
   /*
    * Define an empty KILL set.
    */
-  auto computeKILL = [](Instruction *, DataFlowResult *) { return; };
+  auto computeKILL = [](Instruction *, DataFlowResult *) {};
 
   /*
    * Run the data-flow analysis.
    */
-  auto dfr = this->applyForward(f,
-                                computeGEN,
-                                computeKILL,
-                                initializeIN,
-                                initializeOUT,
-                                computeIN,
-                                computeOUT);
-
-  return dfr;
+  return this->applyForward(f,
+                            computeGEN,
+                            computeKILL,
+                            initializeIN,
+                            initializeOUT,
+                            computeIN,
+                            computeOUT);
 }
 
-DataFlowResult *DataFlowEngine::applyForward(
+std::unique_ptr<DataFlowResult> DataFlowEngine::applyForward(
     Function *f,
-    std::function<void(Instruction *, DataFlowResult *)> computeGEN,
-    std::function<void(Instruction *, DataFlowResult *)> computeKILL,
-    std::function<void(Instruction *inst, std::set<Value *> &IN)> initializeIN,
-    std::function<void(Instruction *inst, std::set<Value *> &OUT)>
-        initializeOUT,
-    std::function<void(Instruction *inst,
-                       Instruction *predecessor,
-                       std::set<Value *> &IN,
-                       DataFlowResult *df)> computeIN,
-    std::function<void(Instruction *inst,
-                       std::set<Value *> &OUT,
-                       DataFlowResult *df)> computeOUT) {
+    const std::function<void(Instruction *, DataFlowResult *)> &computeGEN,
+    const std::function<void(Instruction *, DataFlowResult *)> &computeKILL,
+    const std::function<void(Instruction *inst, std::set<Value *> &IN)>
+        &initializeIN,
+    const std::function<void(Instruction *inst, std::set<Value *> &OUT)>
+        &initializeOUT,
+    const std::function<void(Instruction *inst,
+                             Instruction *predecessor,
+                             std::set<Value *> &IN,
+                             DataFlowResult *df)> &computeIN,
+    const std::function<void(Instruction *inst,
+                             std::set<Value *> &OUT,
+                             DataFlowResult *df)> &computeOUT) {
 
   /*
    * Define the customization.
@@ -108,61 +104,35 @@ DataFlowResult *DataFlowEngine::applyForward(
    * Run the pass.
    */
 
-  auto dfa = this->applyGeneralizedForwardAnalysis(f,
-                                                   computeGEN,
-                                                   computeKILL,
-                                                   initializeIN,
-                                                   initializeOUT,
-                                                   getPredecessors,
-                                                   getSuccessors,
-                                                   computeIN,
-                                                   computeOUT,
-                                                   appendBB,
-                                                   getFirstInst,
-                                                   getLastInst,
-                                                   inSetOfInst,
-                                                   outSetOfInst,
-                                                   getEndIterator,
-                                                   incrementIterator);
-  return dfa;
+  return this->applyGeneralizedForwardAnalysis(f,
+                                               computeGEN,
+                                               computeKILL,
+                                               initializeIN,
+                                               initializeOUT,
+                                               getPredecessors,
+                                               getSuccessors,
+                                               computeIN,
+                                               computeOUT,
+                                               appendBB,
+                                               getFirstInst,
+                                               getLastInst,
+                                               inSetOfInst,
+                                               outSetOfInst,
+                                               getEndIterator,
+                                               incrementIterator);
 }
 
-DataFlowResult *DataFlowEngine::applyBackward(
+std::unique_ptr<DataFlowResult> DataFlowEngine::applyBackward(
     Function *f,
-    std::function<void(Instruction *, DataFlowResult *)> computeGEN,
-    std::function<void(Instruction *inst,
-                       std::set<Value *> &IN,
-                       DataFlowResult *df)> computeIN,
-    std::function<void(Instruction *inst,
-                       Instruction *successor,
-                       std::set<Value *> &OUT,
-                       DataFlowResult *df)> computeOUT) {
-
-  /*
-   * Define an empty KILL set.
-   */
-  auto computeKILL = [](Instruction *, DataFlowResult *) { return; };
-
-  /*
-   * Run the data-flow analysis.
-   */
-  auto dfr =
-      this->applyBackward(f, computeGEN, computeKILL, computeIN, computeOUT);
-
-  return dfr;
-}
-
-DataFlowResult *DataFlowEngine::applyBackward(
-    Function *f,
-    std::function<void(Instruction *, DataFlowResult *)> computeGEN,
-    std::function<void(Instruction *, DataFlowResult *)> computeKILL,
-    std::function<void(Instruction *inst,
-                       std::set<Value *> &IN,
-                       DataFlowResult *df)> computeIN,
-    std::function<void(Instruction *inst,
-                       Instruction *successor,
-                       std::set<Value *> &OUT,
-                       DataFlowResult *df)> computeOUT) {
+    const std::function<void(Instruction *, DataFlowResult *)> &computeGEN,
+    const std::function<void(Instruction *, DataFlowResult *)> &computeKILL,
+    const std::function<void(Instruction *inst,
+                             std::set<Value *> &IN,
+                             DataFlowResult *df)> &computeIN,
+    const std::function<void(Instruction *inst,
+                             Instruction *successor,
+                             std::set<Value *> &OUT,
+                             DataFlowResult *df)> &computeOUT) {
 
   /*
    * Define the customization
@@ -195,11 +165,9 @@ DataFlowResult *DataFlowEngine::applyBackward(
     return &*bb->begin();
   };
 
-  auto initializeIN = [](Instruction *inst, std::set<Value *> &IN) { return; };
+  auto initializeIN = [](Instruction *, std::set<Value *> &) {};
 
-  auto initializeOUT = [](Instruction *inst, std::set<Value *> &OUT) {
-    return;
-  };
+  auto initializeOUT = [](Instruction *, std::set<Value *> &) {};
 
   auto inSetOfInst = [](DataFlowResult *df,
                         Instruction *inst) -> std::set<Value *> & {
@@ -217,30 +185,28 @@ DataFlowResult *DataFlowEngine::applyBackward(
 
   auto incrementIterator = [](BasicBlock::iterator &iter) { iter--; };
 
-  auto dfr = this->applyGeneralizedForwardAnalysis(f,
-                                                   computeGEN,
-                                                   computeKILL,
-                                                   initializeIN,
-                                                   initializeOUT,
-                                                   getPredecessors,
-                                                   getSuccessors,
-                                                   computeOUT,
-                                                   computeIN,
-                                                   appendBB,
-                                                   getFirstInst,
-                                                   getLastInst,
-                                                   inSetOfInst,
-                                                   outSetOfInst,
-                                                   getEndIterator,
-                                                   incrementIterator);
-
-  return dfr;
+  return this->applyGeneralizedForwardAnalysis(f,
+                                               computeGEN,
+                                               computeKILL,
+                                               initializeIN,
+                                               initializeOUT,
+                                               getPredecessors,
+                                               getSuccessors,
+                                               computeOUT,
+                                               computeIN,
+                                               appendBB,
+                                               getFirstInst,
+                                               getLastInst,
+                                               inSetOfInst,
+                                               outSetOfInst,
+                                               getEndIterator,
+                                               incrementIterator);
 }
 
 void DataFlowEngine::computeGENAndKILL(
     Function *f,
-    std::function<void(Instruction *, DataFlowResult *)> computeGEN,
-    std::function<void(Instruction *, DataFlowResult *)> computeKILL,
+    const std::function<void(Instruction *, DataFlowResult *)> &computeGEN,
+    const std::function<void(Instruction *, DataFlowResult *)> &computeKILL,
     DataFlowResult *df) {
 
   /*
@@ -256,38 +222,45 @@ void DataFlowEngine::computeGENAndKILL(
   return;
 }
 
-DataFlowResult *DataFlowEngine::applyGeneralizedForwardAnalysis(
+std::unique_ptr<DataFlowResult> DataFlowEngine::applyGeneralizedForwardAnalysis(
     Function *f,
-    std::function<void(Instruction *, DataFlowResult *)> computeGEN,
-    std::function<void(Instruction *, DataFlowResult *)> computeKILL,
-    std::function<void(Instruction *inst, std::set<Value *> &IN)> initializeIN,
-    std::function<void(Instruction *inst, std::set<Value *> &OUT)>
-        initializeOUT,
-    std::function<std::list<BasicBlock *>(BasicBlock *bb)> getPredecessors,
-    std::function<std::list<BasicBlock *>(BasicBlock *bb)> getSuccessors,
-    std::function<void(Instruction *inst,
-                       Instruction *predecessor,
-                       std::set<Value *> &IN,
-                       DataFlowResult *df)> computeIN,
-    std::function<void(Instruction *inst,
-                       std::set<Value *> &OUT,
-                       DataFlowResult *df)> computeOUT,
-    std::function<void(std::list<BasicBlock *> &workingList, BasicBlock *bb)>
-        appendBB,
-    std::function<Instruction *(BasicBlock *bb)> getFirstInstruction,
-    std::function<Instruction *(BasicBlock *bb)> getLastInstruction,
-    std::function<std::set<Value *> &(DataFlowResult *df,
-                                      Instruction *instruction)> getInSetOfInst,
-    std::function<std::set<Value *> &(DataFlowResult *df,
-                                      Instruction *instruction)>
-        getOutSetOfInst,
-    std::function<BasicBlock::iterator(BasicBlock *)> getEndIterator,
-    std::function<void(BasicBlock::iterator &)> incrementIterator) {
+    const std::function<void(Instruction *, DataFlowResult *)> &computeGEN,
+    const std::function<void(Instruction *, DataFlowResult *)> &computeKILL,
+    const std::function<void(Instruction *inst, std::set<Value *> &IN)>
+        &initializeIN,
+    const std::function<void(Instruction *inst, std::set<Value *> &OUT)>
+        &initializeOUT,
+    const std::function<std::list<BasicBlock *>(BasicBlock *bb)>
+        &getPredecessors,
+    const std::function<std::list<BasicBlock *>(BasicBlock *bb)> &getSuccessors,
+    const std::function<void(Instruction *inst,
+                             Instruction *predecessor,
+                             std::set<Value *> &IN,
+                             DataFlowResult *df)> &computeIN,
+    const std::function<void(Instruction *inst,
+                             std::set<Value *> &OUT,
+                             DataFlowResult *df)> &computeOUT,
+    const std::function<void(std::list<BasicBlock *> &workingList,
+                             BasicBlock *bb)> &appendBB,
+    const std::function<Instruction *(BasicBlock *bb)> &getFirstInstruction,
+    const std::function<Instruction *(BasicBlock *bb)> &getLastInstruction,
+    const std::function<std::set<Value *> &(DataFlowResult *df,
+                                            Instruction *instruction)>
+        &getInSetOfInst,
+    const std::function<std::set<Value *> &(DataFlowResult *df,
+                                            Instruction *instruction)>
+        &getOutSetOfInst,
+    const std::function<BasicBlock::iterator(BasicBlock *)> &getEndIterator,
+    const std::function<void(BasicBlock::iterator &)> &incrementIterator) {
+
+  if (f == nullptr) {
+    return nullptr;
+  }
 
   /*
    * Initialize IN and OUT sets.
    */
-  auto df = new DataFlowResult{};
+  auto df = std::make_unique<DataFlowResult>();
   for (auto &bb : *f) {
     for (auto &i : bb) {
       auto &INSet = df->IN(&i);
@@ -300,7 +273,7 @@ DataFlowResult *DataFlowEngine::applyGeneralizedForwardAnalysis(
   /*
    * Compute the GENs and KILLs
    */
-  computeGENAndKILL(f, computeGEN, computeKILL, df);
+  computeGENAndKILL(f, computeGEN, computeKILL, df.get());
 
   /*
    * Compute the IN and OUT
@@ -308,8 +281,10 @@ DataFlowResult *DataFlowEngine::applyGeneralizedForwardAnalysis(
    * Create the working list by adding all basic blocks to it.
    */
   std::list<BasicBlock *> workingList;
+  std::unordered_set<BasicBlock *> inWorkList;
   for (auto &bb : *f) {
     appendBB(workingList, &bb);
+    inWorkList.insert(&bb);
   }
 
   /*
@@ -328,6 +303,7 @@ DataFlowResult *DataFlowEngine::applyGeneralizedForwardAnalysis(
      * Remove the basic block from the workingList.
      */
     workingList.pop_front();
+    inWorkList.erase(bb);
 
     /*
      * Fetch the first instruction of the basic block.
@@ -337,8 +313,8 @@ DataFlowResult *DataFlowEngine::applyGeneralizedForwardAnalysis(
     /*
      * Fetch IN[inst], OUT[inst], GEN[inst], and KILL[inst]
      */
-    auto &inSetOfInst = getInSetOfInst(df, inst);
-    auto &outSetOfInst = getOutSetOfInst(df, inst);
+    auto &inSetOfInst = getInSetOfInst(df.get(), inst);
+    auto &outSetOfInst = getOutSetOfInst(df.get(), inst);
 
     /*
      * Compute the IN of the first instruction of the current basic block.
@@ -353,22 +329,21 @@ DataFlowResult *DataFlowEngine::applyGeneralizedForwardAnalysis(
       /*
        * Compute IN[inst]
        */
-      computeIN(inst, predecessorInst, inSetOfInst, df);
+      computeIN(inst, predecessorInst, inSetOfInst, df.get());
     }
 
     /*
      * Compute OUT[inst]
      */
-    auto oldSizeOut = outSetOfInst.size();
-    computeOUT(inst, outSetOfInst, df);
+    const auto previousOut = outSetOfInst;
+    computeOUT(inst, outSetOfInst, df.get());
 
     /* Check if the OUT of the first instruction of the current basic block
      * changed.
      */
-    if ((computedOnce.find(bb) == computedOnce.end())
-        || (outSetOfInst.size() != oldSizeOut)) {
-
-      computedOnce.insert(bb);
+    const bool firstVisit = computedOnce.insert(bb).second;
+    const bool outChanged = previousOut != outSetOfInst;
+    if (firstVisit || outChanged) {
 
       /*
        * Propagate the new OUT[inst] to the rest of the instructions of the
@@ -391,14 +366,14 @@ DataFlowResult *DataFlowEngine::applyGeneralizedForwardAnalysis(
         /*
          * Compute IN[i]
          */
-        auto &inSetOfI = getInSetOfInst(df, i);
-        computeIN(i, predI, inSetOfI, df);
+        auto &inSetOfI = getInSetOfInst(df.get(), i);
+        computeIN(i, predI, inSetOfI, df.get());
 
         /*
          * Compute OUT[i]
          */
-        auto &outSetOfI = getOutSetOfInst(df, i);
-        computeOUT(i, outSetOfI, df);
+        auto &outSetOfI = getOutSetOfInst(df.get(), i);
+        computeOUT(i, outSetOfI, df.get());
 
         /*
          * Update the predecessor.
@@ -410,7 +385,9 @@ DataFlowResult *DataFlowEngine::applyGeneralizedForwardAnalysis(
        * Add successors of the current basic block to the working list.
        */
       for (auto succBB : getSuccessors(bb)) {
-        workingList.push_back(succBB);
+        if (inWorkList.insert(succBB).second) {
+          workingList.push_back(succBB);
+        }
       }
     }
   }

@@ -20,9 +20,13 @@
  * The analysis runs backward through the CFG: information flows from successors
  * to predecessors, accumulating forward reachability information.
  */
-DataFlowResult *runReachableAnalysis(
+std::unique_ptr<DataFlowResult> runReachableAnalysis(
     Function *f,
-    std::function<bool(Instruction *i)> filter) {
+    const std::function<bool(Instruction *i)> &filter) {
+
+  if (f == nullptr) {
+    return nullptr;
+  }
 
   /*
    * Allocate the engine
@@ -49,7 +53,7 @@ DataFlowResult *runReachableAnalysis(
     return;
   };
   auto computeKILL = [](Instruction *, DataFlowResult *) { return; };
-  auto computeOUT = [](Instruction *inst,
+  auto computeOUT = [](Instruction *,
                        Instruction *succ,
                        std::set<Value *> &OUT,
                        DataFlowResult *df) {
@@ -75,24 +79,19 @@ DataFlowResult *runReachableAnalysis(
    * Run the data flow analysis needed to identify the instructions that could
    * be executed from a given point.
    */
-  auto df =
-      dfa.applyBackward(f, computeGEN, computeKILL, computeIN, computeOUT);
-
-  return df;
+  return dfa.applyBackward(f, computeGEN, computeKILL, computeIN, computeOUT);
 }
 
-DataFlowResult *runReachableAnalysis(Function *f) {
+std::unique_ptr<DataFlowResult> runReachableAnalysis(Function *f) {
 
   /*
    * Create the function that doesn't filter out instructions.
    */
-  auto noFilter = [](Instruction *i) -> bool { return true; };
+  auto noFilter = [](Instruction *) -> bool { return true; };
 
   /*
    * Run the analysis
    */
-  auto dfr = runReachableAnalysis(f, noFilter);
-
-  return dfr;
+  return runReachableAnalysis(f, noFilter);
 }
 

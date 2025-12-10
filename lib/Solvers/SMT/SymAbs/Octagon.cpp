@@ -7,6 +7,7 @@
  */
 
 #include "Solvers/SMT/SymAbs/SymbolicAbstraction.h"
+#include "Solvers/SMT/SymAbs/SymAbsUtils.h"
 #include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
 #include <z3++.h>
 #include <z3.h>
@@ -19,34 +20,12 @@ using namespace z3;
 
 namespace SymAbs {
 
-namespace {
-
-expr bv_signed_to_int(const expr& bv) {
-    context& ctx = bv.ctx();
-    const unsigned w = bv.get_sort().bv_size();
-    expr msb = z3_ext::extract(w - 1, w - 1, bv);
-    expr unsigned_val = to_expr(ctx, Z3_mk_bv2int(ctx, bv, false));
-    int64_t two_pow_w_val = 1LL << static_cast<int>(w);
-    expr two_pow_w = ctx.int_val(two_pow_w_val);
-    return ite(msb == ctx.bv_val(1, 1), unsigned_val - two_pow_w, unsigned_val);
-}
-
-int64_t div_floor(int64_t num, int64_t denom) {
-    assert(denom > 0 && "denominator must be positive");
-    if (num >= 0) {
-        return num / denom;
-    }
-    return -static_cast<int64_t>((-num + denom - 1) / denom);
-}
-
-} // namespace
-
 z3::expr oct_constraint_to_expr(const OctagonalConstraint& c) {
     context& ctx = c.var_i.ctx();
     expr lhs = ctx.int_val(0);
-    lhs = lhs + ctx.int_val(c.lambda_i) * bv_signed_to_int(c.var_i);
+    lhs = lhs + ctx.int_val(c.lambda_i) * SymAbs::bv_signed_to_int(c.var_i);
     if (!c.unary) {
-        lhs = lhs + ctx.int_val(c.lambda_j) * bv_signed_to_int(c.var_j);
+        lhs = lhs + ctx.int_val(c.lambda_j) * SymAbs::bv_signed_to_int(c.var_j);
     }
     return lhs <= ctx.int_val(c.bound);
 }
@@ -100,7 +79,7 @@ std::vector<OctagonalConstraint> alpha_oct_V(
 
                 if (i == j) {
                     // Normalize 2·v_i ≤ d  ⇒  v_i ≤ ⌊d/2⌋
-                    int64_t normalized = div_floor(bound.getValue(), 2);
+                    int64_t normalized = SymAbs::div_floor(bound.getValue(), 2);
                     constraints.emplace_back(variables[i], lambda_i, normalized);
                 } else {
                     constraints.emplace_back(

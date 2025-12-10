@@ -5,7 +5,11 @@
 using namespace llvm;
 
 // SSA register liveness analysis
-DataFlowResult *runLiveVariablesAnalysis(Function *f) {
+std::unique_ptr<DataFlowResult> runLiveVariablesAnalysis(Function *f) {
+  if (f == nullptr) {
+    return nullptr;
+  }
+
   auto dfa = DataFlowEngine{};
   
   // GEN[n] = { v | v is an SSA value used by n }

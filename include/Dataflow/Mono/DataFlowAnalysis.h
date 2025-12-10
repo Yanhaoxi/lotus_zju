@@ -4,6 +4,7 @@
 
 #include "Utils/LLVM/SystemHeaders.h"
 #include "Dataflow/Mono/DataFlowResult.h"
+#include <memory>
 
 class DataFlowAnalysis {
 public:
@@ -12,7 +13,7 @@ public:
    */
   DataFlowAnalysis();
 
-  DataFlowResult *getFullSets(Function *f);
+  [[nodiscard]] std::unique_ptr<DataFlowResult> getFullSets(Function *f);
 };
 
 #endif // ANALYSIS_DATAFLOWANALYSIS_H_

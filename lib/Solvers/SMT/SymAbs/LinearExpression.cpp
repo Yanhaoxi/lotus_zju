@@ -1,17 +1,19 @@
 /**
  * @file LinearExpression.cpp
  * @brief Implementation of Algorithm 7: α_lin-exp
- * 
+ *
  * Computes the least upper bound of a linear expression Σ λ_i · ⟨⟨v_i⟩⟩
- * subject to a formula φ using bit-by-bit maximization.
+ * subject to a formula φ.  We work over unbounded integers obtained via bv2int
+ * to avoid wrap-around and use Z3's optimize engine to obtain an exact optimum
+ * (falling back to a bounded linear search if the solver returns unknown).
  */
 
-#include "Solvers/SMT/SymAbs/SymbolicAbstraction.h"
+#include "Solvers/SMT/SymAbs/LinearExpression.h"
+#include "Solvers/SMT/SymAbs/SymAbsUtils.h"
 #include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
 #include <z3++.h>
 #include <z3.h>
 #include <cassert>
-#include <cmath>
 #include <llvm/ADT/Optional.h>
 
 using namespace z3;
@@ -19,165 +21,117 @@ using namespace z3;
 namespace SymAbs {
 
 /**
- * @brief Convert a signed bit-vector to an unbounded integer expression.
- *
- * We use an ITE to interpret the bit-vector in two's complement and avoid
- * wrap-around during arithmetic in the optimization phase.
- */
-static expr bv_signed_to_int(const expr& bv) {
-    context& ctx = bv.ctx();
-    const unsigned w = bv.get_sort().bv_size();
-    expr msb = z3_ext::extract(w - 1, w - 1, bv);
-    expr unsigned_val = to_expr(ctx, Z3_mk_bv2int(ctx, bv, false));
-    int64_t two_pow_w_val = 1LL << static_cast<int>(w);
-    expr two_pow_w = ctx.int_val(two_pow_w_val);
-    return ite(msb == ctx.bv_val(1, 1), unsigned_val - two_pow_w, unsigned_val);
-}
-
-/**
  * @brief Build an unbounded integer representation of Σ λ_i · ⟨⟨v_i⟩⟩.
  */
-static expr build_integer_linear_expr(const LinearExpression& lexpr, context& ctx) {
+static expr build_integer_linear_expr(const LinearExpression &lexpr, context &ctx) {
     assert(!lexpr.variables.empty());
     assert(lexpr.variables.size() == lexpr.coefficients.size());
-    
+
     expr sum = ctx.int_val(0);
     for (size_t i = 0; i < lexpr.variables.size(); ++i) {
-        expr v_int = bv_signed_to_int(lexpr.variables[i]);
+        expr v_int = SymAbs::bv_signed_to_int(lexpr.variables[i]);
         int64_t coeff = lexpr.coefficients[i];
-        if (coeff == 0) continue;
+        if (coeff == 0)
+            continue;
         sum = sum + ctx.int_val(coeff) * v_int;
     }
     return sum;
 }
 
-llvm::Optional<int64_t> alpha_lin_exp(
-    z3::expr phi,
-    const LinearExpression& lexpr,
-    const AbstractionConfig& config) {
-    
+llvm::Optional<int64_t> alpha_lin_exp(const z3::expr &phi, const LinearExpression &lexpr,
+                                      const AbstractionConfig &config) {
     if (lexpr.variables.empty()) {
         return llvm::None;
     }
-    
-    context& ctx = phi.ctx();
 
-    // Build integer version of the linear expression to avoid wrap-around.
+    context &ctx = phi.ctx();
     expr int_expr = build_integer_linear_expr(lexpr, ctx);
-    
-    // Determine extended bit-width w' per Proposition 4.1
-    // For simplicity, we use a conservative estimate: w' = max_bitwidth + log2(|coeffs|)
-    unsigned max_bv_size = 0;
-    int64_t sum_abs_coeffs = 0;
-    for (size_t i = 0; i < lexpr.variables.size(); ++i) {
-        unsigned bv_size = lexpr.variables[i].get_sort().bv_size();
-        if (bv_size > max_bv_size) max_bv_size = bv_size;
-        sum_abs_coeffs += std::abs(lexpr.coefficients[i]);
-    }
-    
-    // Extended width: need enough bits to represent the sum without overflow
-    // Conservative estimate: w' = w + ceil(log2(sum_abs_coeffs + 1))
-    unsigned w_prime = max_bv_size;
-    if (sum_abs_coeffs > 0) {
-        unsigned log2_sum = 0;
-        int64_t temp = sum_abs_coeffs;
-        while (temp > 0) {
-            temp >>= 1;
-            log2_sum++;
-        }
-        w_prime = max_bv_size + log2_sum + 1;
-    }
-    // Cap at reasonable size
-    if (w_prime > 128) w_prime = 128;
-    
-    // Algorithm 7: Bit-by-bit maximization
-    // κ ← Σ λ_i · ⟨⟨v_i⟩⟩ = ⟨⟨d⟩⟩
-    // ψ ← φ ∧ κ
-    expr d_bv = ctx.bv_const("d", w_prime);
-    expr d_int = bv_signed_to_int(d_bv);
-    expr kappa = (int_expr == d_int);
-    expr psi = phi && kappa;
-    
-    solver sol(ctx);
+
+    // First attempt: use Z3 optimize to obtain a model with maximal value.
+    optimize opt(ctx);
     params p(ctx);
     p.set("timeout", config.timeout_ms);
-    sol.set(p);
-    
-    // Check sign bit first (lines 3-9 of Algorithm 7)
-    sol.push();
-    sol.add(psi);
-    expr sign_bit = z3_ext::extract(w_prime - 1, w_prime - 1, d_bv);
-    sol.add(sign_bit == ctx.bv_val(0, 1));
-    
-    int64_t d = 0;
-    if (sol.check() == sat) {
-        // Positive value
-        d = 0;
-        sol.pop();
-        sol.push();
-        sol.add(psi);
-        sol.add(sign_bit == ctx.bv_val(0, 1));
-    } else {
-        // Negative value
-        sol.pop();
-        d = -(1LL << (w_prime - 1)); // -2^(w'-1)
-        sol.push();
-        sol.add(psi);
-        sol.add(sign_bit == ctx.bv_val(1, 1));
-    }
-    
-    // Iterate over bits w'-2, ..., 0 (lines 10-18)
-    for (int bit_pos = static_cast<int>(w_prime) - 2; bit_pos >= 0; --bit_pos) {
-        // Try setting bit to 1
-        sol.push();
-        expr bit = z3_ext::extract(bit_pos, bit_pos, d_bv);
-        sol.add(bit == ctx.bv_val(1, 1));
-        
-        if (sol.check() == sat) {
-            // Bit can be 1, increment d
-            d += (1LL << bit_pos);
-            sol.pop();
-            sol.push();
-            sol.add(bit == ctx.bv_val(1, 1));
-        } else {
-            // Bit must be 0
-            sol.pop();
-            sol.push();
-            sol.add(bit == ctx.bv_val(0, 1));
+    opt.set(p);
+    opt.add(phi);
+    opt.maximize(int_expr);
+
+    auto check_res = opt.check();
+    if (check_res == sat) {
+        model m = opt.get_model();
+        expr val = m.eval(int_expr, true);
+        auto as_int = SymAbs::to_int64(val);
+        if (as_int.hasValue()) {
+            return as_int;
         }
     }
-    
-    sol.pop();
-    return d;
+
+    if (check_res == unsat) {
+        return llvm::None;
+    }
+
+    // Fallback: bounded ascending search using a plain solver when optimize
+    // returns unknown or non-numeral values.
+    solver sol(ctx);
+    sol.set(p);
+    sol.add(phi);
+
+    if (sol.check() != sat) {
+        return llvm::None;
+    }
+
+    model m0 = sol.get_model();
+    expr v0 = m0.eval(int_expr, true);
+    auto best_opt = SymAbs::to_int64(v0);
+    if (!best_opt.hasValue()) {
+        return llvm::None;
+    }
+
+    int64_t best = best_opt.getValue();
+    unsigned iter = 0;
+
+    while (iter < config.max_iterations) {
+        sol.push();
+        sol.add(int_expr > ctx.int_val(best));
+        auto res = sol.check();
+        if (res != sat) {
+            sol.pop();
+            break;
+        }
+        model m_new = sol.get_model();
+        expr v_new = m_new.eval(int_expr, true);
+        auto v_int = SymAbs::to_int64(v_new);
+        sol.pop();
+        if (!v_int.hasValue()) {
+            break;
+        }
+        best = v_int.getValue();
+        ++iter;
+    }
+
+    return best_opt.hasValue() ? llvm::Optional<int64_t>(best) : llvm::None;
 }
 
-llvm::Optional<int64_t> minimum(
-    z3::expr phi,
-    z3::expr variable,
-    const AbstractionConfig& config) {
-    
+llvm::Optional<int64_t> minimum(const z3::expr &phi, const z3::expr &variable,
+                                const AbstractionConfig &config) {
     // Minimize v by maximizing -v
     LinearExpression neg_expr;
     neg_expr.variables.push_back(variable);
     neg_expr.coefficients.push_back(-1);
-    
+
     auto max_neg = alpha_lin_exp(phi, neg_expr, config);
     if (!max_neg.hasValue()) {
         return llvm::None;
     }
-    
+
     return -max_neg.getValue();
 }
 
-llvm::Optional<int64_t> maximum(
-    z3::expr phi,
-    z3::expr variable,
-    const AbstractionConfig& config) {
-    
+llvm::Optional<int64_t> maximum(const z3::expr &phi, const z3::expr &variable,
+                                const AbstractionConfig &config) {
     LinearExpression expr;
     expr.variables.push_back(variable);
     expr.coefficients.push_back(1);
-    
+
     return alpha_lin_exp(phi, expr, config);
 }
 

@@ -2,8 +2,11 @@
 #ifndef ANALYSIS_DATAFLOWENGINE_H_
 #define ANALYSIS_DATAFLOWENGINE_H_
 
-#include "Utils/LLVM/SystemHeaders.h"
 #include "Dataflow/Mono/DataFlowResult.h"
+#include <functional>
+#include <list>
+#include <memory>
+#include <set>
 
 // Forward declarations for optional memory analysis support
 namespace llvm {
@@ -29,97 +32,88 @@ public:
   bool hasAliasAnalysis() const { return AA != nullptr; }
   bool hasMemorySSA() const { return MSSA != nullptr; }
 
-  DataFlowResult *applyForward(
+  [[nodiscard]] std::unique_ptr<DataFlowResult> applyForward(
       Function *f,
-      std::function<void(Instruction *, DataFlowResult *)> computeGEN,
-      std::function<void(Instruction *, DataFlowResult *)> computeKILL,
-      std::function<void(Instruction *inst, std::set<Value *> &IN)>
-          initializeIN,
-      std::function<void(Instruction *inst, std::set<Value *> &OUT)>
-          initializeOUT,
-      std::function<void(Instruction *inst,
-                         Instruction *predecessor,
-                         std::set<Value *> &IN,
-                         DataFlowResult *df)> computeIN,
-      std::function<void(Instruction *inst,
-                         std::set<Value *> &OUT,
-                         DataFlowResult *df)> computeOUT);
+      const std::function<void(Instruction *, DataFlowResult *)> &computeGEN,
+      const std::function<void(Instruction *, DataFlowResult *)> &computeKILL,
+      const std::function<void(Instruction *inst, std::set<Value *> &IN)>
+          &initializeIN,
+      const std::function<void(Instruction *inst, std::set<Value *> &OUT)>
+          &initializeOUT,
+      const std::function<void(Instruction *inst,
+                               Instruction *predecessor,
+                               std::set<Value *> &IN,
+                               DataFlowResult *df)> &computeIN,
+      const std::function<void(Instruction *inst,
+                               std::set<Value *> &OUT,
+                               DataFlowResult *df)> &computeOUT);
 
-  DataFlowResult *applyForward(
+  [[nodiscard]] std::unique_ptr<DataFlowResult> applyForward(
       Function *f,
-      std::function<void(Instruction *, DataFlowResult *)> computeGEN,
-      std::function<void(Instruction *inst, std::set<Value *> &IN)>
-          initializeIN,
-      std::function<void(Instruction *inst, std::set<Value *> &OUT)>
-          initializeOUT,
-      std::function<void(Instruction *inst,
-                         Instruction *predecessor,
-                         std::set<Value *> &IN,
-                         DataFlowResult *df)> computeIN,
-      std::function<void(Instruction *inst,
-                         std::set<Value *> &OUT,
-                         DataFlowResult *df)> computeOUT);
+      const std::function<void(Instruction *, DataFlowResult *)> &computeGEN,
+      const std::function<void(Instruction *inst, std::set<Value *> &IN)>
+          &initializeIN,
+      const std::function<void(Instruction *inst, std::set<Value *> &OUT)>
+          &initializeOUT,
+      const std::function<void(Instruction *inst,
+                               Instruction *predecessor,
+                               std::set<Value *> &IN,
+                               DataFlowResult *df)> &computeIN,
+      const std::function<void(Instruction *inst,
+                               std::set<Value *> &OUT,
+                               DataFlowResult *df)> &computeOUT);
 
-  DataFlowResult *applyBackward(
+  [[nodiscard]] std::unique_ptr<DataFlowResult> applyBackward(
       Function *f,
-      std::function<void(Instruction *, DataFlowResult *)> computeGEN,
-      std::function<void(Instruction *, DataFlowResult *)> computeKILL,
-      std::function<void(Instruction *inst,
-                         std::set<Value *> &IN,
-                         DataFlowResult *df)> computeIN,
-      std::function<void(Instruction *inst,
-                         Instruction *successor,
-                         std::set<Value *> &OUT,
-                         DataFlowResult *df)> computeOUT);
-
-  DataFlowResult *applyBackward(
-      Function *f,
-      std::function<void(Instruction *, DataFlowResult *)> computeGEN,
-      std::function<void(Instruction *inst,
-                         std::set<Value *> &IN,
-                         DataFlowResult *df)> computeIN,
-      std::function<void(Instruction *inst,
-                         Instruction *successor,
-                         std::set<Value *> &OUT,
-                         DataFlowResult *df)> computeOUT);
+      const std::function<void(Instruction *, DataFlowResult *)> &computeGEN,
+      const std::function<void(Instruction *, DataFlowResult *)> &computeKILL,
+      const std::function<void(Instruction *inst,
+                               std::set<Value *> &IN,
+                               DataFlowResult *df)> &computeIN,
+      const std::function<void(Instruction *inst,
+                               Instruction *successor,
+                               std::set<Value *> &OUT,
+                               DataFlowResult *df)> &computeOUT);
 
 protected:
   void computeGENAndKILL(
       Function *f,
-      std::function<void(Instruction *, DataFlowResult *)> computeGEN,
-      std::function<void(Instruction *, DataFlowResult *)> computeKILL,
+      const std::function<void(Instruction *, DataFlowResult *)> &computeGEN,
+      const std::function<void(Instruction *, DataFlowResult *)> &computeKILL,
       DataFlowResult *df);
 
 private:
-  DataFlowResult *applyGeneralizedForwardAnalysis(
+  [[nodiscard]] std::unique_ptr<DataFlowResult> applyGeneralizedForwardAnalysis(
       Function *f,
-      std::function<void(Instruction *, DataFlowResult *)> computeGEN,
-      std::function<void(Instruction *, DataFlowResult *)> computeKILL,
-      std::function<void(Instruction *inst, std::set<Value *> &IN)>
-          initializeIN,
-      std::function<void(Instruction *inst, std::set<Value *> &OUT)>
-          initializeOUT,
-      std::function<std::list<BasicBlock *>(BasicBlock *bb)> getPredecessors,
-      std::function<std::list<BasicBlock *>(BasicBlock *bb)> getSuccessors,
-      std::function<void(Instruction *inst,
-                         Instruction *predecessor,
-                         std::set<Value *> &IN,
-                         DataFlowResult *df)> computeIN,
-      std::function<void(Instruction *inst,
-                         std::set<Value *> &OUT,
-                         DataFlowResult *df)> computeOUT,
-      std::function<void(std::list<BasicBlock *> &workingList, BasicBlock *bb)>
-          appendBB,
-      std::function<Instruction *(BasicBlock *bb)> getFirstInstruction,
-      std::function<Instruction *(BasicBlock *bb)> getLastInstruction,
-      std::function<std::set<Value *> &(DataFlowResult *df,
-                                        Instruction *instruction)>
-          getInSetOfInst,
-      std::function<std::set<Value *> &(DataFlowResult *df,
-                                        Instruction *instruction)>
-          getOutSetOfInst,
-      std::function<BasicBlock::iterator(BasicBlock *)> getEndIterator,
-      std::function<void(BasicBlock::iterator &)> incrementIterator);
+      const std::function<void(Instruction *, DataFlowResult *)> &computeGEN,
+      const std::function<void(Instruction *, DataFlowResult *)> &computeKILL,
+      const std::function<void(Instruction *inst, std::set<Value *> &IN)>
+          &initializeIN,
+      const std::function<void(Instruction *inst, std::set<Value *> &OUT)>
+          &initializeOUT,
+      const std::function<std::list<BasicBlock *>(BasicBlock *bb)>
+          &getPredecessors,
+      const std::function<std::list<BasicBlock *>(BasicBlock *bb)>
+          &getSuccessors,
+      const std::function<void(Instruction *inst,
+                               Instruction *predecessor,
+                               std::set<Value *> &IN,
+                               DataFlowResult *df)> &computeIN,
+      const std::function<void(Instruction *inst,
+                               std::set<Value *> &OUT,
+                               DataFlowResult *df)> &computeOUT,
+      const std::function<void(std::list<BasicBlock *> &workingList,
+                               BasicBlock *bb)> &appendBB,
+      const std::function<Instruction *(BasicBlock *bb)> &getFirstInstruction,
+      const std::function<Instruction *(BasicBlock *bb)> &getLastInstruction,
+      const std::function<std::set<Value *> &(DataFlowResult *df,
+                                              Instruction *instruction)>
+          &getInSetOfInst,
+      const std::function<std::set<Value *> &(DataFlowResult *df,
+                                              Instruction *instruction)>
+          &getOutSetOfInst,
+      const std::function<BasicBlock::iterator(BasicBlock *)> &getEndIterator,
+      const std::function<void(BasicBlock::iterator &)> &incrementIterator);
 
   /*
    * Optional analysis results for memory-aware analyses

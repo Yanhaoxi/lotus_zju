@@ -39,7 +39,7 @@ struct LinearExpression {
  * @return The least upper bound d ∈ Z, or llvm::None on failure
  */
 llvm::Optional<int64_t> alpha_lin_exp(
-    z3::expr phi,
+    const z3::expr& phi,
     const LinearExpression& expr,
     const AbstractionConfig& config = AbstractionConfig{});
 
@@ -47,16 +47,16 @@ llvm::Optional<int64_t> alpha_lin_exp(
  * @brief Compute minimum value (using negation of linear expression)
  */
 llvm::Optional<int64_t> minimum(
-    z3::expr phi,
-    z3::expr variable,
+    const z3::expr& phi,
+    const z3::expr& variable,
     const AbstractionConfig& config = AbstractionConfig{});
 
 /**
  * @brief Compute maximum value
  */
 llvm::Optional<int64_t> maximum(
-    z3::expr phi,
-    z3::expr variable,
+    const z3::expr& phi,
+    const z3::expr& variable,
     const AbstractionConfig& config = AbstractionConfig{});
 
 } // namespace SymAbs

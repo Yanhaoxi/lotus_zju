@@ -1,4 +1,5 @@
 add_library(SymAbs STATIC
+        SymAbsUtils.cpp
         LinearExpression.cpp
         Octagon.cpp
         Congruence.cpp

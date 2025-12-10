@@ -2,13 +2,15 @@
 #include "Dataflow/Mono/DataFlow.h"
 
 
-DataFlowAnalysis::DataFlowAnalysis() {
-  return;
-}
+DataFlowAnalysis::DataFlowAnalysis() = default;
 
-DataFlowResult *DataFlowAnalysis::getFullSets(Function *f) {
+std::unique_ptr<DataFlowResult> DataFlowAnalysis::getFullSets(Function *f) {
 
-  auto df = new DataFlowResult{};
+  if (f == nullptr) {
+    return nullptr;
+  }
+
+  auto df = std::make_unique<DataFlowResult>();
   for (auto &inst : instructions(*f)) {
     auto &inSetOfInst = df->IN(&inst);
     auto &outSetOfInst = df->OUT(&inst);

@@ -3,6 +3,7 @@
 #define ANALYSIS_LIVEVARIABLESANALYSIS_H_
 
 #include "Dataflow/Mono/DataFlowResult.h"
+#include <memory>
 
 namespace llvm {
 class Function;
@@ -29,7 +30,7 @@ using namespace llvm;
  * @param f The function to analyze
  * @return DataFlowResult containing live SSA value sets for each instruction
  */
-DataFlowResult *runLiveVariablesAnalysis(Function *f);
+[[nodiscard]] std::unique_ptr<DataFlowResult> runLiveVariablesAnalysis(Function *f);
 
 #endif // ANALYSIS_LIVEVARIABLESANALYSIS_H_
 
