@@ -5,8 +5,11 @@ add_library(SymAbs STATIC
         Affine.cpp
         Polyhedron.cpp
         Polynomial.cpp
+        SMTLibOptimizer.cpp
+        SMTOptimization.cpp
 )
 
 target_link_libraries(SymAbs
         CanarySMT
+        SymbolicAbstractionAnalysis
 )

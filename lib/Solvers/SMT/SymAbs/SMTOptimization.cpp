@@ -25,7 +25,7 @@
 //#include <unordered_map>
 #include <vector>
 
-#include "Solvers/SMT/SMTOptimization.h"
+#include "Solvers/SMT/SymAbs/SMTOptimization.h"
 
 using namespace std;
 

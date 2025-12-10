@@ -1,4 +1,4 @@
-#include "Solvers/SMT/SMTLibOptimizer.h"
+#include "Solvers/SMT/SymAbs/SMTLibOptimizer.h"
 
 #include <iostream>
 #include <fstream>

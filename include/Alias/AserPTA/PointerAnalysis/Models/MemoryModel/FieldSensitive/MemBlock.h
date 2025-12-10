@@ -6,6 +6,7 @@
 #define ASER_PTA_MEMBLOCK_H
 
 #include <llvm/ADT/IndexedMap.h>
+#include <llvm/Support/ErrorHandling.h>
 
 #include "Alias/AserPTA/PointerAnalysis/Models/MemoryModel/AllocSite.h"
 #include "Alias/AserPTA/PointerAnalysis/Models/MemoryModel/FieldSensitive/Layout/MemLayout.h"
@@ -65,6 +66,8 @@ public:
                 // can not index Scalar Object.
                 return false;
             }
+            default:
+                llvm_unreachable("Unknown MemBlockKind");
         }
     }
 
@@ -86,6 +89,8 @@ public:
                 }
                 return nullptr;
             }
+            default:
+                llvm_unreachable("Unknown MemBlockKind");
         }
     }
 

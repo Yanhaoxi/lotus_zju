@@ -92,12 +92,12 @@ protected:
       fullPath += filename;
       struct stat st;
       if (stat(fullPath.c_str(), &st) == 0) {
-        Module = parseIRFile(fullPath, Err, *Context);
-        if (Module) break;
+        TheModule = parseIRFile(fullPath, Err, *Context);
+        if (TheModule) break;
       }
     }
     
-    if (!Module) {
+    if (!TheModule) {
       GTEST_SKIP() << "Could not load benchmark file from " << benchmarkDir;
       return;
     }
@@ -106,14 +106,14 @@ protected:
       // Reset singleton state to avoid accumulation between tests
       ProgramGraph &PDG = ProgramGraph::getInstance();
       PDG.reset(); // Clear all state
-      PDG.build(*Module);
-      PDG.bindDITypeToNodes(*Module);
+      PDG.build(*TheModule);
+      PDG.bindDITypeToNodes(*TheModule);
       this->PDG = &PDG;
       
       // Reset and rebuild call graph singleton
       PDGCallGraph &callGraph = PDGCallGraph::getInstance();
       callGraph.reset(); // Clear all state
-      callGraph.build(*Module);
+      callGraph.build(*TheModule);
       CallGraph = &callGraph; // Store reference to singleton
       
       collectTestNodes();
@@ -123,16 +123,16 @@ protected:
   }
   
   void TearDown() override {
-    Module.reset();
+    TheModule.reset();
     Context.reset();
     CallGraph = nullptr;
   }
   
   void collectTestNodes() {
     testNodes.clear();
-    if (!Module) return;
+    if (!TheModule) return;
     
-    for (auto &F : *Module) {
+    for (auto &F : *TheModule) {
       if (F.isDeclaration() || F.empty()) continue;
       
       // Add function entry node
@@ -171,7 +171,7 @@ protected:
   }
   
   std::unique_ptr<LLVMContext> Context;
-  std::unique_ptr<Module> Module;
+  std::unique_ptr<Module> TheModule;
   PDGCallGraph *CallGraph = nullptr;
   ProgramGraph *PDG = nullptr;
   std::vector<Node*> testNodes;
