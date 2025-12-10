@@ -33,6 +33,8 @@ Lotus is a comprehensive program analysis, verification, and optimization framew
    solvers/index
    transform/index
    utils/index
+   verification/index
+   checker/index
 
 .. toctree::
    :maxdepth: 2

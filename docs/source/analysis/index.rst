@@ -21,11 +21,10 @@ At a glance:
   data-flow reasoning. See :doc:`gvfa`.
 - **NullPointer** (``lib/Analysis/NullPointer``): A family of nullness and
   null-flow analyses. See :doc:`null_pointer`.
-- **SymbolicAbstraction** (``lib/Verification/SymbolicAbstraction``): Symbolic abstraction framework for
-  abstract interpretation with composable domains. See :doc:`symbolic_abstraction`.
+
 
 Higher-level analyzers such as CLAM and SymbolicAbstraction build on these components;
-see :doc:`../tools/verifier/clam/index` and :doc:`../tools/verifier/symbolic_abstraction/index` for
+see :doc:`../verification/clam` and :doc:`../verification/symbolic-abstraction` for
 details.
 
 .. toctree::
@@ -35,4 +34,3 @@ details.
    concurrency
    gvfa
    null_pointer
-   symbolic_abstraction

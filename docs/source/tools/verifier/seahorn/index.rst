@@ -7,7 +7,7 @@ Horn clauses (CHC), symbolic execution, and abstraction-refinement.
 **Binaries**: ``seahorn``, ``seapp``, ``seainspect``  
 **Location**: ``tools/verifier/seahorn/``
 
-For detailed framework documentation, see :doc:`../../../apps/seahorn`.
+For detailed framework documentation, see :doc:`../../../verification/seahorn`.
 
 Overview
 --------

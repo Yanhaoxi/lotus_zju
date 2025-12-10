@@ -8,7 +8,7 @@ compositional way.
 **Binary**: ``symbolic_abstraction`` (also ``spranalyze``)  
 **Location**: ``tools/verifier/symbolic_abstraction/``
 
-For the underlying framework and API documentation, see :doc:`../../../analysis/symbolic_abstraction`.
+For the underlying framework and API documentation, see :doc:`../../../verification/symbolic-abstraction`.
 
 Overview
 --------
@@ -135,5 +135,4 @@ Fragment decomposition strategies control where abstraction points are placed:
 - **Body** – Abstract in loop bodies
 - **Backedges** – Abstract at loop backedges
 
-For more details on the framework architecture and API, see :doc:`../../../analysis/symbolic_abstraction`.
-
+For more details on the framework architecture and API, see :doc:`../../../verification/symbolic-abstraction`.

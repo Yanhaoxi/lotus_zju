@@ -13,7 +13,7 @@
 #include "IR/GSA/GSA.h"
 
 #include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/DenseSet.h"
+//#include "llvm/ADT/DenseSet.h"
 #include "llvm/Analysis/PostDominators.h"
 #include "llvm/IR/CFG.h"
 #include "llvm/IR/Constants.h"
@@ -31,6 +31,24 @@
 using namespace llvm;
 
 namespace gsa {
+
+static Value *getBottom(Type *Ty) {
+  assert(Ty && "Type must be provided for bottom value");
+  return PoisonValue::get(Ty);
+}
+
+static bool dominatesForUse(Value *V, Instruction *UseI, DominatorTree &DT) {
+  if (!UseI)
+    return false;
+  if (isa<Argument>(V) || isa<Constant>(V))
+    return true;
+  auto *Inst = dyn_cast<Instruction>(V);
+  if (!Inst)
+    return false;
+  if (Inst->getParent() == UseI->getParent())
+    return Inst->comesBefore(UseI);
+  return DT.dominates(Inst, UseI);
+}
 
 static cl::opt<bool> ThinnedGsa("gsa-thinned",
                                 cl::desc("Emit thin gamma nodes (TGSA)"),
@@ -77,20 +95,6 @@ private:
   processIncomingValues(PHINode *PN, Instruction *insertionPt);
 };
 
-Value *GetCondition(Instruction *TI) {
-  if (auto *BI = dyn_cast<BranchInst>(TI)) {
-    assert(BI->isConditional() && "Unconditional branches cannot be gates!");
-    return BI->getCondition();
-  }
-
-  if (auto *SI = dyn_cast<SwitchInst>(TI)) {
-    assert(SI->getNumCases() > 1 && "Unconditional switches cannot be gates!");
-    return SI->getCondition();
-  }
-
-  llvm_unreachable("Unhandled terminator instruction");
-}
-
 void GateAnalysisImpl::calculate() {
   std::vector<PHINode *> phis;
   DenseMap<BasicBlock *, Instruction *> insertionPts;
@@ -120,32 +124,81 @@ GateAnalysisImpl::processIncomingValues(PHINode *PN, Instruction *insertionPt) {
 
   BasicBlock *const currentBB = PN->getParent();
   m_IRB.SetInsertPoint(insertionPt);
-  UndefValue *const Undef = UndefValue::get(PN->getType());
+  Value *const Bottom = getBottom(PN->getType());
 
   DenseMap<BasicBlock *, Value *> incomingBlockToValue;
   for (unsigned i = 0, e = PN->getNumIncomingValues(); i != e; ++i) {
     BasicBlock *incomingBlock = PN->getIncomingBlock(i);
     Value *incomingValue = PN->getIncomingValue(i);
+
+    if (!dominatesForUse(incomingValue, insertionPt, m_DT))
+      incomingValue = Bottom;
+
     incomingBlockToValue[incomingBlock] = incomingValue;
 
-    auto *TI = incomingBlock->getTerminator();
-    assert(isa<BranchInst>(TI) && "Other terminators not supported yet");
-    auto *BI = dyn_cast<BranchInst>(TI);
-    if (BI->isUnconditional())
+    if (ThinnedGsa)
       continue;
 
-    Value *cond = GetCondition(TI);
-    BasicBlock *trueDest = BI->getSuccessor(0);
-    BasicBlock *falseDest = BI->getSuccessor(1);
-    assert(trueDest == currentBB || falseDest == currentBB);
+    auto *TI = incomingBlock->getTerminator();
 
-    if (!ThinnedGsa) {
-      Value *SI = m_IRB.CreateSelect(
-          cond, trueDest == currentBB ? incomingValue : Undef,
-          falseDest == currentBB ? incomingValue : Undef,
+    if (auto *BI = dyn_cast<BranchInst>(TI)) {
+      if (BI->isUnconditional())
+        continue;
+
+      if (!m_DT.dominates(incomingBlock, currentBB) ||
+          !dominatesForUse(BI->getCondition(), insertionPt, m_DT))
+        continue;
+
+      Value *EdgePred =
+          BI->getSuccessor(0) == currentBB
+              ? BI->getCondition()
+              : m_IRB.CreateNot(
+                    BI->getCondition(),
+                    Twine("seahorn.gsa.edge.") + incomingBlock->getName());
+
+      Value *Guarded = m_IRB.CreateSelect(
+          EdgePred, incomingValue, Bottom,
           {"seahorn.gsa.gamma.crit.", incomingBlock->getName()});
+      incomingBlockToValue[incomingBlock] = Guarded;
       m_changed = true;
-      incomingBlockToValue[incomingBlock] = SI;
+      continue;
+    }
+
+    if (auto *SI = dyn_cast<SwitchInst>(TI)) {
+      if (!m_DT.dominates(incomingBlock, currentBB) ||
+          !dominatesForUse(SI->getCondition(), insertionPt, m_DT))
+        continue;
+
+      Value *EdgePred = m_IRB.getFalse();
+      Value *AnyCase = m_IRB.getFalse();
+
+      for (auto Case : SI->cases()) {
+        Value *Cmp = m_IRB.CreateICmpEQ(
+            SI->getCondition(), Case.getCaseValue(),
+            Twine("seahorn.gsa.case.") + incomingBlock->getName());
+        AnyCase = m_IRB.CreateOr(AnyCase, Cmp);
+        if (Case.getCaseSuccessor() == currentBB)
+          EdgePred =
+              m_IRB.CreateOr(EdgePred, Cmp,
+                             Twine("seahorn.gsa.edge.case.") +
+                                 incomingBlock->getName());
+      }
+
+      if (SI->getDefaultDest() == currentBB)
+        EdgePred =
+            m_IRB.CreateOr(EdgePred, m_IRB.CreateNot(AnyCase),
+                           Twine("seahorn.gsa.edge.default.") +
+                               incomingBlock->getName());
+
+      if (auto *ConstPred = dyn_cast<ConstantInt>(EdgePred))
+        if (ConstPred->isZero())
+          continue;
+
+      Value *Guarded = m_IRB.CreateSelect(
+          EdgePred, incomingValue, Bottom,
+          {"seahorn.gsa.gamma.crit.", incomingBlock->getName()});
+      incomingBlockToValue[incomingBlock] = Guarded;
+      m_changed = true;
     }
   }
 
@@ -178,26 +231,33 @@ void GateAnalysisImpl::processPhi(PHINode *PN, Instruction *insertionPt) {
                                                 incomingBlockToValue.end());
 
   Type *const phiTy = PN->getType();
-  UndefValue *const Undef = UndefValue::get(phiTy);
+  Value *const Bottom = getBottom(phiTy);
   m_IRB.SetInsertPoint(insertionPt);
 
   // For all blocks in cdInfo inspect their successors to construct gamma nodes
   // where needed.
   for (BasicBlock *BB : cdInfo) {
     auto *TI = BB->getTerminator();
-    assert(isa<BranchInst>(TI) && "Only BranchInst is supported right now");
+    if (!TI) {
+      flowingValues[BB] = Bottom;
+      continue;
+    }
 
     // Collect all successors and associated values that flows when they are
-    // taken (or Undef if no such flow exists).
+    // taken (or Bottom if no such flow exists).
     SmallDenseMap<BasicBlock *, Value *, 2> SuccToVal;
     for (auto *S : successors(BB)) {
-      SuccToVal[S] = Undef;
+      SuccToVal[S] = Bottom;
 
       // Direct branch to the PHI's parent block.
-      if (S == currentBB)
-        SuccToVal[S] = incomingBlockToValue[BB];
+      if (S == currentBB) {
+        auto IncomingIt = incomingBlockToValue.find(BB);
+        SuccToVal[S] = IncomingIt != incomingBlockToValue.end()
+                           ? IncomingIt->second
+                           : Bottom;
+      }
 
-      if (SuccToVal[S] != Undef)
+      if (SuccToVal[S] != Bottom)
         continue;
 
       // Or the successor unconditionally flows to an already processed block.
@@ -216,47 +276,109 @@ void GateAnalysisImpl::processPhi(PHINode *PN, Instruction *insertionPt) {
       }
     }
 
-    auto *BI = cast<BranchInst>(TI);
-    assert(1 <= SuccToVal.size() && SuccToVal.size() <= 2);
-    if (SuccToVal.size() == 1) {
-      auto &SuccValPair = *SuccToVal.begin();
-      assert(SuccValPair.second != Undef);
-      flowingValues[BB] = SuccValPair.second;
-    } else if (SuccToVal.size() == 2) {
+    if (auto *BI = dyn_cast<BranchInst>(TI)) {
+      if (SuccToVal.empty()) {
+        flowingValues[BB] = Bottom;
+        continue;
+      }
+
+      if (SuccToVal.size() == 1) {
+        auto &SuccValPair = *SuccToVal.begin();
+        flowingValues[BB] = SuccValPair.second;
+        continue;
+      }
+
       BasicBlock *TrueDest = BI->getSuccessor(0);
       BasicBlock *FalseDest = BI->getSuccessor(1);
       Value *TrueVal = SuccToVal[TrueDest];
       Value *FalseVal = SuccToVal[FalseDest];
 
-      // Construct gamma node only when necessary.
-      if (TrueVal == Undef && FalseVal == Undef) {
-        flowingValues[BB] = Undef;
+      // Construct gamma node only when necessary and only if the condition
+      // dominates the insertion point.
+      if (TrueVal == Bottom && FalseVal == Bottom) {
+        flowingValues[BB] = Bottom;
       } else if (TrueVal == FalseVal) {
         flowingValues[BB] = TrueVal;
-      } else if (ThinnedGsa && (TrueVal == Undef || FalseVal == Undef)) {
-        flowingValues[BB] = FalseVal == Undef ? TrueVal : FalseVal;
-      } else {
-        // Gammas are expressed as SelectInsts and placed in the analyzed IR.
+      } else if (ThinnedGsa && (TrueVal == Bottom || FalseVal == Bottom)) {
+        flowingValues[BB] = FalseVal == Bottom ? TrueVal : FalseVal;
+      } else if (dominatesForUse(BI->getCondition(), insertionPt, m_DT)) {
         Value *Ite =
             m_IRB.CreateSelect(BI->getCondition(), TrueVal, FalseVal,
                                {"seahorn.gsa.gamma.", BB->getName()});
         m_changed = true;
         flowingValues[BB] = Ite;
+      } else {
+        flowingValues[BB] = Bottom;
       }
+      continue;
     }
+
+    if (auto *SI = dyn_cast<SwitchInst>(TI)) {
+      if (SuccToVal.empty()) {
+        flowingValues[BB] = Bottom;
+        continue;
+      }
+
+      // If the switch condition is not available at the insertion point, fall
+      // back conservatively.
+      if (!dominatesForUse(SI->getCondition(), insertionPt, m_DT)) {
+        flowingValues[BB] = Bottom;
+        continue;
+      }
+
+      Value *CaseMatched = m_IRB.getFalse();
+      Value *Accum = nullptr;
+      for (auto Case : SI->cases()) {
+        Value *Cmp = m_IRB.CreateICmpEQ(
+            SI->getCondition(), Case.getCaseValue(),
+            Twine("seahorn.gsa.gamma.case.") + BB->getName());
+        CaseMatched = m_IRB.CreateOr(CaseMatched, Cmp);
+        BasicBlock *Succ = Case.getCaseSuccessor();
+        Value *SuccVal = SuccToVal.lookup(Succ);
+        if (!SuccVal || SuccVal == Bottom)
+          continue;
+        Value *Base = Accum ? Accum : Bottom;
+        Accum = m_IRB.CreateSelect(
+            Cmp, SuccVal, Base,
+            Twine("seahorn.gsa.gamma.") + BB->getName() + ".case");
+        m_changed = true;
+      }
+
+      BasicBlock *DefaultDest = SI->getDefaultDest();
+      Value *DefaultVal = SuccToVal.lookup(DefaultDest);
+      if (DefaultVal && DefaultVal != Bottom) {
+        Value *DefaultTaken =
+            m_IRB.CreateNot(CaseMatched,
+                            Twine("seahorn.gsa.gamma.default.") +
+                                BB->getName());
+        Value *Base = Accum ? Accum : Bottom;
+        Accum = m_IRB.CreateSelect(DefaultTaken, DefaultVal, Base,
+                                   Twine("seahorn.gsa.gamma.") +
+                                       BB->getName() + ".default");
+        m_changed = true;
+      }
+
+      flowingValues[BB] = Accum ? Accum : Bottom;
+      continue;
+    }
+
+    // Unsupported terminator shapes fall back to Bottom to keep the
+    // transformation conservative and avoid invalid IR.
+    flowingValues[BB] = Bottom;
   }
 
   auto *domNode = m_DT.getNode(currentBB);
   assert(domNode && domNode->getIDom() && "PHI in entry block is unexpected");
   BasicBlock *IDomBlock = domNode->getIDom()->getBlock();
   assert(IDomBlock);
-  assert(flowingValues.count(IDomBlock));
-
-  Value *gamma = flowingValues[IDomBlock];
-  gamma->setName(gamma->getName() + ".y." + PN->getName());
+  Value *gamma =
+      flowingValues.count(IDomBlock) ? flowingValues[IDomBlock] : Bottom;
+  if (auto *I = dyn_cast<Instruction>(gamma)) {
+    I->setName(I->getName() + ".y." + PN->getName());
+  }
   m_gammas[PN] = gamma;
 
-  if (GsaReplacePhis) {
+  if (GsaReplacePhis && gamma != Bottom) {
     PN->replaceAllUsesWith(gamma);
     PN->eraseFromParent();
     m_changed = true;
@@ -291,10 +413,8 @@ bool GateAnalysisPass::runOnModule(Module &M) {
       if (F.isDeclaration())
         continue;
       for (auto &BB : F)
-        for (auto &I : BB) {
+        for (auto &I : BB)
           (void)&I;
-          assert(!isa<PHINode>(I) && "All PHI nodes should be replaced in GSA");
-        }
     }
   }
 

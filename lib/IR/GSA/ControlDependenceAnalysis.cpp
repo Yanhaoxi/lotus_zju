@@ -14,11 +14,10 @@
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/PostOrderIterator.h"
 #include "llvm/ADT/SparseBitVector.h"
-#include "llvm/Analysis/IteratedDominanceFrontier.h"
 #include "llvm/Analysis/PostDominators.h"
 #include "llvm/IR/CFG.h"
 #include "llvm/IR/Function.h"
-#include "llvm/IR/Instructions.h"
+//#include "llvm/IR/Instructions.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -77,27 +76,50 @@ private:
 };
 
 void ControlDependenceAnalysisImpl::calculate(PostDominatorTree &PDT) {
+  // Compute control dependences using the classic post-dominance test:
+  // A is control dependent on B if B has a successor S not post-dominated by B
+  // and A lies on the path from S up to but not including B in the postdom tree.
+  DenseMap<const BasicBlock *, DenseSet<const BasicBlock *>>
+      dependentOn; // reverse mapping for deduplication.
+
   for (BasicBlock &BB : m_function) {
-    ReverseIDFCalculator calculator(PDT);
-    SmallPtrSet<BasicBlock *, 1> incoming = {&BB};
+    auto *BBNode = PDT.getNode(&BB);
+    if (!BBNode)
+      continue; // Unreachable blocks.
 
-    calculator.setDefiningBlocks(incoming);
-    SmallVector<BasicBlock *, 4> RDF;
-    calculator.calculate(RDF);
+    for (BasicBlock *Succ : successors(&BB)) {
+      // If BB postdominates the successor, it does not create a control
+      // dependence.
+      if (PDT.dominates(&BB, Succ))
+        continue;
 
-    (void)m_cdInfo[&BB]; // Initialize to empty vector.
-
-    for (auto *CD : RDF)
-      m_cdInfo[&BB].push_back(CD);
+      // Walk up the post-dominator tree from the successor until (and
+      // excluding) BB, adding control dependences.
+      auto *SuccNode = PDT.getNode(Succ);
+      while (SuccNode && SuccNode != BBNode) {
+        BasicBlock *Curr = SuccNode->getBlock();
+        dependentOn[Curr].insert(&BB);
+        SuccNode = SuccNode->getIDom();
+      }
+    }
   }
 
-  for (auto &BBToVec : m_cdInfo) {
-    SmallVectorImpl<BasicBlock *> &vec = BBToVec.second;
-    // Sort in reverse-topological order.
-    std::sort(vec.begin(), vec.end(),
-              [this](const BasicBlock *first, const BasicBlock *second) {
-                return m_BBToIdx[first] < m_BBToIdx[second];
-              });
+  // Materialize the final map with deterministic ordering.
+  for (BasicBlock &BB : m_function) {
+    auto &Vec = m_cdInfo[&BB];
+    auto It = dependentOn.find(&BB);
+    if (It != dependentOn.end()) {
+      Vec.clear();
+      Vec.reserve(It->second.size());
+      for (const BasicBlock *BBPtr : It->second) {
+        Vec.push_back(const_cast<BasicBlock *>(BBPtr));
+      }
+      std::sort(Vec.begin(), Vec.end(),
+                [this](const BasicBlock *first, const BasicBlock *second) {
+                  return m_BBToIdx[first] < m_BBToIdx[second];
+                });
+      Vec.erase(std::unique(Vec.begin(), Vec.end()), Vec.end());
+    }
   }
 }
 
@@ -115,7 +137,7 @@ void ControlDependenceAnalysisImpl::initReach() {
   }
 
   // Cache predecessors to avoid linear walks over terminators.
-  std::vector<SmallDenseSet<BasicBlock *, 4>> inverseSuccessors(
+  std::vector<DenseSet<BasicBlock *>> inverseSuccessors(
       m_BBToIdx.size());
 
   for (auto &BB : m_function)

@@ -3,9 +3,3 @@ add_library(CanaryGSA STATIC
   GateAnalysis.cpp
 )
 
-target_link_libraries(CanaryGSA PUBLIC
-  LLVMCore
-  LLVMAnalysis
-  LLVMSupport
-)
-

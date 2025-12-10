@@ -53,7 +53,7 @@ See :doc:`../solvers/index` for solver APIs.
 Abstract Interpretation
 -----------------------
 
-See :doc:`../tools/verifier/clam/index` for CLAM and :doc:`../tools/verifier/symbolic_abstraction/index`
+See :doc:`../verification/clam` for CLAM and :doc:`../verification/symbolic-abstraction`
 for higher-level abstractions.
 
 * **CLAM** – Modular AI-driven static analyzer with multiple abstract domains
