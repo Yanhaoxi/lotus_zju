@@ -2,7 +2,12 @@
 
 cmake_minimum_required(VERSION 3.10)
 find_package(LLVM REQUIRED CONFIG)
-find_package(GTest REQUIRED)
+# GTest should already be found or downloaded by FindGTest.cmake in parent CMakeLists.txt
+# Try find_package, but if targets already exist (from add_subdirectory), that's fine too
+find_package(GTest QUIET)
+if(NOT TARGET GTest::gtest AND NOT TARGET gtest)
+    message(FATAL_ERROR "GTest not found. This should have been handled by FindGTest.cmake")
+endif()
 
 add_definitions(${LLVM_DEFINITIONS})
 

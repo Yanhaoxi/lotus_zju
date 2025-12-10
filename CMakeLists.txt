@@ -51,6 +51,7 @@ endif()
 # Add tests if enabled
 option(BUILD_TESTS "Build tests" ON)
 if(BUILD_TESTS)
+    include(cmake/FindGTest.cmake)
     enable_testing()
     add_subdirectory(tests)
 endif()
