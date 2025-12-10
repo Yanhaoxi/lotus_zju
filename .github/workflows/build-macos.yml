@@ -13,7 +13,7 @@ jobs:
       - name: Install dependencies
         run: |
           brew update
-          brew install cmake llvm@14 z3 boost
+          brew install cmake llvm@14 z3 boost googletest
       - name: Setup LLVM paths
         run: |
           echo "/opt/homebrew/opt/llvm@14/bin" >> $GITHUB_PATH
