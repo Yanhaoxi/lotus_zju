@@ -1,7 +1,7 @@
 #ifndef ANDERSEN_CYCLEDETECTOR_H
 #define ANDERSEN_CYCLEDETECTOR_H
 
-#include "Alias/Andersen/GraphTraits.h"
+#include "Alias/SparrowAA/GraphTraits.h"
 
 #include <llvm/ADT/DenseMap.h>
 #include <llvm/ADT/DenseSet.h>

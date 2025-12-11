@@ -19,7 +19,7 @@ See :doc:`../alias/alias_analysis` for detailed instructions and command example
 * **Sea-DSA** – Context-sensitive and field-sensitive analysis with
   Sea-DSA (``lib/Alias/seadsa``) requiring Boost.
 * **Andersen** – Context-insensitive points-to analysis without on-the-fly
-  call-graph construction (``lib/Alias/Andersen``).
+  call-graph construction (``lib/Alias/SparrowAA``).
 * **FPA** – Function Pointer Analysis toolbox (FLTA, MLTA, MLTADF, KELP) under
   ``lib/Alias/FPA`` for resolving indirect calls.
 * **DynAA** – Dynamic checker living in ``tools/dynaa`` that validates static

@@ -1,6 +1,9 @@
-# Andersen Analysis
+# Sparrow Andersen Analysis
 
-from https://github.com/grievejia/andersen
+Extend https://github.com/grievejia/andersen
+- upgrae to LLVM 14.x
+- add context-sensitive variants.
+
 
 ## Optimizations
 
@@ -20,3 +23,14 @@ The implementation includes four optional optimizations that can be enabled via 
 - **LCD** (Lazy Cycle Detection): Online cycle detection that batches cycle candidates and checks them together for efficiency
 
 All optimizations are **disabled by default**. HVN and HU run during the constraint optimization phase, while HCD and LCD run during the constraint solving phase.
+
+## Context sensitivity
+
+- `--andersen-k-cs=<0|1|2>` selects the call-site sensitivity:
+  - `0` (default): context-insensitive
+  - `1`: 1-CFA (last call site)
+  - `2`: 2-CFA (last two call sites)
+- Andersen now uses an internal call-string context manager to keep each call-site
+  history distinct while still sharing universal/null nodes. This avoids the
+  equality bug in the external `KCallSite` helper and ensures points-to facts are
+  tracked per context as expected.

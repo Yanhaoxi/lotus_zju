@@ -1,6 +1,7 @@
 #include <llvm/IR/Module.h>
+#include <vector>
 
-#include "Alias/Andersen/AndersenAA.h"
+#include "Alias/SparrowAA/AndersenAA.h"
 
 
 using namespace llvm;
@@ -10,38 +11,34 @@ static inline bool isSetContainingOnly(const AndersPtsSet &set, NodeIndex i) {
 }
 
 AliasResult AndersenAAResult::andersenAlias(const Value *v1, const Value *v2) {
-  NodeIndex n1 = (anders.nodeFactory)
-                     .getMergeTarget((anders.nodeFactory).getValueNodeFor(v1));
-  NodeIndex n2 = (anders.nodeFactory)
-                     .getMergeTarget((anders.nodeFactory).getValueNodeFor(v2));
+  std::vector<NodeIndex> n1List, n2List;
+  (anders.nodeFactory).getValueNodesFor(v1, n1List);
+  (anders.nodeFactory).getValueNodesFor(v2, n2List);
 
-  if (n1 == n2)
-    return AliasResult::MustAlias;
+  for (auto n1 : n1List) {
+    NodeIndex rep1 = (anders.nodeFactory).getMergeTarget(n1);
+    for (auto n2 : n2List) {
+      NodeIndex rep2 = (anders.nodeFactory).getMergeTarget(n2);
+      if (rep1 == rep2)
+        return AliasResult::MustAlias;
+    }
+  }
 
-  auto itr1 = (anders.ptsGraph).find(n1), itr2 = (anders.ptsGraph).find(n2);
-  if (itr1 == (anders.ptsGraph).end() || itr2 == (anders.ptsGraph).end())
-    // We know nothing about at least one of (v1, v2)
+  AndersPtsSet s1, s2;
+  if (!anders.getPointsToSet(v1, s1) || !anders.getPointsToSet(v2, s2))
     return AliasResult::MayAlias;
 
-  AndersPtsSet &s1 = itr1->second, s2 = itr2->second;
-  bool isNull1 =
-      isSetContainingOnly(s1, (anders.nodeFactory).getNullObjectNode());
-  bool isNull2 =
-      isSetContainingOnly(s2, (anders.nodeFactory).getNullObjectNode());
+  NodeIndex nullObj = (anders.nodeFactory).getNullObjectNode();
+  bool isNull1 = isSetContainingOnly(s1, nullObj);
+  bool isNull2 = isSetContainingOnly(s2, nullObj);
   if (isNull1 || isNull2)
-    // If any of them is null, we know that they must not alias each other
     return AliasResult::NoAlias;
 
   if (s1.getSize() == 1 && s2.getSize() == 1 && *s1.begin() == *s2.begin())
     return AliasResult::MustAlias;
 
-  // Compute the intersection of s1 and s2
-  for (auto const &idx : s1) {
-    if (idx == (anders.nodeFactory).getNullObjectNode())
-      continue;
-    if (s2.has(idx))
-      return AliasResult::MayAlias;
-  }
+  if (s1.intersectWith(s2))
+    return AliasResult::MayAlias;
 
   return AliasResult::NoAlias;
 }
@@ -65,16 +62,10 @@ AliasResult AndersenAAResult::alias(const MemoryLocation &l1,
 
 bool AndersenAAResult::pointsToConstantMemory(const MemoryLocation &loc,
                                               bool orLocal) {
-  NodeIndex node = (anders.nodeFactory).getValueNodeFor(loc.Ptr);
-  if (node == AndersNodeFactory::InvalidIndex)
+  AndersPtsSet ptsSet;
+  if (!anders.getPointsToSet(loc.Ptr, ptsSet))
     return false;
 
-  auto itr = (anders.ptsGraph).find(node);
-  if (itr == (anders.ptsGraph).end())
-    // Not a pointer?
-    return false;
-
-  const AndersPtsSet &ptsSet = itr->second;
   for (auto const &idx : ptsSet) {
     if (const Value *val = (anders.nodeFactory).getValueForNode(idx)) {
       if (!isa<GlobalValue>(val) || (isa<GlobalVariable>(val) &&
@@ -89,7 +80,8 @@ bool AndersenAAResult::pointsToConstantMemory(const MemoryLocation &loc,
   return true;
 }
 
-AndersenAAResult::AndersenAAResult(const Module &m) : anders(m) {}
+AndersenAAResult::AndersenAAResult(const Module &m)
+    : anders(m, getSelectedAndersenContextPolicy()) {}
 
 // New Pass Manager implementation
 AnalysisKey AndersenAA::Key;

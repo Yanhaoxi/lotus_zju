@@ -1,8 +1,8 @@
 #ifndef ANDERSEN_TEMPLATE_PTSSET_H
 #define ANDERSEN_TEMPLATE_PTSSET_H
 
-#include "Alias/Andersen/PtsSet.h"
-#include "Alias/Andersen/BDDPtsSet.h"
+#include "Alias/SparrowAA/PtsSet.h"
+#include "Alias/SparrowAA/BDDPtsSet.h"
 
 // An enumeration for the available points-to set implementations
 enum class PtsSetImpl {

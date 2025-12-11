@@ -1,7 +1,7 @@
 #ifndef ANDERSEN_CONSTRAINT_H
 #define ANDERSEN_CONSTRAINT_H
 
-#include "Alias/Andersen/NodeFactory.h"
+#include "Alias/SparrowAA/NodeFactory.h"
 
 #include <cassert>
 

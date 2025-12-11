@@ -1,8 +1,8 @@
 #ifndef ANDERSEN_SPARSEBITVECTOR_GRAPH_H
 #define ANDERSEN_SPARSEBITVECTOR_GRAPH_H
 
-#include "Alias/Andersen/GraphTraits.h"
-#include "Alias/Andersen/NodeFactory.h"
+#include "Alias/SparrowAA/GraphTraits.h"
+#include "Alias/SparrowAA/NodeFactory.h"
 
 #include <llvm/ADT/DenseMap.h>
 #include <llvm/ADT/SparseBitVector.h>

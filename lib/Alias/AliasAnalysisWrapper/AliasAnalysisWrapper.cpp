@@ -1,5 +1,5 @@
 #include "Alias/AliasAnalysisWrapper/AliasAnalysisWrapper.h"
-#include "Alias/Andersen/AndersenAA.h"
+#include "Alias/SparrowAA/AndersenAA.h"
 #include "Alias/DyckAA/DyckAliasAnalysis.h"
 #include "Alias/UnderApproxAA/UnderApproxAA.h"
 #include "Alias/CFLAA/CFLAndersAliasAnalysis.h"

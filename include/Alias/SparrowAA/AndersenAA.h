@@ -1,7 +1,7 @@
 #ifndef TCFS_ANDERSEN_AA_H
 #define TCFS_ANDERSEN_AA_H
 
-#include "Alias/Andersen/Andersen.h"
+#include "Alias/SparrowAA/Andersen.h"
 
 #include <llvm/Analysis/AliasAnalysis.h>
 #include <llvm/IR/PassManager.h>

@@ -3,7 +3,9 @@
 // analysis
 //
 // In pointer analysis terms, this is a subset-based, flow-insensitive,
-// field-sensitive, and context-insensitive algorithm pointer algorithm.
+// field-sensitive algorithm.  Context sensitivity is configurable: the
+// default is context-insensitive, but k-call-site (k-CFA) contexts can
+// be enabled at runtime.
 //
 // This algorithm is implemented as three stages:
 //   1. Object identification.
@@ -45,16 +47,37 @@
 #ifndef TCFS_ANDERSEN_H
 #define TCFS_ANDERSEN_H
 
-#include "Alias/Andersen/Constraint.h"
-#include "Alias/Andersen/NodeFactory.h"
-#include "Alias/Andersen/TemplatePtsSet.h"
+#include "Alias/SparrowAA/Constraint.h"
+#include "Alias/SparrowAA/NodeFactory.h"
+#include "Alias/SparrowAA/TemplatePtsSet.h"
 
 #include <llvm/ADT/DenseMap.h>
+#include <llvm/ADT/DenseSet.h>
+#include <llvm/ADT/Hashing.h>
 #include <llvm/IR/InstrTypes.h>  // For CallBase
 #include <llvm/IR/DataLayout.h>
 
+#include <functional>
+#include <string>
 #include <map>
 #include <vector>
+
+struct ContextPolicy {
+  using Context = AndersNodeFactory::CtxKey;
+  using ToStringFn = std::string (*)(Context, bool);
+  using EvolveFn = Context (*)(Context, const llvm::Instruction *);
+
+  Context (*initialCtx)();
+  Context (*globalCtx)();
+  EvolveFn evolve;
+  ToStringFn toString;
+  void (*release)();
+  unsigned k;
+  const char *name;
+};
+
+ContextPolicy makeContextPolicy(unsigned kCallSite);
+ContextPolicy getSelectedAndersenContextPolicy();
 
 class Andersen {
 private:
@@ -69,20 +92,46 @@ private:
   // Using the DefaultPtsSet from TemplatePtsSet.h
   std::map<NodeIndex, DefaultPtsSet, std::less<NodeIndex>, std::allocator<std::pair<const NodeIndex, DefaultPtsSet>>> ptsGraph;
 
+  ContextPolicy ctxPolicy;
+  AndersNodeFactory::CtxKey initialCtx;
+  AndersNodeFactory::CtxKey globalCtx;
+
+  struct FunctionContextKey {
+    const llvm::Function *func;
+    AndersNodeFactory::CtxKey ctx;
+  };
+  struct FunctionContextInfo {
+    static FunctionContextKey getEmptyKey() {
+      return {reinterpret_cast<const llvm::Function *>(-1), reinterpret_cast<void *>(0x1)};
+    }
+    static FunctionContextKey getTombstoneKey() {
+      return {reinterpret_cast<const llvm::Function *>(-2), reinterpret_cast<void *>(0x2)};
+    }
+    static unsigned getHashValue(const FunctionContextKey &k) {
+      return llvm::hash_combine(k.func, k.ctx);
+    }
+    static bool isEqual(const FunctionContextKey &lhs, const FunctionContextKey &rhs) {
+      return lhs.func == rhs.func && lhs.ctx == rhs.ctx;
+    }
+  };
+  llvm::DenseSet<FunctionContextKey, FunctionContextInfo> visitedFunctions;
+
   // Three main phases
   void collectConstraints(const llvm::Module &);
+  void collectConstraintsForFunction(const llvm::Function *, AndersNodeFactory::CtxKey);
   void optimizeConstraints();
   void solveConstraints();
 
   // Helper functions for constraint collection
-  void collectConstraintsForGlobals(const llvm::Module &);
-  void collectConstraintsForInstruction(const llvm::Instruction *);
-  void addGlobalInitializerConstraints(NodeIndex, const llvm::Constant *);
-  void addConstraintForCall(const llvm::CallBase *cs);
+  void collectConstraintsForGlobals(const llvm::Module &, AndersNodeFactory::CtxKey);
+  void collectConstraintsForInstruction(const llvm::Instruction *, AndersNodeFactory::CtxKey);
+  void addGlobalInitializerConstraints(NodeIndex, const llvm::Constant *, AndersNodeFactory::CtxKey);
+  void addConstraintForCall(const llvm::CallBase *cs, AndersNodeFactory::CtxKey callerCtx);
   bool addConstraintForExternalLibrary(const llvm::CallBase *cs,
-                                     const llvm::Function *f);
+                                     const llvm::Function *f, AndersNodeFactory::CtxKey callerCtx);
   void addArgumentConstraintForCall(const llvm::CallBase *cs,
-                                  const llvm::Function *f);
+                                  const llvm::Function *f, AndersNodeFactory::CtxKey callerCtx,
+                                  AndersNodeFactory::CtxKey calleeCtx);
 
   // Helper functions for constraint optimization
   NodeIndex getRefNodeIndex(NodeIndex n) const;
@@ -97,7 +146,8 @@ private:
 public:
   static char ID;
 
-  Andersen(const llvm::Module &);
+  explicit Andersen(const llvm::Module &, ContextPolicy policy = makeContextPolicy(0));
+  ~Andersen();
   bool runOnModule(const llvm::Module &M);
 
   // Given a llvm pointer v,
@@ -107,6 +157,28 @@ public:
   // argument.
   bool getPointsToSet(const llvm::Value *v,
                       std::vector<const llvm::Value *> &ptsSet) const;
+  bool getPointsToSet(const llvm::Value *v,
+                      AndersPtsSet &ptsSet) const;
+  // Context-sensitive queries (no cross-context union). Return false if the
+  // value has no node in the given context; otherwise fill the supplied set.
+  bool getPointsToSetInContext(const llvm::Value *v,
+                               AndersNodeFactory::CtxKey ctx,
+                               std::vector<const llvm::Value *> &ptsSet) const;
+  bool getPointsToSetInContext(const llvm::Value *v,
+                               AndersNodeFactory::CtxKey ctx,
+                               AndersPtsSet &ptsSet) const;
+
+  // Context utilities for clients that want per-context answers.
+  AndersNodeFactory::CtxKey getInitialContext() const { return initialCtx; }
+  AndersNodeFactory::CtxKey getGlobalContext() const { return globalCtx; }
+  AndersNodeFactory::CtxKey evolveContext(AndersNodeFactory::CtxKey prev,
+                                          const llvm::Instruction *I) const {
+    return ctxPolicy.evolve(prev, I);
+  }
+  std::string contextToString(AndersNodeFactory::CtxKey ctx,
+                              bool detailed = false) const {
+    return ctxPolicy.toString(ctx, detailed);
+  }
   // Put all allocation sites (i.e. all memory objects identified by the
   // analysis) into the first arugment
   void

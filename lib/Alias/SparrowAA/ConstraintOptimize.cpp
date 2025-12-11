@@ -12,10 +12,10 @@
 #include <unordered_map>
 #include <vector>
 
-#include "Alias/Andersen/Andersen.h"
-#include "Alias/Andersen/CycleDetector.h"
-#include "Alias/Andersen/Log.h"
-#include "Alias/Andersen/SparseBitVectorGraph.h"
+#include "Alias/SparrowAA/Andersen.h"
+#include "Alias/SparrowAA/CycleDetector.h"
+#include "Alias/SparrowAA/Log.h"
+#include "Alias/SparrowAA/SparseBitVectorGraph.h"
 
 #define DEBUG_TYPE "andersen"
 

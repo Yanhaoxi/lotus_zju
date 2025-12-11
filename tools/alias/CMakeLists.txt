@@ -39,8 +39,8 @@ target_link_libraries(lotus-aa PRIVATE
 )
 
 # Andersen's Pointer Analysis Tool
-add_executable(ander-aa ander-aa.cpp)
-target_link_libraries(ander-aa PRIVATE
+add_executable(sparrow-aa sparrow-aa.cpp)
+target_link_libraries(sparrow-aa PRIVATE
   Andersen
   ${LLVM_LINK_COMPONENTS}
 )

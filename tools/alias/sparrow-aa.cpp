@@ -5,13 +5,14 @@
  * on LLVM bitcode files. It parses command-line options, loads the input module,
  * runs the Andersen analysis, and outputs the results.
  *
- * Andersen's analysis is a subset-based, flow-insensitive, field-sensitive,
- * and context-insensitive pointer analysis algorithm.
+ * Andersen's analysis is a subset-based, flow-insensitive, field-sensitive
+ * pointer analysis algorithm. It supports both context-insensitive and
+ * context-sensitive variants (1-CFA and 2-CFA).
  */
 
-#include "Alias/Andersen/Andersen.h"
-#include "Alias/Andersen/AndersenAA.h"
-#include "Alias/Andersen/Log.h"
+#include "Alias/SparrowAA/Andersen.h"
+#include "Alias/SparrowAA/AndersenAA.h"
+#include "Alias/SparrowAA/Log.h"
 
 #include <llvm/Analysis/MemoryLocation.h>
 #include <llvm/IR/LLVMContext.h>
@@ -28,6 +29,7 @@
 #include <llvm/ADT/Statistic.h>
 
 #include <memory>
+#include <cstring>
 
 using namespace llvm;
 
@@ -166,7 +168,12 @@ int main(int argc, char **argv) {
     InitLLVM X(argc, argv);
     cl::ParseCommandLineOptions(argc, argv, 
         "Andersen's Pointer Analysis Tool\n\n"
-        "Subset-based, flow-insensitive, field-sensitive pointer analysis.\n");
+        "Subset-based, flow-insensitive, field-sensitive pointer analysis.\n\n"
+        "Context Sensitivity:\n"
+        "  --andersen-k-cs=<0|1|2>  Select call-site sensitivity:\n"
+        "                            0 = context-insensitive (default)\n"
+        "                            1 = 1-CFA\n"
+        "                            2 = 2-CFA\n");
 
     // Initialize spdlog based on command-line options
     spdlog::level::level_enum spdlogLevel;
@@ -216,18 +223,25 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    ContextPolicy policy = getSelectedAndersenContextPolicy();
+    
     if (Verbose && !OnlyStatistics) {
         errs() << "Module: " << M->getName() << " ("
                << M->getFunctionList().size() << " functions, "
                << M->getGlobalList().size() << " globals)\n"
+               << "Context sensitivity: " << policy.name << "\n"
                << "Running analysis...\n";
     }
 
-    Andersen Anders(*M);
+    Andersen Anders(*M, policy);
     if (Verbose && !OnlyStatistics) errs() << "Done.\n\n";
 
     if (!OnlyStatistics) {
-        outs() << "\n=== Andersen Analysis Results ===\n\n";
+        outs() << "\n=== Andersen Analysis Results ===";
+        if (policy.name && strcmp(policy.name, "NoCtx") != 0) {
+            outs() << " (" << policy.name << ")";
+        }
+        outs() << "\n\n";
         
         if (PrintAllocSites) {
             std::vector<const Value *> allocSites;

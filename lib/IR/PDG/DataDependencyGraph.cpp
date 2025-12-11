@@ -134,7 +134,7 @@ llvm::AliasResult pdg::DataDependencyGraph::queryAliasUnderApproximate(llvm::Val
 llvm::AliasResult pdg::DataDependencyGraph::queryAliasOverApproximate(llvm::Value &v1, llvm::Value &v2)
 {
   // Use the over-approximation wrapper (Andersen's analysis)
-  // This integrates precise pointer analysis from lib/Alias/Andersen
+  // This integrates precise pointer analysis from lib/Alias/SparrowAA
   if (_alias_wrapper_over && _alias_wrapper_over->isInitialized())
   {
     return _alias_wrapper_over->query(&v1, &v2);

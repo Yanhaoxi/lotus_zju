@@ -10,7 +10,7 @@ analysis**. It is **flow-insensitive** and **context-insensitive**, but highly
 scalable, making it a good default for **large programs** where speed is more
 important than maximum precision.
 
-* **Location**: ``lib/Alias/Andersen``
+* **Location**: ``lib/Alias/SparrowAA``
 * **Algorithm**: Andersen-style subset-based pointer analysis
 * **Typical Use**: Fast whole-program call-graph and mod/ref precomputation
 
@@ -33,7 +33,7 @@ Optimizations
 =============
 
 The implementation supports several optional optimizations (see the README in
-``lib/Alias/Andersen`` for details):
+``lib/Alias/SparrowAA`` for details):
 
 * **HVN / HU** – Hash-based value numbering and Heintze–Ullman style
   equivalence to collapse redundant nodes.

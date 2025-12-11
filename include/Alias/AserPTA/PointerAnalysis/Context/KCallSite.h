@@ -62,10 +62,10 @@ public:
 
     bool operator==(const self &rhs) const {
         auto it1 = this->begin();
-        auto it2 = this->begin();
+        auto it2 = rhs.begin();
 
         auto ie1 = this->end();
-        auto ie2 = this->end();
+        auto ie2 = rhs.end();
 
         for (; it1 != ie1; it1++, it2++) {
             if (*it1 != *it2) {

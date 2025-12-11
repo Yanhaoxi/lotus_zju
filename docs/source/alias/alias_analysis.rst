@@ -297,7 +297,7 @@ Andersen
 
 Context-insensitive points-to analysis for scalability.
 
-**Location**: ``lib/Alias/Andersen``
+**Location**: ``lib/Alias/SparrowAA``
 
 **Usage**:
 .. code-block:: bash

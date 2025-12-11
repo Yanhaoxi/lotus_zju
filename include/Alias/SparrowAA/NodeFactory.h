@@ -36,16 +36,15 @@ public:
 };
 
 // This is the factory class of AndersNode
-// It use a vectors to hold all Nodes in the program
-// Since vectors may invalidate all element pointers/iterators when resizing, it
-// is impossible to return AndersNode* in public interfaces without using
-// std::unique_ptr and heap allocations. Therefore, we use plain integers to
-// represent nodes for public functions like createXXX and getXXX. This is ugly,
-// but it is efficient.
+// It uses vectors to hold all Nodes in the program. Nodes are keyed by both a
+// context token (opaque pointer) and an LLVM value to support context-sensitive
+// variants without changing the node indexing scheme.
 class AndersNodeFactory {
 public:
   // The largest unsigned int is reserved for invalid index
   static const unsigned InvalidIndex;
+
+  using CtxKey = const void *;
 
 private:
   // The set of nodes
@@ -57,42 +56,40 @@ private:
   static const NodeIndex NullPtrIndex = 2;
   static const NodeIndex NullObjectIndex = 3;
 
-  // valueNodeMap - This map indicates the AndersNode* that a particular Value*
-  // corresponds to
-  llvm::DenseMap<const llvm::Value *, NodeIndex> valueNodeMap;
+  // Per-context node maps
+  using ValueNodeMap = llvm::DenseMap<const llvm::Value *, NodeIndex>;
+  llvm::DenseMap<CtxKey, ValueNodeMap> valueNodeMap;
+  llvm::DenseMap<CtxKey, ValueNodeMap> objNodeMap;
+  llvm::DenseMap<CtxKey, llvm::DenseMap<const llvm::Function *, NodeIndex>>
+      returnMap;
+  llvm::DenseMap<CtxKey, llvm::DenseMap<const llvm::Function *, NodeIndex>>
+      varargMap;
 
-  // ObjectNodes - This map contains entries for each memory object in the
-  // program: globals, alloca's and mallocs. We are able to represent them as
-  // llvm::Value* because we're modeling the heap with the simplest
-  // allocation-site approach
-  llvm::DenseMap<const llvm::Value *, NodeIndex> objNodeMap;
-
-  // returnMap - This map contains an entry for each function in the program
-  // that returns a ptr.
-  llvm::DenseMap<const llvm::Function *, NodeIndex> returnMap;
-
-  // varargMap - This map contains the entry used to represent all pointers
-  // passed through the varargs portion of a function call for a particular
-  // function.  An entry is not present in this map for functions that do not
-  // take variable arguments.
-  llvm::DenseMap<const llvm::Function *, NodeIndex> varargMap;
+  // Reverse lookup to gather nodes across contexts for a given value
+  llvm::DenseMap<const llvm::Value *, std::vector<NodeIndex>> valueNodeBuckets;
 
 public:
   AndersNodeFactory();
 
-  // Factory methods
-  NodeIndex createValueNode(const llvm::Value *val = nullptr);
-  NodeIndex createObjectNode(const llvm::Value *val = nullptr);
-  NodeIndex createReturnNode(const llvm::Function *f);
-  NodeIndex createVarargNode(const llvm::Function *f);
+  // Factory methods (context-aware)
+  NodeIndex createValueNode(const llvm::Value *val, CtxKey ctx);
+  NodeIndex createObjectNode(const llvm::Value *val, CtxKey ctx);
+  NodeIndex createReturnNode(const llvm::Function *f, CtxKey ctx);
+  NodeIndex createVarargNode(const llvm::Function *f, CtxKey ctx);
 
   // Map lookup interfaces (return InvalidIndex if value not found)
-  NodeIndex getValueNodeFor(const llvm::Value *val) const;
-  NodeIndex getValueNodeForConstant(const llvm::Constant *c) const;
-  NodeIndex getObjectNodeFor(const llvm::Value *val) const;
-  NodeIndex getObjectNodeForConstant(const llvm::Constant *c) const;
-  NodeIndex getReturnNodeFor(const llvm::Function *f) const;
-  NodeIndex getVarargNodeFor(const llvm::Function *f) const;
+  NodeIndex getValueNodeFor(const llvm::Value *val, CtxKey ctx) const;
+  NodeIndex getValueNodeForConstant(const llvm::Constant *c,
+                                    CtxKey ctx) const;
+  NodeIndex getObjectNodeFor(const llvm::Value *val, CtxKey ctx) const;
+  NodeIndex getObjectNodeForConstant(const llvm::Constant *c,
+                                     CtxKey ctx) const;
+  NodeIndex getReturnNodeFor(const llvm::Function *f, CtxKey ctx) const;
+  NodeIndex getVarargNodeFor(const llvm::Function *f, CtxKey ctx) const;
+
+  // Query all value nodes across contexts
+  void getValueNodesFor(const llvm::Value *val,
+                        std::vector<NodeIndex> &out) const;
 
   // Node merge interfaces
   void mergeNode(NodeIndex n0, NodeIndex n1); // Merge n1 into n0
@@ -121,7 +118,7 @@ public:
   void getAllocSites(std::vector<const llvm::Value *> &) const;
 
   // Value remover
-  void removeNodeForValue(const llvm::Value *val) { valueNodeMap.erase(val); }
+  void removeNodeForValue(const llvm::Value *val) { valueNodeBuckets.erase(val); }
 
   // Size getters
   unsigned getNumNodes() const { return nodes.size(); }
