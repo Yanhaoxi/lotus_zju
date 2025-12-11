@@ -1,7 +1,7 @@
 #include "Dataflow/WPDS/InterProceduralDataFlow.h"
 #include <algorithm>
 
-namespace dataflow {
+namespace wpds {
 
 // Initialize the static universe set
 std::set<Value*> DataFlowFacts::universe;
@@ -125,4 +125,4 @@ std::ostream& DataFlowFacts::print(std::ostream& os) const {
     return os;
 }
 
-} // namespace dataflow 
+} // namespace wpds 

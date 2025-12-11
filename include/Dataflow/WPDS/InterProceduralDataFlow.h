@@ -14,7 +14,7 @@
 #include <set>
 #include <string>
 
-namespace dataflow {
+namespace wpds {
 
 // DataFlowFacts is the domain of our analysis
 class DataFlowFacts {
@@ -100,13 +100,13 @@ public:
     ~InterProceduralDataFlowEngine() = default;
 
     // Main method to run forward inter-procedural dataflow analysis
-    std::unique_ptr<DataFlowResult> runForwardAnalysis(
+    std::unique_ptr<mono::DataFlowResult> runForwardAnalysis(
         Module& m,
         const std::function<GenKillTransformer*(Instruction*)>& createTransformer,
         const std::set<Value*>& initialFacts = {});
 
     // Main method to run backward inter-procedural dataflow analysis
-    std::unique_ptr<DataFlowResult> runBackwardAnalysis(
+    std::unique_ptr<mono::DataFlowResult> runBackwardAnalysis(
         Module& m,
         const std::function<GenKillTransformer*(Instruction*)>& createTransformer,
         const std::set<Value*>& initialFacts = {});
@@ -140,7 +140,7 @@ private:
     void extractResults(
         Module& m,
         wpds::CA<GenKillTransformer>& resultCA,
-        std::unique_ptr<DataFlowResult>& result,
+        std::unique_ptr<mono::DataFlowResult>& result,
         bool isForward);
 
     // Map program elements to WPDS keys and vice versa
@@ -151,9 +151,9 @@ private:
     std::map<wpds::wpds_key_t, Instruction*> keyToInst;
 
     // Maintain the dataflow result for the most recent analysis
-    mutable std::unique_ptr<DataFlowResult> currentResult;
+    mutable std::unique_ptr<mono::DataFlowResult> currentResult;
 };
 
-} // namespace dataflow
+} // namespace wpds
 
 #endif // ANALYSIS_INTERPROCEDURALDATAFLOW_H_ 

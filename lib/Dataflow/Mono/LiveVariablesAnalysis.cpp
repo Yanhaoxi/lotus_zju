@@ -4,6 +4,8 @@
 
 using namespace llvm;
 
+namespace mono {
+
 // SSA register liveness analysis
 std::unique_ptr<DataFlowResult> runLiveVariablesAnalysis(Function *f) {
   if (f == nullptr) {
@@ -62,4 +64,6 @@ std::unique_ptr<DataFlowResult> runLiveVariablesAnalysis(Function *f) {
   
   return dfa.applyBackward(f, computeGEN, computeKILL, computeIN, computeOUT);
 }
+
+} // namespace mono
 

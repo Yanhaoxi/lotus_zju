@@ -11,9 +11,9 @@
 #include <llvm/Support/raw_ostream.h>
 
 using namespace llvm;
-using dataflow::DataFlowFacts;
-using dataflow::GenKillTransformer;
-using dataflow::InterProceduralDataFlowEngine;
+using wpds::DataFlowFacts;
+using wpds::GenKillTransformer;
+using wpds::InterProceduralDataFlowEngine;
 
 static GenKillTransformer *createUninitTransformer(Instruction *I) {
 
@@ -65,7 +65,7 @@ void demoUninitializedVariablesAnalysis(Module &module) {
 	}
 }
 
-std::unique_ptr<DataFlowResult> runUninitializedVariablesAnalysis(Module &module) {
+std::unique_ptr<mono::DataFlowResult> runUninitializedVariablesAnalysis(Module &module) {
 	InterProceduralDataFlowEngine engine;
 	std::set<Value *> initial;
 	return engine.runForwardAnalysis(module, createUninitTransformer, initial);
@@ -92,21 +92,21 @@ static void printValueSet(raw_ostream &OS, const std::set<Value *> &S) {
 	OS << "}";
 }
 
-void queryAnalysisResults(Module &module, const DataFlowResult &result, Instruction *targetInst) {
+void queryAnalysisResults(Module &module, const mono::DataFlowResult &result, Instruction *targetInst) {
     (void)module;
     if (!targetInst) return;
 	auto itF = targetInst->getFunction();
 	(void)itF;
 	errs() << "[WPDS][Query] IN  = ";
-	printValueSet(errs(), const_cast<DataFlowResult&>(result).IN(targetInst));
+	printValueSet(errs(), const_cast<mono::DataFlowResult&>(result).IN(targetInst));
 	errs() << "\n";
 	errs() << "[WPDS][Query] GEN = ";
-	printValueSet(errs(), const_cast<DataFlowResult&>(result).GEN(targetInst));
+	printValueSet(errs(), const_cast<mono::DataFlowResult&>(result).GEN(targetInst));
 	errs() << "\n";
 	errs() << "[WPDS][Query] KILL= ";
-	printValueSet(errs(), const_cast<DataFlowResult&>(result).KILL(targetInst));
+	printValueSet(errs(), const_cast<mono::DataFlowResult&>(result).KILL(targetInst));
 	errs() << "\n";
 	errs() << "[WPDS][Query] OUT = ";
-	printValueSet(errs(), const_cast<DataFlowResult&>(result).OUT(targetInst));
+	printValueSet(errs(), const_cast<mono::DataFlowResult&>(result).OUT(targetInst));
 	errs() << "\n";
 }

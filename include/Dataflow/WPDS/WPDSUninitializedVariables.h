@@ -42,7 +42,7 @@ void demoUninitializedVariablesAnalysis(llvm::Module& module);
  * @return Analysis result containing IN/OUT/GEN/KILL sets for each instruction,
  *         or nullptr if analysis failed
  */
-std::unique_ptr<DataFlowResult> runUninitializedVariablesAnalysis(llvm::Module& module);
+std::unique_ptr<mono::DataFlowResult> runUninitializedVariablesAnalysis(llvm::Module& module);
 
 /**
  * @brief Queries and displays analysis results for a specific instruction
@@ -54,7 +54,7 @@ std::unique_ptr<DataFlowResult> runUninitializedVariablesAnalysis(llvm::Module& 
  * @param result The analysis result from runUninitializedVariablesAnalysis
  * @param targetInst The instruction to query
  */
-void queryAnalysisResults(llvm::Module& module, const DataFlowResult& result, llvm::Instruction* targetInst);
+void queryAnalysisResults(llvm::Module& module, const mono::DataFlowResult& result, llvm::Instruction* targetInst);
 
 #endif // ANALYSIS_WPDS_UNINITIALIZED_VARIABLES_H_
 

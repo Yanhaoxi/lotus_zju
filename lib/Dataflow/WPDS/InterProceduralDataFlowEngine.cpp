@@ -3,7 +3,7 @@
 #include "Solvers/WPDS/SaturationProcess.h"
 #include <llvm/IR/CFG.h>
 
-namespace dataflow {
+namespace wpds {
 
 using namespace wpds;
 using namespace llvm;
@@ -23,7 +23,7 @@ struct CopyTransitionsFunctor : public wpds::util::TransActionFunctor<T> {
 
 InterProceduralDataFlowEngine::InterProceduralDataFlowEngine() = default;
 
-std::unique_ptr<DataFlowResult> InterProceduralDataFlowEngine::runForwardAnalysis(
+std::unique_ptr<mono::DataFlowResult> InterProceduralDataFlowEngine::runForwardAnalysis(
     Module& m,
     const std::function<GenKillTransformer*(Instruction*)>& createTransformer,
     const std::set<Value*>& initialFacts) {
@@ -50,13 +50,13 @@ std::unique_ptr<DataFlowResult> InterProceduralDataFlowEngine::runForwardAnalysi
     satProcess.poststar();
     
     // Extract results
-    currentResult = std::make_unique<DataFlowResult>();
+    currentResult = std::make_unique<mono::DataFlowResult>();
     extractResults(m, resultCA, currentResult, true);
-    
+
     return std::move(currentResult);
 }
 
-std::unique_ptr<DataFlowResult> InterProceduralDataFlowEngine::runBackwardAnalysis(
+std::unique_ptr<mono::DataFlowResult> InterProceduralDataFlowEngine::runBackwardAnalysis(
     Module& m,
     const std::function<GenKillTransformer*(Instruction*)>& createTransformer,
     const std::set<Value*>& initialFacts) {
@@ -83,9 +83,9 @@ std::unique_ptr<DataFlowResult> InterProceduralDataFlowEngine::runBackwardAnalys
     satProcess.prestar();
     
     // Extract results
-    currentResult = std::make_unique<DataFlowResult>();
+    currentResult = std::make_unique<mono::DataFlowResult>();
     extractResults(m, resultCA, currentResult, false);
-    
+
     return std::move(currentResult);
 }
 
@@ -332,7 +332,7 @@ wpds_key_t InterProceduralDataFlowEngine::getKeyForReturnSite(CallInst* callInst
 void InterProceduralDataFlowEngine::extractResults(
     Module& m,
     CA<GenKillTransformer>& resultCA,
-    std::unique_ptr<DataFlowResult>& result,
+    std::unique_ptr<mono::DataFlowResult>& result,
     bool isForward) {
     
     wpds_key_t caState = str2key("caState");
@@ -403,4 +403,4 @@ void InterProceduralDataFlowEngine::extractResults(
     }
 }
 
-} // namespace dataflow
+} // namespace wpds

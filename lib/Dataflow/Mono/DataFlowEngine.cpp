@@ -1,5 +1,7 @@
 #include "Dataflow/Mono/DataFlowEngine.h"
 
+namespace mono {
+
 DataFlowEngine::DataFlowEngine() : AA(nullptr), MSSA(nullptr) {}
 
 DataFlowEngine::DataFlowEngine(AAResults *AA, MemorySSA *MSSA)
@@ -394,4 +396,6 @@ std::unique_ptr<DataFlowResult> DataFlowEngine::applyGeneralizedForwardAnalysis(
 
   return df;
 }
+
+} // namespace mono
 

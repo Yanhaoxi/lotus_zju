@@ -3,6 +3,7 @@
 
 #include "Utils/LLVM/SystemHeaders.h"
 
+namespace mono {
 
 class DataFlowResult {
 public:
@@ -23,5 +24,6 @@ private:
   std::map<Instruction *, std::set<Value *>> outs;
 };
 
+} // namespace mono
 
 #endif // ANALYSIS_DATAFLOWRESULT_H_

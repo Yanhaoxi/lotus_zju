@@ -6,6 +6,8 @@
 #include "Dataflow/Mono/DataFlowResult.h"
 #include <memory>
 
+namespace mono {
+
 class DataFlowAnalysis {
 public:
   /*
@@ -15,5 +17,7 @@ public:
 
   [[nodiscard]] std::unique_ptr<DataFlowResult> getFullSets(Function *f);
 };
+
+} // namespace mono
 
 #endif // ANALYSIS_DATAFLOWANALYSIS_H_

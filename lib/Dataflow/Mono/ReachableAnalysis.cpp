@@ -1,6 +1,8 @@
 #include "Dataflow/Mono/ReachableAnalysis.h"
 #include "Dataflow/Mono/DataFlowEngine.h"
 
+namespace mono {
+
 /**
  * Reachable Analysis - A client of the monotone dataflow framework
  * 
@@ -94,4 +96,6 @@ std::unique_ptr<DataFlowResult> runReachableAnalysis(Function *f) {
    */
   return runReachableAnalysis(f, noFilter);
 }
+
+} // namespace mono
 

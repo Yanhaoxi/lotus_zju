@@ -9,7 +9,7 @@ namespace llvm {
 class Function;
 }
 
-using namespace llvm;
+namespace mono {
 
 /**
  * @brief Run SSA register liveness analysis on a function
@@ -30,7 +30,9 @@ using namespace llvm;
  * @param f The function to analyze
  * @return DataFlowResult containing live SSA value sets for each instruction
  */
-[[nodiscard]] std::unique_ptr<DataFlowResult> runLiveVariablesAnalysis(Function *f);
+[[nodiscard]] std::unique_ptr<DataFlowResult> runLiveVariablesAnalysis(llvm::Function *f);
+
+} // namespace mono
 
 #endif // ANALYSIS_LIVEVARIABLESANALYSIS_H_
 

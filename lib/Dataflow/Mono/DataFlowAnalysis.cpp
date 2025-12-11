@@ -1,6 +1,7 @@
 
 #include "Dataflow/Mono/DataFlow.h"
 
+namespace mono {
 
 DataFlowAnalysis::DataFlowAnalysis() = default;
 
@@ -23,4 +24,5 @@ std::unique_ptr<DataFlowResult> DataFlowAnalysis::getFullSets(Function *f) {
   return df;
 }
 
+} // namespace mono
 

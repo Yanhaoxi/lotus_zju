@@ -18,7 +18,7 @@
  * @param module The LLVM module to analyze
  * @return Analysis result containing IN/OUT/GEN/KILL sets for each instruction
  */
-std::unique_ptr<DataFlowResult> runLivenessAnalysis(llvm::Module& module);
+std::unique_ptr<mono::DataFlowResult> runLivenessAnalysis(llvm::Module& module);
 
 /**
  * @brief Demo function showing how to use the liveness analysis

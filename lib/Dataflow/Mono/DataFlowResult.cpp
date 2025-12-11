@@ -1,5 +1,6 @@
 #include "Dataflow/Mono/DataFlowResult.h"
 
+namespace mono {
 
 DataFlowResult::DataFlowResult() {
   return;
@@ -28,3 +29,5 @@ std::set<Value *> &DataFlowResult::OUT(Instruction *inst) {
 
   return s;
 }
+
+} // namespace mono

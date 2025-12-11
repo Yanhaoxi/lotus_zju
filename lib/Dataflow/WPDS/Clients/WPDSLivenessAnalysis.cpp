@@ -11,9 +11,9 @@
 #include <llvm/Support/raw_ostream.h>
 
 using namespace llvm;
-using dataflow::DataFlowFacts;
-using dataflow::GenKillTransformer;
-using dataflow::InterProceduralDataFlowEngine;
+using wpds::DataFlowFacts;
+using wpds::GenKillTransformer;
+using wpds::InterProceduralDataFlowEngine;
 
 // Liveness is a backward analysis
 // GEN: variables used (read) by instruction
@@ -73,7 +73,7 @@ static GenKillTransformer* createLivenessTransformer(Instruction* I) {
     return GenKillTransformer::makeGenKillTransformer(kill, gen);
 }
 
-std::unique_ptr<DataFlowResult> runLivenessAnalysis(Module& module) {
+std::unique_ptr<mono::DataFlowResult> runLivenessAnalysis(Module& module) {
     InterProceduralDataFlowEngine engine;
     std::set<Value*> initial; // Start with empty set (nothing live at exit)
     return engine.runBackwardAnalysis(module, createLivenessTransformer, initial);

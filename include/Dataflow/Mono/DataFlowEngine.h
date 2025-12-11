@@ -14,6 +14,8 @@ namespace llvm {
   class MemorySSA;
 }
 
+namespace mono {
+
 class DataFlowEngine {
 public:
   /*
@@ -121,5 +123,7 @@ private:
   AAResults *AA;
   MemorySSA *MSSA;
 };
+
+} // namespace mono
 
 #endif // ANALYSIS_DATAFLOWENGINE_H_

@@ -12,9 +12,9 @@
 #include <llvm/Support/raw_ostream.h>
 
 using namespace llvm;
-using dataflow::DataFlowFacts;
-using dataflow::GenKillTransformer;
-using dataflow::InterProceduralDataFlowEngine;
+using wpds::DataFlowFacts;
+using wpds::GenKillTransformer;
+using wpds::InterProceduralDataFlowEngine;
 
 // For constant propagation, we track (variable, constant) pairs
 // A variable is in the set if it has been assigned a constant value
@@ -54,7 +54,7 @@ static GenKillTransformer* createConstantPropagationTransformer(Instruction* I) 
     return GenKillTransformer::makeGenKillTransformer(kill, gen);
 }
 
-std::unique_ptr<DataFlowResult> runConstantPropagationAnalysis(Module& module) {
+std::unique_ptr<mono::DataFlowResult> runConstantPropagationAnalysis(Module& module) {
     InterProceduralDataFlowEngine engine;
     std::set<Value*> initial; // Start with empty set
     return engine.runForwardAnalysis(module, createConstantPropagationTransformer, initial);

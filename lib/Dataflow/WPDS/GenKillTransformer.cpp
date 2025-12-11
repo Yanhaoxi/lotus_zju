@@ -1,6 +1,6 @@
 #include "Dataflow/WPDS/InterProceduralDataFlow.h"
 
-namespace dataflow {
+namespace wpds {
 
 GenKillTransformer::GenKillTransformer() 
     : count(0), kill(DataFlowFacts::EmptySet()), gen(DataFlowFacts::EmptySet()) {
@@ -161,4 +161,4 @@ std::ostream& GenKillTransformer::print(std::ostream& os) const {
     return os;
 }
 
-} // namespace dataflow 
+} // namespace wpds 

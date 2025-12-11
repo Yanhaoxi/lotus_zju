@@ -11,9 +11,9 @@
 #include <llvm/Support/raw_ostream.h>
 
 using namespace llvm;
-using dataflow::DataFlowFacts;
-using dataflow::GenKillTransformer;
-using dataflow::InterProceduralDataFlowEngine;
+using wpds::DataFlowFacts;
+using wpds::GenKillTransformer;
+using wpds::InterProceduralDataFlowEngine;
 
 // Taint analysis tracks which values are tainted (derived from untrusted sources)
 // GEN: values that become tainted
@@ -94,7 +94,7 @@ static GenKillTransformer* createTaintTransformer(Instruction* I) {
     return GenKillTransformer::makeGenKillTransformer(kill, gen);
 }
 
-std::unique_ptr<DataFlowResult> runTaintAnalysis(Module& module) {
+std::unique_ptr<mono::DataFlowResult> runTaintAnalysis(Module& module) {
     InterProceduralDataFlowEngine engine;
     std::set<Value*> initial; // Start with no tainted values
     
