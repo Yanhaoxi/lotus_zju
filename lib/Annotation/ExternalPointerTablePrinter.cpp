@@ -155,6 +155,9 @@ static void printPointerEffect(raw_ostream& os, const PointerEffect& effect)
 		case PointerEffectType::Copy:
 			printCopyEffect(os, effect.getAsCopyEffect());
 			break;
+		case PointerEffectType::Exit:
+			os << "  Exit";
+			break;
 	}
 	os << "\n";
 }
