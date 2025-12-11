@@ -1,17 +1,17 @@
 =====================
-Andersen — Inclusion AA
+Sparrow Pointer Analysis — Inclusion AA
 =====================
 
 Overview
 ========
 
-The Andersen analysis implements a **classic inclusion-based points-to
-analysis**. It is **flow-insensitive** and **context-insensitive**, but highly
-scalable, making it a good default for **large programs** where speed is more
-important than maximum precision.
+The sparrow analysis implements a classic inclusion-based points-to
+analysis.
+- Flow-insensitive, context-insensitive (ci)
+- Flow-insensitive, context-sensitive (1-cfa, 2-cfa)
 
 * **Location**: ``lib/Alias/SparrowAA``
-* **Algorithm**: Andersen-style subset-based pointer analysis
+* **Algorithm**: Inclusion-based pointer analysis
 * **Typical Use**: Fast whole-program call-graph and mod/ref precomputation
 
 Constraint System
@@ -46,14 +46,15 @@ tool-specific command-line flags.
 Usage
 =====
 
-The Andersen engine is wrapped as a reusable AA component and also exposed
+The engine is wrapped as a reusable AA component and also exposed
 via a standalone tool:
 
 .. code-block:: bash
 
-   ./build/bin/ander-aa example.bc
+   ./build/bin/sparrow-aa example.bc
 
 In integrated settings (e.g., Clam or LotusAA), it can be selected through
 the corresponding configuration files or command-line switches.
 
+Note: this module have some redundancies with aserpta, and reuses some header files from it (from context abstraction).
 

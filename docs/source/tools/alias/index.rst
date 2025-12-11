@@ -4,25 +4,26 @@ Alias Analysis Tools
 This page documents the command-line tools under ``tools/alias/``. For the
 underlying algorithms and architecture, see :doc:`../../analysis/alias_analysis`.
 
-Andersen (ander-aa)
+SparrowAA (sparrow-aa)
 -------------------
 
-Context-insensitive inclusion-based points-to analysis.
+Inclusion-based points-to analysis (flow-insensitive, context-insensitive, context-sensitive).
 
-**Binary**: ``ander-aa``  
-**Location**: ``tools/alias/ander-aa.cpp``
+**Binary**: ``sparrow-aa``  
+**Location**: ``tools/alias/sparrow-aa.cpp``
 
 **Usage**:
 
 .. code-block:: bash
 
-   ./build/bin/ander-aa [options] input.bc
+   ./build/bin/sparrow-aa [options] input.bc
 
 **Notes**:
 
-- Fast, scalable analysis for large codebases
+- Flow-insensitive, context-insensitive, context-sensitive
 - No on-the-fly call graph construction
 - Good default when you need quick alias information
+- Note: this tool have some redundancies with aserpta, and reuses some header files from it (from context abstraction).
 
 AserPTA (aser-aa)
 -----------------

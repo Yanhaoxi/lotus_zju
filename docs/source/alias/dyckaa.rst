@@ -45,7 +45,7 @@ Trade-offs
   - Very high precision for complex pointer patterns.
   - Strong function-pointer resolution capabilities.
 * **Cons**:
-  - Higher time and memory cost than simpler analyses (e.g., Andersen).
+  - Higher time and memory cost than simpler analyses.
   - Best suited to medium-sized programs or precision-critical components.
 
 Usage

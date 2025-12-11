@@ -18,9 +18,9 @@ Alias Analysis
 
 .. code-block:: bash
 
-   ./build/bin/ander-aa example.bc           # Andersen's analysis
+   ./build/bin/sparrow-aa example.bc           # SparrowAA (CI mode by default) analysis
    ./build/bin/dyck-aa example.bc            # Unification-based analysis
-   ./build/bin/aser-aa example.bc            # Inclusion-based, flow-insensitive context-sensitive
+   ./build/bin/aser-aa example.bc            # AserPTA (CI mode by default) analysis
    ./build/bin/fpa example.bc                # Function pointer analysis
    ./build/bin/lotus-aa example.bc           # Inclusion-based, flow-sensitive context-sensitive
    ./build/bin/sea-dsa-dg --sea-dsa-dot example.bc  # Unification-based, flow-insensitive, context-sensitive

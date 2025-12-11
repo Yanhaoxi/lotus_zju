@@ -44,7 +44,7 @@ Core Components
    - **AserPTA**: Constraint-based pointer analysis with multiple context sensitivities
    - **LotusAA**: Flow-sensitive, field-sensitive interprocedural analysis
    - **Sea-DSA**: Context-sensitive DSA-based memory analysis
-   - **Andersen**: Fast context-insensitive inclusion-based analysis
+   - **SparrowAA**: Inclusion-based pointer analysis
    - **FPA**: Function pointer analysis (FLTA, MLTA, MLTADF, KELP)
    - **SRAA**: Strict Relation Alias Analysis using range analysis
    - **OriginAA**: Origin-sensitive analysis for thread creation tracking
@@ -284,14 +284,6 @@ Abstract Interpretation Flow (CLAM)
 Data Structures
 ---------------
 
-Points-To Sets
-~~~~~~~~~~~~~~
-
-Different analyses use different representations:
-
-- **Sparse BitVector**: Fast set operations (AserPTA)
-- **Dense Sets**: Precise membership testing (Andersen)
-- **Equivalence Classes**: Unification-based (DyckAA, Sea-DSA)
 
 Constraint Graphs
 ~~~~~~~~~~~~~~~~~
@@ -314,88 +306,6 @@ Program Dependence Graphs
 - **Edges**: Data dependencies, control dependencies, parameter bindings
 - **Trees**: Hierarchical parameter representations for field sensitivity
 
-Memory Models
--------------
-
-Field-Sensitive
-~~~~~~~~~~~~~~~
-
-- Track individual struct fields separately
-- More precise but more expensive
-- Used by AserPTA (optional), LotusAA, Sea-DSA
-
-Field-Insensitive
-~~~~~~~~~~~~~~~~~
-
-- Treat entire objects as single entities
-- Faster but less precise
-- Used by Andersen, basic AserPTA mode
-
-Flow-Sensitive
-~~~~~~~~~~~~~~
-
-- Track different points-to sets at different program points
-- Most precise but most expensive
-- Used by LotusAA
-
-Flow-Insensitive
-~~~~~~~~~~~~~~~~
-
-- Single points-to set per variable across entire program
-- Faster, less precise
-- Used by most analyses (AserPTA, Andersen, DyckAA)
-
-Context Sensitivity
--------------------
-
-Context-Insensitive
-~~~~~~~~~~~~~~~~~~~
-
-- Single analysis for each function
-- Fast but imprecise for recursion and callbacks
-- Used by Andersen, basic DyckAA
-
-K-CFA (K-Call-Site Sensitive)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-- Distinguish calls by up to K call sites on stack
-- Good precision-performance trade-off
-- Supported by AserPTA (1-CFA, 2-CFA)
-
-Object-Sensitive
-~~~~~~~~~~~~~~~~
-
-- Distinguish by allocation site of receiver object
-- Good for object-oriented code
-- Can be emulated in Lotus
-
-Origin-Sensitive
-~~~~~~~~~~~~~~~~
-
-- Track thread creation contexts
-- Specialized for concurrent programs
-- Supported by AserPTA, OriginAA
-
-Integration Points
-------------------
-
-LLVM Pass Integration
-~~~~~~~~~~~~~~~~~~~~~
-
-All analyses are implemented as LLVM passes and can be integrated into any LLVM-based tool:
-
-.. code-block:: cpp
-
-   #include "Alias/DyckAA/DyckAliasAnalysis.h"
-   
-   // Register pass
-   PassRegistry &Registry = *PassRegistry::getPassRegistry();
-   initializeDyckAliasAnalysisPass(Registry);
-   
-   // Use in pass manager
-   legacy::PassManager PM;
-   PM.add(new DyckAliasAnalysis());
-   PM.run(module);
 
 Standalone Tools
 ~~~~~~~~~~~~~~~~
@@ -428,24 +338,6 @@ Scalability Strategies
 4. **Incremental Analysis**: Reuse results across runs
 5. **Parallel Processing**: Some analyses support parallelization (Graspan)
 
-Precision vs. Performance
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-From fastest to most precise:
-
-1. **Andersen** (context-insensitive, field-insensitive)
-2. **AserPTA-CI** (context-insensitive, field-sensitive)
-3. **AserPTA-1CFA** (1-call-site sensitive)
-4. **DyckAA** (unification-based, field-sensitive)
-5. **LotusAA** (flow-sensitive, field-sensitive)
-
-Recommended Configurations
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-- **Quick Scan**: Andersen or AserPTA-CI
-- **Balanced**: AserPTA 1-CFA with wave propagation
-- **Precise**: DyckAA or LotusAA
-- **Verification**: CLAM with polyhedra domain
 
 Extension Points
 ----------------

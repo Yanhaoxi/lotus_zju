@@ -10,83 +10,22 @@ Choose the right analysis for your needs:
 
 **For Large Codebases (Speed Priority)**:
 
-- **Andersen**: Fastest, context-insensitive, inclusion-based
+- **SparrowAA (CI mode)**: Fastest, context-insensitive, inclusion-based
 - **AserPTA (CI mode)**: Fast with field sensitivity option
 - **AllocAA**: Lightweight heuristic-based tracking
-
-**For Balanced Precision/Performance**:
-
-- **AserPTA (1-CFA)**: Good precision with reasonable cost
 - **FPA (KELP)**: Specialized for function pointer resolution
 - **SRAA**: Range-based for proving non-aliasing
+- **DyckAA**: Unification-based with Dyck-CFL reachability
+
+
 
 **For Maximum Precision**:
 
-- **DyckAA**: Unification-based with Dyck-CFL reachability
 - **LotusAA**: Flow-sensitive and field-sensitive
-- **Sea-DSA**: Context-sensitive memory graphs
+- **Sea-DSA**: Unification-based, context-sensitive with heap cloning
+- **SparrowAA (1-CFA, 2-CFA)**: Context-sensitive, inclusion-based
+- **AserPTA (1-CFA, 2-CFA, Origin)**: Context-sensitive, inclusion-based
 
-**For Specific Scenarios**:
-
-- **Concurrent programs**: AserPTA with origin sensitivity
-- **Dynamic validation**: DynAA for runtime verification
-- **Function pointers only**: FPA (FLTA, MLTA, KELP)
-
-Comparison Table
-----------------
-
-.. list-table::
-   :header-rows: 1
-   :widths: 20 15 15 15 15 20
-
-   * - Analysis
-     - Context
-     - Flow
-     - Field
-     - Speed
-     - Use Case
-   * - Andersen
-     - Insensitive
-     - Insensitive
-     - Insensitive
-     - Fast
-     - Quick scanning
-   * - AserPTA-CI
-     - Insensitive
-     - Insensitive
-     - Sensitive
-     - Fast
-     - Balanced analysis
-   * - AserPTA-1CFA
-     - 1-Call-Site
-     - Insensitive
-     - Sensitive
-     - Moderate
-     - Good precision
-   * - DyckAA
-     - Insensitive
-     - Insensitive
-     - Sensitive
-     - Slow
-     - High precision
-   * - LotusAA
-     - Sensitive
-     - Sensitive
-     - Sensitive
-     - Slowest
-     - Maximum precision
-   * - Sea-DSA
-     - Sensitive
-     - Insensitive
-     - Sensitive
-     - Moderate
-     - Memory graphs
-   * - FPA-KELP
-     - Sensitive
-     - Insensitive
-     - Sensitive
-     - Moderate
-     - Function pointers
 
 AllocAA
 -------
@@ -292,22 +231,44 @@ Context-sensitive, field-sensitive alias analysis based on DSA.
 * ``--sea-dsa-callgraph-dot``: Generate call graph DOT files
 * ``--outdir <DIR>``: Specify output directory
 
-Andersen
---------
+SparrowAA
+---------
 
-Context-insensitive points-to analysis for scalability.
+Inclusion-based points-to analysis.
 
 **Location**: ``lib/Alias/SparrowAA``
+
+**Algorithm**: inclusion/subset-based pointer analysis with constraint graph construction and worklist-based solving.
+
+**Analysis Modes**:
+* Flow-insensitive, context-insensitive (CI)
+* Flow-insensitive, context-sensitive (1-CFA, 2-CFA)
+
+**Constraint Types**:
+* ``p = &x`` → address-of constraint
+* ``p = q`` → copy constraint
+* ``p = *q`` → load constraint
+* ``*p = q`` → store constraint
+* ``p = &x->field`` / GEP → field/offset constraint
+
+**Optimizations** (optional, disabled by default):
+* **HVN / HU** – Hash-based value numbering and Heintze–Ullman style equivalence
+* **HCD / LCD** – Hybrid and lazy cycle detection for SCC identification
 
 **Usage**:
 .. code-block:: bash
 
-   ./build/bin/ander-aa example.bc
+   ./build/bin/sparrow-aa example.bc
 
 **Features**:
-* Andersen's inclusion-based algorithm
-* No on-the-fly callgraph construction
+* Inclusion-based algorithm
 * Fast analysis for large codebases
+* Supports multiple context sensitivities
+* Optional optimizations for improved performance
+
+**Typical Use**: Fast whole-program call-graph and mod/ref precomputation
+
+**Note**: This module has some redundancies with AserPTA and reuses some header files from it (from context abstraction).
 
 FPA (Function Pointer Analysis)
 -------------------------------

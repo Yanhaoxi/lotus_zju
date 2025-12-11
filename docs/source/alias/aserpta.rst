@@ -33,7 +33,7 @@ The analysis pipeline is organized as:
      SCC nodes (CGSuperNode).
 4. **Solving with Context**
    - Context models: ``NoCtx``, ``KCallSite<K>``, ``KOrigin<K>``.
-   - Solver choices: Andersen, WavePropagation, DeepPropagation,
+   - Solver choices: WavePropagation, DeepPropagation,
      PartialUpdateSolver.
 
 Analysis Modes and Options

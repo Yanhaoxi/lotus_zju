@@ -51,13 +51,15 @@ Compile to LLVM IR
 Run Different Alias Analyses
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**1. Andersen's Analysis (Fast)**:
+**1. SparrowAA (CI mode) Analysis (Fast)**:
 
 .. code-block:: bash
 
-   ./build/bin/ander-aa example1.bc
+   ./build/bin/sparrow-aa example1.bc
 
 This performs context-insensitive, inclusion-based pointer analysis. Good for quick scans.
+
+Note: sparrow-aa also has context-sensitive variants.
 
 **2. AserPTA with 1-CFA (Balanced)**:
 
@@ -804,7 +806,7 @@ Expected Output
 Best Practices
 --------------
 
-1. **Start Simple**: Begin with fast analyses (Andersen, basic Kint) to get quick feedback
+1. **Start Simple**: Begin with fast analyses to get quick feedback
 
 2. **Incremental Precision**: If fast analyses report issues, use more precise analyses to reduce false positives
 

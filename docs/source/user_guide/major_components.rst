@@ -18,7 +18,7 @@ See :doc:`../alias/alias_analysis` for detailed instructions and command example
   preserved in Lotus for LLVM 15+ users.
 * **Sea-DSA** – Context-sensitive and field-sensitive analysis with
   Sea-DSA (``lib/Alias/seadsa``) requiring Boost.
-* **Andersen** – Context-insensitive points-to analysis without on-the-fly
+* **SparrowAA** – Inclusion-based pointer analysis without on-the-fly
   call-graph construction (``lib/Alias/SparrowAA``).
 * **FPA** – Function Pointer Analysis toolbox (FLTA, MLTA, MLTADF, KELP) under
   ``lib/Alias/FPA`` for resolving indirect calls.

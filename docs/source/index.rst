@@ -46,7 +46,7 @@ Lotus is a comprehensive program analysis, verification, and optimization framew
 Features
 --------
 
-* **Multiple Alias Analysis Algorithms**: DyckAA, CFLAA, Sea-DSA, Andersen, FPA, OriginAA
+* **Multiple Alias Analysis Algorithms**: DyckAA, CFLAA, Sea-DSA, SparrowAA, AserPTA, FPA, OriginAA
 * **Dynamic Analysis Validation**: DynAA for validating static analysis results
 * **Intermediate Representations**: PDG, SVFG, DyckVFG
 * **Constraint Solving**: SMT (Z3), BDD (CUDD), WPDS

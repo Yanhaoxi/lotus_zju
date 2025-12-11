@@ -217,8 +217,7 @@ Out of Memory
 
 .. code-block:: bash
 
-   # Use Andersen instead of DyckAA
-   ./bin/ander-aa input.bc
+   ./bin/dyck-aa input.bc
 
 3. Analyze incrementally:
 
@@ -447,11 +446,8 @@ Performance Tuning
 Speeding Up Analysis
 ~~~~~~~~~~~~~~~~~~~~
 
-1. **Choose appropriate analysis**:
+1. **Choose appropriate analysis**
 
-   - Quick scan: ``ander-aa``, ``lotus-kint`` with basic checks
-   - Moderate: ``aser-aa`` with 1-CFA
-   - Precise: ``dyck-aa``, ``lotus-aa``
 
 2. **Reduce scope**:
 
@@ -509,14 +505,7 @@ General Questions
 
 **Q: Which alias analysis should I use?**
 
-A: Depends on your needs:
-
-- **Fast, large codebases**: Andersen or AserPTA (CI)
-- **Balanced precision/performance**: AserPTA (1-CFA)
-- **Maximum precision**: DyckAA or LotusAA
-- **Memory graphs**: Sea-DSA
-- **Function pointers only**: FPA (KELP)
-- **Validation**: DynAA
+A: Depends on your needs
 
 **Q: Can Lotus analyze C++ code?**
 
