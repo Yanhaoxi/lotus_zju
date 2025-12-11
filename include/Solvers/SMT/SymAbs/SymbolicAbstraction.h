@@ -6,12 +6,13 @@
  * 
  * This module implements algorithms from "Automatic Abstraction of Bit-Vector Formulae"
  * for computing symbolic abstractions using SMT solvers. The algorithms compute abstractions
- * in various domains: intervals, octagons, convex polyhedra, affine equalities, congruences,
- * and polynomials.
+ * in various domains: intervals, octagons, zones, convex polyhedra, affine equalities, 
+ * congruences, and polynomials.
  * 
  * Key algorithms:
  * - Algorithm 7: α_lin-exp - Linear expression maximization
  * - Algorithm 8: α_oct^V - Octagonal abstraction
+ * - α_zone^V - Zone abstraction (Difference Bound Matrices)
  * - Algorithm 9: α_conv^V - Convex polyhedral abstraction
  * - Algorithm 10: relax-conv - Relaxing convex polyhedra
  * - Algorithm 11: α_a-cong - Arithmetical congruence abstraction
@@ -23,6 +24,7 @@
  * - Solvers/SMT/SymAbs/Config.h - Configuration types
  * - Solvers/SMT/SymAbs/LinearExpression.h - Linear expression maximization
  * - Solvers/SMT/SymAbs/Octagon.h - Octagonal abstraction
+ * - Solvers/SMT/SymAbs/Zone.h - Zone abstraction (DBM)
  * - Solvers/SMT/SymAbs/Affine.h - Affine equality abstraction
  * - Solvers/SMT/SymAbs/Polyhedron.h - Convex polyhedral abstraction
  * - Solvers/SMT/SymAbs/Congruence.h - Congruence abstraction
@@ -32,6 +34,7 @@
 #include "Solvers/SMT/SymAbs/Config.h"
 #include "Solvers/SMT/SymAbs/LinearExpression.h"
 #include "Solvers/SMT/SymAbs/Octagon.h"
+#include "Solvers/SMT/SymAbs/Zone.h"
 #include "Solvers/SMT/SymAbs/Affine.h"
 #include "Solvers/SMT/SymAbs/Polyhedron.h"
 #include "Solvers/SMT/SymAbs/Congruence.h"

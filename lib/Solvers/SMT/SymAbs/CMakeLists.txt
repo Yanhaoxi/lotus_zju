@@ -2,6 +2,7 @@ add_library(SymAbs STATIC
         SymAbsUtils.cpp
         LinearExpression.cpp
         Octagon.cpp
+        Zone.cpp
         Congruence.cpp
         Affine.cpp
         Polyhedron.cpp

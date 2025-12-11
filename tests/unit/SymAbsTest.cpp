@@ -171,4 +171,60 @@ TEST(SymAbsPolyhedronTest, HandlesMultipleVariables) {
     EXPECT_TRUE(has_y_constraint);
 }
 
+TEST(SymAbsZoneTest, CapturesUnaryConstraints) {
+    context ctx;
+    expr x = ctx.bv_const("x", 8);
+
+    expr phi = sge(x, ctx.bv_val(0, 8)) && sle(x, ctx.bv_val(10, 8));
+
+    std::vector<expr> vars = {x};
+    auto zone = SymAbs::alpha_zone_V(phi, vars);
+
+    // Should have at least an upper bound constraint
+    ASSERT_FALSE(zone.empty());
+    
+    bool has_upper_bound = false;
+    for (const auto& c : zone) {
+        if (c.unary && c.bound == 10) {
+            has_upper_bound = true;
+            break;
+        }
+    }
+    
+    EXPECT_TRUE(has_upper_bound);
+}
+
+
+TEST(SymAbsZoneTest, HandlesMultipleDifferenceConstraints) {
+    context ctx;
+    expr x = ctx.bv_const("x", 8);
+    expr y = ctx.bv_const("y", 8);
+    expr z = ctx.bv_const("z", 8);
+
+    // Create bounded variables that imply difference constraints
+    // x in [0, 10], y in [2, 8], z in [1, 5]
+    // This implies: x - y in [-8, 8], y - z in [-3, 7], x - z in [-5, 9]
+    expr phi = sge(x, ctx.bv_val(0, 8)) && sle(x, ctx.bv_val(10, 8)) &&
+               sge(y, ctx.bv_val(2, 8)) && sle(y, ctx.bv_val(8, 8)) &&
+               sge(z, ctx.bv_val(1, 8)) && sle(z, ctx.bv_val(5, 8));
+
+    std::vector<expr> vars = {x, y, z};
+    auto zone = SymAbs::alpha_zone_V(phi, vars);
+
+    // Should capture both unary and difference constraints
+    ASSERT_FALSE(zone.empty());
+    
+    // Count non-unary (difference) constraints
+    int diff_count = 0;
+    for (const auto& c : zone) {
+        if (!c.unary) {
+            diff_count++;
+        }
+    }
+    
+    // With 3 variables, we should have multiple difference constraints
+    // (up to 6 possible: x-y, x-z, y-x, y-z, z-x, z-y)
+    EXPECT_GT(diff_count, 0);
+}
+
 } // namespace
