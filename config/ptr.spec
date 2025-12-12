@@ -318,9 +318,6 @@ IGNORE sqrt
 IGNORE sqrtf
 IGNORE tan
 
-# C++ (mangled) math helpers sometimes seen in IR
-IGNORE _ZSt4fmaxIiiEN9__gnu_cxx11__promote_2IT_T0_NS0_9__promoteIS2_Xsr3std12__is_integerIS2_EE7__valueEE6__typeENS4_IS3_Xsr3std12__is_integerIS3_EE7__valueEE6__typeEE6__typeES2_S3_
-
 # Conversions
 IGNORE atof
 IGNORE atoi
@@ -391,6 +388,7 @@ wmemcpy COPY Arg0 R Arg1 R
 wmemcpy COPY Ret V Arg0 V
 memset COPY Arg0 R NULL
 memset COPY Ret V Arg0 V
+
 DEALLOC free
 DEALLOC cfree
 DEALLOC _ZdlPv
@@ -429,6 +427,12 @@ IGNORE llvm.stackrestore
 IGNORE llvm.trap
 IGNORE llvm.umul.with.overflow.i64
 
+# C++ placement new operators (these don't allocate memory)
+IGNORE _ZnwmPv
+IGNORE _ZnamPv 
+IGNORE _ZnwjPv
+IGNORE _ZnajPv
+
 # C++ Standard Library - Smart Pointers and Containers (TBD)
 _ZnwmSt11align_val_t ALLOC Arg0
 _ZnamSt11align_val_t ALLOC Arg0
@@ -438,12 +442,6 @@ _ZnwjSt11align_val_t ALLOC Arg0
 _ZnajSt11align_val_t ALLOC Arg0
 _ZnwjSt11align_val_tRKSt9nothrow_t ALLOC Arg0
 _ZnajSt11align_val_tRKSt9nothrow_t ALLOC Arg0
-
-# C++ placement new operators (these don't allocate memory)
-IGNORE _ZnwmPv
-IGNORE _ZnamPv 
-IGNORE _ZnwjPv
-IGNORE _ZnajPv
 
 # Additional allocation functions
 reallocf ALLOC Arg1

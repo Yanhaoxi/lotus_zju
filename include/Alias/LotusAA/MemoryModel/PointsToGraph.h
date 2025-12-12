@@ -176,6 +176,9 @@ protected:
 
   void loadPtrAt(Value *ptr, Instruction *from_loc, mem_value_t &res,
                  bool create_symbol = false, int64_t offset = 0);
+  void loadPtrAtImpl(Value *ptr, Instruction *from_loc, mem_value_t &result,
+                     bool create_symbol, int64_t query_offset,
+                     std::set<std::tuple<Value *, Instruction *, int64_t>> &visited);
 
   void trackPtrRightValue(Value *ptr, mem_value_t &res);
   void trackPtrRightValueImpl(Value *ptr, mem_value_t &res,

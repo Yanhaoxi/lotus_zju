@@ -43,7 +43,7 @@ cl::opt<int> MaxTypeLayer(
         cl::NotHidden, cl::init(10));
 
 cl::opt<bool> DebugMode(
-        "debug",
+        "fpa-debug",
         cl::desc("debug mode"),
         cl::init(false)
 );

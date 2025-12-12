@@ -297,7 +297,13 @@ LocValue *ObjectLocator::getVersion(Instruction *pos_inst) {
         return lv_list->at(end_pos - 1);
     }
 
-    bb = DT->getNode(bb)->getIDom()->getBlock();
+    // `DominatorTree` does not include unreachable blocks. Also the entry block
+    // has no IDom. Avoid null-dereferences and simply stop the walk.
+    DomTreeNode *node = DT->getNode(bb);
+    if (!node)
+      break;
+    DomTreeNode *idom = node->getIDom();
+    bb = idom ? idom->getBlock() : nullptr;
   }
 
   return nullptr;
@@ -402,8 +408,12 @@ Argument *ObjectLocator::getValues(Instruction *from_loc, mem_value_t &res,
       }
     }
 
-    // Move to immediate dominator
-    DomTreeNode *idom_node = DT->getNode(bb)->getIDom();
+    // Move to immediate dominator.
+    // Note: unreachable blocks are not in the DT, and the entry block has no IDom.
+    DomTreeNode *node = DT->getNode(bb);
+    if (!node)
+      break;
+    DomTreeNode *idom_node = node->getIDom();
     bb = idom_node ? idom_node->getBlock() : nullptr;
     bb_tracked++;
   }

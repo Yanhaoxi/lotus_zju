@@ -64,6 +64,8 @@
 
 #include <llvm/Analysis/DominanceFrontier.h>
 #include <llvm/Support/CommandLine.h>
+#include <tuple>
+#include <set>
 
 using namespace llvm;
 using namespace std;
@@ -107,7 +109,10 @@ PTResultIterator::PTResultIterator(PTResult *target, PTGraph *parent_graph)
 
 void PTResultIterator::visit(PTResult *target, int64_t off,
                              set<PTResult *> &visited) {
-  assert(target && "Null target");
+  // In fuzzing / partially-built summaries we can see null derived targets.
+  // Don't crash in release builds; just treat them as empty.
+  if (!target)
+    return;
   
   // Check for cycles - if already visited, skip
   if (visited.count(target))
@@ -117,12 +122,18 @@ void PTResultIterator::visit(PTResult *target, int64_t off,
 
   // Direct targets
   for (PTResult::PtItem &item : target->pt_list) {
+    if (!item.locator)
+      continue;
     ObjectLocator *locator = item.locator->offsetBy(off);
+    if (!locator)
+      continue;
     res.insert(locator);
   }
 
   // Derived targets
   for (PTResult::DerivedPtItem &item : target->derived_list) {
+    if (!item.src_pts)
+      continue;
     visit(item.src_pts, off + item.offset, visited);
   }
   
@@ -278,10 +289,32 @@ void PTGraph::getLoadValues(Value *ptr, Instruction *from_loc,
   loadPtrAt(ptr, from_loc, res, false, offset);
 }
 
-void PTGraph::loadPtrAt(Value *ptr, Instruction *from_loc, mem_value_t &result,
-                          bool create_symbol, int64_t query_offset) {
+void PTGraph::loadPtrAt(Value *ptr, Instruction *from_loc, mem_value_t &result, bool create_symbol, int64_t query_offset) {
+  // Use visited set to prevent infinite recursion
+  std::set<std::tuple<Value *, Instruction *, int64_t>> visited;
+  loadPtrAtImpl(ptr, from_loc, result, create_symbol, query_offset, visited);
+}
+
+void PTGraph::loadPtrAtImpl(Value *ptr, Instruction *from_loc, mem_value_t &result,
+                          bool create_symbol, int64_t query_offset,
+                          std::set<std::tuple<Value *, Instruction *, int64_t>> &visited) {
+  // Defensive: callers should pass real IR values/locations, but fuzzing and
+  // summary edges can route nullptrs here. Avoid null-deref inside type queries
+  // and ObjectLocator::getValues() (which requires a non-null Instruction*).
+  if (!ptr)
+    return;
+
+  // Cycle detection - prevent infinite recursion
+  std::tuple<Value *, Instruction *, int64_t> key(ptr, from_loc, query_offset);
+  if (visited.count(key))
+    return;
+  visited.insert(key);
+
   PTResult *ptr_pts = findPTResult(ptr);
-  assert(ptr_pts && "Load from NULL pointer");
+  if (!ptr_pts) {
+    // Return early if no points-to result (instead of asserting)
+    return;
+  }
 
   Type *value_type = nullptr;
   if (create_symbol) {
@@ -315,13 +348,33 @@ void PTGraph::loadPtrAt(Value *ptr, Instruction *from_loc, mem_value_t &result,
 
     // Get values from this locator
     mem_value_t tmp_result;
-    loc->getValues(from_loc, tmp_result, value_type,
-                   ObjectLocator::FUNC_LEVEL_UNDEFINED, true);
+    if (from_loc) {
+      loc->getValues(from_loc, tmp_result, value_type,
+                     ObjectLocator::FUNC_LEVEL_UNDEFINED, true);
+    } else {
+      // No program point: fall back to the coarse per-object stored-value cache
+      // at this offset. This is conservative and avoids requiring dominance info.
+      const int64_t off_key = offset + query_offset;
+      auto &stored = obj->getStoredValues();
+      auto it = stored.find(off_key);
+      if (it != stored.end()) {
+        for (Value *v : it->second) {
+          tmp_result.push_back(mem_value_item_t(nullptr, v));
+        }
+      }
+
+      // If nothing known was stored, mirror ObjectLocator::getValues() default.
+      if (tmp_result.empty()) {
+        tmp_result.push_back(mem_value_item_t(
+            nullptr, obj->isReallyAllocated() ? LocValue::UNDEF_VALUE
+                                             : LocValue::FREE_VARIABLE));
+      }
+    }
 
     result.insert(result.end(), tmp_result.begin(), tmp_result.end());
 
     // Track loaded values for load instructions
-    if (isa<LoadInst>(from_loc) || isa<CallBase>(from_loc)) {
+    if (from_loc && (isa<LoadInst>(from_loc) || isa<CallBase>(from_loc))) {
       Value *val = from_loc;
       if (isa<LoadInst>(from_loc))
         val = from_loc;
