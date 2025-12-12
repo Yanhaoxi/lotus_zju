@@ -1,5 +1,4 @@
 add_library(CanarySupport STATIC
-        APISpec.cpp
         ProgressBar.cpp
         Timer.cpp
         RNG.cpp

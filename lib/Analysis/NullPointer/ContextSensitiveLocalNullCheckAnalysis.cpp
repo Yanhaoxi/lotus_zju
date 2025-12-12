@@ -11,7 +11,7 @@
 #include <llvm/IR/InstIterator.h>
 #include "Analysis/NullPointer/ContextSensitiveLocalNullCheckAnalysis.h"
 //#include "Analysis/NullPointer/AliasAnalysisAdapter.h"
-#include "Utils/LLVM/API.h"
+#include "Analysis/NullPointer/API.h"
 
 ContextSensitiveLocalNullCheckAnalysis::ContextSensitiveLocalNullCheckAnalysis(
     ContextSensitiveNullFlowAnalysis *NFA, Function *F, const Context &Ctx) 

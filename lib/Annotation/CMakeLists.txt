@@ -4,4 +4,5 @@ add_library(Annotation STATIC
     ExternalPointerTablePrinter.cpp
     TaintConfigParser.cpp
     TaintConfigManager.cpp
+    APISpec.cpp
 )

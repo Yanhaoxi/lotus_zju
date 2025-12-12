@@ -1,4 +1,5 @@
 set(CanaryNullPointer_SOURCES
+  API.cpp
   LocalNullCheckAnalysis.cpp
   NullCheckAnalysis.cpp
   NullEquivalenceAnalysis.cpp

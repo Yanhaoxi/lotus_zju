@@ -1,5 +1,4 @@
 add_library(CanaryLLVMUtils STATIC
-        API.cpp
         Debug.cpp
         Demangle.cpp
         InstructionUtils.cpp
