@@ -352,9 +352,11 @@ bool Andersen::runOnModule(const Module &M) {
   collectConstraints(M);
   
   // Update statistics after constraint collection
-  NumConstraints = constraints.size();
-  NumValueNodes = nodeFactory.getNumNodes();
-  LOG_INFO("Collected {} constraints and created {} value nodes", NumConstraints, NumValueNodes);
+  size_t numConstraints = constraints.size();
+  size_t numValueNodes = nodeFactory.getNumNodes();
+  NumConstraints = numConstraints;
+  NumValueNodes = numValueNodes;
+  LOG_INFO("Collected {} constraints and created {} value nodes", numConstraints, numValueNodes);
   for (const auto &c : constraints) {
     switch (c.getType()) {
     case AndersConstraint::ADDR_OF:

@@ -35,12 +35,12 @@ public:
 
     LOCAL_STATISTIC(NumObjNode, "Number of Object Nodes");
     LOCAL_STATISTIC(NumPtrNode, "Number of Pointer Nodes");
-  LOCAL_STATISTIC(NumConstraints, "Number of Constrains");
-  LOCAL_STATISTIC(NumLoadConstraints, "Number of Load Constrains");
-  LOCAL_STATISTIC(NumStoreConstraints, "Number of Store Constrains");
-  LOCAL_STATISTIC(NumCopyConstraints, "Number of Assign Constrains");
-  LOCAL_STATISTIC(NumOffsetConstraints, "Number of Offset Constrains");
-  LOCAL_STATISTIC(NumNodes, "Number of Nodes in Total");
+    LOCAL_STATISTIC(NumConstraints, "Number of Constrains");
+    LOCAL_STATISTIC(NumLoadConstraints, "Number of Load Constrains");
+    LOCAL_STATISTIC(NumStoreConstraints, "Number of Store Constrains");
+    LOCAL_STATISTIC(NumCopyConstraints, "Number of Assign Constrains");
+    LOCAL_STATISTIC(NumOffsetConstraints, "Number of Offset Constrains");
+    LOCAL_STATISTIC(NumNodes, "Number of Nodes in Total");
 
 private:
     OnNewConstraintCallBack *callBack;

@@ -42,30 +42,41 @@ static constexpr AndersNodeFactory::CtxKey ctxKeyOrNull(AndersNodeFactory::CtxKe
 }
 
 NodeIndex AndersNodeFactory::createValueNode(const Value *val, CtxKey ctx) {
+  if (val != nullptr) {
+    auto &bucket = valueNodeMap[ctxKeyOrNull(ctx)];
+    auto it = bucket.find(val);
+    if (it != bucket.end()) {
+      // Node already exists, return existing index
+      return it->second;
+    }
+  }
+
   unsigned nextIdx = nodes.size();
   nodes.push_back(AndersNode(AndersNode::VALUE_NODE, nextIdx, val));
   if (val != nullptr) {
     auto &bucket = valueNodeMap[ctxKeyOrNull(ctx)];
-    auto inserted = bucket.try_emplace(val, nextIdx);
-    if (!inserted.second) {
-      LOG_WARN("Trying to insert duplicate value node for context/value");
-    } else {
-      valueNodeBuckets[val].push_back(nextIdx);
-    }
+    bucket[val] = nextIdx;
+    valueNodeBuckets[val].push_back(nextIdx);
   }
 
   return nextIdx;
 }
 
 NodeIndex AndersNodeFactory::createObjectNode(const Value *val, CtxKey ctx) {
+  if (val != nullptr) {
+    auto &bucket = objNodeMap[ctxKeyOrNull(ctx)];
+    auto it = bucket.find(val);
+    if (it != bucket.end()) {
+      // Node already exists, return existing index
+      return it->second;
+    }
+  }
+
   unsigned nextIdx = nodes.size();
   nodes.push_back(AndersNode(AndersNode::OBJ_NODE, nextIdx, val));
   if (val != nullptr) {
     auto &bucket = objNodeMap[ctxKeyOrNull(ctx)];
-    auto inserted = bucket.try_emplace(val, nextIdx);
-    if (!inserted.second) {
-      LOG_WARN("Trying to insert duplicate object node for context/value");
-    }
+    bucket[val] = nextIdx;
   }
 
   return nextIdx;
@@ -73,28 +84,32 @@ NodeIndex AndersNodeFactory::createObjectNode(const Value *val, CtxKey ctx) {
 
 NodeIndex AndersNodeFactory::createReturnNode(const llvm::Function *f,
                                               CtxKey ctx) {
+  auto &bucket = returnMap[ctxKeyOrNull(ctx)];
+  auto it = bucket.find(f);
+  if (it != bucket.end()) {
+    // Node already exists, return existing index
+    return it->second;
+  }
+
   unsigned nextIdx = nodes.size();
   nodes.push_back(AndersNode(AndersNode::VALUE_NODE, nextIdx, f));
-
-  auto &bucket = returnMap[ctxKeyOrNull(ctx)];
-  auto inserted = bucket.try_emplace(f, nextIdx);
-  if (!inserted.second) {
-    LOG_WARN("Trying to insert duplicate return node for context/function");
-  }
+  bucket[f] = nextIdx;
 
   return nextIdx;
 }
 
 NodeIndex AndersNodeFactory::createVarargNode(const llvm::Function *f,
                                               CtxKey ctx) {
+  auto &bucket = varargMap[ctxKeyOrNull(ctx)];
+  auto it = bucket.find(f);
+  if (it != bucket.end()) {
+    // Node already exists, return existing index
+    return it->second;
+  }
+
   unsigned nextIdx = nodes.size();
   nodes.push_back(AndersNode(AndersNode::OBJ_NODE, nextIdx, f));
-
-  auto &bucket = varargMap[ctxKeyOrNull(ctx)];
-  auto inserted = bucket.try_emplace(f, nextIdx);
-  if (!inserted.second) {
-    LOG_WARN("Trying to insert duplicate vararg node for context/function");
-  }
+  bucket[f] = nextIdx;
 
   return nextIdx;
 }

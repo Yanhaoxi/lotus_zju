@@ -12,6 +12,7 @@ add_library(Andersen STATIC
 	ConstraintSolving.cpp
 	ExternalLibrary.cpp
 	NodeFactory.cpp
+	ResultUtils.cpp
 )
 
 target_compile_options(Andersen PRIVATE

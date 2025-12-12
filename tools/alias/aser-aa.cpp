@@ -15,22 +15,16 @@
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Transforms/IPO/AlwaysInliner.h>
 
-#include "Alias/AserPTA/PointerAnalysis/Context/HybridCtx.h"
 #include "Alias/AserPTA/PointerAnalysis/Context/KCallSite.h"
 #include "Alias/AserPTA/PointerAnalysis/Context/KOrigin.h"
 #include "Alias/AserPTA/PointerAnalysis/Context/NoCtx.h"
 #include "Alias/AserPTA/PointerAnalysis/Models/LanguageModel/DefaultLangModel/DefaultLangModel.h"
 #include "Alias/AserPTA/PointerAnalysis/Models/MemoryModel/FieldSensitive/FSMemModel.h"
 #include "Alias/AserPTA/PointerAnalysis/Models/MemoryModel/FieldInsensitive/FIMemModel.h"
-#include "Alias/AserPTA/PointerAnalysis/PointerAnalysisPass.h"
 #include "Alias/AserPTA/PointerAnalysis/Solver/PartialUpdateSolver.h"
 #include "Alias/AserPTA/PointerAnalysis/Solver/WavePropagation.h"
 #include "Alias/AserPTA/PointerAnalysis/Solver/DeepPropagation.h"
-#include "Alias/AserPTA/PreProcessing/Passes/CanonicalizeGEPPass.h"
-#include "Alias/AserPTA/PreProcessing/Passes/LoweringMemCpyPass.h"
-#include "Alias/AserPTA/PreProcessing/Passes/RemoveExceptionHandlerPass.h"
-#include "Alias/AserPTA/PreProcessing/Passes/RemoveASMInstPass.h"
-#include "Alias/AserPTA/PreProcessing/Passes/StandardHeapAPIRewritePass.h"
+#include "Alias/AserPTA/PTADriver.h"
 
 using namespace aser;
 using namespace llvm;
@@ -86,61 +80,6 @@ using OriginWaveSolver = WavePropagation<FSModel<Origin>>;
 using OriginDeepSolver = DeepPropagation<FSModel<Origin>>;
 using OriginBasicSolver = PartialUpdateSolver<FSModel<Origin>>;
 
-namespace {
-
-template<typename PTASolver>
-class PTADriverPass : public ModulePass {
-public:
-    static char ID;
-    PTADriverPass() : ModulePass(ID) {}
-
-    void getAnalysisUsage(llvm::AnalysisUsage &AU) const override {
-        AU.addRequired<PointerAnalysisPass<PTASolver>>();
-    }
-
-    bool runOnModule(Module &M) override {
-        if (DumpStats) {
-            llvm::ResetStatistics();
-        }
-        
-        getAnalysis<PointerAnalysisPass<PTASolver>>().analyze(&M);
-        
-        if (DumpStats) {
-            llvm::PrintStatistics(llvm::outs());
-            llvm::ResetStatistics();
-        }
-        
-        getAnalysis<PointerAnalysisPass<PTASolver>>().release();
-        return false;
-    }
-};
-
-template<typename PTASolver>
-char PTADriverPass<PTASolver>::ID = 0;
-
-} // anonymous namespace
-
-template<typename Solver>
-void runAnalysis(Module &M) {
-    llvm::legacy::PassManager passes;
-    
-    // Preprocessing passes
-    errs() << "Preprocessing IR...\n";
-    passes.add(new CanonicalizeGEPPass());
-    passes.add(new LoweringMemCpyPass());
-    passes.add(new RemoveExceptionHandlerPass());
-    passes.add(new RemoveASMInstPass());
-    passes.add(new StandardHeapAPIRewritePass());
-    
-    // Analysis passes
-    auto *ptaPass = new PointerAnalysisPass<Solver>();
-    passes.add(ptaPass);
-    passes.add(new PTADriverPass<Solver>());
-    
-    errs() << "Running pointer analysis...\n";
-    passes.run(M);
-    errs() << "Analysis completed.\n";
-}
 
 int main(int argc, char** argv) {
     // Parse command line
@@ -181,11 +120,11 @@ int main(int argc, char** argv) {
         if (AnalysisMode == "ci") {
             // Context-insensitive
             if (SolverType == "basic") {
-                runAnalysis<CIBasicSolver>(*module);
+                runAnalysis<CIBasicSolver>(*module, DumpStats);
             } else if (SolverType == "wave") {
-                runAnalysis<CIWaveSolver>(*module);
+                runAnalysis<CIWaveSolver>(*module, DumpStats);
             } else if (SolverType == "deep") {
-                runAnalysis<CIDeepSolver>(*module);
+                runAnalysis<CIDeepSolver>(*module, DumpStats);
             } else {
                 errs() << "Unknown solver type: " << SolverType << "\n";
                 return 1;
@@ -193,11 +132,11 @@ int main(int argc, char** argv) {
         } else if (AnalysisMode == "1-cfa") {
             // 1-call-site sensitive
             if (SolverType == "basic") {
-                runAnalysis<CS1BasicSolver>(*module);
+                runAnalysis<CS1BasicSolver>(*module, DumpStats);
             } else if (SolverType == "wave") {
-                runAnalysis<CS1WaveSolver>(*module);
+                runAnalysis<CS1WaveSolver>(*module, DumpStats);
             } else if (SolverType == "deep") {
-                runAnalysis<CS1DeepSolver>(*module);
+                runAnalysis<CS1DeepSolver>(*module, DumpStats);
             } else {
                 errs() << "Unknown solver type: " << SolverType << "\n";
                 return 1;
@@ -205,11 +144,11 @@ int main(int argc, char** argv) {
         } else if (AnalysisMode == "2-cfa") {
             // 2-call-site sensitive
             if (SolverType == "basic") {
-                runAnalysis<CS2BasicSolver>(*module);
+                runAnalysis<CS2BasicSolver>(*module, DumpStats);
             } else if (SolverType == "wave") {
-                runAnalysis<CS2WaveSolver>(*module);
+                runAnalysis<CS2WaveSolver>(*module, DumpStats);
             } else if (SolverType == "deep") {
-                runAnalysis<CS2DeepSolver>(*module);
+                runAnalysis<CS2DeepSolver>(*module, DumpStats);
             } else {
                 errs() << "Unknown solver type: " << SolverType << "\n";
                 return 1;
@@ -217,11 +156,11 @@ int main(int argc, char** argv) {
         } else if (AnalysisMode == "origin") {
             // Origin-sensitive
             if (SolverType == "basic") {
-                runAnalysis<OriginBasicSolver>(*module);
+                runAnalysis<OriginBasicSolver>(*module, DumpStats);
             } else if (SolverType == "wave") {
-                runAnalysis<OriginWaveSolver>(*module);
+                runAnalysis<OriginWaveSolver>(*module, DumpStats);
             } else if (SolverType == "deep") {
-                runAnalysis<OriginDeepSolver>(*module);
+                runAnalysis<OriginDeepSolver>(*module, DumpStats);
             } else {
                 errs() << "Unknown solver type: " << SolverType << "\n";
                 return 1;

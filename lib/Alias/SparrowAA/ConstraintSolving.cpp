@@ -614,7 +614,7 @@ void Andersen::solveConstraints() {
     unsigned nodeCount = 0;
     while (!currWorkList->isEmpty()) {
       NodeIndex node = currWorkList->dequeue();
-      if (iterCount == 1 && ++nodeCount % 500 == 0) {
+      if (iterCount == 1 && ++nodeCount % 2000 == 0) {
         LOG_INFO("    - Processed {} nodes in iteration 1", nodeCount);
       }
       ++NumWorkListProcessed;

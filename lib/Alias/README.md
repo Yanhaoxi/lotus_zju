@@ -15,4 +15,7 @@ This directory contains various alias analysis implementations and toolkits used
 - UnderApproxAA: must-alias analysis
 - AllocAA.
 
-Note: SparrowAA and AserPTA have some redundancies. 
+Note: SparrowAA and AserPTA have some redundancies, but are different
+- SparrowAA does not use on-the-fly callgraph constructioin
+- SparrowAA integrates more graph simplification algorithms
+- AserPTA has the "orgin-sensitive" variant

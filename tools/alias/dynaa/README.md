@@ -1,8 +1,5 @@
 # Dynamic Alias Analysis Checker
 
-
-(upgraded to LLVM 14 from https://github.com/rainoftime/neonGobyPort)
-
 This tool dynamically observes pointer addresses in a test program and checks these addresses against static alias analysis results to find potential alias analysis errors.
 
 ## Prerequisites
