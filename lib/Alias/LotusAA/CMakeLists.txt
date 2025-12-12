@@ -41,14 +41,5 @@ add_library(LotusAA STATIC ${LOTUSAA_SOURCES})
 
 target_link_libraries(LotusAA PUBLIC
   LLVMAnalysis
+  AliasSpecManager
 )
-
-# Set output directory
-set_target_properties(LotusAA PROPERTIES
-  ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
-)
-
-install(TARGETS LotusAA
-  ARCHIVE DESTINATION lib
-)
-

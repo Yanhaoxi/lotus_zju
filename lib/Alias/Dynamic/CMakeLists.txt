@@ -8,6 +8,8 @@ add_library(CanaryDynamicAA STATIC
         MemoryInstrument.cpp
 )
 
+target_link_libraries(CanaryDynamicAA PUBLIC AliasSpecManager)
+
 # Create the runtime library that will be linked with instrumented programs
 add_library(Runtime STATIC
         MemoryHooks.c

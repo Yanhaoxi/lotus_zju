@@ -25,10 +25,12 @@
 #include "Alias/AserPTA/PointerAnalysis/Solver/WavePropagation.h"
 #include "Alias/AserPTA/PointerAnalysis/Solver/DeepPropagation.h"
 #include "Alias/AserPTA/PTADriver.h"
+#include "Alias/Common/AliasSpecManager.h"
 
 using namespace aser;
 using namespace llvm;
 using namespace std;
+using namespace lotus::alias;
 
 // Command-line options
 static cl::opt<std::string> InputFilename(cl::Positional, 
@@ -53,6 +55,14 @@ static cl::opt<bool> DumpStats("dump-stats",
 static cl::opt<std::string> OutputFile("o",
     cl::desc("Output file for results"),
     cl::value_desc("filename"));
+
+static cl::opt<std::string> ConfigFile("config",
+    cl::desc("Path to config spec file (e.g., ptr.spec). Can be specified multiple times or use comma-separated paths"),
+    cl::value_desc("filepath"));
+
+static cl::list<std::string> ConfigFiles("config-file",
+    cl::desc("Path to config spec file (alternative to -config)"),
+    cl::value_desc("filepath"));
 
 // Type aliases for analysis configurations
 using Origin = KOrigin<1>;
@@ -100,6 +110,55 @@ int main(int argc, char** argv) {
     errs() << "Analysis mode: " << AnalysisMode << "\n";
     errs() << "Solver type: " << SolverType << "\n";
     errs() << "Field-sensitive: " << (FieldSensitive ? "yes" : "no") << "\n";
+    
+    // Initialize AliasSpecManager with config files
+    std::unique_ptr<AliasSpecManager> specManager;
+    std::vector<std::string> specFilePaths;
+    
+    // Collect config files from command-line options
+    if (!ConfigFile.empty()) {
+        // Parse comma-separated paths if provided
+        std::string config = ConfigFile;
+        size_t pos = 0;
+        while ((pos = config.find(',')) != std::string::npos) {
+            std::string path = config.substr(0, pos);
+            if (!path.empty()) {
+                specFilePaths.push_back(path);
+            }
+            config.erase(0, pos + 1);
+        }
+        if (!config.empty()) {
+            specFilePaths.push_back(config);
+        }
+    }
+    
+    // Add files from -config-file option
+    for (const auto &path : ConfigFiles) {
+        specFilePaths.push_back(path);
+    }
+    
+    // Create spec manager with specified files or use defaults
+    if (!specFilePaths.empty()) {
+        specManager = std::make_unique<AliasSpecManager>(specFilePaths);
+    } else {
+        specManager = std::make_unique<AliasSpecManager>();
+    }
+    
+    // Initialize with module for better name matching
+    specManager->initialize(*module);
+    
+    // Display loaded config files
+    const auto &loadedFiles = specManager->getLoadedSpecFiles();
+    if (!loadedFiles.empty()) {
+        errs() << "Config files: ";
+        for (size_t i = 0; i < loadedFiles.size(); ++i) {
+            if (i > 0) errs() << ", ";
+            errs() << loadedFiles[i];
+        }
+        errs() << "\n";
+    } else {
+        errs() << "Config files: (none loaded)\n";
+    }
 
     // Setup origin rules for origin-sensitive analysis
     Origin::setOriginRules([](const Origin *, const llvm::Instruction *I) -> bool {

@@ -3,5 +3,4 @@ add_library(CanarySRAA STATIC
         StrictRelationAliasAnalysis.cpp
         vSSA.cpp
 )
-
-target_link_libraries(CanarySRAA CanaryLLVMUtils)
+target_link_libraries(CanarySRAA PUBLIC CanaryLLVMUtils AliasSpecManager)

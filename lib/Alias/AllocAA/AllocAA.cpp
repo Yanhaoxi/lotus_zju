@@ -1,5 +1,6 @@
 
 #include "Alias/AllocAA/AllocAA.h"
+#include "Alias/Common/AliasSpecManager.h"
 
 
 AllocAA::AllocAA(Module &M,
@@ -13,30 +14,27 @@ AllocAA::AllocAA(Module &M,
     CGUnderMain{},
     allocatorCalls{},
     readOnlyFunctionNames{},
-    allocatorFunctionNames{ "malloc", "calloc" },
-    memorylessFunctionNames{
-      "sqrt",
-      "sqrtf",
-      "ceil",
-      "floor",
-      "log",
-      "log10",
-      "pow",
-      "exp",
-      "cos",
-      "acos",
-      "sin",
-      "tanh",
-      "atoll",
-      "atoi",
-      "atol"
-
-      // C++
-      ,
-      "_ZSt4fmaxIiiEN9__gnu_cxx11__promote_2IT_T0_NS0_9__promoteIS2_Xsr3std12__is_integerIS2_EE7__valueEE6__typeENS4_IS3_Xsr3std12__is_integerIS3_EE7__valueEE6__typeEE6__typeES2_S3_"
-    },
+    allocatorFunctionNames{},
+    memorylessFunctionNames{},
     primitiveArrayGlobals{},
     primitiveArrayLocals{} {
+
+  // Populate known functions from the shared spec manager.
+  lotus::alias::AliasSpecManager specMgr;
+  specMgr.initialize(M);
+
+  for (const auto &name : specMgr.getAllocatorNames()) {
+    allocatorFunctionNames.insert(name);
+  }
+
+  // "Memoryless" here means: no pointer-producing effects and no mod/ref effects.
+  for (const auto &name : specMgr.getNoEffectNames()) {
+    auto mr = specMgr.getModRefInfo(name);
+    if (mr.modifiedArgs.empty() && mr.referencedArgs.empty() && !mr.modifiesReturn &&
+        !mr.referencesReturn) {
+      memorylessFunctionNames.insert(name);
+    }
+  }
 
   auto &callGraph = this->getCallGraph();
   collectCGUnderFunctionMain(M, callGraph);
@@ -201,12 +199,14 @@ void AllocAA::collectCGUnderFunctionMain(Module &M, CallGraph &callGraph) {
 
 void AllocAA::collectAllocations(Module &M, CallGraph &callGraph) {
   std::set<Function *> allocatorFns;
-  for (auto& allocName : allocatorFunctionNames) {
-    auto F = M.getFunction(allocName);
-    if (!F)
-      continue;
-    allocatorFns.insert(F);
+  
+  // Collect allocator functions from spec manager
+  for (auto &F : M) {
+    if (F.isDeclaration() && specManager.isAllocator(&F)) {
+      allocatorFns.insert(&F);
+    }
   }
+  
   collectFunctionCallsTo(callGraph, allocatorFns, this->allocatorCalls);
 }
 
@@ -308,8 +308,7 @@ bool AllocAA::isPrimitiveArrayPointer(
         if (!callF) {
           return false;
         }
-        if (allocatorFunctionNames.find(callF->getName().str())
-            != allocatorFunctionNames.end()) {
+        if (specManager.isAllocator(callF)) {
           if (storedCall->hasOneUse())
             continue;
         }

@@ -3,6 +3,7 @@
 #include "Alias/Dynamic/DynamicHooks.h"
 #include "Alias/Dynamic/FeatureCheck.h"
 #include "Alias/Dynamic/IDAssigner.h"
+#include "Alias/Common/AliasSpecManager.h"
 
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
@@ -21,18 +22,12 @@ BasicBlock::iterator nextInsertionPos(Instruction& inst) {
     return loc;
 }
 
-bool isMalloc(const Function* f) {
-    auto fName = f->getName();
-    return fName == "malloc" || fName == "calloc" || fName == "valloc" ||
-           fName == "strdup" || fName == "_Znwj" || fName == "_Znwm" ||
-           fName == "_Znaj" || fName == "_Znam" || fName == "getline";
-}
-
 class Instrumenter
 {
 private:
     DynamicHooks& hooks;
     const IDAssigner& idMap;
+    const lotus::alias::AliasSpecManager& specMgr;
 
     LLVMContext& context;
 
@@ -63,8 +58,9 @@ private:
     void instrumentMalloc(Instruction* inst);
 
 public:
-    Instrumenter(DynamicHooks& d, const IDAssigner& i, LLVMContext& c)
-        : hooks(d), idMap(i), context(c) {}
+    Instrumenter(DynamicHooks& d, const IDAssigner& i,
+                 const lotus::alias::AliasSpecManager& s, LLVMContext& c)
+        : hooks(d), idMap(i), specMgr(s), context(c) {}
 
     void instrument(Module&);
 };
@@ -160,7 +156,7 @@ void Instrumenter::instrumentCallInst(CallInst* CI) {
     // Instrument memory allocation function calls.
     auto callee = CI->getCalledFunction();
     
-    if (callee && isMalloc(callee))
+    if (callee && specMgr.isAllocator(callee))
         instrumentMalloc(CI);
     else {
         // CallHook must be inserted before the call actually happens
@@ -178,7 +174,7 @@ void Instrumenter::instrumentInvokeInst(InvokeInst* II) {
     // Instrument memory allocation function calls.
     auto callee = II->getCalledFunction();
     
-    if (callee && isMalloc(callee))
+    if (callee && specMgr.isAllocator(callee))
         instrumentMalloc(II);
     else {
         // CallHook must be inserted before the call actually happens
@@ -296,7 +292,9 @@ void MemoryInstrument::runOnModule(Module& module) {
 
     IDAssigner idMap(module);
     DynamicHooks hooks(module);
+    lotus::alias::AliasSpecManager specMgr;
+    specMgr.initialize(module);
 
-    Instrumenter(hooks, idMap, module.getContext()).instrument(module);
+    Instrumenter(hooks, idMap, specMgr, module.getContext()).instrument(module);
 }
 }

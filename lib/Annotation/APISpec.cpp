@@ -36,6 +36,7 @@ static inline bool isCommentOrBlank(const std::string &line) {
 static SpecOpKind toOpKind(const std::string &tok) {
   if (tok == "IGNORE") return SpecOpKind::Ignore;
   if (tok == "ALLOC") return SpecOpKind::Alloc;
+  if (tok == "DEALLOC") return SpecOpKind::Dealloc;
   if (tok == "COPY") return SpecOpKind::Copy;
   if (tok == "EXIT") return SpecOpKind::Exit;
   if (tok == "MOD") return SpecOpKind::Mod;
@@ -129,6 +130,9 @@ void APISpec::applyCopy(FunctionSpec &spec, const std::vector<std::string> &toke
 // Marks a function as ignored in the specification.
 void APISpec::applyIgnore(FunctionSpec &spec) { spec.isIgnored = true; }
 
+// Marks a function as a deallocator in the specification.
+void APISpec::applyDealloc(FunctionSpec &spec) { spec.isDeallocator = true; }
+
 // Marks a function as an exit function in the specification.
 void APISpec::applyExit(FunctionSpec &spec) { spec.isExit = true; }
 
@@ -167,6 +171,9 @@ bool APISpec::loadFile(const std::string &path, std::string &errorMessage) {
         break;
       case SpecOpKind::Alloc:
         applyAlloc(spec, toks);
+        break;
+      case SpecOpKind::Dealloc:
+        applyDealloc(spec);
         break;
       case SpecOpKind::Copy:
         applyCopy(spec, toks);
@@ -217,6 +224,12 @@ bool APISpec::isAllocatorLike(const std::string &functionName) const {
   return s && s->isAllocator;
 }
 
+// Returns true if the function is marked as a deallocator.
+bool APISpec::isDeallocatorLike(const std::string &functionName) const {
+  auto *s = get(functionName);
+  return s && s->isDeallocator;
+}
+
 // Returns the copy effects for the given function.
 std::vector<CopyEffect> APISpec::getCopies(const std::string &functionName) const {
   auto *s = get(functionName);
@@ -229,6 +242,12 @@ std::vector<ModRefEffect> APISpec::getModRefs(const std::string &functionName) c
   auto *s = get(functionName);
   if (!s) return {};
   return s->modref;
+}
+
+void APISpec::addOrReplaceSpec(const FunctionSpec &spec) {
+  if (spec.functionName.empty())
+    return;
+  nameToSpec[spec.functionName] = spec;
 }
 
 

@@ -152,6 +152,9 @@ bool LotusAA::runOnModule(Module &M) {
   DL = &M.getDataLayout();
 
   IntraLotusAAConfig::setParam();
+  
+  // Initialize spec manager
+  specManager_.initialize(M);
 
   // Initialize global singletons
   MemObject::NullObj = new MemObject(nullptr, nullptr, MemObject::CONCRETE);

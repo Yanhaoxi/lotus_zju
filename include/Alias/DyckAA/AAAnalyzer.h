@@ -34,6 +34,7 @@
 
 #include "Alias/DyckAA/DyckCallGraph.h"
 #include "Alias/DyckAA/DyckGraph.h"
+#include "Alias/Common/AliasSpecManager.h"
 
 using namespace llvm;
 
@@ -55,6 +56,9 @@ private:
     std::map<Type *, FunctionTypeNode *> FunctionTyNodeMap;
     std::set<FunctionTypeNode *> TyRoots;
     /// @}
+
+    /// Spec manager for handling library functions
+    lotus::alias::AliasSpecManager specManager;
 
 public:
     AAAnalyzer(Module *, DyckGraph *, DyckCallGraph *);

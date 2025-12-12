@@ -23,6 +23,7 @@
 #define ALLOC_AA_ALLOCAA_H_
 
 #include "Utils/LLVM/SystemHeaders.h"
+#include "Alias/Common/AliasSpecManager.h"
 
 
 class AllocAA {
@@ -52,10 +53,13 @@ private:
   // TODO: These should become objects representing the full usage of these
   // allocated arrays
   std::set<CallInst *> allocatorCalls;
-  std::set<std::string> readOnlyFunctionNames, allocatorFunctionNames,
-      memorylessFunctionNames;
+  std::set<std::string> allocatorFunctionNames;
+  std::set<std::string> readOnlyFunctionNames, memorylessFunctionNames;
   std::set<GlobalValue *> primitiveArrayGlobals;
   std::set<Instruction *> primitiveArrayLocals;
+  
+  // Spec manager for handling library functions
+  lotus::alias::AliasSpecManager specManager;
 
   // TODO: Find a way to extract this into a helper module for all passes in the
   // PDG project

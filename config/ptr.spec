@@ -318,6 +318,9 @@ IGNORE sqrt
 IGNORE sqrtf
 IGNORE tan
 
+# C++ (mangled) math helpers sometimes seen in IR
+IGNORE _ZSt4fmaxIiiEN9__gnu_cxx11__promote_2IT_T0_NS0_9__promoteIS2_Xsr3std12__is_integerIS2_EE7__valueEE6__typeENS4_IS3_Xsr3std12__is_integerIS3_EE7__valueEE6__typeEE6__typeES2_S3_
+
 # Conversions
 IGNORE atof
 IGNORE atoi
@@ -363,6 +366,8 @@ malloc ALLOC Arg0
 calloc ALLOC Arg1
 calloc COPY Ret R NULL
 valloc ALLOC Arg0
+posix_memalign ALLOC Arg2
+realloc ALLOC Arg1
 realloc COPY Ret V Arg0 V
 memalign ALLOC Arg1
 _Znwj ALLOC Arg0
@@ -386,12 +391,19 @@ wmemcpy COPY Arg0 R Arg1 R
 wmemcpy COPY Ret V Arg0 V
 memset COPY Arg0 R NULL
 memset COPY Ret V Arg0 V
-IGNORE free
-IGNORE _ZdlPv
+DEALLOC free
+DEALLOC cfree
+DEALLOC _ZdlPv
+DEALLOC _ZdaPv
+DEALLOC _ZdlPvj
+DEALLOC _ZdlPvm
+DEALLOC _ZdlPvRKSt9nothrow_t
+DEALLOC _ZdaPvj
+DEALLOC _ZdaPvm
+DEALLOC _ZdaPvRKSt9nothrow_t
 IGNORE memcmp
 IGNORE mprotect
 IGNORE munmap
-IGNORE _ZdaPv
 
 # LLVM intrinsics
 llvm.memcpy.p0i8.p0i8.i32 COPY Arg0 R Arg1 R
@@ -434,6 +446,7 @@ IGNORE _ZnwjPv
 IGNORE _ZnajPv
 
 # Additional allocation functions
+reallocf ALLOC Arg1
 reallocf COPY Ret V Arg0 V
 aligned_alloc ALLOC Arg1
 pvalloc ALLOC Arg0

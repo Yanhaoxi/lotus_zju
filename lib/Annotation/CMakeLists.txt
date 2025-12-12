@@ -6,3 +6,6 @@ add_library(Annotation STATIC
     TaintConfigManager.cpp
     APISpec.cpp
 )
+
+# Create alias for backward compatibility
+add_library(LotusAnnotation ALIAS Annotation)

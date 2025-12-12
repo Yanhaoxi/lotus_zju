@@ -17,18 +17,14 @@ set (USED_LIBS
 
 
 set(LLVM_LINK_COMPONENTS
-  BitWriter
-  IRReader
+  #BitWriter
+  #IRReader
   IPO
-  ScalarOpts
+  #ScalarOpts
   Instrumentation
-  Core
-  # XXX not clear why these last two are required
-  CodeGen
   ObjCARCOpts
-  TransformUtils
-  Analysis
-  Target)
+  #Target
+  )
 add_executable(seahorn seahorn.cpp)
 if(APPLE)
   set_target_properties(seahorn PROPERTIES LINK_FLAGS "${LINK_FLAGS} -Wl,-search_paths_first")

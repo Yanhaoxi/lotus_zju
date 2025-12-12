@@ -23,6 +23,7 @@
 #include "Alias/LotusAA/Support/Compat.h"
 #include "Alias/LotusAA/Support/CallGraphState.h"
 #include "Alias/LotusAA/Support/FunctionPointerResults.h"
+#include "Alias/Common/AliasSpecManager.h"
 
 namespace llvm {
 
@@ -68,6 +69,9 @@ public:
   // Access to call graph state
   CallGraphState &getCallGraphState() { return callGraphState_; }
   FunctionPointerResults &getFunctionPointerResults() { return functionPointerResults_; }
+  
+  // Access to spec manager
+  lotus::alias::AliasSpecManager &getSpecManager() { return specManager_; }
 
 private:
   // Data layout
@@ -90,6 +94,9 @@ private:
 
   // Guards shared structures accessed from worker threads
   std::mutex domMutex_;
+  
+  // Spec manager for handling library functions
+  lotus::alias::AliasSpecManager specManager_;
 
   friend class PTGraph;
   friend class IntraLotusAA;

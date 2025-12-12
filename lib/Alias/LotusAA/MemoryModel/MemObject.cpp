@@ -58,6 +58,7 @@
 #include "Alias/LotusAA/MemoryModel/MemObject.h"
 #include "Alias/LotusAA/Support/Config.h"
 #include "Alias/LotusAA/MemoryModel/PointsToGraph.h"
+#include "Alias/LotusAA/Engine/InterProceduralPass.h"
 
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/GlobalVariable.h>
@@ -163,9 +164,15 @@ bool MemObject::isReallyAllocated() {
   if (isa<AllocaInst>(alloc_site))
     return true;
     
-  // Heap allocation (malloc-like)
+  // Heap allocation (check via spec manager if available)
   if (CallBase *call = dyn_cast<CallBase>(alloc_site)) {
     if (Function *F = call->getCalledFunction()) {
+      // Get LotusAA instance through PTGraph to access spec manager
+      if (pt_graph && pt_graph->lotus_aa) {
+        return pt_graph->lotus_aa->getSpecManager().isAllocator(F);
+      }
+      
+      // Fallback: simple name-based heuristic (if no PTGraph/LotusAA available)
       StringRef name = F->getName();
       if (name.contains("malloc") || name.contains("alloc") ||
           name == "new" || name == "calloc" || name == "realloc")

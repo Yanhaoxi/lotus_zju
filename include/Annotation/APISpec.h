@@ -21,6 +21,7 @@ namespace lotus {
 enum class SpecOpKind {
   Ignore,   // IGNORE / no effect
   Alloc,    // ALLOC
+  Dealloc,  // DEALLOC
   Copy,     // COPY
   Exit,     // EXIT
   Mod,      // MOD (modifies memory)
@@ -81,6 +82,7 @@ struct FunctionSpec {
   bool isIgnored{false};
   bool isExit{false};
   bool isAllocator{false};
+  bool isDeallocator{false};
   std::vector<AllocEffect> allocs; // may contain multiple variants
   std::vector<CopyEffect> copies;
   std::vector<ModRefEffect> modref; // entries from modref.spec
@@ -111,12 +113,17 @@ public:
   bool isIgnored(const std::string &functionName) const;
   bool isExitLike(const std::string &functionName) const;
   bool isAllocatorLike(const std::string &functionName) const;
+  bool isDeallocatorLike(const std::string &functionName) const;
 
   // Returns copy effects for function or empty vector if none/unknown.
   std::vector<CopyEffect> getCopies(const std::string &functionName) const;
 
   // Returns mod/ref effects for function or empty vector if none/unknown.
   std::vector<ModRefEffect> getModRefs(const std::string &functionName) const;
+
+  // Insert or replace a fully constructed FunctionSpec. Useful for custom
+  // specs provided by analyses at runtime (e.g., command-line overrides).
+  void addOrReplaceSpec(const FunctionSpec &spec);
 
 private:
   std::unordered_map<std::string, FunctionSpec> nameToSpec;
@@ -133,6 +140,7 @@ private:
   void applyAlloc(FunctionSpec &spec, const std::vector<std::string> &tokens);
   void applyCopy(FunctionSpec &spec, const std::vector<std::string> &tokens);
   void applyIgnore(FunctionSpec &spec);
+  void applyDealloc(FunctionSpec &spec);
   void applyExit(FunctionSpec &spec);
   void applyModRef(FunctionSpec &spec, SpecOpKind op, const std::vector<std::string> &tokens);
 };

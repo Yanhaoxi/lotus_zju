@@ -439,6 +439,7 @@ bool StrictRelations::aliastest3(const Value* p1, const Value* p2) {
 
 bool StrictRelations::runOnModule(Module& M) {
   // Initialize Alias Analysis is not needed with AAResults-style interface in LLVM 14
+  specMgr_.initialize(M);
   RA = &getAnalysis<InterProceduralRACousot>();
   wle = new WorkListEngine();
   global_variable_translator =
@@ -1285,7 +1286,7 @@ void StrictRelations::buildDepGraph(Module& M) {
     } else if (const CallInst* p = dyn_cast<CallInst>(i.first)) {
       Function* CF = p->getCalledFunction();
       if (CF) {
-        if (strcmp(CF->getName().data(), "realloc") == 0) {
+        if (specMgr_.getCategory(CF) == lotus::alias::FunctionCategory::Reallocator) {
           /// realloc is connected with it's first argument
           const Value* base = p->getOperand(0);
           if (!nodes.count(base))
@@ -1382,9 +1383,7 @@ void StrictRelations::collectTypes() {
     } else if (const CallInst* p = dyn_cast<CallInst>(i.first)) {
       Function* CF = p->getCalledFunction();
       if (CF) {
-        if (strcmp(CF->getName().data(), "malloc") == 0) {
-          i.second->alloca = true;
-        } else if (strcmp(CF->getName().data(), "calloc") == 0) {
+        if (specMgr_.isAllocator(CF)) {
           i.second->alloca = true;
         } else
           i.second->call = true;

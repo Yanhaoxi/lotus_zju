@@ -43,6 +43,7 @@ AAAnalyzer::AAAnalyzer(Module *M, DyckGraph *DG, DyckCallGraph *CG) {
     CFLGraph = DG;
     DyckCG = CG;
     DL = &M->getDataLayout();
+    specManager.initialize(*M);
     initFunctionGroups();
 }
 
@@ -1094,80 +1095,67 @@ void AAAnalyzer::handleLibInvokeCallInst(Value *Ret, Function *F, const std::vec
         return;
 
     auto FName = F->getName();
-    switch (Args->size()) {
-        case 1: {
-            if (FName == "strdup" || FName == "__strdup" || FName == "strdupa") {
-                // content alias r/1st
-                this->makeContentAlias(wrapValue(Args->at(0)), wrapValue(Ret));
-            } else if (FName == "pthread_getspecific" && Ret) {
-                DyckGraphNode *KeyRep = wrapValue(Args->at(0));
-                DyckGraphNode *ValRep = wrapValue(Ret);
-                // we use label -1 to indicate that it is a key:value pair
-                KeyRep->addTarget(ValRep, CFLGraph->getOrInsertIndexEdgeLabel(-1));
-            }
-        }
-            break;
-        case 2: {
-            if (FName == "strcat" || FName == "strcpy") {
-                if (Ret) {
-                    DyckGraphNode *DstPtr = wrapValue(Args->at(0));
-                    DyckGraphNode *SrcPtr = wrapValue(Args->at(1));
-
+    
+    // Special case: pthread functions (not in ptr.spec)
+    if (FName == "pthread_getspecific" && Ret && Args->size() == 1) {
+        DyckGraphNode *KeyRep = wrapValue(Args->at(0));
+        DyckGraphNode *ValRep = wrapValue(Ret);
+        KeyRep->addTarget(ValRep, CFLGraph->getOrInsertIndexEdgeLabel(-1));
+        return;
+    }
+    if (FName == "pthread_setspecific" && Args->size() == 2) {
+        DyckGraphNode *KeyRep = wrapValue(Args->at(0));
+        DyckGraphNode *ValRep = wrapValue(Args->at(1));
+        KeyRep->addTarget(ValRep, CFLGraph->getOrInsertIndexEdgeLabel(-1));
+        return;
+    }
+    if (FName == "pthread_create" && Args->size() == 4) {
+        std::vector<Value *> XArgs;
+        XArgs.push_back(Args->at(3));
+        handleInvokeCallInst(nullptr, Args->at(2), &XArgs, DyckCG->getOrInsertFunction(F));
+        return;
+    }
+    
+    // Use spec manager for standard library functions
+    auto copyEffects = specManager.getCopyEffects(F);
+    for (const auto &copy : copyEffects) {
+        if (copy.dstArgIndex >= 0 && copy.srcArgIndex >= 0) {
+            if ((size_t)copy.dstArgIndex < Args->size() && (size_t)copy.srcArgIndex < Args->size()) {
+                DyckGraphNode *DstPtr = wrapValue(Args->at(copy.dstArgIndex));
+                DyckGraphNode *SrcPtr = wrapValue(Args->at(copy.srcArgIndex));
+                
+                if (copy.dstIsRegion && copy.srcIsRegion) {
+                    // Memory copy (e.g., memcpy, strcpy): *dst = *src
                     this->makeContentAlias(DstPtr, SrcPtr);
-                    this->makeAlias(wrapValue(Ret), DstPtr);
-                } else {
-                    errs() << "ERROR strcat/cpy does not return.\n";
-                    exit(1);
+                } else if (!copy.dstIsRegion && !copy.srcIsRegion) {
+                    // Value copy: dst = src
+                    this->makeAlias(DstPtr, SrcPtr);
                 }
-            } else if (FName == "strndup" || FName == "strndupa" || FName == "strtok") {
-                // content alias r/1st
-                this->makeContentAlias(wrapValue(Args->at(0)), wrapValue(Ret));
-            } else if (FName == "strstr" || FName == "strcasestr") {
-                // content alias r/2nd
-                this->makeContentAlias(wrapValue(Args->at(1)), wrapValue(Ret));
-                // alias r/1st
-                this->makeAlias(wrapValue(Ret), wrapValue(Args->at(0)));
-            } else if (FName == "strchr" || FName == "strrchr" || FName == "strchrnul" || FName == "rawmemchr") {
-                // alias r/1st
-                this->makeAlias(wrapValue(Ret), wrapValue(Args->at(0)));
-            } else if (FName == "pthread_setspecific") {
-                DyckGraphNode *KeyRep = wrapValue(Args->at(0));
-                DyckGraphNode *ValRep = wrapValue(Args->at(1));
-                // we use label -1 to indicate that it is a key:value pair
-                KeyRep->addTarget(ValRep, CFLGraph->getOrInsertIndexEdgeLabel(-1));
-            }
-        }
-            break;
-        case 3: {
-            if (FName == "strncat" || FName == "strncpy" || FName == "memcpy" || FName == "memmove") {
-                if (Ret) {
-                    DyckGraphNode *DstPtr = wrapValue(Args->at(0));
-                    DyckGraphNode *SrcPtr = wrapValue(Args->at(1));
-
-                    this->makeContentAlias(DstPtr, SrcPtr);
-                    this->makeAlias(wrapValue(Ret), DstPtr);
-                } else {
-                    errs() << "ERROR strncat/cpy does not return.\n";
-                    exit(1);
+                
+                if (copy.returnsAlias && Ret) {
+                    if (copy.retArgIndex >= 0 && (size_t)copy.retArgIndex < Args->size()) {
+                        this->makeAlias(wrapValue(Ret), wrapValue(Args->at(copy.retArgIndex)));
+                    } else if (!copy.dstIsRegion) {
+                        this->makeAlias(wrapValue(Ret), DstPtr);
+                    }
                 }
-            } else if (FName == "memchr" || FName == "memrchr" || FName == "memset") {
-                // alias r/1st
-                this->makeAlias(wrapValue(Ret), wrapValue(Args->at(0)));
-            } else if (FName == "strtok_r" || FName == "__strtok_r") {
-                // content alias r/1st
-                this->makeContentAlias(wrapValue(Args->at(0)), wrapValue(Ret));
             }
         }
-            break;
-        case 4: {
-            if (FName == "pthread_create") {
-                std::vector<Value *> XArgs;
-                XArgs.push_back(Args->at(3));
-                handleInvokeCallInst(nullptr, Args->at(2), &XArgs, DyckCG->getOrInsertFunction(F));
+    }
+    
+    // Handle return value aliasing for functions like strchr, strstr
+    auto retAliases = specManager.getReturnAliasInfo(F);
+    if (!retAliases.empty() && Ret) {
+        for (const auto &ra : retAliases) {
+            if (ra.argIndex >= 0 && (size_t)ra.argIndex < Args->size()) {
+                if (ra.isRegion) {
+                    // Return aliases *arg (content alias)
+                    this->makeContentAlias(wrapValue(Args->at(ra.argIndex)), wrapValue(Ret));
+                } else {
+                    // Return aliases arg (pointer alias)
+                    this->makeAlias(wrapValue(Ret), wrapValue(Args->at(ra.argIndex)));
+                }
             }
         }
-            break;
-        default:
-            break;
     }
 }

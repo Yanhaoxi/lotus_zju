@@ -11,6 +11,7 @@ llvm_map_components_to_libnames(LLVM_LINK_COMPONENTS
 add_executable(aser-aa aser-aa.cpp)
 target_link_libraries(aser-aa PRIVATE
   AserPTA
+  AliasSpecManager
   ${LLVM_LINK_COMPONENTS}
 )
 
@@ -44,6 +45,7 @@ target_link_libraries(lotus-aa PRIVATE
 add_executable(sparrow-aa sparrow-aa.cpp)
 target_link_libraries(sparrow-aa PRIVATE
   Andersen
+  AliasSpecManager
   ${LLVM_LINK_COMPONENTS}
 )
 

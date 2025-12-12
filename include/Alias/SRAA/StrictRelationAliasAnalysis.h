@@ -9,6 +9,7 @@
 #include "llvm/Pass.h"
 
 #include "Alias/SRAA/RangeAnalysis.h"
+#include "Alias/Common/AliasSpecManager.h"
 
 #include <queue>
 #include <set>
@@ -275,6 +276,7 @@ public:
   std::unordered_map<const Value*, Variable*> variables;
   std::unordered_map<const Value*, DepNode*> nodes;
   WorkListEngine* wle;
+  lotus::alias::AliasSpecManager specMgr_;
             
   void getAnalysisUsage(AnalysisUsage &AU) const override;
   

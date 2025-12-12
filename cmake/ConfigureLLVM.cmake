@@ -41,6 +41,9 @@ endif()
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 
+# Include LLVM CMake modules to make functions # like add_llvm_library available (if you want to use it)
+# include(AddLLVM)
+
 # Set LLVM version-specific definitions (only 14.x supported)
 add_definitions(-DLLVM14)
 
