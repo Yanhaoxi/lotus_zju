@@ -1,6 +1,6 @@
 
 #include "Alias/AllocAA/AllocAA.h"
-#include "Alias/Common/AliasSpecManager.h"
+#include "Alias/Spec/AliasSpecManager.h"
 
 
 AllocAA::AllocAA(Module &M,

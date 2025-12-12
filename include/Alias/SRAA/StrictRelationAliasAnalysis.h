@@ -9,7 +9,7 @@
 #include "llvm/Pass.h"
 
 #include "Alias/SRAA/RangeAnalysis.h"
-#include "Alias/Common/AliasSpecManager.h"
+#include "Alias/Spec/AliasSpecManager.h"
 
 #include <queue>
 #include <set>

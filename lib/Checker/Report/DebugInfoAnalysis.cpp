@@ -1,5 +1,5 @@
 // Use debug info of LLVM to better report bugs, e.g., line number, position, function name, variable name, etc.
-// Enhanced version adapted from Clearblue's DebugInfoAnalysis for LLVM 14+
+
 
 #include "Checker/Report/DebugInfoAnalysis.h"
 #include "Utils/LLVM/Demangle.h"

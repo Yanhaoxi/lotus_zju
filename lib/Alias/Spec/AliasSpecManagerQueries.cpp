@@ -1,4 +1,4 @@
-#include "Alias/Common/AliasSpecManager.h"
+#include "Alias/Spec/AliasSpecManager.h"
 #include <llvm/IR/Intrinsics.h>
 #include <llvm/Support/raw_ostream.h>
 #include <algorithm>

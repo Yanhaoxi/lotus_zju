@@ -50,7 +50,7 @@
 #include "Alias/SparrowAA/Constraint.h"
 #include "Alias/SparrowAA/NodeFactory.h"
 #include "Alias/SparrowAA/TemplatePtsSet.h"
-#include "Alias/Common/AliasSpecManager.h"
+#include "Alias/Spec/AliasSpecManager.h"
 
 #include <llvm/ADT/DenseMap.h>
 #include <llvm/ADT/DenseSet.h>

@@ -23,7 +23,7 @@
 #include "Alias/LotusAA/Support/Compat.h"
 #include "Alias/LotusAA/Support/CallGraphState.h"
 #include "Alias/LotusAA/Support/FunctionPointerResults.h"
-#include "Alias/Common/AliasSpecManager.h"
+#include "Alias/Spec/AliasSpecManager.h"
 
 namespace llvm {
 

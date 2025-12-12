@@ -2,8 +2,8 @@
 // Provides high-level query interface for function specifications
 // used by various alias analyses (SparrowAA, AllocAA, LotusAA, etc.)
 
-#ifndef LOTUS_ALIAS_COMMON_ALIAS_SPEC_MANAGER_H
-#define LOTUS_ALIAS_COMMON_ALIAS_SPEC_MANAGER_H
+#ifndef LOTUS_ALIAS_SPEC_ALIAS_SPEC_MANAGER_H
+#define LOTUS_ALIAS_SPEC_ALIAS_SPEC_MANAGER_H
 
 #include "Annotation/APISpec.h"
 #include <llvm/IR/Function.h>

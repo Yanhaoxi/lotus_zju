@@ -7,7 +7,7 @@
 
 #include "Alias/SparrowAA/Andersen.h"
 #include "Alias/SparrowAA/Log.h"
-#include "Alias/Common/AliasSpecManager.h"
+#include "Alias/Spec/AliasSpecManager.h"
 
 
 using namespace llvm;

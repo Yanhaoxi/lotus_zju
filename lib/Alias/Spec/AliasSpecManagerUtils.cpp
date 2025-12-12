@@ -1,4 +1,4 @@
-#include "Alias/Common/AliasSpecManager.h"
+#include "Alias/Spec/AliasSpecManager.h"
 #include <llvm/Demangle/Demangle.h>
 
 #include <llvm/Support/FileSystem.h>

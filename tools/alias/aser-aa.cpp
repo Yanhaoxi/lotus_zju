@@ -25,7 +25,7 @@
 #include "Alias/AserPTA/PointerAnalysis/Solver/WavePropagation.h"
 #include "Alias/AserPTA/PointerAnalysis/Solver/DeepPropagation.h"
 #include "Alias/AserPTA/PTADriver.h"
-#include "Alias/Common/AliasSpecManager.h"
+#include "Alias/Spec/AliasSpecManager.h"
 
 using namespace aser;
 using namespace llvm;

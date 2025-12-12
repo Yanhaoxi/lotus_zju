@@ -34,7 +34,7 @@
 
 #include "Alias/DyckAA/DyckCallGraph.h"
 #include "Alias/DyckAA/DyckGraph.h"
-#include "Alias/Common/AliasSpecManager.h"
+#include "Alias/Spec/AliasSpecManager.h"
 
 using namespace llvm;
 

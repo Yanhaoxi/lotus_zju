@@ -23,7 +23,7 @@
 #define ALLOC_AA_ALLOCAA_H_
 
 #include "Utils/LLVM/SystemHeaders.h"
-#include "Alias/Common/AliasSpecManager.h"
+#include "Alias/Spec/AliasSpecManager.h"
 
 
 class AllocAA {
