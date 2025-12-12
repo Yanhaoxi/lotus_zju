@@ -1,7 +1,13 @@
 # Alias analysis tools
 
 llvm_map_components_to_libnames(LLVM_LINK_COMPONENTS
+  Analysis
+  AsmParser
+  BitReader
+  Core
   Coroutines
+  IRReader
+  Support
   Target
 )
 

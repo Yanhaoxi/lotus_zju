@@ -12,6 +12,7 @@
 #include "Alias/SparrowAA/Andersen.h"
 #include "Alias/SparrowAA/CycleDetector.h"
 #include "Alias/SparrowAA/SparseBitVectorGraph.h"
+#include "Alias/SparrowAA/Log.h"
 
 #define DEBUG_TYPE "andersen"
 
@@ -28,11 +29,16 @@ STATISTIC(NumPtsSetUnions, "Number of points-to set unions");
 STATISTIC(MaxPtsSetSize, "Maximum points-to set size");
 STATISTIC(AvgPtsSetSize, "Average points-to set size");
 
+// Use extern to reference the category defined in Andersen.cpp
+extern cl::OptionCategory AndersenCategory;
+
 cl::opt<bool>
     EnableHCD("enable-hcd",
-              cl::desc("Enable the hybrid cycle detection algorithm"));
+              cl::desc("Enable the hybrid cycle detection algorithm"),
+              cl::cat(AndersenCategory));
 cl::opt<bool> EnableLCD("enable-lcd",
-                        cl::desc("Enable the lazy cycle detection algorithm"));
+                        cl::desc("Enable the lazy cycle detection algorithm"),
+                        cl::cat(AndersenCategory));
 
 namespace {
 
@@ -546,16 +552,19 @@ using DefaultOnlineCycleDetector = OnlineCycleDetectorT<DefaultPtsSet>;
 /// catches cycles slightly later than the original technique did, but does it
 /// make significantly cheaper.
 void Andersen::solveConstraints() {
+  LOG_INFO("Creating offline cycle detector...");
   // We'll do offline HCD first
   OfflineCycleDetector offlineInfo(constraints, nodeFactory);
   if (EnableHCD)
     offlineInfo.run();
 
+  LOG_INFO("Building constraint graph...");
   // Now build the constraint graph
   ConstraintGraph constraintGraph;
   buildConstraintGraph(constraintGraph, constraints, nodeFactory, ptsGraph);
   // The constraint vector is useless now
   constraints.clear();
+  LOG_INFO("Constraint graph built, starting fixed-point iteration...");
 
   // We switch between two work lists instead of relying on only one work list
   AndersWorkList workList1, workList2;
@@ -568,19 +577,26 @@ void Andersen::solveConstraints() {
 
   // Scan the node list, add it to work list if the node a representative and
   // can contribute to the calculation right now.
+  LOG_INFO("Initializing work list from {} points-to graph entries...", ptsGraph.size());
   for (auto const &mapping : ptsGraph) {
     NodeIndex node = mapping.first;
     if (nodeFactory.getMergeTarget(node) == node &&
         constraintGraph.getNodeWithIndex(node) != nullptr)
       currWorkList->enqueue(node);
   }
+  LOG_INFO("Work list initialized, entering main solving loop...");
 
+  unsigned iterCount = 0;
   while (!currWorkList->isEmpty()) {
     // Iteration begins
     ++NumIterations;
+    if (++iterCount == 1 || iterCount % 100 == 0) {
+      LOG_INFO("Solving iteration {}", iterCount);
+    }
 
     // First we've got to check if there is any cycle candidates in the last
     // iteration. If there is, detect and collapse cycle
+    if (iterCount == 1) LOG_INFO("  - Checking cycle candidates...");
     if (EnableLCD && !cycleCandidates.empty()) {
       // Detect and collapse cycles online
       NumCyclesDetected += cycleCandidates.size();
@@ -594,8 +610,13 @@ void Andersen::solveConstraints() {
       }
     }
 
+    if (iterCount == 1) LOG_INFO("  - Processing worklist...");
+    unsigned nodeCount = 0;
     while (!currWorkList->isEmpty()) {
       NodeIndex node = currWorkList->dequeue();
+      if (iterCount == 1 && ++nodeCount % 500 == 0) {
+        LOG_INFO("    - Processed {} nodes in iteration 1", nodeCount);
+      }
       ++NumWorkListProcessed;
       node = nodeFactory.getMergeTarget(node);
       // errs() << "Examining node " << node << "\n";
@@ -730,6 +751,8 @@ void Andersen::solveConstraints() {
     // Swap the current and the next worklist
     std::swap(currWorkList, nextWorkList);
   }
+  
+  LOG_INFO("Constraint solving loop completed, calculating statistics...");
   
   // Calculate points-to set statistics
   unsigned long long totalPtsSetSize = 0;

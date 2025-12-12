@@ -25,9 +25,9 @@ target_compile_options(AserPTA PRIVATE
 
 # Link against LLVM libraries
 target_link_libraries(AserPTA PUBLIC
-    LLVMCore
-    #LLVMSupport
-    LLVMTransformUtils
-    LLVMAnalysis
+    #LLVMCore
+    #LLVMTransformUtils
+    #LLVMAnalysis
+    CanaryAliasBDD
 )
 

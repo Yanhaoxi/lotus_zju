@@ -4,12 +4,13 @@
 #define ASER_PTA_SOLVERBASE_H
 
 #define DEBUG_TYPE "pta"
+#include <llvm/ADT/DenseSet.h>
 #include <llvm/IR/Module.h>
 #include <llvm/Pass.h>
 
 #include "Alias/AserPTA/PointerAnalysis/Graph/ConstraintGraph/ConstraintGraph.h"
 #include "Alias/AserPTA/PointerAnalysis/Models/MemoryModel/MemModelTrait.h"
-#include "Alias/AserPTA/PointerAnalysis/Solver/PointsTo/BitVectorPTS.h"
+#include "Alias/AserPTA/PointerAnalysis/Solver/PointsTo/PointsToSelector.h"
 #include "Alias/AserPTA/PointerAnalysis/Graph/CallGraph.h"
 #include "Alias/AserPTA/Util/Statistics.h"
 #include "Alias/AserPTA/Util/Log.h"
@@ -66,7 +67,7 @@ protected:
     llvm::SparseBitVector<> updatedFunPtrs;
 
     // TODO: the intersection on pts should be done through PtsTrait for better extensibility
-    llvm::DenseMap<PtrNodeTy *, llvm::SparseBitVector<5120>> handledGEPMap;
+    llvm::DenseMap<PtrNodeTy *, llvm::DenseSet<NodeID>> handledGEPMap;
 
     inline void updateFunPtr(NodeID indirectNode) {
         updatedFunPtrs.set(indirectNode);
@@ -156,28 +157,29 @@ protected:
         // assert(gep);
 
         // TODO: the intersection on pts should be done through PtsTrait for better extensibility
-        llvm::SparseBitVector<5120> &handled = handledGEPMap.try_emplace(ptrNode).first->second;
-        const llvm::SparseBitVector<5120> &curPts = PT::getPointsTo(src->getNodeID());
-
-        llvm::SparseBitVector<5120> newGEPs;
-        newGEPs.intersectWithComplement(curPts, handled);
-
-        assert(!handled.intersects(newGEPs));
-        assert(curPts.contains(newGEPs));
-        handled |= newGEPs; // update handled gep
+        auto &handled = handledGEPMap.try_emplace(ptrNode).first->second;
+        const auto &curPts = PT::getPointsTo(src->getNodeID());
 
         bool changed = false;
         std::vector<ObjNodeTy *> nodeVec;
-        size_t ptsSize = newGEPs.count();
-        if (ptsSize == 0) {
-            return false;
+        std::vector<NodeID> newIds;
+        for (auto it = curPts.begin(), ie = curPts.end(); it != ie; ++it) {
+            NodeID id = *it;
+            if (!handled.count(id))
+                newIds.push_back(id);
         }
 
-        nodeVec.reserve(ptsSize);
-        // We need to cache all the node here because the PT might be modified and the iterator might be invalid
-        for (auto it = newGEPs.begin(), ie = newGEPs.end(); it != ie; ++it) {
+        if (newIds.empty())
+            return false;
+
+        for (NodeID id : newIds)
+            handled.insert(id); // update handled gep
+
+        nodeVec.reserve(newIds.size());
+        // We need to cache all the nodes here because the PT might be modified and the iterator might be invalid
+        for (NodeID id : newIds) {
             // TODO: use llvm::cast in debugging build
-            auto objNode = static_cast<ObjNodeTy *>((*consGraph)[*it]);
+            auto objNode = static_cast<ObjNodeTy *>((*consGraph)[id]);
             nodeVec.push_back(objNode);
         }
 

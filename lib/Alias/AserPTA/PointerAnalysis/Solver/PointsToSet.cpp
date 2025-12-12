@@ -4,6 +4,7 @@
 
 #include <llvm/Support/CommandLine.h>
 #include "Alias/AserPTA/PointerAnalysis/Solver/PointsTo/BitVectorPTS.h"
+#include "Alias/AserPTA/PointerAnalysis/Solver/PointsTo/BDDPts.h"
 #include "Alias/AserPTA/PointerAnalysis/Solver/PointsTo/PointedByPts.h"
 
 using namespace llvm;
@@ -12,7 +13,16 @@ llvm::cl::opt<bool> CollectStats("collect-stats", llvm::cl::desc("Dump the modif
 
 namespace aser {
 
+// Command line option definition (declared as extern in BDDPts.h)
+llvm::cl::opt<bool> ConfigUseBDDPts(
+    "pta-use-bdd-pts",
+    llvm::cl::desc("Use BDD-backed points-to sets instead of SparseBitVector"),
+    llvm::cl::init(false));
+
 std::vector<BitVectorPTS::PtsTy> BitVectorPTS::ptsVec;
+std::vector<ConfigurablePTS::PtsTy> ConfigurablePTS::ptsVec;
+bool ConfigurablePTS::useBDDBackend = false;
+bool ConfigurablePTS::backendLocked = false;
 std::vector<PointedByPts::PtsTy> PointedByPts::pointsTo;
 std::vector<PointedByPts::PtsTy> PointedByPts::pointedBy;
 

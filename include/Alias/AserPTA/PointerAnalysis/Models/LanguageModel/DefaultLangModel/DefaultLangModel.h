@@ -9,14 +9,14 @@
 #include "Alias/AserPTA/PointerAnalysis/Models/LanguageModel/LangModelBase.h"
 #include "Alias/AserPTA/PointerAnalysis/Models/MemoryModel/FieldInsensitive/FIMemModel.h"
 #include "Alias/AserPTA/PointerAnalysis/Program/CtxModule.h"
-#include "Alias/AserPTA/PointerAnalysis/Solver/PointsTo/BitVectorPTS.h"
+#include "Alias/AserPTA/PointerAnalysis/Solver/PointsTo/PointsToSelector.h"
 #include "Alias/AserPTA/Util/Log.h"
 
 namespace aser {
 
 // this class deals with conventions that specific to different programming
 // language e.g., virtual pointers, the default one uses no convention
-template <typename ctx, typename MemModel, typename PtsTy = BitVectorPTS>
+template <typename ctx, typename MemModel, typename PtsTy = DefaultPtsTy>
 class DefaultLangModel : public LangModelBase<ctx, MemModel, PtsTy, DefaultLangModel<ctx, MemModel, PtsTy>> {
 private:
     DefaultHeapModel heapModel;

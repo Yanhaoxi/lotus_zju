@@ -28,19 +28,31 @@ STATISTIC(NumCopyConstraints, "Number of copy constraints");
 STATISTIC(NumLoadConstraints, "Number of load constraints");
 STATISTIC(NumStoreConstraints, "Number of store constraints");
 
+// Define option category for Andersen analysis options (non-static so it can be used across files)
+cl::OptionCategory AndersenCategory("Andersen Analysis Options",
+                                    "Options for configuring Andersen pointer analysis");
+
 cl::opt<bool> DumpDebugInfo("dump-debug",
                             cl::desc("Dump debug info into stderr"),
-                            cl::init(false), cl::Hidden);
+                            cl::init(false), cl::Hidden,
+                            cl::cat(AndersenCategory));
 cl::opt<bool> DumpResultInfo("dump-result",
                              cl::desc("Dump result info into stderr"),
-                             cl::init(false), cl::Hidden);
+                             cl::init(false), cl::Hidden,
+                             cl::cat(AndersenCategory));
 cl::opt<bool> DumpConstraintInfo("dump-cons",
                                  cl::desc("Dump constraint info into stderr"),
-                                 cl::init(false), cl::Hidden);
+                                 cl::init(false), cl::Hidden,
+                                 cl::cat(AndersenCategory));
 cl::opt<unsigned>
     AndersenKContext("andersen-k-cs",
                      cl::desc("Context-sensitive Andersen k-callsite (0/1/2)"),
-                     cl::init(0));
+                     cl::init(0),
+                     cl::cat(AndersenCategory));
+cl::opt<bool> AndersenUseBDDPointsTo(
+    "andersen-use-bdd-pts",
+    cl::desc("Use BDD-backed points-to sets instead of SparseBitVector"),
+    cl::init(false), cl::cat(AndersenCategory));
 
 namespace {
 
@@ -176,7 +188,11 @@ ContextPolicy buildKCallStringPolicy(const char *name) {
         static_cast<const typename CallStringCtxManager<K>::Context *>(ctx),
         detailed);
   };
-  policy.release = +[]() { getCallStringManager<K>().reset(); };
+  policy.release = +[]() { 
+    // Don't reset the manager to avoid invalidating context pointers
+    // that may have been captured by existing Andersen objects.
+    // The pool will be cleaned up when the program exits.
+  };
   policy.k = K;
   policy.name = name;
   return policy;
@@ -224,10 +240,14 @@ ContextPolicy getSelectedAndersenContextPolicy() {
 }
 
 Andersen::Andersen(const Module &module, ContextPolicy policy)
-    : ctxPolicy(std::move(policy)),
+    : ctxPolicy(policy),
       initialCtx(ctxPolicy.initialCtx()),
       globalCtx(ctxPolicy.globalCtx()) {
+  static int objectCounter = 0;
+  int myId = ++objectCounter;
+  LOG_INFO("=== Andersen object #{} created ===", myId);
   runOnModule(module);
+  LOG_INFO("=== Andersen object #{} analysis completed ===", myId);
 }
 
 Andersen::~Andersen() { ctxPolicy.release(); }
@@ -277,7 +297,8 @@ bool Andersen::getPointsToSet(const llvm::Value *v,
     if (ptsItr == ptsGraph.end())
       continue;
     sawKnown = true;
-    ptsSet.unionWith(ptsItr->second);
+    for (auto idx : ptsItr->second)
+      ptsSet.insert(static_cast<unsigned>(idx));
   }
 
   if (!sawKnown)
@@ -300,7 +321,8 @@ bool Andersen::getPointsToSetInContext(const llvm::Value *v,
     return false;
 
   ptsSet.clear();
-  ptsSet.unionWith(ptsItr->second);
+  for (auto idx : ptsItr->second)
+    ptsSet.insert(static_cast<unsigned>(idx));
   return true;
 }
 
@@ -353,11 +375,14 @@ bool Andersen::runOnModule(const Module &M) {
   if (DumpDebugInfo)
     dumpConstraintsPlainVanilla();
 
+  LOG_INFO("Starting constraint optimization...");
   optimizeConstraints();
+  LOG_INFO("Constraint optimization completed");
 
   if (DumpConstraintInfo)
     dumpConstraints();
 
+  LOG_INFO("Starting constraint solving...");
   solveConstraints();
   LOG_INFO("Andersen analysis completed successfully");
 
@@ -411,15 +436,19 @@ void Andersen::dumpConstraint(const AndersConstraint &item) const {
 
 void Andersen::dumpConstraints() const {
   LOG_DEBUG("\n----- Constraints -----");
+#if SPDLOG_ACTIVE_LEVEL <= SPDLOG_LEVEL_DEBUG
   for (auto const &item : constraints)
     dumpConstraint(item);
+#endif
   LOG_DEBUG("----- End of Print -----");
 }
 
 void Andersen::dumpConstraintsPlainVanilla() const {
+#if SPDLOG_ACTIVE_LEVEL <= SPDLOG_LEVEL_DEBUG
   for (auto const &item : constraints) {
     LOG_DEBUG("{} {} {} 0", item.getType(), item.getDest(), item.getSrc());
   }
+#endif
 }
 
 void Andersen::dumpPtsGraphPlainVanilla() const {

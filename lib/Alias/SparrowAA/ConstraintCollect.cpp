@@ -42,6 +42,8 @@ STATISTIC(NumPointerInstructions, "Number of pointer instructions processed");
 // constraint, and setting up the initial points-to graph.
 
 void Andersen::collectConstraints(const Module &M) {
+  LOG_INFO("collectConstraints: Starting, nodeFactory has {} nodes", nodeFactory.getNumNodes());
+  
   // First, the universal ptr points to universal obj, and the universal obj
   // points to itself
   constraints.emplace_back(AndersConstraint::ADDR_OF,
@@ -56,9 +58,15 @@ void Andersen::collectConstraints(const Module &M) {
                            nodeFactory.getNullPtrNode(),
                            nodeFactory.getNullObjectNode());
 
+  LOG_INFO("collectConstraints: Added {} initial constraints", constraints.size());
+  
   // Next, add any constraints on global variables. Associate the address of the
   // global object as pointing to the memory for the global: &G = <G memory>
-  collectConstraintsForGlobals(M, globalCtx);
+  // Use initialCtx for globals to ensure consistency with function analysis
+  collectConstraintsForGlobals(M, initialCtx);
+  
+  LOG_INFO("collectConstraints: After globals, have {} constraints and {} nodes", 
+           constraints.size(), nodeFactory.getNumNodes());
 
   // Process every defined function with the initial context; calls will spawn
   // more contexts as needed.

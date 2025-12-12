@@ -29,10 +29,15 @@ STATISTIC(NumPointerEquivClasses, "Number of pointer equivalence classes");
 STATISTIC(NumLoadToStoreOptimized, "Number of loads optimized to copies");
 STATISTIC(NumStoreToStoreOptimized, "Number of stores optimized to copies");
 
+// Use extern to reference the category defined in Andersen.cpp
+extern cl::OptionCategory AndersenCategory;
+
 cl::opt<bool> EnableHVN("enable-hvn",
-                        cl::desc("Enable the HVN constraint optimization"));
+                        cl::desc("Enable the HVN constraint optimization"),
+                        cl::cat(AndersenCategory));
 cl::opt<bool> EnableHU("enable-hu",
-                       cl::desc("Enable the HU constraint optimization"));
+                       cl::desc("Enable the HU constraint optimization"),
+                       cl::cat(AndersenCategory));
 
 namespace {
 
