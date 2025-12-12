@@ -174,18 +174,33 @@ void BDDAndersPtsSet::refreshCache() const {
   int *cube;
   CUDD_VALUE_TYPE value;
   Cudd_ForeachCube(getManager(), impl->bdd, gen, cube, value) {
-    Index idx = 0;
-    bool exact = true;
+    // Build a base index from bits fixed to 0/1 and record positions of
+    // "don't-care" bits (encoded as 2 in CUDD).
+    Index base = 0;
+    unsigned dcCount = 0;
+    unsigned dcPositions[kIndexBits]; // kIndexBits is small (≤64), stack-allocate.
+
     for (unsigned bit = 0; bit < kIndexBits; ++bit) {
-      if (cube[bit] == 2) {
-        exact = false;
-        break;
+      if (cube[bit] == 0) {
+        // fixed to 0 – nothing to do
+      } else if (cube[bit] == 1) {
+        base |= (Index{1} << bit);
+      } else { // cube[bit] == 2  → don't-care
+        dcPositions[dcCount++] = bit;
       }
-      if (cube[bit])
-        idx |= (Index{1} << bit);
     }
-    if (exact)
+
+    const Index combos = Index{1} << dcCount;
+    for (Index m = 0; m < combos; ++m) {
+      Index idx = base;
+      for (unsigned i = 0; i < dcCount; ++i) {
+        if (m & (Index{1} << i))
+          idx |= (Index{1} << dcPositions[i]);
+        else
+          idx &= ~(Index{1} << dcPositions[i]); // ensure 0 when bit not set
+      }
       elems->push_back(idx);
+    }
   }
 
   cache = elems;
