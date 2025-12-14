@@ -1,6 +1,30 @@
-/*
-*  DataComp is a data compression algorithm.
-*/
+/**
+ * @file DataComp.cpp
+ * @brief Implementation of data compression for reachability index storage.
+ * 
+ * The DataComp class implements clustering-based compression algorithms to
+ * reduce the storage size of reachability indices. It uses two main approaches:
+ * 
+ * 1. Sliding Window Heuristic (slidewin_heu):
+ *    - Groups similar index vectors together
+ *    - Finds common elements across vectors in a sliding window
+ *    - Stores common elements once in a compression table
+ *    - Each vector stores only differences from the common set
+ * 
+ * 2. K-Means Clustering (comp_kmeans):
+ *    - Clusters index vectors by similarity
+ *    - Computes cluster centroids (common elements)
+ *    - Stores differences from centroids for each vector
+ *    - Iteratively refines clusters to minimize storage
+ * 
+ * The compression is particularly effective when many index vectors share
+ * common elements (e.g., many vertices reachable from the same gates).
+ * 
+ * Compression format:
+ *   - Original elements not in centroid
+ *   - Negative indices for elements in centroid but not in vector
+ *   - Cluster ID reference to centroid table
+ */
 
 #include "CFL/CSIndex/DataComp.h"
 #include <cstdlib>
@@ -65,6 +89,25 @@ DataComp::DataComp(vector<vector<int> > _data, int _K):data(_data),num_cluster(_
 	orgsize = sum;
 }
 
+/**
+ * @brief Sliding window heuristic for finding common elements.
+ * 
+ * This algorithm processes vectors in a given order, maintaining a sliding
+ * window of vectors and their common elements. When the common set becomes
+ * too small (cost-benefit threshold), it creates a compression table entry
+ * and restarts with a new window.
+ * 
+ * Algorithm:
+ * 1. Maintain a current window of vectors and their intersection
+ * 2. For each new vector, check if adding it maintains sufficient commonality
+ * 3. If commonality drops below threshold, compress current window and restart
+ * 4. Store common elements in compression table, vectors store differences
+ * 
+ * @param pdata Input data vectors (modified in-place if saved=true)
+ * @param grts Processing order for vectors
+ * @param table Output compression table mapping IDs to common element sets
+ * @param saved If true, modify pdata to store compressed representation
+ */
 void DataComp::slidewin_heu(vector<vector<int> >& pdata, vector<int>& grts, 
 		map<int,vector<int> >& table, bool saved) {
 	vector<int>::iterator vit;
@@ -406,6 +449,21 @@ void DataComp::update_centroids(bool shrink) {
 	*/
 }
 
+/**
+ * @brief Generate final compressed representation.
+ * 
+ * Creates the compressed data structure:
+ * 1. Build compression table: centroids stored with negative IDs
+ * 2. For each vector:
+ *    - Elements in vector but not in centroid: store directly
+ *    - Elements in centroid but not in vector: store as -(max_num + element)
+ *    - Append cluster ID (negative) to reference centroid
+ * 
+ * Decompression: For each compressed vector, union with centroid and
+ * subtract elements marked with negative indices.
+ * 
+ * This format enables efficient storage while maintaining fast decompression.
+ */
 void DataComp::gen_result() {
 	int index = -1, cid = 0;
 	
@@ -418,6 +476,7 @@ void DataComp::gen_result() {
 	
 	comp_table.clear();
 	map<int,int> index_map;
+	// Build compression table: store centroids with negative IDs
 	for (int i = 0; i < num_cluster; i++) {
 		if (static_cast<int>(cl_num[i].size())<2) continue;
 		sort(centroids[i].begin(),centroids[i].end());
@@ -450,6 +509,23 @@ void DataComp::gen_result() {
 	}
 }
 
+/**
+ * @brief K-means clustering compression algorithm.
+ * 
+ * Implements a variant of k-means clustering adapted for index compression:
+ * 1. Initialize clusters using sliding window heuristic
+ * 2. Assign each vector to nearest cluster (by symmetric difference)
+ * 3. Update cluster centroids (common elements appearing in >50% of vectors)
+ * 4. Iterate until convergence or max iterations
+ * 5. Generate compressed representation
+ * 
+ * The distance metric considers:
+ * - Symmetric difference between vector and centroid
+ * - Cluster size (larger clusters get preference)
+ * 
+ * This provides better compression than sliding window alone by globally
+ * optimizing cluster assignments.
+ */
 void DataComp::comp_kmeans() {
 //	init_centroids();
 //	assign_class();

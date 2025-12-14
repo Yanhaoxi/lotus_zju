@@ -1,3 +1,21 @@
+/**
+ * @file Graph.cpp
+ * @brief Implementation of the Graph class for Context-Sensitive Flow (CFL) reachability analysis.
+ * 
+ * This module implements a graph data structure specifically designed for Extended Dyck-CFL 
+ * reachability queries in context-sensitive program analysis. The graph supports:
+ * 
+ * - Labeled edges: Positive labels represent call edges, negative labels represent return edges
+ * - Summary edge computation: Builds inter-procedural summary edges for efficient reachability
+ * - Indexing graph transformation: Converts the graph to a form suitable for indexing
+ * 
+ * The graph is used as the foundation for the CSIndex system, which provides efficient
+ * indexing and querying of context-sensitive reachability relationships.
+ * 
+ * Reference: OOPSLA 2022a - "Indexing the Extended Dyck-CFL Reachability for 
+ * Context-Sensitive Program Analysis" by Qingkai Shi, Yongchao Wang, Peisen Yao, and Charles Zhang.
+ */
+
 #include "CFL/CSIndex/Graph.h"
 #include "CFL/CSIndex/CSProgressBar.h"
 #include <algorithm>
@@ -90,6 +108,20 @@ void Graph::strTrimRight(string &str) {
         str.clear();
 }
 
+/**
+ * @brief Read graph from input stream in the "graph_for_greach" format.
+ * 
+ * Expected format:
+ *   - First line: "graph_for_greach"
+ *   - Second line: number of vertices
+ *   - Subsequent lines: "vertex_id: neighbor1 neighbor2 ... #function_id"
+ * 
+ * Edges can be unlabeled or labeled with context-sensitive IDs:
+ *   - Unlabeled: "target_vertex"
+ *   - Labeled: "target_vertex.context_id" (positive for calls, negative for returns)
+ * 
+ * @param in Input stream containing the graph data
+ */
 void Graph::readGraph(istream &in) {
     string buf;
     getline(in, buf);
@@ -424,6 +456,20 @@ vector<string> Graph::split(const string &s, char delim) {
     return split(s, delim, elems);
 }
 
+/**
+ * @brief Build summary edges for inter-procedural reachability.
+ * 
+ * Summary edges represent reachability across procedure boundaries. This algorithm:
+ * 1. Identifies actual-out and formal-out vertices (negative labeled edges)
+ * 2. Identifies formal-in vertices (positive labeled edges)
+ * 3. Propagates reachability through matching call-return pairs
+ * 
+ * A summary edge (s, t) indicates that vertex s can reach vertex t through
+ * a valid inter-procedural path respecting the CFL grammar (matched calls/returns).
+ * 
+ * Algorithm: Worklist-based propagation that matches positive labels with
+ * corresponding negative labels to build inter-procedural summary edges.
+ */
 void Graph::build_summary_edges() {
     std::set<std::pair<int, int>> WorkList;
     std::map<int, std::set<int>> PathEdge;
@@ -500,11 +546,25 @@ void Graph::build_summary_edges() {
     }
 }
 
+/**
+ * @brief Transform graph into indexing graph structure.
+ * 
+ * The indexing graph doubles the vertex set to create a bipartite structure:
+ * - Original vertices [0, n/2): represent entry points
+ * - Duplicate vertices [n/2, n): represent exit points
+ * 
+ * This transformation enables efficient indexing by separating entry and exit
+ * contexts. Edges are redirected accordingly:
+ * - Internal edges within a function connect original to duplicate vertices
+ * - Labeled edges (calls/returns) are removed as they're handled via summary edges
+ * 
+ * The resulting graph structure supports efficient gate-based indexing.
+ */
 void Graph::to_indexing_graph() {
     // add all summary edges to the graph
     add_summary_edges();
 
-    // copy
+    // Double the vertex set: [0, n/2) for entries, [n/2, n) for exits
     n_vertices = n_vertices * 2;
     vl.resize(n_vertices);
     graph.resize(n_vertices);
@@ -557,9 +617,21 @@ void Graph::removeEdge(int s, int t) {
     }
 }
 
+/**
+ * @brief Validate graph structure for CFL reachability correctness.
+ * 
+ * Performs several correctness checks:
+ * 1. Labeled edges (calls/returns) must be within the same function
+ * 2. Formal-in vertices must have positive-labeled incoming edges
+ * 3. Reports maximum argument count per function
+ * 
+ * This validation ensures the graph conforms to the expected structure
+ * for context-sensitive flow analysis.
+ */
 void Graph::check() {
     cout << "Checking correctness of the input graph..." << endl;
     CSProgressBar bar(n_vertices);
+    // Check: labeled edges should not cross function boundaries
     for (int i = 0; i < n_vertices; ++i) {
         Vertex& v = at(i);
         auto &inList = graph[i].inList;

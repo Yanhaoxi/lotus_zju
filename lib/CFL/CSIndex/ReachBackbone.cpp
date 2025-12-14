@@ -1,20 +1,58 @@
+/**
+ * @file ReachBackbone.cpp
+ * @brief Implementation of backbone discovery algorithm for CSIndex.
+ * 
+ * The ReachBackbone class implements the core algorithm for discovering a minimal
+ * set of "backbone" vertices (gates) that enable efficient reachability queries.
+ * 
+ * Key concepts:
+ * - Backbone vertices: A subset of vertices that capture most reachability relationships
+ * - Gate graph: A compressed graph built over backbone vertices
+ * - Materialization: Precompute local neighborhoods for high-degree vertices
+ * 
+ * Algorithm overview:
+ * 1. Pre-select high-degree vertices as initial backbone
+ * 2. Materialize local neighborhoods for hub vertices
+ * 3. For each candidate vertex, check if it's needed as a backbone vertex
+ * 4. Build gate graph connecting backbone vertices within epsilon+1 distance
+ * 
+ * The backbone discovery uses a "life" propagation algorithm to determine
+ * whether a vertex is necessary for maintaining reachability coverage.
+ * 
+ * Reference: OOPSLA 2022a paper on Extended Dyck-CFL Reachability indexing.
+ */
+
 #include "CFL/CSIndex/ReachBackbone.h"
 
+/**
+ * @brief Constructor for ReachBackbone.
+ * 
+ * Initializes data structures for backbone discovery:
+ * - gates: Bit vector marking backbone vertices
+ * - materialized: Bit vector marking vertices with precomputed neighborhoods
+ * - localneighbors: Precomputed in/out neighborhoods for materialized vertices
+ * - Work queues and distance/life tracking for BFS-based algorithms
+ * 
+ * @param graph Reference to the input graph
+ * @param r Epsilon radius for local gate computation
+ * @param ratio Pre-selection ratio for initial backbone vertices
+ * @param _level Hierarchy level (for multi-level indexing)
+ */
 ReachBackbone::ReachBackbone(Graph& graph, int r, double ratio, int _level)
 	: g(graph), epsilon(r), preselectratio(ratio), level(_level) {
 	gsize = g.num_vertices();
-	ref = 0;
-	opCnt = 0;
+	ref = 0;  // Reference value for marking visited vertices in BFS
+	opCnt = 0;  // Operation counter for visited tracking
 	bbedgesize = 0;
 	gates = new bit_vector(gsize);
 	materialized = new bit_vector(gsize);
 	localneighbors = vector<vector<bit_vector*> >(gsize,vector<bit_vector*>(2,NULL));
-	que = vector<int>(gsize,0);
-	que2 = vector<int>(gsize,0);
-	dist = vector<int>(gsize,0);
-	life = vector<int>(gsize,0);
-	visited = vector<int>(gsize,0);
-	blocknum = 10;
+	que = vector<int>(gsize,0);  // Primary BFS queue
+	que2 = vector<int>(gsize,0);  // Secondary queue for rescanning
+	dist = vector<int>(gsize,0);  // Distance from current source
+	life = vector<int>(gsize,0);  // "Life" value for reachability propagation
+	visited = vector<int>(gsize,0);  // Visit markers
+	blocknum = 10;  // Number of blocks for block ordering
 }
 
 ReachBackbone::~ReachBackbone() {
@@ -173,7 +211,25 @@ void ReachBackbone::vertexRanking(vector<int>& ranks, int type) {
 	}
 }
 
-// check if we need to select current node as backbone vertex
+/**
+ * @brief Determine if a vertex should be selected as a backbone vertex.
+ * 
+ * This is the core decision function for backbone discovery. It uses a BFS-based
+ * algorithm with "life" propagation to determine if vertex vid is necessary:
+ * 
+ * Algorithm:
+ * 1. Perform BFS from vid up to epsilon+1 distance
+ * 2. Propagate "life" values: vertices reachable from gates get life >= ref
+ * 3. Check if there are local neighbors at distance epsilon+1 that:
+ *    - Are not covered by existing materialized hubs
+ *    - Have life < ref (not reachable from existing gates)
+ * 
+ * A vertex is selected as backbone if it provides unique coverage for
+ * vertices that would otherwise be unreachable through the current backbone.
+ * 
+ * @param vid Vertex ID to check
+ * @return true if vid should be a backbone vertex, false otherwise
+ */
 bool ReachBackbone::backboneByNode(int vid) {
 	#ifdef RBDEBUG
 	cout << "here check " << vid << endl;
@@ -427,6 +483,21 @@ bool ReachBackbone::backboneByNode(int vid) {
 	return false;
 }
 
+/**
+ * @brief Discover backbone vertices using ranking-based selection.
+ * 
+ * The backbone discovery process:
+ * 1. Rank vertices by importance (in-degree, out-degree, or product)
+ * 2. Pre-select top vertices by degree as initial backbone
+ * 3. Materialize high-degree vertices (hubs) for fast neighborhood queries
+ * 4. Iterate through ranked vertices, selecting additional backbone vertices
+ *    that provide unique reachability coverage
+ * 
+ * @param type Ranking type:
+ *   0 = in-degree, 1 = out-degree, 2 = in*out, 
+ *   3 = in-neighbors(2), 4 = out-neighbors(2), 5 = in*out neighbors,
+ *   6 = block ordering
+ */
 void ReachBackbone::backboneDiscovery(int type) {
 	vector<int> ranks;
 	vector<int>::iterator iter;

@@ -1,9 +1,46 @@
+/**
+ * @file DWGraphUtil.cpp
+ * @brief Utilities for directed weighted graphs, including Edmonds' maximum branching algorithm.
+ * 
+ * This module provides algorithms for working with directed weighted graphs (DWGraph):
+ * 
+ * 1. Edmonds' Maximum Branching Algorithm (findMaxBranching):
+ *    - Finds a maximum weight spanning arborescence (directed tree) rooted at all vertices
+ *    - Uses contraction of strongly connected components (SCCs)
+ *    - Recursively solves on contracted graph, then expands solution
+ *    - Time complexity: O(E * V) for each recursion level
+ * 
+ * 2. Tarjan's SCC Algorithm:
+ *    - Finds strongly connected components using DFS
+ *    - Used as a subroutine in Edmonds' algorithm
+ * 
+ * 3. Branching Validation:
+ *    - Checks that a branching has at most one incoming edge per vertex
+ *    - Verifies no cycles exist in the branching
+ * 
+ * These algorithms are used for optimizing graph structures in the indexing system.
+ */
+
 #include "CFL/CSIndex/DWGraphUtil.h"
 #include <algorithm>
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
 
+/**
+ * @brief Implement Tarjan's algorithm to find Strongly Connected Components.
+ * 
+ * Uses depth-first search with lowlink tracking to identify SCCs.
+ * Each SCC is a maximal set of vertices where every vertex can reach every other.
+ * 
+ * @param g Input directed weighted graph
+ * @param vid Starting vertex ID
+ * @param index Current DFS index (incremented during traversal)
+ * @param order Map storing (index, lowlink) for each vertex
+ * @param sn Stack of vertices in current DFS path
+ * @param sccmap Output map from SCC ID to vertex list
+ * @param scc Current SCC counter (incremented for each new SCC)
+ */
 // implement tarjan's algorithm to find Strongly Connected Component from a given start node
 void DWGraphUtil::tarjan(DWGraph& g, int vid, int& index, map< int, pair<int,int> >& order, 
 	vector<int>& sn, map<int, vector<int> >& sccmap, int& scc) {
@@ -139,11 +176,28 @@ void DWGraphUtil::findMaxBranching1(DWGraph& g, DWGraph& maxBranch) {
 }
 
 
-/*
-* Dec 15: avoid direct operation on edgeOpMap
-*
-*/
-// Edmonds' Branching Algorithm
+/**
+ * @brief Edmonds' algorithm for finding maximum weight branching.
+ * 
+ * A branching is a directed acyclic graph where each vertex has at most one
+ * incoming edge. This algorithm finds the branching with maximum total weight.
+ * 
+ * Algorithm overview:
+ * 1. For each vertex, select maximum weight incoming edge
+ * 2. If this creates cycles (SCCs), contract each cycle:
+ *    - Create a new vertex representing the cycle
+ *    - Adjust edge weights: w'(u,v) = w(u,v) - min_weight_in_cycle + min_cycle_weight
+ *    - Recursively solve on contracted graph
+ * 3. Expand solution: break cycles by removing minimum weight edge
+ * 
+ * The algorithm handles edge mapping to preserve original graph structure
+ * after contraction/expansion.
+ * 
+ * Reference: J. Edmonds, "Optimum Branchings", 1967
+ * 
+ * @param g Input directed weighted graph
+ * @param maxBranch Output maximum weight branching
+ */
 void DWGraphUtil::findMaxBranching(DWGraph& g, DWGraph& maxBranch) {
 	DWVertexList::iterator vlit;
 	DWVertexList vl = g.vertices();
@@ -187,7 +241,8 @@ void DWGraphUtil::findMaxBranching(DWGraph& g, DWGraph& maxBranch) {
 	maxBranch.printGraph();
 	*/
 
-	// find strongly connected component
+	// Step 1: Find strongly connected components in the initial branching
+	// If no cycles exist (each vertex is its own SCC), we're done
 	vector<int> list_s;
 	int index = 0;
 	vector<int> sn;
@@ -204,6 +259,7 @@ void DWGraphUtil::findMaxBranching(DWGraph& g, DWGraph& maxBranch) {
 		tarjan(maxBranch, vid, index, order, sn, sccmap, scc_num);
 	}	
 	
+	// Base case: no cycles, branching is optimal
 	if (scc_num == maxBranch.num_vertices())
 		return;
 
@@ -379,7 +435,7 @@ void DWGraphUtil::findMaxBranching(DWGraph& g, DWGraph& maxBranch) {
 	ng.printGraph();
 	#endif
 
-	// find max branching recursively
+	// Step 2: Recursively solve on contracted graph
 	DWGraph newBranch;
 	findMaxBranching(ng, newBranch);
 	maxBranch = newBranch;
@@ -390,7 +446,11 @@ void DWGraphUtil::findMaxBranching(DWGraph& g, DWGraph& maxBranch) {
 	maxBranch.printGraph();
 	#endif
 	
-	// cycle decomposition
+	// Step 3: Expand solution - decompose cycles and restore original edges
+	// For each contracted vertex (representing a cycle):
+	//   - Restore original vertices in the cycle
+	//   - Remove minimum weight edge to break the cycle
+	//   - Map edges back to original graph using edgemap
 	vector<int>::iterator vit1;
 	vector<int>::reverse_iterator rvit1, rvit2;
 	vector<int> vec1;

@@ -1,16 +1,48 @@
+/**
+ * @file Query.cpp
+ * @brief Implementation of reachability query interface for CSIndex.
+ * 
+ * This module provides the Query class, which implements various indexing strategies
+ * for efficient context-sensitive reachability queries:
+ * 
+ * - DFS: Depth-first search (baseline, no indexing)
+ * - GATEDFS: Gate-based DFS with local gate precomputation
+ * - GRAIL: Multi-labeling approach for quick rejection
+ * - Index-based: Uses precomputed lin/lout labels for fast queries
+ * 
+ * The query system supports:
+ * - Materialization: Precompute reachability for high-degree vertices
+ * - Local gates: Precompute nearby gate vertices for each node
+ * - Multi-labeling: Use multiple DFS labels for probabilistic filtering
+ * 
+ * Query performance is optimized through a combination of:
+ * 1. Gate selection: Identify important vertices (gates) for indexing
+ * 2. Gate graph: Build a compressed graph over gates
+ * 3. Local materialization: Cache reachability for frequently accessed nodes
+ */
+
 #include "CFL/CSIndex/Query.h"
 #include <cstdlib>
 #include <ctime>
 
 /**
  * @brief Constructor with file stem, graph reference, radius, pre-selection ratio, and materialization flag.
- * @param filestem File stem for I/O operations
- * @param ig Reference to graph
- * @param _r Radius parameter
- * @param _ps Pre-selection ratio
- * @param mat Materialization flag
  * 
- * Initializes a query object with the specified parameters and loads necessary data files.
+ * Initializes a Query object for performing reachability queries. The constructor:
+ * 1. Loads gate vertices (important nodes for indexing)
+ * 2. Loads the gate graph (compressed graph over gates)
+ * 3. Loads precomputed reachability indices (lin/lout labels)
+ * 
+ * @param filestem File stem for I/O operations (used to construct gate/index filenames)
+ * @param ig Reference to the input graph
+ * @param _r Radius parameter (epsilon) - maximum distance for local gate computation
+ * @param _ps Pre-selection ratio - fraction of vertices to pre-select as gates
+ * @param mat Materialization flag - whether to use materialized reachability
+ * 
+ * File naming convention:
+ *   - Gates: {filestem}.{epsilon}{preselectratio}gates
+ *   - Gate graph: {filestem}.{epsilon}{preselectratio}gg
+ *   - Index: {filestem}.index
  */
 Query::Query(const char* filestem, Graph& ig, int _r, double _ps, bool mat) : g(ig) {
 	initFlags();
@@ -439,6 +471,19 @@ void Query::computeTopoOrder() {
 	GraphUtil::topological_sort(g,topoid);
 }
 
+/**
+ * @brief Check if vertex src can reach vertex trg in the graph.
+ * 
+ * This is the main query interface. The actual implementation depends on
+ * the method_name setting:
+ * - DFS: Simple depth-first search
+ * - GATEDFS: Gate-based DFS using local gates
+ * - Index-based: Uses precomputed lin/lout labels
+ * 
+ * @param src Source vertex ID
+ * @param trg Target vertex ID
+ * @return true if src can reach trg, false otherwise
+ */
 bool Query::reach(int src, int trg) {
 	return GraphUtil::DFSReachCnt(g, src, trg, visited, QueryCnt);
 //	return GraphUtil::DFSReachVisitedNum(g,src,trg,visitnum); 
@@ -477,6 +522,18 @@ bool Query::test_nomreach(int src, int trg) {
 	return true;
 }
 
+/**
+ * @brief Initialize materialization for query acceleration.
+ * 
+ * Materialization precomputes reachability information for high-degree vertices (hubs).
+ * This significantly speeds up queries involving these vertices by:
+ * 1. Precomputing in-neighbors within epsilon distance for hub vertices
+ * 2. Precomputing local gates (incoming/outgoing) for all vertices
+ * 
+ * The number of materialized vertices is adaptive:
+ * - Default: 0.1% of vertices (minimum 100, maximum 10 for very large graphs)
+ * - Selection: Based on in-degree (highest degree vertices are materialized)
+ */
 void Query::initMaterialization() {
 	inoutgates = vector<vector<vector<int> > >(gsize,vector<vector<int> >(2,vector<int>()));
 	inneigs = vector<bit_vector*>(gsize,NULL);
@@ -563,7 +620,23 @@ void Query::materializeInNeighbors(int vid) {
 }
 
 
-// note that: using scalable version of gate graph generation, outlocalgates contains all gates within epsilon steps while inlocalgates contains all gates within epsion+1 steps
+/**
+ * @brief Precompute local gates for a vertex within epsilon distance.
+ * 
+ * Local gates are gate vertices reachable from (or reaching) a vertex within
+ * the epsilon radius. This enables efficient query answering by:
+ * 1. Finding gates reachable from source (out=true)
+ * 2. Finding gates that can reach target (out=false)
+ * 
+ * Algorithm: BFS traversal up to epsilon steps, collecting gate vertices.
+ * 
+ * Note: For scalable gate graph generation:
+ *   - Outgoing local gates: gates within epsilon steps
+ *   - Incoming local gates: gates within epsilon steps (symmetric)
+ * 
+ * @param vid Vertex ID to compute local gates for
+ * @param out If true, compute outgoing gates; if false, compute incoming gates
+ */
 void Query::precomputeGates(int vid, bool out) {
 	if (gates->get(vid)) {
 		return;

@@ -1,4 +1,25 @@
-
+/**
+ * @file ParallelTabulation.cpp
+ * @brief Parallel implementation of tabulation-based CFL reachability.
+ * 
+ * This module provides a multi-threaded version of the tabulation algorithm
+ * for computing CFL reachability. It parallelizes the computation across
+ * multiple vertices, with each thread maintaining its own visited sets
+ * to avoid synchronization overhead.
+ * 
+ * Key features:
+ * - Thread-safe visited sets: Each thread has its own visited tracking
+ * - Work distribution: Vertices are divided among threads
+ * - Two parallelization strategies:
+ *   1. Thread-based: Divide vertices into chunks for each thread
+ *   2. Async-based: Launch async tasks for each vertex (better load balancing)
+ * 
+ * The parallel version maintains the same correctness guarantees as the
+ * sequential Tabulation class while providing significant speedup on
+ * multi-core systems.
+ * 
+ * Thread safety: Uses thread-local visited sets to avoid contention.
+ */
 
 #include <csignal>
 #include <unistd.h>
@@ -95,10 +116,22 @@ bool ParallelTabulation::is_return(int s, int t) {
     return vfg.label(s, t) < 0;
 }
 
-// Worker function for parallel processing of a vertex
+/**
+ * @brief Worker function for parallel processing of a vertex range.
+ * 
+ * Processes vertices in the range [start, end) in parallel. Each thread
+ * maintains its own visited sets to avoid synchronization overhead.
+ * Results are stored in the shared results vector with mutex protection.
+ * 
+ * @param start Starting vertex index (inclusive)
+ * @param end Ending vertex index (exclusive)
+ * @param results Shared results vector for storing reachable sets
+ * @param results_mutex Mutex for protecting results vector
+ */
 void ParallelTabulation::process_vertex_range(int start, int end,
                                             std::vector<std::set<int>>& results,
                                             std::mutex& results_mutex) {
+    // Compute thread-local ID for accessing thread-local visited sets
     size_t thread_id = std::hash<std::thread::id>{}(std::this_thread::get_id()) % num_threads;
 
     for (int i = start; i < end; ++i) {
