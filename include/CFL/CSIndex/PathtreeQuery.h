@@ -1,7 +1,7 @@
 #ifndef _PATHTREE_QUERY_H_
 #define _PATHTREE_QUERY_H_
 
-#include "Query.h"
+#include "CFL/CSIndex/Query.h"
 
 //#define PATHTREE_DEBUG
 #define PATHTREE_CHECK

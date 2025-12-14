@@ -7,9 +7,9 @@ or their institutions liable under any circumstances.
 #ifndef _BOX_H
 #define _BOX_H
 
-#include "AbstractQuery.h"
-#include "ExceptionList.h"
-#include "GraphUtil.h"
+#include "CFL/CSIndex/AbstractQuery.h"
+#include "CFL/CSIndex/ExceptionList.h"
+#include "CFL/CSIndex/GraphUtil.h"
 
 // test switch
 #define _TEST_

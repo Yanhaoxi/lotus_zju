@@ -8,8 +8,8 @@
 #include <future>
 #include <mutex>
 
-#include "AbstractQuery.h"
-#include "Graph.h"
+#include "CFL/CSIndex/AbstractQuery.h"
+#include "CFL/CSIndex/Graph.h"
 
 // Thread-safe wrapper for sets using thread-local storage
 class ThreadSafeVisitedSet {

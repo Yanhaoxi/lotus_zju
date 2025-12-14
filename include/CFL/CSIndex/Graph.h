@@ -16,7 +16,7 @@
 #include <cassert>
 #include <unordered_map>
 
-#include "BitVector.h"
+#include "CFL/CSIndex/BitVector.h"
 
 using namespace std;
 

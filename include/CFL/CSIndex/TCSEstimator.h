@@ -7,7 +7,7 @@ or their institutions liable under any circumstances.
 #ifndef _TCSEstimator_H_
 #define _TCSEstimator_H_
 
-#include "Graph.h"
+#include "CFL/CSIndex/Graph.h"
 
 class TCSEstimator {
 	public :

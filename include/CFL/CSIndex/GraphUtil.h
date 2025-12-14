@@ -2,7 +2,7 @@
 #define _GRAPH_UTIL_H_
 
 #include <sys/time.h>
-#include "Graph.h"
+#include "CFL/CSIndex/Graph.h"
 
 class GraphUtil {
 	public:

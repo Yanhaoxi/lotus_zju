@@ -16,8 +16,8 @@
 
 #include <set>
 
-#include "AbstractQuery.h"
-#include "Graph.h"
+#include "CFL/CSIndex/AbstractQuery.h"
+#include "CFL/CSIndex/Graph.h"
 
 class Tabulation : public AbstractQuery {
 private:

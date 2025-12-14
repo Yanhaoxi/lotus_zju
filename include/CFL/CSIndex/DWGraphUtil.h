@@ -1,7 +1,7 @@
 #ifndef _DWGRAPH_UTIL_H_
 #define _DWGRAPH_UTIL_H_
 
-#include "DWGraph.h"
+#include "CFL/CSIndex/DWGraph.h"
 
 //#define DEBUG
 

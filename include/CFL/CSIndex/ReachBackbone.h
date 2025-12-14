@@ -2,7 +2,7 @@
 #define _REACH_BACKBONE_H_
 
 #include <fstream>
-#include "GraphUtil.h"
+#include "CFL/CSIndex/GraphUtil.h"
 
 //#define RBDEBUG
 //#define RBDEBUG1

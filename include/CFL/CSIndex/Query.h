@@ -1,8 +1,8 @@
 #ifndef _QUERY_H_
 #define _QUERY_H_
 
-#include "AbstractQuery.h"
-#include "GraphUtil.h"
+#include "CFL/CSIndex/AbstractQuery.h"
+#include "CFL/CSIndex/GraphUtil.h"
 
 #define COMPACTVECTOR
 

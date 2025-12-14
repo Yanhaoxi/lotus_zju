@@ -1,9 +1,9 @@
 #ifndef _PATH_TREE_H
 #define _PATH_TREE_H
 
-#include "DataComp.h"
-#include "DWGraphUtil.h"
-#include "GraphUtil.h"
+#include "CFL/CSIndex/DataComp.h"
+#include "CFL/CSIndex/DWGraphUtil.h"
+#include "CFL/CSIndex/GraphUtil.h"
 
 // test switch
 #define _TEST_
