@@ -53,22 +53,3 @@ Mutual refinement algorithms for CFL analysis.
 **Location**: ``lib/CFL/MutualRefinement/``
 
 **Features**: Bidirectional refinement techniques for improving analysis precision.
-
-POCR (Partial Order Constraint Resolution)
------------------------------------------
-
-Constraint solving for partial order problems.
-
-**Location**: ``lib/CFL/POCR/``
-
-**Features**:
-* **Partial order constraints** – Solving systems of partial order relations
-* **Efficient algorithms** – Optimized constraint resolution
-* **Graph-based solving** – Constraint graph representations
-
-**Usage**:
-.. code-block:: cpp
-
-   #include <CFL/POCR/ConstraintSolver.h>
-   ConstraintSolver solver(constraints);
-   auto solution = solver.solve();

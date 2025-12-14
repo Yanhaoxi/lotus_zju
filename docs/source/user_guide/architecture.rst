@@ -103,9 +103,8 @@ Core Components
    
    Context-Free Language reachability engines:
    
-   - **Graspan**: Graph-based parallel CFL reachability
-   - **CSR**: Compressed sparse row-based CFL solver
-   - **POCR**: Partially-ordered CFL reachability
+   - **Graspan**: disk-based, parallel CFL reachability
+   - **CSR**: graph indexing for CFL Reachability
 
 Analysis Flow
 -------------

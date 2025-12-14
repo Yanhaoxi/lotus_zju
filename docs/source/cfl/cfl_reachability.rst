@@ -10,7 +10,7 @@ CFL reachability enables analysis of complex program properties using grammar-ba
 
 **Location**: ``tools/cfl/``
 
-**Tools**: Graspan (parallel), CSR (indexed), PoCR (analysis framework)
+**Tools**: Graspan (disk-based, parallel reachability), CSR (indexed CFL reachability)
 
 Graspan
 -------
@@ -40,26 +40,4 @@ Indexing-based reachability with multiple algorithms.
 
 **Options**: ``-m <method>``, ``-n <queries>``, ``-j <threads>``, ``-t`` (transitive closure)
 
-PoCR Framework
---------------
-
-Points-to and CFL analysis components.
-
-**Tools**:
-* ``aa``: Alias analysis
-* ``cfl``: CFL analysis
-* ``fp``: Foldable pattern
-* ``vf``: Value flow analysis
-
-CFL Grammar Examples
---------------------
-
-**Alias**: ``PT Assign Store``, ``PT Load PT``
-**Control**: ``Call Ret CallRet``
-**Data**: ``DU Def Use``
-
-Applications
-------------
-
-Points-to analysis, call graphs, data flow, memory safety.
 
