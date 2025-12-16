@@ -16,9 +16,31 @@ namespace UnderApprox { class UnderApproxAA; }
 
 namespace lotus {
 
+
 enum class AAType {
-  Andersen, DyckAA, BasicAA, TBAA, GlobalsAA, SCEVAA,
-  CFLAnders, CFLSteens, SRAA, SeaDsa, AllocAA, Combined, UnderApprox
+  Andersen, 
+  DyckAA, 
+  // The alias analyses inside LLVM: TBAA, GlobalsAA, SCEVAA
+  BasicAA, 
+  TBAA, 
+  GlobalsAA, 
+  SCEVAA,
+  // Taken from LLVM 14.x
+  CFLAnders, 
+  CFLSteens, 
+  // Stric relation based alias analysis
+  SRAA, 
+  // Sea-DSA: unificaiton-based, flow-insensitive, context-sensitive pointer analysis.
+  SeaDsa, 
+  // AllocAA: simple heuristic-based allocation tracking.
+  AllocAA, 
+  // Combined: combination of multiple alias analyses.
+  Combined, 
+  // UnderApprox: under-approximate alias analysis.
+  UnderApprox,
+  // SparrowAA Andersen context-sensitivity variants (fixed policies).
+  Andersen1CFA,
+  Andersen2CFA
 };
 
 class AliasAnalysisWrapper {

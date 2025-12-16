@@ -43,7 +43,7 @@ static cl::opt<int> AnalysisType("analysis", cl::desc("Type of analysis to run: 
                                  cl::init(0));
 
 static cl::opt<std::string> AliasAnalysisType("aa", 
-    cl::desc("Alias analysis type: andersen, dyck, cfl-anders, cfl-steens, seadsa, allocaa, basic, combined (default: dyck)"),
+    cl::desc("Alias analysis type: andersen, dyck, cfl-anders, cfl-steens, seadsa, allocaa, basic, combined=Andersen(NoCtx)+DyckAA (default: dyck)"),
     cl::init("dyck"));
 
 static cl::opt<bool> ShowResults("show-results", cl::desc("Show detailed analysis results"), 
@@ -95,6 +95,13 @@ lotus::AAType parseAliasAnalysisType(const std::string& aaTypeStr) {
     std::transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(), ::tolower);
     
     if (lowerStr == "andersen") return lotus::AAType::Andersen;
+    if (lowerStr == "andersen-nocontext" || lowerStr == "andersen-noctx" ||
+        lowerStr == "andersen-0cfa" || lowerStr == "andersen0" ||
+        lowerStr == "nocx" || lowerStr == "noctx") return lotus::AAType::Andersen;
+    if (lowerStr == "andersen-1cfa" || lowerStr == "andersen1" ||
+        lowerStr == "1cfa") return lotus::AAType::Andersen1CFA;
+    if (lowerStr == "andersen-2cfa" || lowerStr == "andersen2" ||
+        lowerStr == "2cfa") return lotus::AAType::Andersen2CFA;
     if (lowerStr == "dyck" || lowerStr == "dyckaa") return lotus::AAType::DyckAA;
     if (lowerStr == "cfl-anders" || lowerStr == "cflanders") return lotus::AAType::CFLAnders;
     if (lowerStr == "cfl-steens" || lowerStr == "cflsteens") return lotus::AAType::CFLSteens;

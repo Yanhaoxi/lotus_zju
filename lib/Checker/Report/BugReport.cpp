@@ -8,10 +8,6 @@
 #include <llvm/IR/IntrinsicInst.h>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/MemoryBuffer.h>
-#include <fstream>
-#include <sstream>
-#include <map>
-#include <unistd.h>
 
 using namespace llvm;
 
@@ -39,32 +35,10 @@ void BugReport::append_step(Value* inst, const std::string& tip) {
     
     // Extract debug information if available
     if (auto* I = dyn_cast_or_null<Instruction>(inst)) {
-        // Get source location using DebugInfoAnalysis
-        std::string srcLoc = debugInfo.getSourceLocation(I);
-        
-        // Parse source location
-        size_t firstColon = srcLoc.find(':');
-        size_t secondColon = srcLoc.find(':', firstColon + 1);
-        
-        if (firstColon != std::string::npos) {
-            step->src_file = srcLoc.substr(0, firstColon);
-            
-            if (secondColon != std::string::npos) {
-                try {
-                    step->src_line = std::stoi(srcLoc.substr(firstColon + 1, secondColon - firstColon - 1));
-                    step->src_column = std::stoi(srcLoc.substr(secondColon + 1));
-                } catch (...) {
-                    step->src_line = 0;
-                    step->src_column = 0;
-                }
-            } else {
-                try {
-                    step->src_line = std::stoi(srcLoc.substr(firstColon + 1));
-                } catch (...) {
-                    step->src_line = 0;
-                }
-            }
-        }
+        // Get source location components using DebugInfoAnalysis
+        step->src_file = debugInfo.getSourceFile(I);
+        step->src_line = debugInfo.getSourceLine(I);
+        step->src_column = debugInfo.getSourceColumn(I);
         
         // Get function name using DebugInfoAnalysis (includes demangling)
         step->func_name = debugInfo.getFunctionName(I);

@@ -83,6 +83,12 @@ bool AndersenAAResult::pointsToConstantMemory(const MemoryLocation &loc,
 AndersenAAResult::AndersenAAResult(const Module &m)
     : anders(m, getSelectedAndersenContextPolicy()) {}
 
+AndersenAAResult::AndersenAAResult(const Module &m, ContextPolicy policy)
+    : anders(m, policy) {}
+
+AndersenAAResult::AndersenAAResult(const Module &m, unsigned kCallSite)
+    : anders(m, makeContextPolicy(kCallSite)) {}
+
 // New Pass Manager implementation
 AnalysisKey AndersenAA::Key;
 

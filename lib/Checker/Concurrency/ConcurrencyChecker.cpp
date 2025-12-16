@@ -8,7 +8,6 @@
 #include <llvm/IR/InstIterator.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Operator.h>
-#include <llvm/IR/DebugInfoMetadata.h>
 #include <llvm/Support/raw_ostream.h>
 
 using namespace llvm;
@@ -153,17 +152,11 @@ void ConcurrencyChecker::reportBug(const ConcurrencyBugReport& bug_report, int b
     BugReport* report = new BugReport(bug_type_id);
     
     // Add diagnostic steps showing the concurrency bug trace
+    // Note: append_step automatically extracts all debug info (file, line, column, 
+    // function name, variable name, type, source code) using DebugInfoAnalysis
     for (const auto& step : bug_report.steps) {
         if (step.instruction) {
-             report->append_step(const_cast<Instruction*>(step.instruction), step.description);
-             
-             // Try to extract debug info if available
-             if (const DebugLoc& DL = step.instruction->getDebugLoc()) {
-                 // Note: BugReport might already extract this in append_step if implemented, 
-                 // but we ensure it's handled here or passed through.
-                 // For now, we assume append_step handles basic debug info extraction or
-                 // we rely on BugReportMgr's later processing.
-             }
+            report->append_step(const_cast<Instruction*>(step.instruction), step.description);
         }
     }
     

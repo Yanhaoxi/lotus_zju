@@ -6,6 +6,7 @@
 #include "Alias/CFLAA/CFLSteensAliasAnalysis.h"
 #include "Alias/seadsa/SeaDsaAliasAnalysis.hh"
 #include "Alias/AllocAA/AllocAA.h"
+#include <llvm/ADT/SmallVector.h>
 #include <llvm/Analysis/AliasAnalysis.h>
 #include <llvm/Analysis/MemoryLocation.h>
 #include <llvm/Analysis/TargetLibraryInfo.h>
@@ -15,6 +16,28 @@
 
 using namespace llvm;
 using namespace lotus;
+
+namespace {
+// Combine multiple (expected-sound) AA answers conservatively but precisely:
+// - If any backend can prove NoAlias -> NoAlias.
+// - If any backend can prove MustAlias (and none prove NoAlias) -> MustAlias.
+// - Otherwise prefer PartialAlias over MayAlias.
+static llvm::AliasResult combineAliasResults(llvm::ArrayRef<llvm::AliasResult> Results) {
+  bool SawNo = false, SawMust = false, SawPartial = false;
+  for (auto R : Results) {
+    if (R == llvm::AliasResult::NoAlias) SawNo = true;
+    else if (R == llvm::AliasResult::MustAlias) SawMust = true;
+    else if (R == llvm::AliasResult::PartialAlias) SawPartial = true;
+  }
+
+  // Contradiction (shouldn't happen with sound analyses): fall back to MayAlias.
+  if (SawNo && SawMust) return llvm::AliasResult::MayAlias;
+  if (SawNo) return llvm::AliasResult::NoAlias;
+  if (SawMust) return llvm::AliasResult::MustAlias;
+  if (SawPartial) return llvm::AliasResult::PartialAlias;
+  return llvm::AliasResult::MayAlias;
+}
+} // namespace
 
 AliasAnalysisWrapper::AliasAnalysisWrapper(Module &M, AAType type)
     : _aa_type(type), _module(&M), _initialized(false),
@@ -38,8 +61,31 @@ void AliasAnalysisWrapper::initialize() {
 
   switch (_aa_type) {
   case AAType::Andersen:
+    // Keep the wrapper deterministic: "Andersen" means context-insensitive.
+    // (Context-sensitive variants are exposed explicitly as Andersen1CFA/2CFA.)
+    initAA([this]{
+      _andersen_aa = std::make_unique<AndersenAAResult>(*_module, makeContextPolicy(0));
+    }, "Andersen(NoCtx)");
+    break;
   case AAType::Combined:
-    initAA([this]{ _andersen_aa = std::make_unique<AndersenAAResult>(*_module); }, "Andersen");
+    // Truly "combined": initialize multiple backends and merge their answers.
+    initAA([this]{
+      _andersen_aa = std::make_unique<AndersenAAResult>(*_module, makeContextPolicy(0));
+    }, "Andersen(NoCtx)");
+    initAA([this]{
+      _dyck_aa = std::make_unique<DyckAliasAnalysis>();
+      _dyck_aa->runOnModule(*_module);
+    }, "DyckAA");
+    break;
+  case AAType::Andersen1CFA:
+    initAA([this]{
+      _andersen_aa = std::make_unique<AndersenAAResult>(*_module, makeContextPolicy(1));
+    }, "Andersen(1-CFA)");
+    break;
+  case AAType::Andersen2CFA:
+    initAA([this]{
+      _andersen_aa = std::make_unique<AndersenAAResult>(*_module, makeContextPolicy(2));
+    }, "Andersen(2-CFA)");
     break;
   case AAType::DyckAA:
     initAA([this]{ _dyck_aa = std::make_unique<DyckAliasAnalysis>(); _dyck_aa->runOnModule(*_module); }, "DyckAA");
@@ -69,12 +115,24 @@ void AliasAnalysisWrapper::initialize() {
 }
 
 AliasResult AliasAnalysisWrapper::query(const Value *v1, const Value *v2) {
-  if (!isValidPointerQuery(v1, v2)) return AliasResult::NoAlias;
+  if (!isValidPointerQuery(v1, v2)) 
+      return AliasResult::NoAlias;
   return queryBackend(v1, v2);
 }
 
 AliasResult AliasAnalysisWrapper::query(const MemoryLocation &loc1, const MemoryLocation &loc2) {
   if (!_initialized) return AliasResult::MayAlias;
+  if (_aa_type == AAType::Combined) {
+    SmallVector<AliasResult, 3> Rs;
+    if (_andersen_aa) Rs.push_back(_andersen_aa->alias(loc1, loc2));
+    if (_dyck_aa) {
+      auto *p1 = const_cast<Value *>(loc1.Ptr->stripPointerCasts());
+      auto *p2 = const_cast<Value *>(loc2.Ptr->stripPointerCasts());
+      Rs.push_back(_dyck_aa->mayAlias(p1, p2) ? AliasResult::MayAlias : AliasResult::NoAlias);
+    }
+    if (_llvm_aa) Rs.push_back(_llvm_aa->alias(loc1, loc2));
+    return combineAliasResults(Rs);
+  }
   if (_andersen_aa) return _andersen_aa->alias(loc1, loc2);
   if (_llvm_aa) return _llvm_aa->alias(loc1, loc2);
   return query(loc1.Ptr, loc2.Ptr);
@@ -121,6 +179,16 @@ AliasResult AliasAnalysisWrapper::queryBackend(const Value *v1, const Value *v2)
 
   auto mkLoc = [](const Value *v) { return MemoryLocation(v, LocationSize::beforeOrAfterPointer(), AAMDNodes()); };
 
+  if (_aa_type == AAType::Combined) {
+    SmallVector<AliasResult, 3> Rs;
+    if (_andersen_aa) Rs.push_back(_andersen_aa->alias(mkLoc(v1s), mkLoc(v2s)));
+    if (_dyck_aa) Rs.push_back(_dyck_aa->mayAlias(const_cast<Value *>(v1s), const_cast<Value *>(v2s))
+                                 ? AliasResult::MayAlias
+                                 : AliasResult::NoAlias);
+    if (_llvm_aa) Rs.push_back(_llvm_aa->alias(mkLoc(v1), mkLoc(v2)));
+    return combineAliasResults(Rs);
+  }
+
   if (_andersen_aa) return _andersen_aa->alias(mkLoc(v1s), mkLoc(v2s));
   if (_dyck_aa) return _dyck_aa->mayAlias(const_cast<Value *>(v1s), const_cast<Value *>(v2s)) 
                        ? AliasResult::MayAlias : AliasResult::NoAlias;
@@ -148,8 +216,23 @@ std::unique_ptr<AliasAnalysisWrapper> AliasAnalysisFactory::createAuto(Module &M
 }
 
 const char *AliasAnalysisFactory::getTypeName(AAType type) {
-  static const char *names[] = {"Andersen", "DyckAA", "BasicAA", "TBAA", "GlobalsAA", "SCEVAA",
-                                "CFLAnders", "CFLSteens", "SRAA", "SeaDsa", "AllocAA", "Combined", "UnderApprox"};
-  return static_cast<size_t>(type) < sizeof(names)/sizeof(names[0]) ? names[static_cast<size_t>(type)] : "Unknown";
+  switch (type) {
+  case AAType::Andersen: return "Andersen(NoCtx)";
+  case AAType::Andersen1CFA: return "Andersen(1-CFA)";
+  case AAType::Andersen2CFA: return "Andersen(2-CFA)";
+  case AAType::DyckAA: return "DyckAA";
+  case AAType::BasicAA: return "BasicAA";
+  case AAType::TBAA: return "TBAA";
+  case AAType::GlobalsAA: return "GlobalsAA";
+  case AAType::SCEVAA: return "SCEVAA";
+  case AAType::CFLAnders: return "CFLAnders";
+  case AAType::CFLSteens: return "CFLSteens";
+  case AAType::SRAA: return "SRAA";
+  case AAType::SeaDsa: return "SeaDsa";
+  case AAType::AllocAA: return "AllocAA";
+  case AAType::Combined: return "Combined(Andersen(NoCtx)+DyckAA)";
+  case AAType::UnderApprox: return "UnderApprox";
+  default: return "Unknown";
+  }
 }
 
