@@ -21,7 +21,8 @@ struct CopyTransitionsFunctor : public wpds::util::TransActionFunctor<T> {
     }
 };
 
-InterProceduralDataFlowEngine::InterProceduralDataFlowEngine() = default;
+InterProceduralDataFlowEngine::InterProceduralDataFlowEngine()
+    : controlState(str2key("q")) {}
 
 std::unique_ptr<mono::DataFlowResult> InterProceduralDataFlowEngine::runForwardAnalysis(
     Module& m,
@@ -117,9 +118,6 @@ void InterProceduralDataFlowEngine::buildWPDS(
     bbToKey.clear();
     keyToInst.clear();
 
-    // PDS control state (single state for whole program)
-    wpds_key_t controlState = str2key("q");
-    
     // First pass: Create function entry and exit keys for all functions
     for (auto& F : m) {
         if (F.isDeclaration()) continue;
@@ -252,10 +250,9 @@ void InterProceduralDataFlowEngine::buildInitialAutomaton(
     const std::set<Value*>& initialFacts,
     bool isForward) {
     
-    wpds_key_t caState = str2key("caState");
     wpds_key_t acceptState = str2key("accept");
     
-    ca.add_initial_state(caState);
+    ca.add_initial_state(controlState);
     ca.add_final_state(acceptState);
     
     if (isForward) {
@@ -272,7 +269,7 @@ void InterProceduralDataFlowEngine::buildInitialAutomaton(
                 DataFlowFacts::EmptySet(),
                 DataFlowFacts(initialFacts)
             );
-            ca.add(caState, mainEntry, acceptState, initTrans);
+            ca.add(controlState, mainEntry, acceptState, initTrans);
         }
     } else {
         // For backward analysis: start from all exit points
@@ -284,7 +281,7 @@ void InterProceduralDataFlowEngine::buildInitialAutomaton(
                 DataFlowFacts(initialFacts)
             );
             
-            ca.add(caState, exitKey, acceptState, initTrans);
+            ca.add(controlState, exitKey, acceptState, initTrans);
         }
     }
 }
@@ -335,7 +332,6 @@ void InterProceduralDataFlowEngine::extractResults(
     std::unique_ptr<mono::DataFlowResult>& result,
     bool isForward) {
     
-    wpds_key_t caState = str2key("caState");
     wpds_key_t acceptState = str2key("accept");
     
     // First, compute OUT sets directly from WPDS weights; then derive IN.
@@ -345,7 +341,7 @@ void InterProceduralDataFlowEngine::extractResults(
 
         // Query the transition summarizing paths to this program point
         wpds::CA<GenKillTransformer>::catrans_t trans;
-        bool found = resultCA.find(caState, instKey, acceptState, trans);
+        bool found = resultCA.find(controlState, instKey, acceptState, trans);
         if (!found || !trans.get_ptr()) {
             continue;
         }

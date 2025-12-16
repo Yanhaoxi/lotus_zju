@@ -1,9 +1,11 @@
 /**
  * @file WPDSUninitializedVariables.cpp
  * @brief Demo implementation of uninitialized variables analysis using WPDS-based dataflow engine
+ * Author: rainoftime
  */
 
 #include "Dataflow/WPDS/InterProceduralDataFlow.h"
+#include "Dataflow/WPDS/Clients/WPDSUninitializedVariables.h"
 #include "Dataflow/Mono/DataFlowResult.h"
 #include <llvm/IR/CFG.h>
 #include <llvm/IR/Module.h>

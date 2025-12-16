@@ -152,6 +152,9 @@ private:
 
     // Maintain the dataflow result for the most recent analysis
     mutable std::unique_ptr<mono::DataFlowResult> currentResult;
+
+    // Single WPDS control state shared by rules and the initial automaton
+    wpds::wpds_key_t controlState;
 };
 
 } // namespace wpds
