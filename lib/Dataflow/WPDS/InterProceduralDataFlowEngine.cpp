@@ -200,14 +200,46 @@ void InterProceduralDataFlowEngine::buildWPDS(
                         wpds_key_t returnKey = new_str2key(returnName.c_str());
                         
                         // Call rule: push callee and return point
+                        // Map Arguments -> Parameters
+                        std::map<Value*, DataFlowFacts> paramFlow;
+                        unsigned argIdx = 0;
+                        for (auto& arg : calledFunc->args()) {
+                            if (argIdx < callInst->arg_size()) {
+                                Value* actual = callInst->getArgOperand(argIdx);
+                                if (!paramFlow.count(actual)) paramFlow[actual] = DataFlowFacts::EmptySet();
+                                paramFlow[actual].addFact(&arg);
+                            }
+                            argIdx++;
+                        }
+                        
+                        // Create call transformer (Identity + Param Flow)
+                        GenKillTransformer* callTrans = GenKillTransformer::makeGenKillTransformer(
+                            DataFlowFacts::EmptySet(), 
+                            DataFlowFacts::EmptySet(), 
+                            paramFlow
+                        );
+
                         wpds.add_rule(controlState, instKey, 
                                     controlState, calledEntry, returnKey,
-                                    GenKillTransformer::one());
+                                    callTrans);
                         
                         // Return rule: pop from callee exit
+                        // Map Return Value (represented by calledFunc) -> CallInst
+                        std::map<Value*, DataFlowFacts> retFlow;
+                        if (!callInst->getType()->isVoidTy()) {
+                            if (!retFlow.count(calledFunc)) retFlow[calledFunc] = DataFlowFacts::EmptySet();
+                            retFlow[calledFunc].addFact(callInst);
+                        }
+
+                        GenKillTransformer* retTrans = GenKillTransformer::makeGenKillTransformer(
+                            DataFlowFacts::EmptySet(), 
+                            DataFlowFacts::EmptySet(), 
+                            retFlow
+                        );
+
                         wpds.add_rule(controlState, calledExit,
                                     controlState,
-                                    GenKillTransformer::one());
+                                    retTrans);
                         
                         prevKey = returnKey;
                         prevInst = &I;

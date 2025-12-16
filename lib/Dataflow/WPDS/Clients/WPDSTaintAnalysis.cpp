@@ -9,6 +9,7 @@
 #include "Dataflow/Mono/DataFlowResult.h"
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Module.h>
+#include <llvm/IR/IntrinsicInst.h>
 #include <llvm/Support/raw_ostream.h>
 
 using namespace llvm;
@@ -19,17 +20,19 @@ using wpds::InterProceduralDataFlowEngine;
 // Taint analysis tracks which values are tainted (derived from untrusted sources)
 // GEN: values that become tainted
 // KILL: values that are sanitized
+// FLOW: propagation of taint (e.g., y = x + 1 => x flows to y)
 
 static bool isTaintSource(Instruction* I) {
-    // For demo purposes, consider CallInst as potential taint sources
-    // In practice, you'd check for specific functions like scanf, recv, etc.
     if (auto* CI = dyn_cast<CallInst>(I)) {
         if (Function* F = CI->getCalledFunction()) {
             StringRef name = F->getName();
-            // Common taint sources
+            // Expanded list of taint sources
             if (name.contains("input") || name.contains("read") || 
                 name.contains("recv") || name.contains("scanf") ||
-                name.contains("getenv") || name.contains("gets")) {
+                name.contains("getenv") || name.contains("gets") ||
+                name.contains("fgets") || name.contains("fread") ||
+                name.contains("socket") || name.contains("listen") ||
+                name.contains("accept")) {
                 return true;
             }
         }
@@ -38,13 +41,13 @@ static bool isTaintSource(Instruction* I) {
 }
 
 static bool isSanitizer(Instruction* I) {
-    // For demo purposes, consider specific functions as sanitizers
     if (auto* CI = dyn_cast<CallInst>(I)) {
         if (Function* F = CI->getCalledFunction()) {
             StringRef name = F->getName();
             // Common sanitizers
             if (name.contains("sanitize") || name.contains("escape") ||
-                name.contains("validate") || name.contains("check")) {
+                name.contains("validate") || name.contains("check_") ||
+                name.contains("auth")) {
                 return true;
             }
         }
@@ -55,18 +58,21 @@ static bool isSanitizer(Instruction* I) {
 static GenKillTransformer* createTaintTransformer(Instruction* I) {
     std::set<Value*> genSet;
     std::set<Value*> killSet;
+    std::map<Value*, DataFlowFacts> flowMap;
     
-    // Check if this instruction is a taint source
+    // 1. Taint Generation (Sources)
     if (isTaintSource(I)) {
-        // The result of this instruction is tainted
         if (!I->getType()->isVoidTy()) {
             genSet.insert(I);
         }
     }
     
-    // Check if this is a sanitizer
+    // 2. Taint Sanitization (Sinks/Cleaners)
+    // If a value is passed to a sanitizer, does it untaint the value?
+    // Usually sanitizers return a clean value or clean the buffer.
+    // Model: Output of sanitizer is clean (implicitly not in gen).
+    // If sanitizer modifies memory (e.g. sanitize(buf)), we might want to kill 'buf'.
     if (isSanitizer(I)) {
-        // All arguments are sanitized
         for (Use& U : I->operands()) {
             Value* V = U.get();
             if (isa<Instruction>(V) || isa<Argument>(V)) {
@@ -75,36 +81,83 @@ static GenKillTransformer* createTaintTransformer(Instruction* I) {
         }
     }
     
-    // Taint propagation: if any operand is tainted, result is tainted
-    // This is handled implicitly by the dataflow framework
-    // For binary operations, loads, stores, etc., taint propagates
-    if (isa<BinaryOperator>(I) || isa<LoadInst>(I) || isa<CastInst>(I) ||
-        isa<GetElementPtrInst>(I) || isa<PHINode>(I) || isa<SelectInst>(I)) {
-        // If any operand is tainted (checked by framework), result becomes tainted
-        // This is handled by the framework's dataflow equations
-    }
+    // 3. Taint Propagation (Flow)
     
-    // Store propagates taint - this is implicit in the framework
-    if (isa<StoreInst>(I)) {
-        // If storing a tainted value, the memory location becomes tainted
-        // This is handled implicitly by the dataflow framework
+    // Helper to add flow x -> y
+    auto addFlow = [&](Value* src, Value* dst) {
+        if (!flowMap.count(src)) {
+            flowMap[src] = DataFlowFacts::EmptySet();
+        }
+        flowMap[src].addFact(dst);
+    };
+    
+    if (auto* SI = dyn_cast<StoreInst>(I)) {
+        // store val, ptr
+        // val flows to ptr (taint memory location)
+        Value* val = SI->getValueOperand();
+        Value* ptr = SI->getPointerOperand();
+        addFlow(val, ptr);
+    } 
+    else if (auto* LI = dyn_cast<LoadInst>(I)) {
+        // val = load ptr
+        // ptr flows to val (tainted memory yields tainted value)
+        Value* ptr = LI->getPointerOperand();
+        addFlow(ptr, I);
+    }
+    else if (auto* PHI = dyn_cast<PHINode>(I)) {
+        // phi(v1, v2)
+        // v1 -> phi, v2 -> phi
+        for (Value* inc : PHI->incoming_values()) {
+            addFlow(inc, I);
+        }
+    }
+    else if (auto* BI = dyn_cast<BinaryOperator>(I)) {
+        // res = op(v1, v2)
+        // v1 -> res, v2 -> res
+        addFlow(BI->getOperand(0), I);
+        addFlow(BI->getOperand(1), I);
+    }
+    else if (auto* CI = dyn_cast<CastInst>(I)) {
+        addFlow(CI->getOperand(0), I);
+    }
+    else if (auto* GEPI = dyn_cast<GetElementPtrInst>(I)) {
+        // gep(ptr, ...)
+        // ptr -> gep
+        addFlow(GEPI->getPointerOperand(), I);
+    }
+    else if (auto* SI = dyn_cast<SelectInst>(I)) {
+        // select(c, v1, v2)
+        // v1 -> res, v2 -> res. (ignoring cond taint for now)
+        addFlow(SI->getTrueValue(), I);
+        addFlow(SI->getFalseValue(), I);
+    }
+    else if (auto* CI = dyn_cast<CallInst>(I)) {
+        // Handle intrinsic calls like memcpy?
+        if (auto* MI = dyn_cast<MemCpyInst>(CI)) {
+            // memcpy(dest, src, len)
+            // src -> dest
+            addFlow(MI->getSource(), MI->getDest());
+        }
+        else if (auto* MMI = dyn_cast<MemMoveInst>(CI)) {
+             addFlow(MMI->getSource(), MMI->getDest());
+        }
     }
     
     DataFlowFacts gen(genSet);
     DataFlowFacts kill(killSet);
-    return GenKillTransformer::makeGenKillTransformer(kill, gen);
+    return GenKillTransformer::makeGenKillTransformer(kill, gen, flowMap);
 }
 
 std::unique_ptr<mono::DataFlowResult> runTaintAnalysis(Module& module) {
     InterProceduralDataFlowEngine engine;
-    std::set<Value*> initial; // Start with no tainted values
+    std::set<Value*> initial; 
     
-    // Alternatively, mark function arguments as initially tainted
+    // Mark main arguments as tainted (common assumption for CLI/CGI apps)
     for (auto& F : module) {
-        if (F.isDeclaration()) continue;
-        for (auto& Arg : F.args()) {
-            // Consider all arguments as potentially tainted
-            initial.insert(&Arg);
+        if (F.getName() == "main") {
+            for (auto& Arg : F.args()) {
+                initial.insert(&Arg);
+            }
         }
     }
     
@@ -117,37 +170,33 @@ void demoTaintAnalysis(Module& module) {
     errs() << "[WPDS][Taint] Analysis Results:\n";
     for (auto& F : module) {
         if (F.isDeclaration()) continue;
-        errs() << "Function: " << F.getName() << "\n";
         
         for (auto& BB : F) {
             for (auto& I : BB) {
                 const std::set<Value*>& in = result->IN(&I);
-                const std::set<Value*>& gen = result->GEN(&I);
                 
-                if (!in.empty() || !gen.empty()) {
-                    errs() << "  Instruction: ";
-                    I.print(errs());
-                    errs() << "\n";
-                    
-                    if (!in.empty()) {
-                        errs() << "    Tainted inputs: " << in.size() << " values\n";
-                    }
-                    
-                    if (!gen.empty()) {
-                        errs() << "    Generates taint: " << gen.size() << " values\n";
-                    }
-                    
-                    // Check for potential security vulnerabilities
-                    if (auto* CI = dyn_cast<CallInst>(&I)) {
-                        if (Function* F = CI->getCalledFunction()) {
-                            StringRef name = F->getName();
-                            // Check for dangerous sinks
-                            if (name.contains("system") || name.contains("exec") ||
-                                name.contains("strcpy") || name.contains("sprintf")) {
-                                if (!in.empty()) {
-                                    errs() << "    [WARNING] Tainted data flows into dangerous sink: " 
-                                           << name << "\n";
+                // Check for sinks
+                if (auto* CI = dyn_cast<CallInst>(&I)) {
+                    if (Function* F = CI->getCalledFunction()) {
+                        StringRef name = F->getName();
+                        // Check for dangerous sinks
+                        if (name.contains("system") || name.contains("exec") ||
+                            name.contains("strcpy") || name.contains("sprintf") ||
+                            name.contains("printf")) { // printf can be format string vuln
+                            
+                            bool taintedArg = false;
+                            for(auto& arg : CI->args()) {
+                                if (in.count(arg.get())) {
+                                    taintedArg = true;
+                                    break;
                                 }
+                            }
+                            
+                            if (taintedArg) {
+                                errs() << "    [WARNING] Tainted data flows into dangerous sink: " 
+                                       << name << " at instruction: ";
+                                I.print(errs());
+                                errs() << "\n";
                             }
                         }
                     }
@@ -156,4 +205,3 @@ void demoTaintAnalysis(Module& module) {
         }
     }
 }
-

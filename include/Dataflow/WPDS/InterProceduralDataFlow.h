@@ -52,16 +52,23 @@ private:
 };
 
 // GenKillTransformer implements the semiring operations for gen/kill data flow problems
+// Extended to support relational flow: f(S) = (S \ Kill) U (U_{x in S \ Kill} Flow(x)) U Gen
 class GenKillTransformer {
 public:
     GenKillTransformer();
     GenKillTransformer(const DataFlowFacts& kill, const DataFlowFacts& gen);
+    GenKillTransformer(const DataFlowFacts& kill, const DataFlowFacts& gen, const std::map<Value*, DataFlowFacts>& flow);
     ~GenKillTransformer() = default;
 
     // Factory method to ensure unique representatives for special values
     static GenKillTransformer* makeGenKillTransformer(
         const DataFlowFacts& kill, 
         const DataFlowFacts& gen);
+        
+    static GenKillTransformer* makeGenKillTransformer(
+        const DataFlowFacts& kill, 
+        const DataFlowFacts& gen,
+        const std::map<Value*, DataFlowFacts>& flow);
 
     // Semiring operations required by WPDS
     static GenKillTransformer* one();
@@ -79,6 +86,7 @@ public:
     // Getters for the gen and kill sets
     const DataFlowFacts& getKill() const;
     const DataFlowFacts& getGen() const;
+    const std::map<Value*, DataFlowFacts>& getFlow() const;
 
     // Debug printing
     std::ostream& print(std::ostream& os) const;
@@ -89,8 +97,10 @@ public:
 private:
     DataFlowFacts kill;
     DataFlowFacts gen;
+    std::map<Value*, DataFlowFacts> flow; // Map from source fact to generated facts (if source survives kill)
+    
     // Special constructor for one/zero/bottom
-    GenKillTransformer(const DataFlowFacts& k, const DataFlowFacts& g, int);
+    GenKillTransformer(const DataFlowFacts& k, const DataFlowFacts& g, const std::map<Value*, DataFlowFacts>& f, int);
 };
 
 // InterProceduralDataFlowEngine implements inter-procedural dataflow analysis using WPDS
@@ -159,4 +169,4 @@ private:
 
 } // namespace wpds
 
-#endif // ANALYSIS_INTERPROCEDURALDATAFLOW_H_ 
+#endif // ANALYSIS_INTERPROCEDURALDATAFLOW_H_
