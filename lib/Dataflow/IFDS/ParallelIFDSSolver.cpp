@@ -11,6 +11,8 @@
  * - Multiple worker threads processing worklist items in parallel
  * - Proper termination detection and synchronization
  * - Performance monitoring and statistics
+ * 
+ * Author: rainoftime
  */
 
 #include "Dataflow/IFDS/IFDSSolvers.h"

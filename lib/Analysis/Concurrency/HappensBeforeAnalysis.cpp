@@ -1,3 +1,7 @@
+/*
+ *
+ * Author: rainoftime
+*/
 #include "Analysis/Concurrency/HappensBeforeAnalysis.h"
 #include <llvm/Support/raw_ostream.h>
 

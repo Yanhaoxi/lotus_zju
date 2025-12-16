@@ -5,5 +5,7 @@ WPDS is a solver for distributive data-flow problems. WPDS is very similar to ID
 In order to write a WPDS analysis one basically needs to write an IDE analysis. The WPDS analysis has its own problem interface WPDSProblem that can be used to encode an WPDS problem. In addition, an existing concrete IDEProblem can be easily transformed into a concrete WPDSProblem as both are distributive problems. 
 
 
+- CAV 06: Improving Pushdown System Model Checking. Akash Lal and Thomas Reps.
 - SCP 05: Weighted pushdown systems and their application to
 interprocedural dataflow analysis. Thomas Reps, Stefan Schwoon, Somesh Jha, and David Melski.
+- CAV 05: Extended Weighted Pushdown Systems. Akash Lal, Thomas Reps, and Gogul Balakrishnan.

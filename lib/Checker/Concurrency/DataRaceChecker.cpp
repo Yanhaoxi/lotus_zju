@@ -1,3 +1,7 @@
+/*
+ *
+ * Author: rainoftime
+*/
 #include "Checker/Concurrency/DataRaceChecker.h"
 #include "Alias/AliasAnalysisWrapper/AliasAnalysisWrapper.h"
 #include <llvm/Support/raw_ostream.h>

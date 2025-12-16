@@ -1,5 +1,7 @@
 /*
  * Taint Analysis Implementation
+ * 
+ * Author: rainoftime
  */
 
 #include "Dataflow/IFDS/Clients/IFDSTaintAnalysis.h"

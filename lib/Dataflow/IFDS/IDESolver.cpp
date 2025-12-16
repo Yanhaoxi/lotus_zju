@@ -8,6 +8,8 @@
  * Key features:
  * - Summary edge reuse: Callees are analyzed once per calling context
  * - Edge function composition memoization: Avoids redundant function compositions
+ * 
+ * Author: rainoftime
  */
 
 #include "Dataflow/IFDS/IDESolver.h"

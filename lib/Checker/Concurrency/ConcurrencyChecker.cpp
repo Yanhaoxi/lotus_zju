@@ -1,3 +1,5 @@
+// Author: rainoftime
+
 #include "Checker/Concurrency/ConcurrencyChecker.h"
 #include "Alias/AliasAnalysisWrapper/AliasAnalysisWrapper.h"
 #include "Analysis/Concurrency/ThreadAPI.h"

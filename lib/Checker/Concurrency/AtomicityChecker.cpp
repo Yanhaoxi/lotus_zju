@@ -8,7 +8,10 @@
 //
 // This version uses modern LLVM ranges, dominance / post-dominance matching,
 // SmallVector / DenseMap for performance, and emits user-friendly diagnostics.
-//===----------------------------------------------------------------------===//
+//
+//  Author: rainoftime
+// //===----------------------------------------------------------------------===//
+
 
 #include "Checker/Concurrency/AtomicityChecker.h"
 

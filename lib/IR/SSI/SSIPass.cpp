@@ -3,9 +3,9 @@
 //		This file is licensed under the General Public License v2.
 //
 //===----------------------------------------------------------------------===//
-/*
- * 	 A parameterized tool to convert programs for sparse analyses
- */
+
+ // Author: rainoftime
+
 
  #include "IR/SSI/SSI.h"
 

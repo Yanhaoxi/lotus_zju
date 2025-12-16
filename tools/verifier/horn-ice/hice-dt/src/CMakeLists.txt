@@ -1,5 +1,4 @@
 set(SOURCES 
-    boogie_io.cpp
     decision_tree.cpp
     output_visitor.cpp
     pretty_print_visitor.cpp

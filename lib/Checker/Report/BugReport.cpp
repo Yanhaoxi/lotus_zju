@@ -1,3 +1,4 @@
+// Author: rainoftime
 #include "Checker/Report/BugReport.h"
 #include "Checker/Report/DebugInfoAnalysis.h"
 #include <llvm/IR/DebugLoc.h>

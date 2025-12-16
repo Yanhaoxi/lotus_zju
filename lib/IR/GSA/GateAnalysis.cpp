@@ -8,6 +8,7 @@
 // The implementation is adapted from Havlak's construction of Thinned Gated
 // Single-Assignment form, LCPC'93.
 //
+// Author: rainoftime
 //===----------------------------------------------------------------------===//
 
 #include "IR/GSA/GSA.h"

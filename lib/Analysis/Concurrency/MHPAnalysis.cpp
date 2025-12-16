@@ -1,6 +1,8 @@
 /**
  * @file MHPAnalysis.cpp
  * @brief Implementation of May-Happen-in-Parallel Analysis
+ *
+ * Author: rainoftime
  */
 
 #include "Analysis/Concurrency/MHPAnalysis.h"

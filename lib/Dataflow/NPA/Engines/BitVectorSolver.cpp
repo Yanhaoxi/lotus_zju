@@ -1,3 +1,7 @@
+/*
+ *
+ * Author: rainoftime
+*/
 #include "Dataflow/NPA/Engines/BitVectorSolver.h"
 #include <sstream>
 

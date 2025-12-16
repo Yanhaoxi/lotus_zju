@@ -1,3 +1,7 @@
+/*
+ *
+ * Author: rainoftime
+*/
 #include "Analysis/Concurrency/EscapeAnalysis.h"
 #include "Analysis/Concurrency/ThreadAPI.h"
 #include <llvm/IR/Instructions.h>

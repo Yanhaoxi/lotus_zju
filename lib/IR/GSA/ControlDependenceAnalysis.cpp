@@ -6,7 +6,10 @@
 //   Ferrante, Ottenstein, Warren: "The Program Dependence Graph and its Uses",
 //   ACM TOPLAS, 1987.
 //
-//===----------------------------------------------------------------------===//
+// Author: rainoftime
+//
+// ===----------------------------------------------------------------------===//
+
 
 #include "IR/GSA/GSA.h"
 

@@ -7,6 +7,8 @@
  * - No thread synchronization overhead
  * - Easier to debug and maintain
  * - Suitable for small to medium programs or debugging
+ * 
+ * Author: rainoftime
  */
 
 #include "Dataflow/IFDS/IFDSSolvers.h"

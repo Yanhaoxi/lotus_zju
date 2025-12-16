@@ -1,4 +1,7 @@
-
+/*
+ *
+ * Author: rainoftime
+*/
 #include "Analysis/Concurrency/ThreadAPI.h"
 #include "Analysis/Concurrency/LanguageModel/OpenMP.h"
 #include "Analysis/Concurrency/LanguageModel/Cpp11.h"

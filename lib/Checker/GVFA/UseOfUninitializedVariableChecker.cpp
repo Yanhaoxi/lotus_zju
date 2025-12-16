@@ -1,3 +1,7 @@
+/*
+ *
+ * Author: rainoftime
+*/
 #include "Checker/GVFA/UseOfUninitializedVariableChecker.h"
 #include "Checker/Report/BugReportMgr.h"
 #include "Checker/Report/BugReport.h"

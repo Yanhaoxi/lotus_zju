@@ -3,6 +3,8 @@
  * 
  * This file contains debugging and utility functions for the IFDS framework.
  * Separated from the main implementation to improve code organization.
+ * 
+ * Author: rainoftime
  */
 
 #include "Dataflow/IFDS/IFDSFramework.h"

@@ -2,7 +2,8 @@
 //
 //		This file is licensed under the General Public License v2.
 //
-//===----------------------------------------------------------------------===//
+// Author: rainoftime
+// ===----------------------------------------------------------------------===//
 /*
  * 	 Core SSI transformation algorithms: split, rename, and clean
  */

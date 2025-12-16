@@ -1,6 +1,6 @@
 //===- SSIUtils.cpp - SSI helper classes and utilities --------------------===//
 //
-//		This file is licensed under the General Public License v2.
+// Author: rainoftime
 //
 //===----------------------------------------------------------------------===//
 /*

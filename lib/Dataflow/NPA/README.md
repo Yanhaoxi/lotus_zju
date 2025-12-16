@@ -4,7 +4,7 @@
 
 Currently, we use the engine in include/Dataflow/NPA/NPA.h.
 
-Later, we may consider using the solver in lib/Solvers/FP.
+Later, we may consider using the solvers in lib/Solvers/FP.
 
 ## Related Work
 

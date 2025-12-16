@@ -1,3 +1,7 @@
+/*
+ *
+ * Author: rainoftime
+*/
 #include "Checker/Concurrency/ConditionVariableChecker.h"
 #include <llvm/Support/raw_ostream.h>
 
