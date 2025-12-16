@@ -27,6 +27,7 @@ namespace llvm {
 class BasicBlock;
 class PHINode;
 class Value;
+class LoopInfo;
 } // namespace llvm
 
 namespace gsa {
@@ -85,6 +86,12 @@ public:
   /// another value depending on the control flow.
   virtual llvm::Value *getGamma(llvm::PHINode *PN) const = 0;
 
+  /// Returns true if \p PN corresponds to a Mu node (loop header PHI).
+  virtual bool isMu(llvm::PHINode *PN) const = 0;
+
+  /// Returns true if \p PN corresponds to an Eta node (loop exit PHI).
+  virtual bool isEta(llvm::PHINode *PN) const = 0;
+
   /// True if thinned gating was requested (i.e., gamma nodes may omit undef
   /// operands), false otherwise.
   virtual bool isThinned() const = 0;
@@ -98,7 +105,8 @@ public:
   GateAnalysisPass();
 
   void getAnalysisUsage(llvm::AnalysisUsage &AU) const override;
-  bool runOnFunction(llvm::Function &F, ControlDependenceAnalysis &CDA);
+  bool runOnFunction(llvm::Function &F, ControlDependenceAnalysis &CDA,
+                     llvm::LoopInfo &LI);
   bool runOnModule(llvm::Module &M) override;
 
   llvm::StringRef getPassName() const override;

@@ -14,6 +14,7 @@
 
 #include "llvm/ADT/DenseMap.h"
 //#include "llvm/ADT/DenseSet.h"
+#include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Analysis/PostDominators.h"
 #include "llvm/IR/CFG.h"
 #include "llvm/IR/Constants.h"
@@ -65,6 +66,7 @@ class GateAnalysisImpl : public GateAnalysis {
   Function &m_function;
   DominatorTree &m_DT;
   PostDominatorTree &m_PDT;
+  LoopInfo &m_LI;
   ControlDependenceAnalysis &m_CDA;
 
   DenseMap<PHINode *, Value *> m_gammas;
@@ -73,8 +75,9 @@ class GateAnalysisImpl : public GateAnalysis {
 
 public:
   GateAnalysisImpl(Function &f, DominatorTree &dt, PostDominatorTree &pdt,
-                   ControlDependenceAnalysis &cda)
-      : m_function(f), m_DT(dt), m_PDT(pdt), m_CDA(cda), m_IRB(f.getContext()) {
+                   LoopInfo &li, ControlDependenceAnalysis &cda)
+      : m_function(f), m_DT(dt), m_PDT(pdt), m_LI(li), m_CDA(cda),
+        m_IRB(f.getContext()) {
     calculate();
   }
 
@@ -82,6 +85,26 @@ public:
     auto it = m_gammas.find(PN);
     assert(it != m_gammas.end());
     return it->second;
+  }
+
+  bool isMu(PHINode *PN) const override {
+    return m_LI.isLoopHeader(PN->getParent());
+  }
+
+  bool isEta(PHINode *PN) const override {
+    BasicBlock *BB = PN->getParent();
+    Loop *L = m_LI.getLoopFor(BB);
+    for (unsigned i = 0, e = PN->getNumIncomingValues(); i != e; ++i) {
+      BasicBlock *IncBB = PN->getIncomingBlock(i);
+      Loop *IncL = m_LI.getLoopFor(IncBB);
+      if (IncL && IncL != L && IncL->contains(IncBB) &&
+          (!L || !L->contains(IncBB))) {
+        // Incoming from a loop that does not contain the PHI's block
+        // This is an exit PHI (Eta)
+        return true;
+      }
+    }
+    return false;
   }
 
   bool isThinned() const override { return ThinnedGsa; }
@@ -374,7 +397,12 @@ void GateAnalysisImpl::processPhi(PHINode *PN, Instruction *insertionPt) {
   Value *gamma =
       flowingValues.count(IDomBlock) ? flowingValues[IDomBlock] : Bottom;
   if (auto *I = dyn_cast<Instruction>(gamma)) {
-    I->setName(I->getName() + ".y." + PN->getName());
+    if (isMu(PN))
+      I->setName(I->getName() + ".m." + PN->getName());
+    else if (isEta(PN))
+      I->setName(I->getName() + ".e." + PN->getName());
+    else
+      I->setName(I->getName() + ".y." + PN->getName());
   }
   m_gammas[PN] = gamma;
 
@@ -395,6 +423,7 @@ void GateAnalysisPass::getAnalysisUsage(AnalysisUsage &AU) const {
   AU.addRequired<ControlDependenceAnalysisPass>();
   AU.addRequired<DominatorTreeWrapperPass>();
   AU.addRequired<PostDominatorTreeWrapperPass>();
+  AU.addRequired<LoopInfoWrapperPass>();
   AU.setPreservesAll();
 }
 
@@ -405,7 +434,8 @@ bool GateAnalysisPass::runOnModule(Module &M) {
   for (auto &F : M) {
     if (F.isDeclaration())
       continue;
-    changed |= runOnFunction(F, CDP.getControlDependenceAnalysis(F));
+    auto &LI = getAnalysis<LoopInfoWrapperPass>(F).getLoopInfo();
+    changed |= runOnFunction(F, CDP.getControlDependenceAnalysis(F), LI);
   }
 
   if (GsaReplacePhis) {
@@ -422,11 +452,12 @@ bool GateAnalysisPass::runOnModule(Module &M) {
 }
 
 bool GateAnalysisPass::runOnFunction(llvm::Function &F,
-                                     ControlDependenceAnalysis &CDA) {
+                                     ControlDependenceAnalysis &CDA,
+                                     llvm::LoopInfo &LI) {
   auto &DT = getAnalysis<DominatorTreeWrapperPass>(F).getDomTree();
   auto &PDT = getAnalysis<PostDominatorTreeWrapperPass>(F).getPostDomTree();
 
-  auto Impl = std::make_unique<GateAnalysisImpl>(F, DT, PDT, CDA);
+  auto Impl = std::make_unique<GateAnalysisImpl>(F, DT, PDT, LI, CDA);
   bool changed = Impl->madeChanges();
 
   m_analyses[&F] = std::move(Impl);
