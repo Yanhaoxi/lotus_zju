@@ -19,8 +19,8 @@
  OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
  OR OTHER DEALINGS IN THE SOFTWARE.
  */
- #include "Utils/LLVM/MetadataManager/LoopStructure.h"
- #include "Utils/LLVM/MetadataManager/MetadataManager.h"
+ #include "Analysis/DebugInfo/MetadataManager/LoopStructure.h"
+ #include "Analysis/DebugInfo/MetadataManager/MetadataManager.h"
  
  namespace noelle {
  

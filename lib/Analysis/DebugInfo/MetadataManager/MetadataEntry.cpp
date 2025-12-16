@@ -19,44 +19,23 @@
  OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
  OR OTHER DEALINGS IN THE SOFTWARE.
  */
- #include "Utils/LLVM/MetadataManager/MetadataManager.h"
+ #include "Analysis/DebugInfo/MetadataManager/MetadataEntry.h"
 
  namespace noelle {
  
- bool MetadataManager::doesHaveMetadata(const std::string &metadataName) const {
- 
-   /*
-    * Check if the metadata exists.
-    */
-   auto metaNode = this->program.getNamedMetadata(metadataName);
-   if (!metaNode) {
-     return false;
-   }
- 
-   return true;
+ MetadataEntry::MetadataEntry(const std::string metadataName,
+                              const std::string metadataValue)
+   : name{ metadataName },
+     value{ metadataValue } {
+   return;
  }
  
- void MetadataManager::addMetadata(const std::string &metadataName,
-                                   const std::string &metadataValue) {
+ std::string MetadataEntry::getName(void) const {
+   return this->name;
+ }
  
-   /*
-    * Create the metadata.
-    */
-   auto n = this->program.getOrInsertNamedMetadata(metadataName);
- 
-   /*
-    * Create the metadata value.
-    */
-   auto v =
-       MDNode::get(this->program.getContext(),
-                   MDString::get(this->program.getContext(), metadataValue));
- 
-   /*
-    * Set the metadata value.
-    */
-   n->addOperand(v);
- 
-   return;
+ std::string MetadataEntry::getValue(void) const {
+   return this->value;
  }
  
  } // namespace arcana::noelle

@@ -1,6 +1,5 @@
 add_library(CanaryLLVMUtils STATIC
         Debug.cpp
-        Demangle.cpp
         InstructionUtils.cpp
         RecursiveTimer.cpp
         Statistics.cpp
@@ -12,12 +11,7 @@ add_library(CanaryLLVMUtils STATIC
         Scheduler/Task.cpp
         Scheduler/PipelineScheduler.cpp
         Scheduler/ParallelSchedulerPass.cpp
-        MetadataManager/MetadataManager.cpp
-        MetadataManager/MetadataManager_Module.cpp
-        MetadataManager/MetadataManager_Instruction.cpp
-        MetadataManager/MetadataManager_annotation.cpp
-        MetadataManager/MetadataEntry.cpp
-        MetadataManager/LoopStructure.cpp
+        Demangle.cpp
 )
 
 # Link against LLVMDemangle since Demangle.cpp uses llvm::demangle()

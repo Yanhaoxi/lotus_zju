@@ -45,11 +45,6 @@ public:
     // Returns empty string if source file is not accessible
     std::string getSourceCodeStatement(const llvm::Instruction *I);
 
-    // Print a formatted bug report with debug information
-    void printBugReport(const llvm::Instruction *BugInst,
-                       const std::string &BugType,
-                       const llvm::Value *RelatedValue = nullptr);
-
 private:
     // Cache for source file contents (filename -> lines)
     static std::map<std::string, std::vector<std::string>> sourceFileCache;

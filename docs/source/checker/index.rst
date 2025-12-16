@@ -56,8 +56,11 @@ Components
 * ``BugReportMgr.cpp`` – Centralized bug report management (singleton pattern)
 * ``BugTypes.cpp`` – Bug type definitions, classifications, and CWE mappings
 * ``SARIF.cpp`` – SARIF format output support
-* ``DebugInfoAnalysis.cpp`` – Debug information extraction from LLVM metadata
 * ``ReportOptions.cpp`` – Report configuration options (JSON, SARIF output)
+
+**Debug Info Analysis** (``lib/Analysis/DebugInfo/``):
+
+* ``DebugInfoAnalysis.cpp`` – Debug information extraction from LLVM metadata
 
 Build Targets
 -------------

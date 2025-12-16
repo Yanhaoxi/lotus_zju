@@ -95,5 +95,10 @@ private:
     int conf_score;
 };
 
+// Print a formatted bug report with debug information
+void printBugReport(const llvm::Instruction *BugInst,
+                    const std::string &BugType,
+                    const llvm::Value *RelatedValue = nullptr);
+
 #endif // CHECKER_REPORT_BUGREPORT_H
 

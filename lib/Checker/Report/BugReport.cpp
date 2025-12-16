@@ -1,6 +1,6 @@
 // Author: rainoftime
 #include "Checker/Report/BugReport.h"
-#include "Checker/Report/DebugInfoAnalysis.h"
+#include "Analysis/DebugInfo/DebugInfoAnalysis.h"
 #include <llvm/IR/DebugLoc.h>
 #include <llvm/IR/DebugInfoMetadata.h>
 #include <llvm/IR/Function.h>
@@ -151,5 +151,26 @@ void BugReport::export_json(raw_ostream& OS) const {
     
     OS << "      ]\n";
     OS << "    }";
+}
+
+// Print a formatted bug report with debug information
+void printBugReport(const llvm::Instruction *BugInst,
+                    const std::string &BugType,
+                    const llvm::Value *RelatedValue) {
+    printf("[BUG REPORT] %s\n", BugType.c_str());
+    printf("  Location: %s\n", debugInfo.getSourceLocation(BugInst).c_str());
+    printf("  Function: %s\n", debugInfo.getFunctionName(BugInst).c_str());
+    if (RelatedValue) {
+        printf("  Variable: %s\n", debugInfo.getVariableName(RelatedValue).c_str());
+        printf("  Type: %s\n", debugInfo.getTypeName(RelatedValue).c_str());
+    }
+    
+    // Try to show source code
+    std::string srcCode = debugInfo.getSourceCodeStatement(BugInst);
+    if (!srcCode.empty()) {
+        printf("  Source Code: %s\n", srcCode.c_str());
+    }
+    
+    printf("\n");
 }
 
