@@ -10,7 +10,6 @@
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/InstIterator.h>
 
-#include <unordered_map>
 #include <vector>
 #include <string>
 
@@ -57,8 +56,7 @@ private:
     std::string getInstructionLocation(const llvm::Instruction* inst) const;
 
     // Data race detection logic
-    void collectVariableAccesses(std::unordered_map<const llvm::Value*,
-                                 std::vector<const llvm::Instruction*>>& variableAccesses);
+    void collectVariableAccesses(std::vector<const llvm::Instruction*>& accesses);
     bool mayAccessSameLocation(const llvm::Instruction* inst1,
                               const llvm::Instruction* inst2) const;
 };

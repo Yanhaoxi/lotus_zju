@@ -1,3 +1,20 @@
+/*
+FastGVFAEngine.cpp
+
+Implementation of the Fast Global Value Flow Analysis Engine.
+This engine optimizes reachability analysis by using bit-vectors (masks) for forward
+propagation and simple counters for backward propagation.
+
+Key Features:
+- Uses integer bitmasks to track reachability from multiple sources simultaneously.
+- Significantly faster and lower memory usage than PreciseGVFAEngine.
+- Trade-off: Lower precision. 
+  - srcReachable() returns false as individual source tracking is abstracted.
+  - Backward analysis counts reachable sinks but doesn't identify WHICH sink is reachable.
+
+@Author: rainoftime
+*/
+
 #include "Analysis/GVFA/FastGVFAEngine.h"
 #include "Analysis/GVFA/GVFAUtils.h"
 #include "Utils/LLVM/RecursiveTimer.h"
@@ -17,6 +34,7 @@ void FastGVFAEngine::run() {
         LLVM_DEBUG(dbgs() << "[DEBUG] SrcVecSzBeforeExtend: " << SourcesVec.size() << "\n");
         extendSources(SourcesVec);
         LLVM_DEBUG(dbgs() << "[DEBUG] SrcVecSzAfterExtend: " << SourcesVec.size() << "\n");
+        // Run forward bit-vector analysis
         forwardRun();
     }
     
@@ -31,37 +49,33 @@ void FastGVFAEngine::run() {
     outs() << "[Opt-Indexing FW] Map Size: " << ReachabilityMap.size() << "\n";
     
     BackwardReachabilityMap.clear();
+    // Run backward count-based analysis
     backwardRun();
     
     outs() << "[Opt-Indexing BW] Map Size: " << BackwardReachabilityMap.size() << "\n";
 }
 
 bool FastGVFAEngine::srcReachable(const Value *V, const Value *Src) const {
-    // Fast mode does not track specific source reachability
-    // It only knows if V is reachable from SOME source in a Mask
-    // Returning false is safer or we could throw? Original code returned false via empty check.
+    // Fast mode does not track specific source reachability map (Value -> Set<Src>).
+    // It only tracks (Value -> Mask). While we could check if the Mask of Src 
+    // is set in V's mask, this function expects precise object identity which 
+    // might be lost or aliased in the mask.
     return false;
 }
 
 std::vector<const Value *> FastGVFAEngine::getWitnessPath(const Value *From, const Value *To) const {
-    // Use unguided BFS
+    // Use unguided BFS since we don't have the precise 'AllReachabilityMap' 
+    // to guide the search like in PreciseGVFAEngine.
     return GVFAUtils::getWitnessPath(From, To, VFG);
 }
 
 void FastGVFAEngine::forwardRun() {
-    // Move sources to process list to clear SourcesVec for next iteration if needed?
-    // Actually extendSources modifies SourcesVec.
-    // optimizedForwardRun iterated over Sources.
-    
-    // We iterate over a copy or just the vector.
-    // In original code: auto SourceList = std::move(Sources);
-    // This implies SourcesVec is CLEARED after this?
-    // Yes, because the outer loop checks !SourcesVec.empty().
-    
+    // Move current batch of sources to local list to process
     auto SourceList = std::move(SourcesVec);
-    // SourcesVec is now empty.
+    // SourcesVec is now empty, ready for next iteration if extendSources adds more
     
     for (const auto &Src : SourceList) {
+        // Src.second is the ID/Mask assigned to this source
         forwardReachability(Src.first, Src.second);
     }
 }
@@ -72,6 +86,7 @@ void FastGVFAEngine::backwardRun() {
     }
 }
 
+// Propagate reachability masks using a worklist algorithm
 void FastGVFAEngine::forwardReachability(const Value *V, int Mask) {
     std::queue<std::pair<const Value *, int>> WorkQueue;
     std::unordered_set<const Value *> Visited;
@@ -84,19 +99,25 @@ void FastGVFAEngine::forwardReachability(const Value *V, int Mask) {
         int CurrentMask = front.second;
         WorkQueue.pop();
         
+        // Basic cycle prevention for this specific propagation path
         if (!Visited.insert(CurrentValue).second) continue;
         
+        // OR the mask into the reachability map
         ReachabilityMap[CurrentValue] |= CurrentMask;
         
+        // Handle special instructions (Calls, Returns) if needed
         if (auto *CI = dyn_cast<CallInst>(CurrentValue)) {
             processCallSite(CI, CurrentValue, CurrentMask, WorkQueue);
         } else if (auto *RI = dyn_cast<ReturnInst>(CurrentValue)) {
             processReturnSite(RI, CurrentValue, CurrentMask, WorkQueue);
         }
         
+        // Propagate to VFG successors
         if (auto *Node = VFG->getVFGNode(const_cast<Value *>(CurrentValue))) {
             for (auto It = Node->begin(); It != Node->end(); ++It) {
                 auto *Succ = It->first->getValue();
+                // 'count' likely checks if Succ already has all bits in CurrentMask set.
+                // It returns the 'UncoveredMask' (bits not yet set in Succ).
                 if (int UncoveredMask = count(Succ, CurrentMask)) {
                     if (Visited.find(Succ) == Visited.end()) {
                         WorkQueue.emplace(Succ, UncoveredMask);
@@ -107,6 +128,7 @@ void FastGVFAEngine::forwardReachability(const Value *V, int Mask) {
     }
 }
 
+// Backward reachability just counts/marks nodes that can reach a sink
 void FastGVFAEngine::backwardReachability(const Value *V) {
     std::queue<const Value *> WorkQueue;
     std::unordered_set<const Value *> Visited;
@@ -119,11 +141,13 @@ void FastGVFAEngine::backwardReachability(const Value *V) {
         
         if (!Visited.insert(CurrentValue).second) continue;
         
+        // Increment count of sinks reachable from CurrentValue
         BackwardReachabilityMap[CurrentValue] += 1;
         
         if (auto *Node = VFG->getVFGNode(const_cast<Value *>(CurrentValue))) {
             for (auto It = Node->in_begin(); It != Node->in_end(); ++It) {
                 auto *Pred = It->first->getValue();
+                // Propagate backward if not already visited/saturated
                 if (!backwardCount(Pred) && Visited.find(Pred) == Visited.end()) {
                     WorkQueue.push(Pred);
                 }
@@ -131,4 +155,3 @@ void FastGVFAEngine::backwardReachability(const Value *V) {
         }
     }
 }
-

@@ -30,54 +30,50 @@ DataRaceChecker::DataRaceChecker(Module& module, MHPAnalysis* mhpAnalysis,
 //   6. The memory location is shared/escaped (Escape analysis)
 std::vector<ConcurrencyBugReport> DataRaceChecker::checkDataRaces() {
     std::vector<ConcurrencyBugReport> reports;
-    std::unordered_map<const Value*, std::vector<const Instruction*>> variableAccesses;
-    collectVariableAccesses(variableAccesses);
+    std::vector<const Instruction*> accesses;
+    collectVariableAccesses(accesses);
 
-    // Check all pairs of accesses to potentially aliased memory locations.
-    for (const auto& pair : variableAccesses) {
-        const auto& accesses = pair.second;
-        if (accesses.size() < 2) continue;
+    // Compare all accesses pairwise with alias + MHP filters to avoid
+    // missing distinct pointers that still alias.
+    for (size_t i = 0; i < accesses.size(); ++i) {
+        const Instruction* inst1 = accesses[i];
+        if (isAtomicOperation(inst1)) continue;  // Atomic operations prevent races.
 
-        for (size_t i = 0; i < accesses.size(); ++i) {
-            const Instruction* inst1 = accesses[i];
-            if (isAtomicOperation(inst1)) continue;  // Atomic operations prevent races.
+        for (size_t j = i + 1; j < accesses.size(); ++j) {
+            const Instruction* inst2 = accesses[j];
+            if (isAtomicOperation(inst2)) continue;
 
-            for (size_t j = i + 1; j < accesses.size(); ++j) {
-                const Instruction* inst2 = accesses[j];
-                if (isAtomicOperation(inst2)) continue;
+            // 1. At least one is a write
+            if (!isWriteAccess(inst1) && !isWriteAccess(inst2)) continue;
 
-                // 1. Check if they are both writes or one is a write
-                if (!isWriteAccess(inst1) && !isWriteAccess(inst2)) continue;
+            // 2. May run in parallel
+            if (!m_mhpAnalysis->mayHappenInParallel(inst1, inst2)) continue;
 
-                // 2. Check if they may happen in parallel
-                if (!m_mhpAnalysis->mayHappenInParallel(inst1, inst2)) continue;
+            // 3. Protected by common lock?
+            if (m_locksetAnalysis && m_locksetAnalysis->mayHoldCommonLock(inst1, inst2)) continue;
 
-                // 3. Check if they are protected by a common lock
-                if (m_locksetAnalysis && m_locksetAnalysis->mayHoldCommonLock(inst1, inst2)) continue;
+            // 4. Alias on the underlying memory
+            if (!mayAccessSameLocation(inst1, inst2)) continue;
+                
+            ConcurrencyBugReport report(
+                ConcurrencyBugType::DATA_RACE,
+                "Potential data race between " + getInstructionLocation(inst1) +
+                " and " + getInstructionLocation(inst2),
+                BugDescription::BI_HIGH, BugDescription::BC_ERROR);
 
-                // 4. Check if they alias (already grouped by pointer, but double check if wrapper available)
-                if (!mayAccessSameLocation(inst1, inst2)) continue;
-                    
-                ConcurrencyBugReport report(
-                    ConcurrencyBugType::DATA_RACE,
-                    "Potential data race between " + getInstructionLocation(inst1) +
-                    " and " + getInstructionLocation(inst2),
-                    BugDescription::BI_HIGH, BugDescription::BC_ERROR);
+            report.addStep(inst1, "First access (read/write)");
+            report.addStep(inst2, "Second conflicting access (read/write)");
 
-                report.addStep(inst1, "First access (read/write)");
-                report.addStep(inst2, "Second conflicting access (read/write)");
-
-                reports.push_back(report);
-            }
+            reports.push_back(report);
         }
     }
     return reports;
 }
 
-// Collects all memory access instructions, grouped by the memory location they access.
-// This allows efficient pairwise comparison of accesses to the same location.
+// Collect all candidate memory accesses into a flat list so that alias
+// checks catch distinct pointer expressions referencing the same memory.
 void DataRaceChecker::collectVariableAccesses(
-    std::unordered_map<const Value*, std::vector<const Instruction*>>& variableAccesses) {
+    std::vector<const Instruction*>& accesses) {
     for (Function& func : m_module) {
         if (func.isDeclaration()) continue;
         for (inst_iterator I = inst_begin(func), E = inst_end(func); I != E; ++I) {
@@ -92,10 +88,10 @@ void DataRaceChecker::collectVariableAccesses(
                         if (isa<AllocaInst>(baseObj)) {
                              continue;
                         }
-                        // For other types (globals, etc), isEscaped handles it.
-                         continue;
+                        // For other types (globals, etc), let escape analysis decide.
+                        // Do NOT discard the access here so that shared globals are considered.
                     }
-                    variableAccesses[memLoc].push_back(&*I);
+                    accesses.push_back(&*I);
                 }
             }
         }

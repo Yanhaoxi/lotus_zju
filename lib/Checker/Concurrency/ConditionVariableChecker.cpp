@@ -26,6 +26,8 @@ std::vector<ConcurrencyBugReport> ConditionVariableChecker::checkConditionVariab
                 if (m_threadAPI->isTDCondWait(&inst)) {
                     // 1. Check if wait is called with a mutex
                     const Value* mutex = getMutexForCV(&inst);
+                    if (mutex)
+                        mutex = mutex->stripPointerCasts();
                     if (!mutex) {
                         ConcurrencyBugReport report(
                             ConcurrencyBugType::COND_VAR_MISUSE,
@@ -43,7 +45,7 @@ std::vector<ConcurrencyBugReport> ConditionVariableChecker::checkConditionVariab
                         bool isHeld = false;
                         
                         for (auto heldLock : mustHeld) {
-                            if (heldLock == mutex || heldLock == mutex->stripPointerCasts()) {
+                            if (heldLock == mutex) {
                                 isHeld = true;
                                 break;
                             }
@@ -53,7 +55,7 @@ std::vector<ConcurrencyBugReport> ConditionVariableChecker::checkConditionVariab
                             LockSet mayHeld = m_locksetAnalysis->getMayLockSetAt(&inst);
                             bool mayBeHeld = false;
                             for (auto heldLock : mayHeld) {
-                                if (heldLock == mutex || heldLock == mutex->stripPointerCasts()) {
+                                if (heldLock == mutex) {
                                     mayBeHeld = true;
                                     break;
                                 }

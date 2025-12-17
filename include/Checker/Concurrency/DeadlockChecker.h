@@ -47,6 +47,10 @@ private:
     std::vector<std::pair<mhp::LockID, mhp::LockID>> detectLockOrderViolations() const;
     std::string getLockDescription(mhp::LockID lock) const;
     const llvm::Instruction* findMatchingUnlock(const llvm::Instruction* lockInst) const;
+    std::vector<ConcurrencyBugReport> detectLostWakeups() const;
+    std::vector<ConcurrencyBugReport> detectBarrierDivergence() const;
+    bool isSameValue(const llvm::Value* lhs, const llvm::Value* rhs) const;
+    std::string describeValue(const llvm::Value* value) const;
 
     // Deadlock detection logic
 };

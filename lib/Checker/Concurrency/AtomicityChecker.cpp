@@ -30,8 +30,6 @@
 #include <llvm/IR/Module.h>
 #include <llvm/Support/raw_ostream.h>
 
-#include <algorithm>
-
 using namespace llvm;
 using namespace mhp;
 
@@ -84,19 +82,34 @@ void AtomicityChecker::collectCriticalSections() {
       }
 
       if (m_threadAPI->isTDRelease(&I) && !LockStack.empty()) {
-        const Instruction *Acq = LockStack.pop_back_val();
+        // Find the most recent matching acquire for *the same lock value*.
+        const Instruction *Rel = &I;
+        mhp::LockID RelLock = m_threadAPI->getLockVal(Rel);
+        if (!RelLock)
+          continue;
+        RelLock = RelLock->stripPointerCasts();
+
+        const Instruction *Acq = nullptr;
+        while (!LockStack.empty()) {
+          const Instruction *Candidate = LockStack.pop_back_val();
+          mhp::LockID AcqLock = m_threadAPI->getLockVal(Candidate);
+          if (AcqLock)
+            AcqLock = AcqLock->stripPointerCasts();
+          if (AcqLock == RelLock) {
+            Acq = Candidate;
+            break; // found matching acquire
+          }
+        }
         if (!Acq)
           continue;
 
-        const Instruction *Rel = &I;
-
         // Validate the pair with dominance / post-dominance.
-        if (!(DT.dominates(Acq, Rel) &&
-              PDT.dominates(Rel, F.getEntryBlock().getTerminator())))
+        // A valid critical section: Acquire dominates Release and Release post-dominates Acquire.
+        if (!(DT.dominates(Acq, Rel) && PDT.dominates(Rel, Acq)))
           continue;
 
         // Build the critical section body.
-        CriticalSection CS{Acq, Rel};
+        CriticalSection CS{Acq, Rel, {}};
         bool InBody = false;
         for (Instruction &J : instructions(F)) {
           if (&J == Acq)
@@ -136,50 +149,60 @@ std::vector<ConcurrencyBugReport> AtomicityChecker::checkAtomicityViolations() {
 
   std::vector<ConcurrencyBugReport> Reports;
 
-  // Compare every pair of CS that may run in parallel.
+  // Compare every pair of CS that may run in parallel, across the whole module.
+  SmallVector<std::pair<const CriticalSection *, mhp::LockID>, 16> AllSections;
   for (auto &FuncPair : m_csPerFunc) {
-    auto &Sections = FuncPair.second;
-    for (size_t i = 0; i < Sections.size(); ++i) {
-      for (size_t j = i + 1; j < Sections.size(); ++j) {
-        const CriticalSection &CS1 = Sections[i];
-        const CriticalSection &CS2 = Sections[j];
+    for (const auto &CS : FuncPair.second) {
+      AllSections.push_back({&CS, m_threadAPI->getLockVal(CS.Acquire)});
+    }
+  }
 
-        // Cheap filter: if acquires are on different locks, skip.
-        if (m_threadAPI->getLockVal(CS1.Acquire) !=
-            m_threadAPI->getLockVal(CS2.Acquire))
+  for (size_t i = 0; i < AllSections.size(); ++i) {
+    const CriticalSection &CS1 = *AllSections[i].first;
+    mhp::LockID Lock1 = AllSections[i].second;
+    if (!Lock1)
+      continue;
+
+    for (size_t j = i + 1; j < AllSections.size(); ++j) {
+      const CriticalSection &CS2 = *AllSections[j].first;
+      mhp::LockID Lock2 = AllSections[j].second;
+      if (!Lock2)
+        continue;
+
+      // Cheap filter: if acquires are on different locks, skip.
+      if (Lock1 != Lock2)
+        continue;
+
+      // May these CS execute concurrently?
+      if (!m_mhpAnalysis->mayHappenInParallel(CS1.Acquire, CS2.Acquire))
+        continue;
+
+      // Compare memory accesses.
+      for (const Instruction *I1 : CS1.Body) {
+        if (!isMemoryAccess(I1))
           continue;
 
-        // May these CS execute concurrently?
-        if (!m_mhpAnalysis->mayHappenInParallel(CS1.Acquire, CS2.Acquire))
-          continue;
-
-        // Compare memory accesses.
-        for (const Instruction *I1 : CS1.Body) {
-          if (!isMemoryAccess(I1))
+        for (const Instruction *I2 : CS2.Body) {
+          if (!isMemoryAccess(I2))
             continue;
 
-          for (const Instruction *I2 : CS2.Body) {
-            if (!isMemoryAccess(I2))
-              continue;
+          // At least one write?
+          if (!(isWrite(*I1) || isWrite(*I2)))
+            continue;
 
-            // At least one write?
-            if (!(isWrite(*I1) || isWrite(*I2)))
-              continue;
+          // Found a potential violation.
+          std::string Desc =
+              "Potential atomicity violation between accesses at " +
+              formatLoc(*I1) + " and " + formatLoc(*I2);
 
-            // Found a potential violation.
-            std::string Desc =
-                "Potential atomicity violation between accesses at " +
-                formatLoc(*I1) + " and " + formatLoc(*I2);
-
-            ConcurrencyBugReport report(ConcurrencyBugType::ATOMICITY_VIOLATION,
-                                 std::move(Desc),
-                                 BugDescription::BI_MEDIUM,
-                                 BugDescription::BC_WARNING);
-            report.addStep(I1, "Access 1 in Critical Section 1");
-            report.addStep(I2, "Access 2 in Critical Section 2");
-            
-            Reports.push_back(report);
-          }
+          ConcurrencyBugReport report(ConcurrencyBugType::ATOMICITY_VIOLATION,
+                               Desc,
+                               BugDescription::BI_MEDIUM,
+                               BugDescription::BC_WARNING);
+          report.addStep(I1, "Access 1 in Critical Section 1");
+          report.addStep(I2, "Access 2 in Critical Section 2");
+          
+          Reports.push_back(report);
         }
       }
     }
