@@ -2,8 +2,7 @@
  * @file llvm-ai.cpp
  * @brief LLVM IFDS/IDE Analysis Tool
  * 
- * A command-line tool for running IFDS/IDE interprocedural dataflow analysis 
- * on LLVM bitcode files using the Sparta framework.
+ * A command-line tool for running IFDS/IDE interprocedural dataflow analysis
  */
 
 #include <Dataflow/IFDS/IFDSFramework.h>

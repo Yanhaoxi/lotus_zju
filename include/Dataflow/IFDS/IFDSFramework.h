@@ -1,8 +1,7 @@
 /*
  * IFDS/IDE Framework
  * 
- * This header provides a comprehensive IFDS/IDE framework built on top of 
- * the Sparta abstract interpretation library, with integration for LLVM alias analysis.
+ * This header provides a comprehensive IFDS/IDE framework
  */
 
 #pragma once
@@ -253,7 +252,7 @@ public:
     using EdgeId = Edge;
     using Graph = ExplodedSupergraph<Fact>;
     
-    // GraphInterface implementation for Sparta fixpoint iterator
+    // GraphInterface implementation for fixpoint iterator  
     static NodeId entry(const Graph& graph);
     static NodeId source(const Graph& graph, const EdgeId& edge);
     static NodeId target(const Graph& graph, const EdgeId& edge);
