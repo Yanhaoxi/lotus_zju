@@ -19,12 +19,12 @@
 #define _min(a, b) ((a) < (b) ? (a) : (b))
 #define _max(a, b) ((a) > (b) ? (a) : (b))
 
-static inline int is_signed_op(optype op)
+static inline int __attribute__((unused)) is_signed_op(optype op)
 {
     return !(op == OP_ULT || op == OP_ULE || op == OP_UGT || op == OP_UGE);
 }
 
-static inline uint64_t sext(uint64_t c, uint32_t size)
+static inline uint64_t __attribute__((unused)) sext(uint64_t c, uint32_t size)
 {
     uint64_t mask = 1UL << (size - 1UL);
     if (c & mask) {
@@ -67,7 +67,7 @@ static inline int is_right_of(uint64_t v1, uint64_t v2, uint32_t size)
            ((v2 - v1) & get_size_mask(size));
 }
 
-static inline int is_left_of(uint64_t v1, uint64_t v2, uint32_t size)
+static inline int __attribute__((unused)) is_left_of(uint64_t v1, uint64_t v2, uint32_t size)
 {
     return !is_right_of(v1, v2, size);
 }
@@ -324,10 +324,10 @@ const char* op_to_string(optype op)
 void wi_print(wrapped_interval_t* interval)
 {
     if (!is_wrapping(interval))
-        fprintf(stderr, "[ 0x%lx, 0x%lx ] (%u)\n", interval->min, interval->max,
+        fprintf(stderr, "[ 0x%llx, 0x%llx ] (%u)\n", interval->min, interval->max,
                 interval->size);
     else
-        fprintf(stderr, "[ 0x%lx, 0x%lx ] U [ 0x%lx, 0x%lx ] (%u)\n", interval->min,
-                get_size_mask(interval->size), 0UL, interval->max,
+        fprintf(stderr, "[ 0x%llx, 0x%llx ] U [ 0x%llx, 0x%llx ] (%u)\n", interval->min,
+                get_size_mask(interval->size), 0ULL, interval->max,
                 interval->size);
 }

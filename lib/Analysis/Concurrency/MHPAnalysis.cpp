@@ -858,7 +858,7 @@ bool MHPAnalysis::isOrderedByLocks(const Instruction *i1,
   if (!isInSameThread(i1, i2)) {
     auto must1 = m_lockset->getMustLockSetAt(i1);
     auto must2 = m_lockset->getMustLockSetAt(i2);
-    for (auto l : must1) {
+    for (const auto* l : must1) {
       if (must2.find(l) != must2.end()) {
         return true;
       }

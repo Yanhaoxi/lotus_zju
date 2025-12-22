@@ -2,19 +2,19 @@
 
 ## Utilities
 
-- ThreadAPI
-- ThreadFlowGraph
-- FBVClock
-- BVVClock
+- **ThreadAPI**: Provides an API for identifying and categorizing thread-related operations (fork, join, lock, unlock, etc.) in LLVM IR.
+- **ThreadFlowGraph**: Implements a graph representation of thread synchronization operations and their ordering relationships.
+- **FBVClock**: Implements a fast bit-vector clock system for tracking happens-before relationships in concurrent programs.
+- **BVClock**: Provides a bit-vector clock implementation for vector clocks used in concurrency analysis.
 
 ## Analyses 
-- LockSetAnalysis: 
-- HappensBeforeAnalysis: 
-- MHPAnalysis: 
-- StaticVectorClockMHP: 
-- StaticThreadSharingAnalysis: 
-- MemUseDefAnalysis: 
-- EscapeAnalysis:
+- **LockSetAnalysis**: Performs may/must lock set analysis to track which locks are held at each program point.
+- **HappensBeforeAnalysis**: Determines happens-before relationships between instructions using MHP analysis.
+- **MHPAnalysis**: Implements may-happen-in-parallel analysis to determine which instructions can execute concurrently.
+- **StaticVectorClockMHP**: Implements a static vector clock-based approach for MHP analysis.
+- **StaticThreadSharingAnalysis**: Analyzes which memory locations are shared between threads using static analysis.
+- **MemUseDefAnalysis**: Performs memory use-def analysis based on MemorySSA to track memory dependencies.
+- **EscapeAnalysis**: Determines which values escape their thread-local scope and become shared between threads.
 
 
 ## Limitations
