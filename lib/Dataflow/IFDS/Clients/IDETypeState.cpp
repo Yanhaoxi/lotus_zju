@@ -201,17 +201,15 @@ IDETypeState::FactSet IDETypeState::call_flow(const llvm::CallInst* call,
         const llvm::Value* arg = call->getArgOperand(i);
         if (!arg) continue;
         
-        auto param_it = callee->arg_begin();
+        const auto* param_it = callee->arg_begin();
         std::advance(param_it, i);
         if (param_it == callee->arg_end()) break;
         
         const llvm::Argument* formal = &*param_it;
         
         // Direct match or may-alias
-        if (fact == arg) {
-            if (should_track(formal)) {
+        if (fact == arg &&  should_track(formal)) {
                 out.insert(formal);
-            }
         } else if (fact && arg->getType()->isPointerTy() && 
                    fact->getType()->isPointerTy() && may_alias(arg, fact)) {
             // Fact aliases with argument, propagate to formal

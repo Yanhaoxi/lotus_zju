@@ -55,8 +55,8 @@
 #include <llvm/ADT/DenseMap.h>
 #include <llvm/ADT/DenseSet.h>
 #include <llvm/ADT/Hashing.h>
-#include <llvm/IR/InstrTypes.h>  // For CallBase
 #include <llvm/IR/DataLayout.h>
+#include <llvm/IR/InstrTypes.h>  // For CallBase
 
 #include <functional>
 #include <string>

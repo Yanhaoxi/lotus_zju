@@ -24,4 +24,4 @@ public:
 	void runOnModule(const llvm::Module& module);
 };
 
-}
+} // namespace dynamic

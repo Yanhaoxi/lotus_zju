@@ -12,4 +12,4 @@ enum AllocType: std::uint8_t
 	Heap
 };
 
-}
+} // namespace dynamic

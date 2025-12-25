@@ -94,21 +94,21 @@ namespace SLOT
                     return builder.CreateNot(BooleanChild(0).ToLLVM());
                 case Z3_OP_AND:
                     temp = BooleanChild(0).ToLLVM();
-                    for (int i = 1; i < contents.num_args(); i++)
+                    for (unsigned int i = 1; i < contents.num_args(); i++)
                     {
                         temp = builder.CreateAnd(temp,BooleanChild(i).ToLLVM());
                     }
                     return temp;
                 case Z3_OP_OR:
                     temp = BooleanChild(0).ToLLVM();
-                    for (int i = 1; i < contents.num_args(); i++)
+                    for (unsigned int i = 1; i < contents.num_args(); i++)
                     {
                         temp = builder.CreateOr(temp,BooleanChild(i).ToLLVM());
                     }
                     return temp;
                 case Z3_OP_XOR:
                     temp = BooleanChild(0).ToLLVM();
-                    for (int i = 1; i < contents.num_args(); i++)
+                    for (unsigned int i = 1; i < contents.num_args(); i++)
                     {
                         temp = builder.CreateXor(temp,BooleanChild(i).ToLLVM());
                     }
@@ -221,9 +221,9 @@ namespace SLOT
                         //Check pairwise inequality for all pairs
                         Value* temp = 0; //  = ConstantInt::getTrue(*TheContext);
                         Value* v = 0;
-                        for (int i = 0; i < contents.num_args(); i++)
+                        for (unsigned int i = 0; i < contents.num_args(); i++)
                         {
-                            for (int j = i+1; j < contents.num_args(); j++)
+                            for (unsigned int j = i+1; j < contents.num_args(); j++)
                             {
                                 if (contents.arg(0).is_bool())
                                 {
@@ -387,14 +387,14 @@ namespace SLOT
                     return builder.CreateSelect(builder.CreateICmpEQ(u, Zero()), u, sel2);
                 case Z3_OP_BAND:
                     temp = BitvectorChild(0).ToLLVM();
-                    for (int i = 1; i < contents.num_args(); i++)
+                    for (unsigned int i = 1; i < contents.num_args(); i++)
                     {
                         temp = builder.CreateAnd(temp,BitvectorChild(i).ToLLVM());
                     }
                     return temp;
                 case Z3_OP_BOR:
                     temp = BitvectorChild(0).ToLLVM();
-                    for (int i = 1; i < contents.num_args(); i++)
+                    for (unsigned int i = 1; i < contents.num_args(); i++)
                     {
                         temp = builder.CreateOr(temp,BitvectorChild(i).ToLLVM());
                     }
@@ -404,7 +404,7 @@ namespace SLOT
                 case Z3_OP_BXOR:
                     assert(contents.num_args() > 1);
                     temp = BitvectorChild(0).ToLLVM();
-                    for (int i = 1; i < contents.num_args(); i++)
+                    for (unsigned int i = 1; i < contents.num_args(); i++)
                     {
                         temp = builder.CreateXor(temp,BitvectorChild(i).ToLLVM());
                     }

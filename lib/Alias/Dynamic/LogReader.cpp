@@ -9,7 +9,7 @@ namespace dynamic
 template <typename T>
 static bool readData(std::istream& is, T* data)
 {
-	auto charPtr = reinterpret_cast<char*>(data);
+	auto* charPtr = reinterpret_cast<char*>(data);
 	is.read(charPtr, sizeof(T));
 	return is.good();
 }
@@ -52,8 +52,7 @@ static boost::optional<LogRecord> readRecord(std::istream& is)
 
 	if (!succ)
 		return boost::optional<LogRecord>();
-	else
-		return boost::make_optional(std::move(rec));
+	return boost::make_optional(std::move(rec));
 }
 
 std::vector<LogRecord> EagerLogReader::readLogFromFile(const char* fileName)
@@ -93,4 +92,4 @@ boost::optional<LogRecord> LazyLogReader::readLogRecord()
 	return readRecord(ifs);
 }
 
-}
+} // namespace dynamic

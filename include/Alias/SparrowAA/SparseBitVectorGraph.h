@@ -82,8 +82,7 @@ public:
     auto itr = graph.find(idx);
     if (itr == graph.end())
       return nullptr;
-    else
-      return &(itr->second);
+    return &(itr->second);
   }
 
   unsigned getSize() const { return graph.size(); }

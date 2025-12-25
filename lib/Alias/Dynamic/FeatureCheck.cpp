@@ -16,7 +16,7 @@ void FeatureCheck::issueWarning(const Value& v, const StringRef& msg) {
 
 void FeatureCheck::checkIndirectLibraryCall(const Function& f) {
     if (f.isDeclaration()) {
-        for (auto user : f.users()) {
+        for (const auto* user : f.users()) {
             // In LLVM 14, CallSite was removed. We need to check for CallInst and InvokeInst
             bool isCall = isa<CallInst>(user) || isa<InvokeInst>(user);
             if (!isCall)
@@ -55,4 +55,4 @@ void FeatureCheck::runOnModule(const Module& module) {
         checkArrayArgOrInst(f);
     }
 }
-}
+} // namespace dynamic

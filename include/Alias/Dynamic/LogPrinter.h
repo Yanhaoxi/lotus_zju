@@ -19,4 +19,4 @@ public:
 	void visitCallRecord(const CallRecord&);
 };
 
-}
+} // namespace dynamic

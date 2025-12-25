@@ -27,4 +27,4 @@ public:
 	boost::optional<LogRecord> readLogRecord();
 };
 
-}
+} // namespace dynamic

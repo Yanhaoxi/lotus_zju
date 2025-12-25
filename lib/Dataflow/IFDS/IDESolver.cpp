@@ -109,15 +109,27 @@ void IDESolver<Problem>::solve(const llvm::Module& module) {
                 std::vector<const llvm::Instruction*> succs;
                 if (auto* br = llvm::dyn_cast<llvm::BranchInst>(&inst)) {
                     for (unsigned i = 0; i < br->getNumSuccessors(); ++i) {
-                        succs.push_back(&br->getSuccessor(i)->front());
+                        llvm::BasicBlock* succ = br->getSuccessor(i);
+                        if (succ && !succ->empty()) {
+                            succs.push_back(&succ->front());
+                        }
                     }
                 } else if (auto* sw = llvm::dyn_cast<llvm::SwitchInst>(&inst)) {
                     for (unsigned i = 0; i < sw->getNumSuccessors(); ++i) {
-                        succs.push_back(&sw->getSuccessor(i)->front());
+                        llvm::BasicBlock* succ = sw->getSuccessor(i);
+                        if (succ && !succ->empty()) {
+                            succs.push_back(&succ->front());
+                        }
                     }
                 } else if (auto* invoke = llvm::dyn_cast<llvm::InvokeInst>(&inst)) {
-                    succs.push_back(&invoke->getNormalDest()->front());
-                    succs.push_back(&invoke->getUnwindDest()->front());
+                    llvm::BasicBlock* normalDest = invoke->getNormalDest();
+                    if (normalDest && !normalDest->empty()) {
+                        succs.push_back(&normalDest->front());
+                    }
+                    llvm::BasicBlock* unwindDest = invoke->getUnwindDest();
+                    if (unwindDest && !unwindDest->empty()) {
+                        succs.push_back(&unwindDest->front());
+                    }
                 } else if (llvm::isa<llvm::ReturnInst>(inst) || 
                           llvm::isa<llvm::UnreachableInst>(inst)) {
                     // No intraprocedural successors
@@ -134,7 +146,10 @@ void IDESolver<Problem>::solve(const llvm::Module& module) {
             return call->getNextNode();
         }
         if (auto* invoke = llvm::dyn_cast<llvm::InvokeInst>(call)) {
-            return &invoke->getNormalDest()->front();
+            llvm::BasicBlock* normalDest = invoke->getNormalDest();
+            if (normalDest && !normalDest->empty()) {
+                return &normalDest->front();
+            }
         }
         return nullptr;
     };
@@ -187,9 +202,12 @@ void IDESolver<Problem>::solve(const llvm::Module& module) {
     }
 
     if (main_func && !main_func->empty()) {
-        const llvm::Instruction* entry = &main_func->getEntryBlock().front();
-        for (const auto& seed : m_problem.initial_facts(main_func)) {
-            queue_edge(entry, seed, identity_func, m_problem.top_value());
+        const llvm::BasicBlock& entryBB = main_func->getEntryBlock();
+        if (!entryBB.empty()) {
+            const llvm::Instruction* entry = &entryBB.front();
+            for (const auto& seed : m_problem.initial_facts(main_func)) {
+                queue_edge(entry, seed, identity_func, m_problem.top_value());
+            }
         }
     }
 
@@ -222,15 +240,18 @@ void IDESolver<Problem>::solve(const llvm::Module& module) {
                 }
             }
 
-            if (callee && !callee->isDeclaration()) {
+            if (callee && !callee->isDeclaration() && !callee->empty()) {
                 // Call into callee
-                const llvm::Instruction* callee_entry = &callee->getEntryBlock().front();
-                for (const auto& callee_fact : m_problem.call_flow(call, callee, fact)) {
-                    auto ef = m_problem.call_edge_function(call, fact, callee_fact);
-                    EdgeFunctionPtr edge_fn = make_edge_function(ef);
-                    EdgeFunctionPtr new_phi = compose_cached(edge_fn, phi);
-                    Value result_val = (*edge_fn)(currVal);
-                    queue_edge(callee_entry, callee_fact, new_phi, result_val);
+                const llvm::BasicBlock& entryBB = callee->getEntryBlock();
+                if (!entryBB.empty()) {
+                    const llvm::Instruction* callee_entry = &entryBB.front();
+                    for (const auto& callee_fact : m_problem.call_flow(call, callee, fact)) {
+                        auto ef = m_problem.call_edge_function(call, fact, callee_fact);
+                        EdgeFunctionPtr edge_fn = make_edge_function(ef);
+                        EdgeFunctionPtr new_phi = compose_cached(edge_fn, phi);
+                        Value result_val = (*edge_fn)(currVal);
+                        queue_edge(callee_entry, callee_fact, new_phi, result_val);
+                    }
                 }
 
                 // Apply existing summaries retroactively

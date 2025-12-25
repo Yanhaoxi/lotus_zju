@@ -34,4 +34,4 @@ public:
 
     bool isHook(const llvm::Function&) const;
 };
-}
+} // namespace dynamic

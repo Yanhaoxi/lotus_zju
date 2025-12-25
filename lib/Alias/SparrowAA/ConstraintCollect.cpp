@@ -103,7 +103,7 @@ void Andersen::collectConstraintsForFunction(const Function *f,
   // may refer to the value node defined before it (e.g. phi nodes)
   for (const_inst_iterator itr = inst_begin(*f), ite = inst_end(*f); itr != ite;
        ++itr) {
-    auto inst = &*itr.getInstructionIterator();
+    const auto* inst = &*itr.getInstructionIterator();
     if (inst->getType()->isPointerTy()) {
       nodeFactory.createValueNode(inst, ctx);
       ++NumPointerInstructions;
@@ -113,7 +113,7 @@ void Andersen::collectConstraintsForFunction(const Function *f,
   // Now, collect constraint for each relevant instruction
   for (const_inst_iterator itr = inst_begin(*f), ite = inst_end(*f); itr != ite;
        ++itr) {
-    auto inst = &*itr.getInstructionIterator();
+    const auto* inst = &*itr.getInstructionIterator();
     collectConstraintsForInstruction(inst, ctx);
   }
 }
@@ -510,10 +510,9 @@ void Andersen::addConstraintForCall(const llvm::CallBase *cs,
     {
       ++NumExternalLibCalls;
       // Handle libraries separately
-      if (addConstraintForExternalLibrary(cs, f, callerCtx))
+      if (addConstraintForExternalLibrary(cs, f, callerCtx)) {
         return;
-      else // Unresolved library call: ruin everything!
-      {
+      } else { // Unresolved library call: ruin everything!
         ++NumUnresolvedLibCalls;
         // errs() << "Unresolved ext function: " << f->getName() << "\n";
         if (cs->getType()->isPointerTy()) {

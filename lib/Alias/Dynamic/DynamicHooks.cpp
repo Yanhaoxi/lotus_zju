@@ -32,12 +32,12 @@ Type* getCharPtrPtrType(const Module& m) {
 
 Function* createFunctionWithArgType(const StringRef& name,
                                     ArrayRef<Type*> argTypes, Module& module) {
-    auto funType =
+    auto* funType =
         FunctionType::get(getVoidType(module), std::move(argTypes), false);
     return Function::Create(funType, GlobalValue::ExternalLinkage, name,
                             &module);
 }
-}
+} // namespace
 
 DynamicHooks::DynamicHooks(Module& module) {
     initHook = createFunctionWithArgType("HookInit", {}, module);
@@ -64,5 +64,5 @@ bool DynamicHooks::isHook(const llvm::Function& f) const {
     return &f == initHook || &f == allocHook || &f == pointerHook ||
            &f == callHook || &f == enterHook || &f == exitHook ||
            &f == globalHook || &f == mainHook;
-}
-}
+ }
+} // namespace dynamic

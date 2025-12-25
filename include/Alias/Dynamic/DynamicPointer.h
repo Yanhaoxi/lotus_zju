@@ -5,4 +5,4 @@
 namespace dynamic {
 
 using DynamicPointer = std::uint32_t;
-}
+} // namespace dynamic

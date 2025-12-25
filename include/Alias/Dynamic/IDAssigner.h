@@ -35,4 +35,4 @@ public:
 
     void dump() const;
 };
-}
+} // namespace dynamic

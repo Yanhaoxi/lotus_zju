@@ -31,7 +31,7 @@ bool IDAssigner::assignUserID(const User* u) {
 
     bool changed = false;
     for (auto const& op : u->operands())
-        if (auto child = dyn_cast<User>(&op))
+        if (auto* child = dyn_cast<User>(&op))
             changed |= assignUserID(child);
     return changed;
 }
@@ -61,15 +61,13 @@ const IDType* IDAssigner::getID(const llvm::Value& v) const {
     auto itr = idMap.find(&v);
     if (itr == idMap.end())
         return nullptr;
-    else
-        return &itr->second;
+    return &itr->second;
 }
 
 const llvm::Value* IDAssigner::getValue(IDType id) const {
     if (id >= revIdMap.size())
         return nullptr;
-    else
-        return revIdMap[id - startID];
+    return revIdMap[id - startID];
 }
 
 void IDAssigner::dump() const {
@@ -77,4 +75,4 @@ void IDAssigner::dump() const {
         errs() << (i + startID) << " => " << revIdMap[i]->getName() << "\n";
     }
 }
-}
+} // namespace dynamic

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <llvm/ADT/DenseMapInfo.h>
 #include <utility>
+#include <llvm/ADT/DenseMapInfo.h>
 #include "Alias/Dynamic/DynamicPointer.h"
 
 namespace dynamic {
@@ -47,7 +47,7 @@ inline bool operator>(const AliasPair& lhs, const AliasPair& rhs) {
 inline bool operator<=(const AliasPair& lhs, const AliasPair& rhs) {
     return !(rhs < lhs);
 }
-}
+} // namespace dynamic
 
 namespace llvm {
 template <>
@@ -73,4 +73,4 @@ struct DenseMapInfo<dynamic::AliasPair>
         return lhs == rhs;
     }
 };
-}
+} // namespace llvm

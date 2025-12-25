@@ -145,7 +145,7 @@ ReachingDefinitionsAnalysis::FactSet ReachingDefinitionsAnalysis::call_flow(cons
         for (unsigned i = 0; i < call->getNumOperands() - 1; ++i) {
             if (call->getOperand(i) == fact.get_variable()) {
                 // Map to corresponding parameter in callee
-                auto arg_it = callee->arg_begin();
+                const auto* arg_it = callee->arg_begin();
                 std::advance(arg_it, i);
                 
                 // Create a new definition fact for the parameter

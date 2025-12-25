@@ -32,7 +32,7 @@ private:
     LLVMContext& context;
 
     size_t getID(const Value& v) const {
-        auto id = idMap.getID(v);
+        const auto* id = idMap.getID(v);
         assert(id != nullptr && "ID not found");
         return *id;
     }
@@ -69,7 +69,7 @@ void Instrumenter::instrumentPointer(Value* val, Instruction* pos) {
     assert(val != nullptr && pos != nullptr && val->getType()->isPointerTy());
     auto id = getID(*val);
 
-    auto idArg = ConstantInt::get(getIntType(), id);
+    auto* idArg = ConstantInt::get(getIntType(), id);
     if (val->getType() != getCharPtrType())
         val = new BitCastInst(val, getCharPtrType(), "ptr", pos);
     CallInst::Create(hooks.getPointerHook(), {idArg, val}, "", pos);
@@ -79,17 +79,17 @@ void Instrumenter::instrumentAllocation(AllocType allocType, Value* ptr,
                                         Instruction* pos) {
     assert(ptr != nullptr && pos != nullptr && ptr->getType()->isPointerTy());
 
-    auto allocTypeArg = ConstantInt::get(getCharType(), allocType);
-    auto ptrId = getID(*ptr);
+    auto* allocTypeArg = ConstantInt::get(getCharType(), allocType);
+    const auto ptrId = getID(*ptr);
     if (ptr->getType() != getCharPtrType())
         ptr = new BitCastInst(ptr, getCharPtrType(), "alloc_ptr", pos);
-    auto idArg = ConstantInt::get(getIntType(), ptrId);
+    auto* idArg = ConstantInt::get(getIntType(), ptrId);
     CallInst::Create(hooks.getAllocHook(), {allocTypeArg, idArg, ptr}, "", pos);
 }
 
 void Instrumenter::instrumentGlobals(Module& module) {
-    auto bb = BasicBlock::Create(context, "entry", hooks.getGlobalHook());
-    auto retInst = ReturnInst::Create(context, bb);
+    auto* bb = BasicBlock::Create(context, "entry", hooks.getGlobalHook());
+    auto* retInst = ReturnInst::Create(context, bb);
 
     // Global values
     for (auto& global : module.globals()) {
@@ -130,15 +130,15 @@ void Instrumenter::instrumentFunctionParams(Function& f) {
 
 void Instrumenter::instrumentEntry(Function& f) {
     auto entry = f.begin()->getFirstInsertionPt();
-    auto id = getID(f);
-    auto idArg = ConstantInt::get(getIntType(), id);
+    const auto id = getID(f);
+    auto* idArg = ConstantInt::get(getIntType(), id);
     CallInst::Create(hooks.getEnterHook(), {idArg}, "", &*entry);
 }
 
 void Instrumenter::instrumentExit(Instruction& inst) {
-    auto func = inst.getParent()->getParent();
+    auto* func = inst.getParent()->getParent();
     auto funcID = getID(*func);
-    auto idArg = ConstantInt::get(getIntType(), funcID);
+    auto* idArg = ConstantInt::get(getIntType(), funcID);
     CallInst::Create(hooks.getExitHook(), {idArg}, "", &inst);
 }
 
@@ -154,14 +154,14 @@ void Instrumenter::instrumentMalloc(Instruction* inst) {
 
 void Instrumenter::instrumentCallInst(CallInst* CI) {
     // Instrument memory allocation function calls.
-    auto callee = CI->getCalledFunction();
+    auto* callee = CI->getCalledFunction();
     
     if (callee && specMgr.isAllocator(callee))
         instrumentMalloc(CI);
     else {
         // CallHook must be inserted before the call actually happens
-        auto id = getID(*CI);
-        auto idArg = ConstantInt::get(getIntType(), id);
+        const auto id = getID(*CI);
+        auto*  idArg = ConstantInt::get(getIntType(), id);
         CallInst::Create(hooks.getCallHook(), {idArg}, "", CI);
 
         // If the call returns a pointer, record it
@@ -172,22 +172,22 @@ void Instrumenter::instrumentCallInst(CallInst* CI) {
 
 void Instrumenter::instrumentInvokeInst(InvokeInst* II) {
     // Instrument memory allocation function calls.
-    auto callee = II->getCalledFunction();
+    auto* callee = II->getCalledFunction();
     
     if (callee && specMgr.isAllocator(callee))
         instrumentMalloc(II);
     else {
         // CallHook must be inserted before the call actually happens
-        auto id = getID(*II);
-        auto idArg = ConstantInt::get(getIntType(), id);
+        const auto id = getID(*II);
+        auto* idArg = ConstantInt::get(getIntType(), id);
         CallInst::Create(hooks.getCallHook(), {idArg}, "", II);
 
         // If the call returns a pointer, record it
         if (II->getType()->isPointerTy()) {
             // For invoke instructions, we need to be careful about insertion point
             // since they have multiple successors
-            auto normalDest = II->getNormalDest();
-            auto firstInst = &*normalDest->getFirstInsertionPt();
+            auto* normalDest = II->getNormalDest();
+            auto* firstInst = &*normalDest->getFirstInsertionPt();
             instrumentPointer(II, firstInst);
         }
     }
@@ -197,7 +197,7 @@ void Instrumenter::instrumentPointerInst(Instruction& inst) {
     if (isa<PHINode>(inst)) {
         // Cannot insert hooks right after a PHI, because PHINodes have to be
         // grouped together
-        auto pos = inst.getParent()->getFirstNonPHI();
+        auto* pos = inst.getParent()->getFirstNonPHI();
         instrumentPointer(&inst, &*pos);
     } else if (!inst.isTerminator()) {
         auto pos = nextInsertionPos(inst);
@@ -213,11 +213,11 @@ void Instrumenter::instrumentInst(Instruction& inst) {
     if (inst.getType()->isPointerTy())
         instrumentPointerInst(inst);
 
-    if (auto allocInst = dyn_cast<AllocaInst>(&inst))
+    if (auto* allocInst = dyn_cast_or_null<AllocaInst>(&inst))
         instrumentAlloca(*allocInst);
-    else if (auto callInst = dyn_cast<CallInst>(&inst))
+    else if (auto* callInst = dyn_cast_or_null<CallInst>(&inst))
         instrumentCallInst(callInst);
-    else if (auto invokeInst = dyn_cast<InvokeInst>(&inst))
+    else if (auto* invokeInst = dyn_cast_or_null<InvokeInst>(&inst))
         instrumentInvokeInst(invokeInst);
     else if (isa<StoreInst>(inst))
         return;
@@ -234,11 +234,11 @@ void Instrumenter::instrumentMain(Function& mainFunc) {
 
     if (mainFunc.arg_size() > 0) {
         assert(mainFunc.arg_size() >= 2);
-        auto argItr = mainFunc.arg_begin();
+        auto* argItr = mainFunc.arg_begin();
         ++argItr;
-        Value* argv = &*argItr;
+        auto* argv = &*argItr;
         auto argvId = getID(*argv);
-        auto idArg = ConstantInt::get(getIntType(), argvId);
+        auto* idArg = ConstantInt::get(getIntType(), argvId);
 
         Value* envp =
             ConstantPointerNull::get(cast<PointerType>(getCharPtrType()));
@@ -254,8 +254,8 @@ void Instrumenter::instrumentMain(Function& mainFunc) {
                          &*pos);
     }
 
-    auto id = getID(mainFunc);
-    auto idArg = ConstantInt::get(getIntType(), id);
+    const auto id = getID(mainFunc);
+    auto* idArg = ConstantInt::get(getIntType(), id);
     CallInst::Create(hooks.getEnterHook(), {idArg}, "", &*pos);
 }
 
@@ -284,9 +284,9 @@ void Instrumenter::instrument(Module& module) {
     for (auto& f : module)
         instrumentFunction(f);
 }
-}
+} // namespace  
 
-void MemoryInstrument::runOnModule(Module& module) {
+void MemoryInstrument::runOnModule(llvm::Module& module) {
     // Check unsupported features in the input IR and issue warnings accordingly
     FeatureCheck().runOnModule(module);
 
@@ -297,4 +297,4 @@ void MemoryInstrument::runOnModule(Module& module) {
 
     Instrumenter(hooks, idMap, specMgr, module.getContext()).instrument(module);
 }
-}
+} // namespace dynamic

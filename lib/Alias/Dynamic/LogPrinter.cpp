@@ -49,4 +49,4 @@ void LogPrinter::visitCallRecord(const CallRecord& callRecord)
 	os << "[CALL] Inst# " << callRecord.id << '\n';
 }
 
-}
+} // namespace dynamic

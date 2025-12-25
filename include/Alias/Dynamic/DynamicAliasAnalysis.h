@@ -29,4 +29,4 @@ public:
     const_iterator begin() const { return aliasPairMap.begin(); }
     const_iterator end() const { return aliasPairMap.end(); }
 };
-}
+} // namespace dynamic

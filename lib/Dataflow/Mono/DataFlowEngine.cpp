@@ -76,7 +76,7 @@ std::unique_ptr<DataFlowResult> DataFlowEngine::applyForward(
 
   auto getPredecessors = [](BasicBlock *bb) -> std::list<BasicBlock *> {
     std::list<BasicBlock *> Predecessors;
-    for (auto predecessor : predecessors(bb)) {
+    for (auto* predecessor : predecessors(bb)) {
       Predecessors.push_back(predecessor);
     }
     return Predecessors;
@@ -84,7 +84,7 @@ std::unique_ptr<DataFlowResult> DataFlowEngine::applyForward(
 
   auto getSuccessors = [](BasicBlock *bb) -> std::list<BasicBlock *> {
     std::list<BasicBlock *> Successors;
-    for (auto predecessor : successors(bb)) {
+    for (auto*  predecessor : successors(bb)) {
       Successors.push_back(predecessor);
     }
     return Successors;
@@ -149,7 +149,7 @@ std::unique_ptr<DataFlowResult> DataFlowEngine::applyBackward(
 
   auto getPredecessors = [](BasicBlock *bb) -> std::list<BasicBlock *> {
     std::list<BasicBlock *> Successors;
-    for (auto predecessor : successors(bb)) {
+    for (auto*  predecessor : successors(bb)) {
       Successors.push_back(predecessor);
     }
     return Successors;
@@ -157,7 +157,7 @@ std::unique_ptr<DataFlowResult> DataFlowEngine::applyBackward(
 
   auto getSuccessors = [](BasicBlock *bb) -> std::list<BasicBlock *> {
     std::list<BasicBlock *> Predecessors;
-    for (auto predecessor : predecessors(bb)) {
+    for (auto*  predecessor : predecessors(bb)) {
       Predecessors.push_back(predecessor);
     }
     return Predecessors;
@@ -303,7 +303,7 @@ std::unique_ptr<DataFlowResult> DataFlowEngine::applyGeneralizedForwardAnalysis(
     /*
      * Fetch a basic block that needs to be processed.
      */
-    auto bb = workingList.front();
+    auto* bb = workingList.front();
 
     /*
      * Remove the basic block from the workingList.
@@ -314,7 +314,7 @@ std::unique_ptr<DataFlowResult> DataFlowEngine::applyGeneralizedForwardAnalysis(
     /*
      * Fetch the first instruction of the basic block.
      */
-    auto inst = getFirstInstruction(bb);
+    auto* inst = getFirstInstruction(bb);
 
     /*
      * Fetch IN[inst], OUT[inst], GEN[inst], and KILL[inst]
@@ -325,12 +325,12 @@ std::unique_ptr<DataFlowResult> DataFlowEngine::applyGeneralizedForwardAnalysis(
     /*
      * Compute the IN of the first instruction of the current basic block.
      */
-    for (auto predecessorBB : getPredecessors(bb)) {
+    for (auto*  predecessorBB : getPredecessors(bb)) {
 
       /*
        * Fetch the current predecessor of "inst".
        */
-      auto predecessorInst = getLastInstruction(predecessorBB);
+      auto* predecessorInst = getLastInstruction(predecessorBB);
 
       /*
        * Compute IN[inst]
@@ -356,7 +356,7 @@ std::unique_ptr<DataFlowResult> DataFlowEngine::applyGeneralizedForwardAnalysis(
        * current basic block.
        */
       BasicBlock::iterator iter(inst);
-      auto predI = cast<Instruction>(inst);
+      auto* predI = cast<Instruction>(inst);
       while (iter != getEndIterator(bb)) {
 
         /*
@@ -367,7 +367,7 @@ std::unique_ptr<DataFlowResult> DataFlowEngine::applyGeneralizedForwardAnalysis(
         /*
          * Fetch the current instruction.
          */
-        auto i = &*iter;
+        auto* i = &*iter;
 
         /*
          * Compute IN[i]
@@ -390,7 +390,7 @@ std::unique_ptr<DataFlowResult> DataFlowEngine::applyGeneralizedForwardAnalysis(
       /*
        * Add successors of the current basic block to the working list.
        */
-      for (auto succBB : getSuccessors(bb)) {
+      for (auto* succBB : getSuccessors(bb)) {
         if (inWorkList.insert(succBB).second) {
           workingList.push_back(succBB);
         }

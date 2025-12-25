@@ -14,4 +14,4 @@ public:
 
     void runOnModule(llvm::Module&);
 };
-}
+} // namespace dynamic

@@ -43,7 +43,7 @@ public:
 };
 
 bool AnalysisImpl::intersects(const PtsSet& lhs, const PtsSet& rhs) {
-    for (auto ptr : lhs) {
+    for (const auto* ptr : lhs) {
         if (rhs.count(ptr))
             return true;
     }
@@ -98,7 +98,7 @@ void AnalysisImpl::visitExitRecord(const ExitRecord& exitRecord) {
 void AnalysisImpl::visitCallRecord(const CallRecord& callRecord) {
     // TODO
 }
-}
+} // namespace
 
 DynamicAliasAnalysis::DynamicAliasAnalysis(const char* fileName)
     : fileName(fileName) {}
@@ -112,7 +112,6 @@ const DynamicAliasAnalysis::AliasPairSet* DynamicAliasAnalysis::getAliasPairs(
     auto itr = aliasPairMap.find(p);
     if (itr == aliasPairMap.end())
         return nullptr;
-    else
-        return &itr->second;
+    return &itr->second;
 }
-}
+} // namespace dynamic

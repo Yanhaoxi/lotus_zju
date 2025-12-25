@@ -458,7 +458,7 @@ namespace STAUB
                     //return left - right;
                 case Z3_OP_ADD:
                     val = IntegerChild(0).ToSMT(width, svariables, sol);
-                    for (int i = 1; i < contents.num_args(); i++)
+                    for (unsigned int i = 1; i < contents.num_args(); i++)
                     {
                         temp = IntegerChild(i).ToSMT(width, svariables, sol);
                         if (!forSlot)
@@ -477,7 +477,7 @@ namespace STAUB
                     //return left + right;
                 case Z3_OP_MUL:
                     val = IntegerChild(0).ToSMT(width, svariables, sol);
-                    for (int i = 1; i < contents.num_args(); i++)
+                    for (unsigned int i = 1; i < contents.num_args(); i++)
                     {
                         temp = IntegerChild(i).ToSMT(width, svariables, sol);
                         if (!forSlot)
@@ -495,7 +495,7 @@ namespace STAUB
                     //return left * right;
                 case Z3_OP_IDIV:
                     val = IntegerChild(0).ToSMT(width, svariables, sol);
-                    for (int i = 1; i < contents.num_args(); i++)
+                    for (unsigned int i = 1; i < contents.num_args(); i++)
                     {
                         temp = IntegerChild(i).ToSMT(width, svariables, sol);
                         if (!forSlot)
@@ -549,21 +549,21 @@ namespace STAUB
                     return builder.CreateNot(BooleanChild(0).ToLLVM());
                 case Z3_OP_AND:
                     temp = BooleanChild(0).ToLLVM();
-                    for (int i = 1; i < contents.num_args(); i++)
+                    for (unsigned int i = 1; i < contents.num_args(); i++)
                     {
                         temp = builder.CreateAnd(temp,BooleanChild(i).ToLLVM());
                     }
                     return temp;
                 case Z3_OP_OR:
                     temp = BooleanChild(0).ToLLVM();
-                    for (int i = 1; i < contents.num_args(); i++)
+                    for (unsigned int i = 1; i < contents.num_args(); i++)
                     {
                         temp = builder.CreateOr(temp,BooleanChild(i).ToLLVM());
                     }
                     return temp;
                 case Z3_OP_XOR:
                     temp = BooleanChild(0).ToLLVM();
-                    for (int i = 1; i < contents.num_args(); i++)
+                    for (unsigned int i = 1; i < contents.num_args(); i++)
                     {
                         temp = builder.CreateXor(temp,BooleanChild(i).ToLLVM());
                     }
@@ -701,7 +701,7 @@ namespace STAUB
         {
             //Note: ITE always has exactly 3 arguments
             APInt val = BooleanChild(0).LargestIntegerConstant();
-            for (int i = 1; i < contents.num_args(); i++)
+            for (unsigned int i = 1; i < contents.num_args(); i++)
             {
                 val = APMax(val,BooleanChild(i).LargestIntegerConstant());
             }
@@ -718,7 +718,7 @@ namespace STAUB
         else if (Op() == Z3_OP_DISTINCT && contents.arg(0).is_int())
         {
             APInt val = IntegerChild(0).LargestIntegerConstant();
-            for (int i = 1; i < contents.num_args(); i++)
+            for (unsigned int i = 1; i < contents.num_args(); i++)
             {
                 val = APMax(val,IntegerChild(i).LargestIntegerConstant());
             }
@@ -746,7 +746,7 @@ namespace STAUB
         {
             //Note: ITE always has exactly 3 arguments
             APInt val = BooleanChild(0).AbstractSingle(assumption);
-            for (int i = 1; i < contents.num_args(); i++)
+            for (unsigned int i = 1; i < contents.num_args(); i++)
             {
                 val = APMax(val,BooleanChild(i).AbstractSingle(assumption));
             }
@@ -763,7 +763,7 @@ namespace STAUB
         else if (Op() == Z3_OP_DISTINCT && contents.arg(0).is_int())
         {
             APInt val = IntegerChild(0).AbstractSingle(assumption);
-            for (int i = 1; i < contents.num_args(); i++)
+            for (unsigned int i = 1; i < contents.num_args(); i++)
             {
                 val = APMax(val,IntegerChild(i).AbstractSingle(assumption));
             }
@@ -798,21 +798,21 @@ namespace STAUB
                     return !BooleanChild(0).ToSMT(width,svariables,sol);
                 case Z3_OP_AND:
                     temp = BooleanChild(0).ToSMT(width, svariables,sol);
-                    for (int i = 1; i < contents.num_args(); i++)
+                    for (unsigned int i = 1; i < contents.num_args(); i++)
                     {
                         temp = temp && BooleanChild(i).ToSMT(width, svariables,sol);
                     }
                     return temp;
                 case Z3_OP_OR:
                     temp = BooleanChild(0).ToSMT(width, svariables,sol);
-                    for (int i = 1; i < contents.num_args(); i++)
+                    for (unsigned int i = 1; i < contents.num_args(); i++)
                     {
                         temp = temp || BooleanChild(i).ToSMT(width, svariables,sol);
                     }
                     return temp;
                 case Z3_OP_XOR:
                     temp = BooleanChild(0).ToSMT(width, svariables,sol);
-                    for (int i = 1; i < contents.num_args(); i++)
+                    for (unsigned int i = 1; i < contents.num_args(); i++)
                     {
                         temp = temp ^ BooleanChild(i).ToSMT(width, svariables,sol);
                     }
@@ -860,7 +860,7 @@ namespace STAUB
                             UnsupportedSMTOpException("distinct comparison with unsupported child type", contents);
                         }
                         expr_vector v(scx);
-                        for (int i = 0; i < contents.num_args(); i++)
+                        for (unsigned int i = 0; i < contents.num_args(); i++)
                         {
                             assert((contents.arg(i).is_bool()||contents.arg(i).is_int())&&contents.arg(i).is_bool()==tt);
                             if (tt)
@@ -897,7 +897,7 @@ namespace STAUB
         {
             //Note: ITE always has exactly 3 arguments
             PAIR val = BooleanChild(0).LargestPreciseConstant();
-            for (int i = 1; i < contents.num_args(); i++)
+            for (unsigned int i = 1; i < contents.num_args(); i++)
             {
                 val = PairMax(val,BooleanChild(i).LargestPreciseConstant());
             }
@@ -994,21 +994,21 @@ namespace STAUB
                     return !BooleanChild(0).ToSMTFloat(type,svariables);
                 case Z3_OP_AND:
                     temp = BooleanChild(0).ToSMTFloat(type, svariables);
-                    for (int i = 1; i < contents.num_args(); i++)
+                    for (unsigned int i = 1; i < contents.num_args(); i++)
                     {
                         temp = temp && BooleanChild(i).ToSMTFloat(type, svariables);
                     }
                     return temp;
                 case Z3_OP_OR:
                     temp = BooleanChild(0).ToSMTFloat(type, svariables);
-                    for (int i = 1; i < contents.num_args(); i++)
+                    for (unsigned int i = 1; i < contents.num_args(); i++)
                     {
                         temp = temp || BooleanChild(i).ToSMTFloat(type, svariables);
                     }
                     return temp;
                 case Z3_OP_XOR:
                     temp = BooleanChild(0).ToSMTFloat(type, svariables);
-                    for (int i = 1; i < contents.num_args(); i++)
+                    for (unsigned int i = 1; i < contents.num_args(); i++)
                     {
                         temp = temp ^ BooleanChild(i).ToSMTFloat(type, svariables);
                     }
@@ -1213,4 +1213,4 @@ namespace STAUB
     }
 
     
-}
+} // namespace STAUB
