@@ -117,7 +117,7 @@ int main(int argc, char **argv) {
     FunctionWrapper *funcWrapper = PDG.getFuncWrapper(F);
     auto callInsts = funcWrapper->getCallInsts();
     
-    for (auto ci : callInsts) {
+    for (auto *ci : callInsts) {
       callSiteCount++;
       Function *calledFunc = pdgutils::getCalledFunc(*ci);
       outs() << "  Call from " << F.getName() << " to " 
@@ -156,7 +156,7 @@ int main(int argc, char **argv) {
           
           if (!node->getOutEdgeSet().empty()) {
             outs() << "  Dependencies:\n";
-            for (auto edge : node->getOutEdgeSet()) {
+            for (auto *edge : node->getOutEdgeSet()) {
               outs() << "    - " << getEdgeTypeString(edge->getEdgeType()) << ": ";
               printNode(edge->getDstNode());
               outs() << "\n";

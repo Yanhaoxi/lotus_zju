@@ -10,9 +10,15 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions -frtti")
 # -fno-rtti #we need RTTI.
 
 # Set output directories
+# Libraries and archives go to lib/
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+# Default runtime output (tools) goes to bin/
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+# Test binaries go to bin/tests/
+set(LOTUS_TEST_BIN_DIR ${CMAKE_BINARY_DIR}/bin/tests CACHE PATH "Directory for test binaries")
+# Example binaries go to bin/examples/
+set(LOTUS_EXAMPLE_BIN_DIR ${CMAKE_BINARY_DIR}/bin/examples CACHE PATH "Directory for example binaries")
 
 # Find and configure LLVM (factored out for clarity)
 include(cmake/ConfigureLLVM.cmake)
