@@ -37,7 +37,7 @@ void findBackedgesFromBasicBlock(
         llvm::BasicBlock* sourceBB,
         std::set<BBEdgePair>& res)
  {
-     auto BB = sourceBB;
+     auto* BB = sourceBB;
      if (succ_empty(BB))
          return;
  
@@ -138,7 +138,7 @@ void findBackedgesFromBasicBlock(
          } else {
  
              // Go up one level.
-             auto val = VisitStack.back();
+             auto* val = VisitStack.back();
              InStack.erase(val);
              VisitStack.pop_back();
              assert(InStack.size() == VisitStack.size());
@@ -201,7 +201,7 @@ void findBackedgesFromBasicBlock(
          } else {
  
              // Go up one level.
-             auto val = VisitStack.back();
+             auto* val = VisitStack.back();
              InStack.erase(val);
              VisitStack.pop_back();
              assert(InStack.size() == VisitStack.size());
@@ -244,7 +244,7 @@ std::map<llvm::BasicBlock*, uint64_t> calculateDistanceMapIntra(
          auto top = *distanceBlockSet.begin();
          distanceBlockSet.erase(distanceBlockSet.begin());
  
-         auto currentSourceBB = top.second;
+         auto* currentSourceBB = top.second;
  
          for (auto succIt = succ_begin(currentSourceBB), e = succ_end(currentSourceBB); succIt != e; ++succIt) {
  
@@ -298,7 +298,7 @@ std::map<llvm::BasicBlock*, uint64_t> calculateDistanceMapIntra(
          auto top = *distanceBlockSet.begin();
          distanceBlockSet.erase(distanceBlockSet.begin());
  
-         auto currentSourceBB = top.second;
+         auto* currentSourceBB = top.second;
  
          for (auto I = currentSourceBB->OutEdgeBegin(); I != currentSourceBB->OutEdgeEnd(); I++) {
  
@@ -333,7 +333,7 @@ std::map<llvm::BasicBlock*, uint64_t> calculateDistanceMapIntra(
      typedef std::pair<uint64_t, ICFGNode*> DisBBPair;
      typedef ICFGEdge Edge;
  
-     auto func = sourceBB->getFunction();
+     auto* func = sourceBB->getFunction();
  
      // initialize INF distance from source to other blocks
      std::map<ICFGNode*, uint64_t> distanceMap;
@@ -360,7 +360,7 @@ std::map<llvm::BasicBlock*, uint64_t> calculateDistanceMapIntra(
          auto top = *distanceBlockSet.begin();
          distanceBlockSet.erase(distanceBlockSet.begin());
  
-         auto currentSourceBB = top.second;
+         auto* currentSourceBB = top.second;
  
          for (auto I = currentSourceBB->OutEdgeBegin(); I != currentSourceBB->OutEdgeEnd(); I++) {
  
@@ -436,7 +436,7 @@ std::map<llvm::BasicBlock*, uint64_t> calculateDistanceMapIntra(
      // standard BFS algorithm
      while (!queue.empty()) {
  
-         auto currentBB = queue.front();
+         auto* currentBB = queue.front();
          queue.pop_front();
  
          for (auto succIt = succ_begin(currentBB), e = succ_end(currentBB); succIt != e; ++succIt) {
@@ -494,8 +494,8 @@ std::map<llvm::BasicBlock*, uint64_t> calculateDistanceMapIntra(
  // True if there is a loop which contains both BB1 and BB2.
  static bool loopContainsBoth(const LoopInfo *LI,
                               const BasicBlock *BB1, const BasicBlock *BB2) {
-     const Loop *L1 = getOutermostLoop(LI, BB1);
-     const Loop *L2 = getOutermostLoop(LI, BB2);
+     const Loop* L1 = getOutermostLoop(LI, BB1);
+     const Loop* L2 = getOutermostLoop(LI, BB2);
      return L1 != nullptr && L1 == L2;
  }
  
@@ -522,7 +522,7 @@ std::map<llvm::BasicBlock*, uint64_t> calculateDistanceMapIntra(
      do {
  
          iterCount++;
-         BasicBlock *BB = Worklist.pop_back_val();
+         auto* BB = Worklist.pop_back_val();
          if (!Visited.insert(BB).second)
              continue;
          if (BB == to)

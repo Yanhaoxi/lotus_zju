@@ -294,7 +294,7 @@ static void initializeWorkList(std::vector<WorkListItem> &WorkList,
                                ReachabilitySet &ReachSet,
                                const CFLGraph &Graph) {
   for (const auto &Mapping : Graph.value_mappings()) {
-    auto Val = Mapping.first;
+    auto *Val = Mapping.first;
     auto &ValueInfo = Mapping.second;
     assert(ValueInfo.getNumLevels() > 0);
 
@@ -327,7 +327,7 @@ static void processWorkListItem(const WorkListItem &Item, const CFLGraph &Graph,
   auto FromNode = Item.From;
   auto ToNode = Item.To;
 
-  auto NodeInfo = Graph.getNode(ToNode);
+  const auto *NodeInfo = Graph.getNode(ToNode);
   assert(NodeInfo != nullptr);
 
   // The newly added value alias pair may potentially generate more memory
@@ -364,7 +364,7 @@ static void processWorkListItem(const WorkListItem &Item, const CFLGraph &Graph,
       propagate(FromNode, RevAssignEdge.Other, State, ReachSet, WorkList);
   };
   auto NextMemState = [&](MatchState State) {
-    if (auto AliasSet = MemSet.getMemoryAliases(ToNode)) {
+    if (const auto *AliasSet = MemSet.getMemoryAliases(ToNode)) {
       for (const auto &MemAlias : *AliasSet)
         propagate(FromNode, MemAlias, State, ReachSet, WorkList);
     }
@@ -414,7 +414,7 @@ static AliasAttrMap buildAttrMap(const CFLGraph &Graph,
 
   // Initialize each node with its original AliasAttrs in CFLGraph
   for (const auto &Mapping : Graph.value_mappings()) {
-    auto Val = Mapping.first;
+    auto *Val = Mapping.first;
     auto &ValueInfo = Mapping.second;
     for (unsigned I = 0, E = ValueInfo.getNumLevels(); I < E; ++I) {
       auto Node = InstantiatedValue{Val, I};
@@ -460,7 +460,7 @@ static void populateAliasMap(DenseMap<const Value *, std::vector<OffsetValue>> &
     if (OuterMapping.first.DerefLevel > 0)
       continue;
 
-    auto Val = OuterMapping.first.Val;
+    auto *Val = OuterMapping.first.Val;
     auto &AliasList = AliasMap[Val];
     for (const auto &InnerMapping : OuterMapping.second) {
       // Again, AliasMap only cares about top-level values

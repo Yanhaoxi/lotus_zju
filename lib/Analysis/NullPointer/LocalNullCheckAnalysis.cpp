@@ -31,16 +31,16 @@ LocalNullCheckAnalysis::LocalNullCheckAnalysis(NullFlowAnalysis *NFA, Function *
     for (unsigned K = 0; K < F->arg_size(); ++K) {
         auto *Arg = F->getArg(K);
         if (!Arg->getType()->isPointerTy()) continue;
-        auto ArgX = NEA.get(Arg);
+        auto *ArgX = NEA.get(Arg);
         if (NFA->notNull(Arg) || NFA->notNull(ArgX)) continue;
         unsigned ID = PtrIDMap.size();
         PtrIDMap[ArgX] = ID;
     }
     for (auto &I: instructions(*F)) {
         for (unsigned K = 0; K < I.getNumOperands(); ++K) {
-            auto Op = I.getOperand(K);
+            auto *Op = I.getOperand(K);
             if (!Op->getType()->isPointerTy()) continue;
-            auto OpX = NEA.get(Op);
+            auto *OpX = NEA.get(Op);
             if (NFA->notNull(OpX) || NFA->notNull(Op)) continue;
             auto It = PtrIDMap.find(OpX);
             if (It != PtrIDMap.end()) continue;
@@ -135,7 +135,7 @@ void LocalNullCheckAnalysis::tag() {
         IncomingEdges.clear();
         if (&I == &*B.begin()) {
             for (auto PIt = pred_begin(&B), PE = pred_end(&B); PIt != PE; ++PIt) {
-                auto Term = (*PIt)->getTerminator();
+                auto *Term = (*PIt)->getTerminator();
                 for (unsigned K = 0; K < Term->getNumSuccessors(); ++K) {
                     if (Term->getSuccessor(K) == I.getParent()) {
                         IncomingEdges.emplace_back(Term, K);
@@ -156,7 +156,7 @@ void LocalNullCheckAnalysis::tag() {
         }
         auto &Orig = InstNonNullMap[&I];
         for (auto K = 0; K < I.getNumOperands(); ++K) {
-            auto OpK = I.getOperand(K);
+            auto *OpK = I.getOperand(K);
             auto It = PtrIDMap.find(NEA.get(OpK));
             if (It == PtrIDMap.end()) continue;
             auto OpKMustNonNull = NonNulls->test(It->second);
@@ -230,7 +230,7 @@ void LocalNullCheckAnalysis::transfer(Edge E, const BitVector &In, BitVector &Ou
             if (Inst->getType()->isPointerTy()) {
                 bool AllNonNull = true;
                 for (unsigned K = 0; K < Inst->getNumOperands(); ++K) {
-                    auto Op = Inst->getOperand(K);
+                    auto *Op = Inst->getOperand(K);
                     if (!Op->getType()->isPointerTy()) continue;
                     if (!Count(Op)) {
                         AllNonNull = false;
@@ -246,7 +246,7 @@ void LocalNullCheckAnalysis::transfer(Edge E, const BitVector &In, BitVector &Ou
                 if (Callee->isIntrinsic() && Callee->getIntrinsicID() >= Intrinsic::memcpy
                     && Callee->getIntrinsicID() <= Intrinsic::memset_element_unordered_atomic) {
                     for (unsigned K = 0; K < CI->arg_size(); ++K) {
-                        auto Op = CI->getArgOperand(K);
+                        auto *Op = CI->getArgOperand(K);
                         if (!Op->getType()->isPointerTy()) continue;
                         Set(Op);
                     }
@@ -259,11 +259,11 @@ void LocalNullCheckAnalysis::transfer(Edge E, const BitVector &In, BitVector &Ou
         case Instruction::Br: {
             auto *BrInst = (BranchInst *) Inst;
             if (!BrInst->isConditional()) break;
-            auto CmpInst = dyn_cast<ICmpInst>(BrInst->getCondition());
+            auto *CmpInst = dyn_cast<ICmpInst>(BrInst->getCondition());
             if (!CmpInst) break;
 
-            auto Op0 = CmpInst->getOperand(0);
-            auto Op1 = CmpInst->getOperand(1);
+            auto *Op0 = CmpInst->getOperand(0);
+            auto *Op1 = CmpInst->getOperand(1);
             if (CmpInst->getPredicate() == CmpInst::ICMP_EQ && BrNo == 1
                 || CmpInst->getPredicate() == CmpInst::ICMP_NE && BrNo == 0) {
                 if (isa<ConstantPointerNull>(Op0)) Set(Op1);
@@ -295,7 +295,7 @@ void LocalNullCheckAnalysis::nca() {
         WorkList.pop_back();
         if (UnreachableEdges.count(Edge)) continue;
 
-        auto EdgeInst = Edge.first;
+        auto *EdgeInst = Edge.first;
         auto &EdgeFact = DataflowFacts.at(Edge); // this loop iteration re-compute EdgeFact
 
         // 1. merge
@@ -303,7 +303,7 @@ void LocalNullCheckAnalysis::nca() {
         if (EdgeInst == &(EdgeInst->getParent()->front())) {
             auto *B = EdgeInst->getParent();
             for (auto PIt = pred_begin(B), PE = pred_end(B); PIt != PE; ++PIt) {
-                auto Term = (*PIt)->getTerminator();
+                auto *Term = (*PIt)->getTerminator();
                 for (unsigned K = 0; K < Term->getNumSuccessors(); ++K) {
                     if (Term->getSuccessor(K) == B) {
                         IncomingEdges.emplace_back(Term, K);
@@ -330,7 +330,7 @@ void LocalNullCheckAnalysis::nca() {
         // 3. add necessary ones to worklist
         if (ResultOfTransfer != EdgeFact) {
             EdgeFact.swap(ResultOfTransfer);
-            auto NextInst = EdgeInst->isTerminator() ? &EdgeInst->getSuccessor(Edge.second)->front() :
+            auto *NextInst = EdgeInst->isTerminator() ? &EdgeInst->getSuccessor(Edge.second)->front() :
                             EdgeInst->getNextNode();
             if (NextInst->isTerminator()) {
                 for (unsigned K = 0; K < NextInst->getNumSuccessors(); ++K) {

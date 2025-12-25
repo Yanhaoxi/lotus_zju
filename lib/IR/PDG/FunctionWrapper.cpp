@@ -43,7 +43,7 @@ void pdg::FunctionWrapper::addInst(Instruction &i)
 
 DIType *pdg::FunctionWrapper::getArgDIType(Argument &arg)
 {
-  for (auto dbg_declare_inst : _dbg_declare_insts)
+  for (auto* dbg_declare_inst : _dbg_declare_insts)
   {
     DILocalVariable *di_local_var = dbg_declare_inst->getVariable();
     if (!di_local_var)
@@ -56,7 +56,7 @@ DIType *pdg::FunctionWrapper::getArgDIType(Argument &arg)
 
 void pdg::FunctionWrapper::buildFormalTreeForArgs()
 {
-  for (auto arg : _arg_list)
+  for (auto* arg : _arg_list)
   {
     DILocalVariable* di_local_var = getArgDILocalVar(*arg);
     AllocaInst* arg_alloca_inst = getArgAllocaInst(*arg);
@@ -69,7 +69,7 @@ void pdg::FunctionWrapper::buildFormalTreeForArgs()
     TreeNode *formal_in_root_node = new TreeNode(*_func, di_local_var->getType(), 0, nullptr, arg_formal_in_tree, GraphNodeType::PARAM_FORMALIN);
     formal_in_root_node->setDILocalVariable(*di_local_var);
     auto addr_taken_vars = pdgutils::computeAddrTakenVarsFromAlloc(*arg_alloca_inst);
-    for (auto addr_taken_var : addr_taken_vars)
+    for (auto* addr_taken_var : addr_taken_vars)
     {
       formal_in_root_node->addAddrVar(*addr_taken_var);
     }
@@ -82,7 +82,7 @@ void pdg::FunctionWrapper::buildFormalTreeForArgs()
     formal_out_tree->setBaseVal(*arg);
     TreeNode* formal_out_root_node = formal_out_tree->getRootNode();
     // copy address variables
-    for (auto addr_var : formal_in_root_node->getAddrVars())
+    for (auto* addr_var : formal_in_root_node->getAddrVars())
     {
       formal_out_root_node->addAddrVar(*addr_var);
     }
@@ -97,9 +97,9 @@ void pdg::FunctionWrapper::buildFormalTreesForRetVal()
   Tree* ret_formal_in_tree = new Tree();
   DIType* func_ret_di_type = dbgutils::getFuncRetDIType(*_func);
   TreeNode* ret_formal_in_tree_root_node = new TreeNode(*_func, func_ret_di_type, 0, nullptr, ret_formal_in_tree, GraphNodeType::PARAM_FORMALIN);
-  for (auto ret_inst : _return_insts)
+  for (auto* ret_inst : _return_insts)
   {
-    auto ret_val = ret_inst->getReturnValue();
+    auto* ret_val = ret_inst->getReturnValue();
     ret_formal_in_tree_root_node->addAddrVar(*ret_val);
   }
   ret_formal_in_tree->setRootNode(*ret_formal_in_tree_root_node);
@@ -109,7 +109,7 @@ void pdg::FunctionWrapper::buildFormalTreesForRetVal()
   Tree* ret_formal_out_tree = new Tree(*ret_formal_in_tree);
   TreeNode *ret_formal_out_tree_root_node = ret_formal_out_tree->getRootNode();
   // copy address variables
-  for (auto addr_var : ret_formal_in_tree_root_node->getAddrVars())
+  for (auto* addr_var : ret_formal_in_tree_root_node->getAddrVars())
   {
     ret_formal_out_tree_root_node->addAddrVar(*addr_var);
   }
@@ -120,7 +120,7 @@ void pdg::FunctionWrapper::buildFormalTreesForRetVal()
 
 DILocalVariable *pdg::FunctionWrapper::getArgDILocalVar(Argument &arg)
 {
-  for (auto dbg_declare_inst : _dbg_declare_insts)
+  for (auto* dbg_declare_inst : _dbg_declare_insts)
   {
     DILocalVariable *di_local_var = dbg_declare_inst->getVariable();
     if (!di_local_var)
@@ -134,7 +134,7 @@ DILocalVariable *pdg::FunctionWrapper::getArgDILocalVar(Argument &arg)
 
 AllocaInst *pdg::FunctionWrapper::getArgAllocaInst(Argument &arg)
 {
-  for (auto dbg_declare_inst : _dbg_declare_insts)
+  for (auto* dbg_declare_inst : _dbg_declare_insts)
   {
     DILocalVariable *di_local_var = dbg_declare_inst->getVariable();
     if (!di_local_var)

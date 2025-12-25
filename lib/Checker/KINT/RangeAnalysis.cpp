@@ -65,10 +65,10 @@ crange RangeAnalysis::get_range(const Value* var, const DenseMap<const Value*, c
         return it->second;
     }
 
-    if (auto lconst = dyn_cast<ConstantInt>(var)) {
+    if (const auto *lconst = dyn_cast<ConstantInt>(var)) {
         return crange(lconst->getValue());
     } else {
-        if (auto gv = dyn_cast<GlobalVariable>(var)) {
+        if (const auto *gv = dyn_cast<GlobalVariable>(var)) {
             auto it = global2range.find(gv);
             if (it != global2range.end()) {
                 return it->second;
@@ -111,8 +111,8 @@ void RangeAnalysis::analyze_one_bb_range(BasicBlock* bb, DenseMap<const Value*, 
         };
         
         // Store / Call / Return
-        if (const auto call = dyn_cast<CallInst>(&inst)) {
-            if (const auto f = call->getCalledFunction()) {
+        if (auto *const call = dyn_cast<CallInst>(&inst)) {
+            if (auto *const f = call->getCalledFunction()) {
                 if (func2tsrc.find(f) != func2tsrc.end()) {
                     const auto& argcalls = func2tsrc.find(f)->second;
 
@@ -148,26 +148,26 @@ void RangeAnalysis::analyze_one_bb_range(BasicBlock* bb, DenseMap<const Value*, 
             }
 
             continue;
-        } else if (const auto store = dyn_cast<StoreInst>(&inst)) {
+        } else if (auto *const store = dyn_cast<StoreInst>(&inst)) {
             // is global var
-            const auto val = store->getValueOperand();
-            const auto ptr = store->getPointerOperand();
+            auto *const val = store->getValueOperand();
+            auto *const ptr = store->getPointerOperand();
 
             if (!val->getType()->isIntegerTy())
                 continue;
 
             auto valrng = get_rng(val);
-            if (const auto gv = dyn_cast<GlobalVariable>(ptr)) {
+            if (auto *const gv = dyn_cast<GlobalVariable>(ptr)) {
                 if (global2range.count(gv) && global2range[gv].getBitWidth() == valrng.getBitWidth()) {
                     global2range[gv] = global2range[gv].unionWith(valrng);
                 } else {
                     global2range[gv] = valrng;
                 }
-            } else if (const auto gep = dyn_cast<GetElementPtrInst>(ptr)) {
-                auto gep_addr = gep->getPointerOperand();
-                if (auto garr = dyn_cast<GlobalVariable>(gep_addr)) {
+            } else if (auto *const gep = dyn_cast<GetElementPtrInst>(ptr)) {
+                auto *gep_addr = gep->getPointerOperand();
+                if (auto *garr = dyn_cast<GlobalVariable>(gep_addr)) {
                     if (garr2ranges.count(garr) && gep->getNumIndices() == 2) { // all one dim array<int>s!
-                        auto idx = gep->getOperand(2);
+                        auto *idx = gep->getOperand(2);
                         const size_t arr_size = garr2ranges[garr].size();
                         const crange idx_rng = get_rng(idx);
                         const size_t idx_max = idx_rng.getUnsignedMax().getLimitedValue();
@@ -189,7 +189,7 @@ void RangeAnalysis::analyze_one_bb_range(BasicBlock* bb, DenseMap<const Value*, 
             // is local var
             cur_rng[ptr] = valrng; // better precision.
             continue;
-        } else if (const auto ret = dyn_cast<ReturnInst>(&inst)) {
+        } else if (auto *const ret = dyn_cast<ReturnInst>(&inst)) {
             // low precision: just apply!
             if (F.getReturnType()->isIntegerTy()) {
                 auto ret_rng = get_rng(ret->getReturnValue());
@@ -212,14 +212,14 @@ void RangeAnalysis::analyze_one_bb_range(BasicBlock* bb, DenseMap<const Value*, 
         crange new_range = crange::getEmpty(inst.getType()->getIntegerBitWidth());
 
         if (const BinaryOperator* op = dyn_cast<BinaryOperator>(&inst)) {
-            auto lhs = op->getOperand(0);
-            auto rhs = op->getOperand(1);
+            auto *lhs = op->getOperand(0);
+            auto *rhs = op->getOperand(1);
 
             crange lhs_range = get_rng(lhs), rhs_range = get_rng(rhs);
             new_range = compute_binary_rng(op, lhs_range, rhs_range);
         } else if (const SelectInst* op = dyn_cast<SelectInst>(&inst)) {
-            const auto tval = op->getTrueValue();
-            const auto fval = op->getFalseValue();
+            const auto *const tval = op->getTrueValue();
+            const auto *const fval = op->getFalseValue();
             auto tval_rng = get_rng(tval);
             auto fval_rng = get_rng(fval);
             if (tval_rng.getBitWidth() == fval_rng.getBitWidth()) {
@@ -230,7 +230,7 @@ void RangeAnalysis::analyze_one_bb_range(BasicBlock* bb, DenseMap<const Value*, 
             }
         } else if (const CastInst* op = dyn_cast<CastInst>(&inst)) {
             new_range = [op, &get_rng]() -> crange {
-                auto inp = op->getOperand(0);
+                auto *inp = op->getOperand(0);
                 if (!inp->getType()->isIntegerTy())
                     return crange(op->getType()->getIntegerBitWidth(), true);
                 auto inprng = get_rng(inp);
@@ -250,7 +250,7 @@ void RangeAnalysis::analyze_one_bb_range(BasicBlock* bb, DenseMap<const Value*, 
             }();
         } else if (const PHINode* op = dyn_cast<PHINode>(&inst)) {
             for (size_t i = 0; i < op->getNumIncomingValues(); ++i) {
-                auto pred = op->getIncomingBlock(i);
+                auto *pred = op->getIncomingBlock(i);
                 auto bb_it = backedges.find(bb);
                 if (bb_it != backedges.end() && bb_it->second.contains(pred)) {
                     continue; // skip backedge
@@ -262,17 +262,17 @@ void RangeAnalysis::analyze_one_bb_range(BasicBlock* bb, DenseMap<const Value*, 
                     new_range = incoming_rng;
                 }
             }
-        } else if (auto op = dyn_cast<LoadInst>(&inst)) {
-            auto addr = op->getPointerOperand();
-            if (dyn_cast<GlobalVariable>(addr))
+        } else if (auto *op = dyn_cast<LoadInst>(&inst)) {
+            auto *addr = op->getPointerOperand();
+            if (isa<GlobalVariable>(addr))
                 new_range = get_rng(addr);
-            else if (auto gep = dyn_cast<GetElementPtrInst>(addr)) {
+            else if (auto *gep = dyn_cast<GetElementPtrInst>(addr)) {
                 bool succ = false;
                 // we only analyze shallow arrays. i.e., one dim.
-                auto gep_addr = gep->getPointerOperand();
-                if (auto garr = dyn_cast<GlobalVariable>(gep_addr)) {
+                auto *gep_addr = gep->getPointerOperand();
+                if (auto *garr = dyn_cast<GlobalVariable>(gep_addr)) {
                     if (garr2ranges.count(garr) && gep->getNumIndices() == 2) { // all one dim array<int>s!
-                        auto idx = gep->getOperand(2);
+                        auto *idx = gep->getOperand(2);
                         const size_t arr_size = garr2ranges[garr].size();
                         const crange idx_rng = get_rng(idx);
                         const size_t idx_max = idx_rng.getUnsignedMax().getLimitedValue();
@@ -301,7 +301,7 @@ void RangeAnalysis::analyze_one_bb_range(BasicBlock* bb, DenseMap<const Value*, 
                 MKINT_WARN() << "Unknown address to load: " << inst;
                 new_range = crange(op->getType()->getIntegerBitWidth()); // unknown addr -> full range.
             }
-        } else if (const auto op = dyn_cast<CmpInst>(&inst)) {
+        } else if (auto *const op = dyn_cast<CmpInst>(&inst)) {
             // can be more precise by comparing the range...
             // but nah...
         } else {
@@ -318,7 +318,7 @@ void RangeAnalysis::analyze_one_bb_range(BasicBlock* bb, DenseMap<const Value*, 
 
     if (&cur_rng != &sum_rng) {
         for (auto& bb_rng_pair : cur_rng) {
-            auto bb = bb_rng_pair.first;
+            const auto *bb = bb_rng_pair.first;
             auto rng = bb_rng_pair.second;
             if (sum_rng.count(bb)) {
                 if (sum_rng[bb].getBitWidth() == rng.getBitWidth()) {
@@ -348,7 +348,7 @@ void RangeAnalysis::range_analysis(Function& F,
     auto& bb_range = func2range_info[&F];
 
     for (auto& bbref : F) {
-        auto bb = &bbref;
+        auto *bb = &bbref;
         auto& sum_rng = bb_range[bb];
 
         // merge all incoming bbs
@@ -360,15 +360,15 @@ void RangeAnalysis::range_analysis(Function& F,
 
             MKINT_LOG() << "Merging: " << pred->getName() << "\t -> " << bb->getName();
             auto branch_rng = bb_range[pred];
-            auto terminator = pred->getTerminator();
-            auto br = dyn_cast<BranchInst>(terminator);
+            auto *terminator = pred->getTerminator();
+            auto *br = dyn_cast<BranchInst>(terminator);
             if (br) {
                 if (br->isConditional()) {
-                    if (auto cmp = dyn_cast<ICmpInst>(br->getCondition())) {
+                    if (auto *cmp = dyn_cast<ICmpInst>(br->getCondition())) {
                         // br: a op b == true or false
                         // makeAllowedICmpRegion turning a op b into a range.
-                        auto lhs = cmp->getOperand(0);
-                        auto rhs = cmp->getOperand(1);
+                        auto *lhs = cmp->getOperand(0);
+                        auto *rhs = cmp->getOperand(1);
 
                         if (!lhs->getType()->isIntegerTy() || !rhs->getType()->isIntegerTy()) {
                             // This should be covered by `ICmpInst`.
@@ -400,8 +400,8 @@ void RangeAnalysis::range_analysis(Function& F,
                         }
                     }
                 }
-            } else if (auto swt = dyn_cast<SwitchInst>(terminator)) {
-                auto cond = swt->getCondition();
+            } else if (auto *swt = dyn_cast<SwitchInst>(terminator)) {
+                auto *cond = swt->getCondition();
                 if (cond->getType()->isIntegerTy()) {
                     auto cond_rng = get_range_by_bb(cond, pred, func2range_info);
                     auto emp_rng = crange::getEmpty(cond->getType()->getIntegerBitWidth());
@@ -409,7 +409,7 @@ void RangeAnalysis::range_analysis(Function& F,
                     if (swt->getDefaultDest() == bb) { // default
                         // not (all)
                         for (auto c : swt->cases()) {
-                            auto case_val = c.getCaseValue();
+                            auto *case_val = c.getCaseValue();
                             if (emp_rng.getBitWidth() == case_val->getValue().getBitWidth()) {
                                 emp_rng = emp_rng.unionWith(case_val->getValue());
                             } else if (emp_rng.isEmptySet()) {
@@ -420,7 +420,7 @@ void RangeAnalysis::range_analysis(Function& F,
                     } else {
                         for (auto c : swt->cases()) {
                             if (c.getCaseSuccessor() == bb) {
-                                auto case_val = c.getCaseValue();
+                                auto *case_val = c.getCaseValue();
                                 if (emp_rng.getBitWidth() == case_val->getValue().getBitWidth()) {
                                     emp_rng = emp_rng.unionWith(case_val->getValue());
                                 } else if (emp_rng.isEmptySet()) {
@@ -515,7 +515,7 @@ void RangeAnalysis::init_ranges(Module& M,
 
     // m_callback_tsrc_fn's highest user's input is set as full set.
     for (auto& fn : callback_tsrc_fn) {
-        auto cbf = M.getFunction(fn);
+        auto *cbf = M.getFunction(fn);
 
         std::deque<Function*> worklist;
         SetVector<Function*> hist;
@@ -524,7 +524,7 @@ void RangeAnalysis::init_ranges(Module& M,
         hist.insert(cbf);
 
         while (!worklist.empty()) {
-            auto cur = worklist.front();
+            auto *cur = worklist.front();
             worklist.pop_front();
 
             if (cur->user_empty()) {
@@ -534,8 +534,8 @@ void RangeAnalysis::init_ranges(Module& M,
                 }
             } else {
                 for (const auto& u : cur->users()) {
-                    if (auto uu = dyn_cast<CallInst>(u)) {
-                        auto caller = uu->getCalledFunction();
+                    if (auto *uu = dyn_cast<CallInst>(u)) {
+                        auto *caller = uu->getCalledFunction();
                         if (!hist.contains(caller)) {
                             worklist.push_back(caller);
                             hist.insert(caller);
@@ -558,18 +558,18 @@ void RangeAnalysis::init_ranges(Module& M,
                 global2range[&GV] = crange(GV.getValueType()->getIntegerBitWidth()); // can be all range.
             }
         } else if (GV.getValueType()->isArrayTy()) { // int array.
-            const auto garr = dyn_cast<ArrayType>(GV.getValueType());
+            auto *const garr = dyn_cast<ArrayType>(GV.getValueType());
             if (garr->getElementType()->isIntegerTy()) {
                 if (GV.hasInitializer()) {
-                    if (auto darr = dyn_cast<ConstantDataArray>(GV.getInitializer())) {
+                    if (const auto *darr = dyn_cast<ConstantDataArray>(GV.getInitializer())) {
                         for (size_t i = 0; i < darr->getNumElements(); i++) {
                             auto init_val = dyn_cast<ConstantInt>(darr->getElementAsConstant(i))->getValue();
                             MKINT_LOG() << GV.getName() << "[" << i << "] init by " << init_val;
                             garr2ranges[&GV].push_back(crange(init_val));
                         }
-                    } else if (auto zinit = dyn_cast<ConstantAggregateZero>(GV.getInitializer())) {
+                    } else if (const auto *zinit = dyn_cast<ConstantAggregateZero>(GV.getInitializer())) {
                         for (size_t i = 0; i < zinit->getElementCount().getFixedValue(); i++) {
-                            auto elemType = zinit->getElementValue(i)->getType();
+                            auto *elemType = zinit->getElementValue(i)->getType();
                             if (elemType->isIntegerTy()) {
                                 garr2ranges[&GV].push_back(crange(
                                     APInt::getNullValue(elemType->getIntegerBitWidth())));
@@ -603,20 +603,20 @@ void RangeAnalysis::print_all_ranges(const std::map<const Function*, crange>& fu
                                     const std::set<GetElementPtrInst*>& gep_oob) const {
     MKINT_LOG() << "========== Function Return Ranges ==========";
     for (const auto& func_rng_pair : func2ret_range) {
-        auto F = func_rng_pair.first;
+        const auto *F = func_rng_pair.first;
         auto rng = func_rng_pair.second;
         MKINT_LOG() << rang::bg::black << rang::fg::green << F->getName() << rang::style::reset << " -> " << rng;
     }
 
     MKINT_LOG() << "========== Global Variable Ranges ==========";
     for (const auto& global_rng_pair : global2range) {
-        auto GV = global_rng_pair.first;
+        const auto *GV = global_rng_pair.first;
         auto rng = global_rng_pair.second;
         MKINT_LOG() << rang::bg::black << rang::fg::blue << GV->getName() << rang::style::reset << " -> " << rng;
     }
 
     for (const auto& global_rngvec_pair : garr2ranges) {
-        auto GV = global_rngvec_pair.first;
+        const auto *GV = global_rngvec_pair.first;
         auto rng_vec = global_rngvec_pair.second;
         for (size_t i = 0; i < rng_vec.size(); i++) {
             MKINT_LOG() << rang::bg::black << rang::fg::blue << GV->getName() << "[" << i << "]"
@@ -626,16 +626,16 @@ void RangeAnalysis::print_all_ranges(const std::map<const Function*, crange>& fu
 
     MKINT_LOG() << "============ Function Inst Ranges ============";
     for (const auto& func_blk2rng_pair : func2range_info) {
-        auto F = func_blk2rng_pair.first;
+        const auto *F = func_blk2rng_pair.first;
         auto& blk2rng = func_blk2rng_pair.second;
         MKINT_LOG() << " ----------- Function Name : " << rang::bg::black << rang::fg::green << F->getName()
                     << rang::style::reset;
         for (const auto& blk_inst2rng_pair : blk2rng) {
-            auto blk = blk_inst2rng_pair.first;
+            const auto *blk = blk_inst2rng_pair.first;
             auto& inst2rng = blk_inst2rng_pair.second;
             MKINT_LOG() << " ----------- Basic Block " << get_bb_label(blk) << " ----------- ";
             for (const auto& val_rng_pair : inst2rng) {
-                auto val = val_rng_pair.first;
+                const auto *val = val_rng_pair.first;
                 auto rng = val_rng_pair.second;
                 if (dyn_cast<ConstantInt>(val))
                     continue; // meaningless to pring const range.
@@ -653,7 +653,7 @@ void RangeAnalysis::print_all_ranges(const std::map<const Function*, crange>& fu
         MKINT_LOG() << "============" << rang::fg::yellow << rang::style::bold << " Impossible Branches "
                     << rang::style::reset << "============";
     for (auto& cmp_istbr_pair : impossible_branches) {
-        auto cmp = cmp_istbr_pair.first;
+        auto *cmp = cmp_istbr_pair.first;
         auto is_tbr = cmp_istbr_pair.second;
         MKINT_WARN() << rang::bg::black << rang::fg::red << cmp->getFunction()->getName() << "::" << *cmp
                      << rang::style::reset << "'s " << rang::fg::red << rang::style::italic
@@ -663,7 +663,7 @@ void RangeAnalysis::print_all_ranges(const std::map<const Function*, crange>& fu
     if (!gep_oob.empty())
         MKINT_LOG() << "============" << rang::fg::yellow << rang::style::bold << " Array Index Out of Bound "
                     << rang::style::reset << "============";
-    for (auto gep : gep_oob) {
+    for (auto *gep : gep_oob) {
         MKINT_WARN() << rang::bg::black << rang::fg::red << gep->getFunction()->getName() << "::" << *gep
                      << rang::style::reset;
     }

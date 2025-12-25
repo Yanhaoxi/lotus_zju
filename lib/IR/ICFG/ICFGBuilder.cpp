@@ -43,7 +43,7 @@ using namespace llvm;
      /// function body
      while (!worklist.empty())
      {
-         auto bb = worklist.front();
+         auto* bb = worklist.front();
          worklist.pop();
  
          if (visited.find(bb) == visited.end())
@@ -99,7 +99,7 @@ using namespace llvm;
          std::set<ICFGEdge*> res;
          findFunctionBackedgesIntraICFG(icfg, func, res);
  
-         for (auto edge : res) {
+         for (auto* edge : res) {
  
              icfg->removeICFGEdge(edge);
          }
@@ -126,7 +126,7 @@ using namespace llvm;
          findFunctionBackedgesInterICFG(icfg, func, res);
  
  //        outs() << func->getName() << "\n";
-         for (auto edge : res) {
+         for (auto* edge : res) {
  
              icfg->removeICFGEdge(edge);
  //            outs() << r->toString() << "\n";

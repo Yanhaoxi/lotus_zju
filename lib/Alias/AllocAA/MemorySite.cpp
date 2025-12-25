@@ -19,8 +19,8 @@ AllocAAResult MemorySiteInfo::doesAlias(Value *V1, Value *V2) {
   /*
    * Both values escape
    */
-  auto site1 = ref1->second;
-  auto site2 = ref2->second;
+  auto* site1 = ref1->second;
+  auto* site2 = ref2->second;
   if (site1 == site2)
     return AllocAAResult::Must;
   if (site1->escapingValues.size() > 0 && site2->escapingValues.size() > 0)

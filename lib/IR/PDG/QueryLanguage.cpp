@@ -477,7 +477,7 @@ std::unique_ptr<QueryResult> PrimitiveExprAST::evaluate(QueryExecutor& executor)
                 if (args_.size() == 1) {
                     auto argResult = args_[0]->evaluate(executor);
                     if (argResult->getType() == QueryResult::Type::STRING) {
-                        auto stringResult = static_cast<const StringResult*>(argResult.get());
+                        auto*  stringResult = static_cast<const StringResult*>(argResult.get());
                         return executor.returnsOf(stringResult->getValue());
                     }
                     return std::make_unique<NodeSetResult>();
@@ -499,7 +499,7 @@ std::unique_ptr<QueryResult> PrimitiveExprAST::evaluate(QueryExecutor& executor)
                 if (args_.size() == 1) {
                     auto argResult = args_[0]->evaluate(executor);
                     if (argResult->getType() == QueryResult::Type::STRING) {
-                        auto stringResult = static_cast<const StringResult*>(argResult.get());
+                        auto* stringResult = static_cast<const StringResult*>(argResult.get());
                         return executor.formalsOf(stringResult->getValue());
                     }
                     return std::make_unique<NodeSetResult>();
@@ -508,7 +508,7 @@ std::unique_ptr<QueryResult> PrimitiveExprAST::evaluate(QueryExecutor& executor)
             }
             auto argResult = args_[1]->evaluate(executor);
             if (argResult->getType() == QueryResult::Type::STRING) {
-                auto stringResult = static_cast<const StringResult*>(argResult.get());
+                auto* stringResult = static_cast<const StringResult*>(argResult.get());
                 return executor.formalsOf(stringResult->getValue());
             }
             return std::make_unique<NodeSetResult>();
@@ -640,7 +640,7 @@ std::unique_ptr<QueryResult> NodeSetResult::unionWith(const QueryResult& other) 
     auto result = std::make_unique<NodeSetResult>(nodes_);
     if (other.getType() == Type::NODE_SET) {
         const auto& otherNodes = other.getNodes();
-        for (auto node : otherNodes) {
+        for (auto* node : otherNodes) {
             result->addNode(node);
         }
     }
@@ -651,7 +651,7 @@ std::unique_ptr<QueryResult> NodeSetResult::intersectWith(const QueryResult& oth
     auto result = std::make_unique<NodeSetResult>();
     if (other.getType() == Type::NODE_SET) {
         const auto& otherNodes = other.getNodes();
-        for (auto node : nodes_) {
+        for (auto* node : nodes_) {
             if (otherNodes.find(node) != otherNodes.end()) {
                 result->addNode(node);
             }
@@ -664,7 +664,7 @@ std::unique_ptr<QueryResult> NodeSetResult::differenceWith(const QueryResult& ot
     auto result = std::make_unique<NodeSetResult>(nodes_);
     if (other.getType() == Type::NODE_SET) {
         const auto& otherNodes = other.getNodes();
-        for (auto node : otherNodes) {
+        for (auto* node : otherNodes) {
             result->removeNode(node);
         }
     }
@@ -699,7 +699,7 @@ std::unique_ptr<QueryResult> EdgeSetResult::unionWith(const QueryResult& other) 
     auto result = std::make_unique<EdgeSetResult>(edges_);
     if (other.getType() == Type::EDGE_SET) {
         const auto& otherEdges = other.getEdges();
-        for (auto edge : otherEdges) {
+        for (auto* edge : otherEdges) {
             result->addEdge(edge);
         }
     }
@@ -710,7 +710,7 @@ std::unique_ptr<QueryResult> EdgeSetResult::intersectWith(const QueryResult& oth
     auto result = std::make_unique<EdgeSetResult>();
     if (other.getType() == Type::EDGE_SET) {
         const auto& otherEdges = other.getEdges();
-        for (auto edge : edges_) {
+        for (auto* edge : edges_) {
             if (otherEdges.find(edge) != otherEdges.end()) {
                 result->addEdge(edge);
             }
@@ -723,7 +723,7 @@ std::unique_ptr<QueryResult> EdgeSetResult::differenceWith(const QueryResult& ot
     auto result = std::make_unique<EdgeSetResult>(edges_);
     if (other.getType() == Type::EDGE_SET) {
         const auto& otherEdges = other.getEdges();
-        for (auto edge : otherEdges) {
+        for (auto* edge : otherEdges) {
             result->removeEdge(edge);
         }
     }
@@ -801,14 +801,14 @@ std::unique_ptr<QueryResult> QueryExecutor::forwardSlice(const std::unordered_se
     while (!queue.empty() && (depth == -1 || currentDepth < depth)) {
         std::vector<Node*> nextLevel;
         
-        for (auto node : queue) {
+        for (auto* node : queue) {
             if (visited.find(node) != visited.end()) continue;
             visited.insert(node);
             result->addNode(node);
             
             // Add all outgoing neighbors
-            for (auto edge : node->getOutEdgeSet()) {
-                auto neighbor = edge->getDstNode();
+            for (auto* edge : node->getOutEdgeSet()) {
+                auto* neighbor = edge->getDstNode();
                 if (visited.find(neighbor) == visited.end()) {
                     nextLevel.push_back(neighbor);
                 }
@@ -831,14 +831,14 @@ std::unique_ptr<QueryResult> QueryExecutor::backwardSlice(const std::unordered_s
     while (!queue.empty() && (depth == -1 || currentDepth < depth)) {
         std::vector<Node*> nextLevel;
         
-        for (auto node : queue) {
+        for (auto* node : queue) {
             if (visited.find(node) != visited.end()) continue;
             visited.insert(node);
             result->addNode(node);
             
             // Add all incoming neighbors
-            for (auto edge : node->getInEdgeSet()) {
-                auto neighbor = edge->getSrcNode();
+            for (auto* edge : node->getInEdgeSet()) {
+                auto* neighbor = edge->getSrcNode();
                 if (visited.find(neighbor) == visited.end()) {
                     nextLevel.push_back(neighbor);
                 }
@@ -861,14 +861,14 @@ std::unique_ptr<QueryResult> QueryExecutor::shortestPath(const std::unordered_se
     std::unordered_set<Node*> visited;
     
     // Start from all 'from' nodes
-    for (auto start : from) {
+    for (auto* start : from) {
         queue.push(start);
         visited.insert(start);
     }
     
     Node* target = nullptr;
     while (!queue.empty() && !target) {
-        auto current = queue.front();
+        auto*  current = queue.front();
         queue.pop();
         
         if (to.find(current) != to.end()) {
@@ -876,8 +876,8 @@ std::unique_ptr<QueryResult> QueryExecutor::shortestPath(const std::unordered_se
             break;
         }
         
-        for (auto edge : current->getOutEdgeSet()) {
-            auto neighbor = edge->getDstNode();
+        for (auto* edge : current->getOutEdgeSet()) {
+            auto* neighbor = edge->getDstNode();
             if (visited.find(neighbor) == visited.end()) {
                 visited.insert(neighbor);
                 parent[neighbor] = current;
@@ -896,7 +896,7 @@ std::unique_ptr<QueryResult> QueryExecutor::shortestPath(const std::unordered_se
             current = (it != parent.end()) ? it->second : nullptr;
         }
         
-        for (auto node : path) {
+        for (auto* node : path) {
             result->addNode(node);
         }
     }
@@ -908,7 +908,7 @@ std::unique_ptr<QueryResult> QueryExecutor::selectEdges(EdgeType edgeType) {
     auto result = std::make_unique<EdgeSetResult>();
     
     for (auto it = pdg_.begin(); it != pdg_.end(); ++it) {
-        for (auto edge : (*it)->getOutEdgeSet()) {
+        for (auto* edge : (*it)->getOutEdgeSet()) {
             if (edge->getEdgeType() == edgeType) {
                 result->addEdge(edge);
             }
@@ -933,10 +933,10 @@ std::unique_ptr<QueryResult> QueryExecutor::selectNodes(GraphNodeType nodeType) 
 std::unique_ptr<QueryResult> QueryExecutor::findPCNodes(const std::unordered_set<Node*>& exprNodes, EdgeType edgeType) {
     auto result = std::make_unique<NodeSetResult>();
     
-    for (auto exprNode : exprNodes) {
-        for (auto edge : exprNode->getOutEdgeSet()) {
+    for (auto* exprNode : exprNodes) {
+        for (auto* edge : exprNode->getOutEdgeSet()) {
             if (edge->getEdgeType() == edgeType) {
-                auto pcNode = edge->getDstNode();
+                auto* pcNode = edge->getDstNode();
                 if (pcNode->getNodeType() == GraphNodeType::INST_BR) {
                     result->addNode(pcNode);
                 }
@@ -950,10 +950,10 @@ std::unique_ptr<QueryResult> QueryExecutor::findPCNodes(const std::unordered_set
 std::unique_ptr<QueryResult> QueryExecutor::removeControlDeps(const std::unordered_set<Node*>& nodes) {
     auto result = std::make_unique<NodeSetResult>();
     
-    for (auto node : nodes) {
+    for (auto* node : nodes) {
         // Add node if it's not control dependent on the specified nodes
         bool isControlDependent = false;
-        for (auto edge : node->getInEdgeSet()) {
+        for (auto* edge : node->getInEdgeSet()) {
             if (edge->getEdgeType() == EdgeType::CONTROLDEP_BR || 
                 edge->getEdgeType() == EdgeType::CONTROLDEP_ENTRY) {
                 if (nodes.find(edge->getSrcNode()) != nodes.end()) {
@@ -1036,14 +1036,14 @@ std::unique_ptr<QueryResult> QueryExecutor::between(const std::unordered_set<Nod
     auto result = std::make_unique<NodeSetResult>();
     
     // Find all nodes on paths from 'from' to 'to'
-    for (auto start : from) {
+    for (auto* start : from) {
         std::unordered_set<Node*> visited;
         std::queue<Node*> queue;
         queue.push(start);
         visited.insert(start);
         
         while (!queue.empty()) {
-            auto current = queue.front();
+            auto* current = queue.front();
             queue.pop();
             
             if (to.find(current) != to.end()) {
@@ -1052,8 +1052,8 @@ std::unique_ptr<QueryResult> QueryExecutor::between(const std::unordered_set<Nod
                 continue;
             }
             
-            for (auto edge : current->getOutEdgeSet()) {
-                auto neighbor = edge->getDstNode();
+            for (auto* edge : current->getOutEdgeSet()) {
+                auto*  neighbor = edge->getDstNode();
                 if (visited.find(neighbor) == visited.end()) {
                     visited.insert(neighbor);
                     queue.push(neighbor);
@@ -1073,8 +1073,8 @@ std::unique_ptr<QueryResult> QueryExecutor::declassifies(const std::unordered_se
     
     // This is a simplified implementation
     // In practice, we would remove declassifier nodes and then check for remaining paths
-    for (auto source : sources) {
-        for (auto sink : sinks) {
+    for (auto* source : sources) {
+        for (auto* sink : sinks) {
             if (pdg_.canReach(*source, *sink)) {
                 result->addNode(source);
                 result->addNode(sink);
@@ -1090,8 +1090,8 @@ std::unique_ptr<QueryResult> QueryExecutor::noExplicitFlows(const std::unordered
     // Remove control dependencies and check for data flows
     auto result = std::make_unique<NodeSetResult>();
     
-    for (auto source : sources) {
-        for (auto sink : sinks) {
+    for (auto* source : sources) {
+        for (auto* sink : sinks) {
             // Check for data dependencies only (no control dependencies)
             std::set<EdgeType> excludeEdges = {
                 EdgeType::CONTROLDEP_BR,
@@ -1119,10 +1119,10 @@ std::unique_ptr<QueryResult> QueryExecutor::flowAccessControlled(const std::unor
     
     // This is a simplified implementation
     // In practice, we would check if all paths from sources to sinks go through checks
-    for (auto source : sources) {
-        for (auto sink : sinks) {
+    for (auto* source : sources) {
+        for (auto* sink : sinks) {
             bool isControlled = false;
-            for (auto check : checks) {
+            for (auto* check : checks) {
                 if (pdg_.canReach(*source, *check) && pdg_.canReach(*check, *sink)) {
                     isControlled = true;
                     break;
@@ -1144,9 +1144,9 @@ std::unique_ptr<QueryResult> QueryExecutor::accessControlled(const std::unordere
     // Check if sensitive operations are controlled by checks
     auto result = std::make_unique<NodeSetResult>();
     
-    for (auto op : sensitiveOps) {
+    for (auto* op : sensitiveOps) {
         bool isControlled = false;
-        for (auto check : checks) {
+        for (auto* check : checks) {
             if (pdg_.canReach(*check, *op)) {
                 isControlled = true;
                 break;

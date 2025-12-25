@@ -122,7 +122,7 @@ void IntraLotusAA::processStore(StoreInst *store) {
 
   PTResultIterator iter(res, this);
 
-  for (auto loc : iter) {
+  for (auto* loc : iter) {
     MemObject *obj = loc->getObj();
     if (obj->isNull() || obj->isUnknown())
       continue;

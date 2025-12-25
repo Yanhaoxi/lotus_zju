@@ -220,10 +220,10 @@ bool StrictRelations::disjointGEPs(const GetElementPtrInst* G1,
                                    const GetElementPtrInst* G2) {
   // return N;
   CompareResult r = E;
-  auto i1 = G1->idx_begin();
-  auto i2 = G2->idx_begin();
-  auto ie1 = G1->idx_end();
-  auto ie2 = G2->idx_end();
+  const auto *i1 = G1->idx_begin();
+  const auto *i2 = G2->idx_begin();
+  const auto *ie1 = G1->idx_end();
+  const auto *ie2 = G2->idx_end();
   while ((i1 != ie1) or (i2 != ie2)) {
     const Value *v1, *v2;
     if (i1 == ie1)
@@ -1034,7 +1034,7 @@ void StrictRelations::collectConstraintsFromModule(Module& M) {
 
           NumConstraints++;
           variables[&*I]->constraints.insert(c);
-          for (auto i : vset)
+          for (auto *i : vset)
             i->constraints.insert(c);
           wle->add(c);
         }
@@ -1204,7 +1204,7 @@ void StrictRelations::DepNode::coalesce(StrictRelations::DepNode* other) {
   if (mustalias == other->mustalias)
     return;
   std::unordered_set<DepNode*>* to_coalesce = other->mustalias;
-  for (auto i : *to_coalesce)
+  for (auto *i : *to_coalesce)
     i->mustalias = mustalias;
   mustalias->insert(to_coalesce->begin(), to_coalesce->end());
   delete to_coalesce;
@@ -1245,7 +1245,7 @@ void StrictRelations::buildDepGraph(Module& M) {
   }
 
   NumNodes = pointers.size();
-  for (auto i : pointers) {
+  for (const auto *i : pointers) {
     nodes[i] = new DepNode(i);
   }
 
@@ -1275,9 +1275,9 @@ void StrictRelations::buildDepGraph(Module& M) {
             DEBUG_WITH_TYPE("errors", errs() << *u << "\n");
             i.second->unk = true;
             std::set<DepEdge*> to_remove;
-            for (auto e : i.second->inedges)
+            for (auto *e : i.second->inedges)
               to_remove.insert(e);
-            for (auto e : to_remove)
+            for (auto *e : to_remove)
               DepEdge::deleteEdge(e);
             return;
           }
@@ -1430,7 +1430,7 @@ void StrictRelations::propagateTypes() {
   // Propagating unks
   propagateUnks(unks);
   // Propagating allocas
-  for (auto i : allocas) {
+  for (auto *i : allocas) {
     propagateAlloca(i);
   }
 }
@@ -1439,7 +1439,7 @@ void StrictRelations::propagateArgs(std::set<DepNode*>& args) {
   std::queue<DepNode*> to_visit;
   std::unordered_set<DepNode*> visited;
 
-  for (auto i : args)
+  for (auto *i : args)
     to_visit.push(i);
   while (!(to_visit.empty())) {
     DepNode* current = to_visit.front();
@@ -1447,7 +1447,7 @@ void StrictRelations::propagateArgs(std::set<DepNode*>& args) {
     visited.insert(current);
     if (!(current->call)) {
       current->arg = true;
-      for (auto i : current->outedges) {
+      for (auto *i : current->outedges) {
         if (!(visited.count(i->in))) {
           to_visit.push(i->in);
         }
@@ -1460,7 +1460,7 @@ void StrictRelations::propagateGlobals(std::set<DepNode*>& globals) {
   std::queue<DepNode*> to_visit;
   std::unordered_set<DepNode*> visited;
 
-  for (auto i : globals)
+  for (auto *i : globals)
     to_visit.push(i);
   while (!(to_visit.empty())) {
     DepNode* current = to_visit.front();
@@ -1468,7 +1468,7 @@ void StrictRelations::propagateGlobals(std::set<DepNode*>& globals) {
     current->global = true;
     visited.insert(current);
 
-    for (auto i : current->outedges) {
+    for (auto *i : current->outedges) {
       if (!(visited.count(i->in))) {
         to_visit.push(i->in);
       }
@@ -1480,7 +1480,7 @@ void StrictRelations::propagateUnks(std::set<DepNode*>& unks) {
   std::queue<DepNode*> to_visit;
   std::unordered_set<DepNode*> visited;
 
-  for (auto i : unks)
+  for (auto *i : unks)
     to_visit.push(i);
   while (!(to_visit.empty())) {
     DepNode* current = to_visit.front();
@@ -1488,7 +1488,7 @@ void StrictRelations::propagateUnks(std::set<DepNode*>& unks) {
     current->unk = true;
     visited.insert(current);
 
-    for (auto i : current->outedges) {
+    for (auto *i : current->outedges) {
       if (!(visited.count(i->in))) {
         to_visit.push(i->in);
       }
@@ -1508,7 +1508,7 @@ void StrictRelations::propagateAlloca(DepNode* alloca) {
     current->locs.insert(a);
     visited.insert(current);
 
-    for (auto i : current->outedges) {
+    for (auto *i : current->outedges) {
       if (!(visited.count(i->in))) {
         to_visit.push(i->in);
       }
@@ -1620,7 +1620,7 @@ void insertGT(StrictRelations::Variable* x, StrictRelations::Variable* y,
 // LT(x) U= LT(y)
 void unionLT(StrictRelations::Variable* x, StrictRelations::Variable* y,
              StrictRelations::VariableSet& changed) {
-  for (auto i : y->LT) {
+  for (auto *i : y->LT) {
     insertLT(x, i, changed);
   }
 }
@@ -1628,7 +1628,7 @@ void unionLT(StrictRelations::Variable* x, StrictRelations::Variable* y,
 // GT(x) U= GT(y)
 void unionGT(StrictRelations::Variable* x, StrictRelations::Variable* y,
              StrictRelations::VariableSet& changed) {
-  for (auto i : y->GT) {
+  for (auto *i : y->GT) {
     insertGT(x, i, changed);
   }
 }
@@ -1636,7 +1636,7 @@ void unionGT(StrictRelations::Variable* x, StrictRelations::Variable* y,
 StrictRelations::VariableSet intersect(StrictRelations::VariableSet& s1,
                                        StrictRelations::VariableSet& s2) {
   StrictRelations::VariableSet r;
-  for (auto i : s1)
+  for (auto *i : s1)
     if (s2.count(i))
       r.insert(i);
   return r;
@@ -1655,9 +1655,9 @@ void LT::resolve() const {
   insertGT(left, right, changed);
 
   // Adding back constraints from changed abstract values
-  for (auto c : changed) {
+  for (auto *c : changed) {
     DEBUG_WITH_TYPE("worklist", c->printStrictRelations(errs()));
-    for (auto i : c->constraints)
+    for (auto *i : c->constraints)
       if (i != this)
         engine->push(i);
   }
@@ -1671,9 +1671,9 @@ void LE::resolve() const {
   // GT(x) U= GT(y)
   unionGT(left, right, changed);
   // Adding back constraints from changed abstract values
-  for (auto c : changed) {
+  for (auto *c : changed) {
     DEBUG_WITH_TYPE("worklist", c->printStrictRelations(errs()));
-    for (auto i : c->constraints)
+    for (auto *i : c->constraints)
       if (i != this)
         engine->push(i);
   }
@@ -1690,9 +1690,9 @@ void REQ::resolve() const {
   // GT(y) U= GT(x)
   unionGT(right, left, changed);
   // Adding back constraints from changed abstract values
-  for (auto c : changed) {
+  for (auto *c : changed) {
     DEBUG_WITH_TYPE("worklist", c->printStrictRelations(errs()));
-    for (auto i : c->constraints)
+    for (auto *i : c->constraints)
       if (i != this)
         engine->push(i);
   }
@@ -1706,9 +1706,9 @@ void EQ::resolve() const {
   // GT(x) U= GT(y)
   unionGT(left, right, changed);
   // Adding back constraints from changed abstract values
-  for (auto c : changed) {
+  for (auto *c : changed) {
     DEBUG_WITH_TYPE("worklist", c->printStrictRelations(errs()));
-    for (auto i : c->constraints)
+    for (auto *i : c->constraints)
       if (i != this)
         engine->push(i);
   }
@@ -1722,8 +1722,8 @@ void PHI::resolve() const {
   // for (auto i : operands) if (i->LT.count(left)) { gu = true; break; }
   // for (auto i : operands) if (i->GT.count(left)) { gd = true; break; }
 
-  for (auto i : operands) {
-    for (auto j : *(left->mustalias)) {
+  for (auto *i : operands) {
+    for (auto *j : *(left->mustalias)) {
       if (i->LT.count(j)) {
         gu = true;
         break;
@@ -1731,8 +1731,8 @@ void PHI::resolve() const {
     }
   }
 
-  for (auto i : operands) {
-    for (auto j : *(left->mustalias)) {
+  for (auto *i : operands) {
+    for (auto *j : *(left->mustalias)) {
       if (i->GT.count(j)) {
         gd = true;
         break;
@@ -1797,21 +1797,21 @@ void PHI::resolve() const {
   // ULT.erase(left);
   // UGT.erase(left);
 
-  for (auto i : *(left->mustalias)) {
+  for (auto *i : *(left->mustalias)) {
     ULT.erase(i);
     UGT.erase(i);
   }
 
   // U= part
-  for (auto i : ULT)
+  for (auto *i : ULT)
     insertLT(left, i, changed);
-  for (auto i : UGT)
+  for (auto *i : UGT)
     insertGT(left, i, changed);
 
   // Adding back constraints from changed abstract values
-  for (auto c : changed) {
+  for (auto *c : changed) {
     DEBUG_WITH_TYPE("worklist", c->printStrictRelations(errs()));
-    for (auto i : c->constraints)
+    for (auto *i : c->constraints)
       if (i != this)
         engine->push(i);
   }
@@ -1871,7 +1871,7 @@ void PHI::print(raw_ostream& OS) const {
   else
     OS << left->v->getName();
   OS << " = o| ";
-  for (auto i : operands) {
+  for (auto *i : operands) {
     if (!i->v->hasName())
       OS << *(i->v);
     else
@@ -1885,7 +1885,7 @@ void StrictRelations::Variable::coalesce(StrictRelations::Variable* other) {
   if (mustalias == other->mustalias)
     return;
   std::unordered_set<Variable*>* to_coalesce = other->mustalias;
-  for (auto i : *to_coalesce)
+  for (auto *i : *to_coalesce)
     i->mustalias = mustalias;
   mustalias->insert(to_coalesce->begin(), to_coalesce->end());
   delete to_coalesce;
@@ -1899,7 +1899,7 @@ void StrictRelations::Variable::printStrictRelations(raw_ostream& OS) {
   OS << "\nLT: {";
   if (LT.empty())
     OS << "E";
-  for (auto j : LT) {
+  for (auto *j : LT) {
     if (!j->v->hasName())
       OS << *(j->v);
     else
@@ -1909,7 +1909,7 @@ void StrictRelations::Variable::printStrictRelations(raw_ostream& OS) {
   OS << "}\nGT: {";
   if (GT.empty())
     OS << "E";
-  for (auto j : GT) {
+  for (auto *j : GT) {
     if (!j->v->hasName())
       OS << *(j->v);
     else

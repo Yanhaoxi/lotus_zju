@@ -188,7 +188,7 @@ std::string pdg::dbgutils::getSourceLevelTypeName(DIType &dt)
   case dwarf::DW_TAG_pointer_type:
   {
     // errs() << "1\n";
-    auto base_type = getBaseDIType(dt);
+    auto* base_type = getBaseDIType(dt);
     if (!base_type)
       return "nullptr";
     return getSourceLevelTypeName(*base_type) + "*";
@@ -200,7 +200,7 @@ std::string pdg::dbgutils::getSourceLevelTypeName(DIType &dt)
   case dwarf::DW_TAG_member:
   {
     // errs() << "2\n";
-    auto base_type = getBaseDIType(dt);
+    auto* base_type = getBaseDIType(dt);
     if (!base_type)
       return "null";
     std::string base_type_name = getSourceLevelTypeName(*base_type);
@@ -236,7 +236,7 @@ std::string pdg::dbgutils::getSourceLevelTypeName(DIType &dt)
   case dwarf::DW_TAG_const_type:
   {
     // errs() << "4" << "\n";
-    auto base_type = getBaseDIType(dt);
+    auto* base_type = getBaseDIType(dt);
     if (!base_type)
       return "const nullptr";
     return "const " + getSourceLevelTypeName(*base_type);
@@ -257,7 +257,7 @@ DIType *pdg::dbgutils::getGlobalVarDIType(GlobalVariable &gv)
   gv.getDebugInfo(GVs);
   if (GVs.size() == 0)
     return nullptr;
-  for (auto GV : GVs)
+  for (auto* GV : GVs)
   {
     DIGlobalVariable *digv = GV->getVariable();
     return digv->getType();
@@ -269,7 +269,7 @@ DIType *pdg::dbgutils::getFuncRetDIType(Function &F)
 {
   SmallVector<std::pair<unsigned, MDNode *>, 4> MDs;
   F.getAllMetadata(MDs);
-  for (auto &MD : MDs)
+  for (auto& MD : MDs)
   {
     MDNode *N = MD.second;
     if (DISubprogram *subprogram = dyn_cast<DISubprogram>(N))

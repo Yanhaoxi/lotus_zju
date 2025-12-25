@@ -84,7 +84,7 @@ static bool transformCall(Instruction &I, const DataLayout &DL) {
     try {
         auto *CI = dyn_cast<CallInst>(&I);
         if (!CI) return false;
-        auto Callee = CI->getCalledFunction();
+        auto *Callee = CI->getCalledFunction();
         if (Callee) return false;
         auto *CalledOp = CI->getCalledOperand();
         if (!CalledOp) return false;
@@ -125,7 +125,7 @@ static bool transformCall(Instruction &I, const DataLayout &DL) {
                 auto *NewCI = CallInst::Create(FuncTy, PossibleCallee, Args, "", &I);
                 NewCI->setDebugLoc(CI->getDebugLoc());
 
-                auto OriginalRetTy = CI->getType();
+                auto *OriginalRetTy = CI->getType();
                 if (OriginalRetTy == NewCI->getType()) {
                     I.replaceAllUsesWith(NewCI);
                 } else if (CI->getNumUses() == 0) {
@@ -140,36 +140,36 @@ static bool transformCall(Instruction &I, const DataLayout &DL) {
                     I.replaceAllUsesWith(BCI);
                 } else if (DL.getTypeSizeInBits(OriginalRetTy) > DL.getTypeSizeInBits(NewCI->getType())) {
                     // NewCI to integer, sext, pointer or bitcast
-                    auto Int = NewCI->getType()->isIntegerTy() ? (Value *) NewCI :
+                    auto *Int = NewCI->getType()->isIntegerTy() ? (Value *) NewCI :
                                CastInst::CreateBitOrPointerCast(NewCI,
                                                                 IntegerType::get(I.getContext(),
                                                                                  DL.getTypeSizeInBits(
                                                                                          NewCI->getType())),
                                                                 "",
                                                                 &I);
-                    auto Ext = CastInst::CreateSExtOrBitCast(Int,
+                    auto *Ext = CastInst::CreateSExtOrBitCast(Int,
                                                              IntegerType::get(I.getContext(),
                                                                               DL.getTypeSizeInBits(OriginalRetTy)),
                                                              "",
                                                              &I);
-                    auto Final = CastInst::CreateBitOrPointerCast(Ext, OriginalRetTy, "", &I);
+                    auto *Final = CastInst::CreateBitOrPointerCast(Ext, OriginalRetTy, "", &I);
                     I.replaceAllUsesWith(Final);
                 } else {
                     // DL.getTypeSizeInBits(OriginalRetTy) < DL.getTypeSizeInBits(NewCI->getType())
                     // NewCI to integer, trunc, pointer or bitcast
-                    auto Int = NewCI->getType()->isIntegerTy() ? (Value *) NewCI :
+                    auto *Int = NewCI->getType()->isIntegerTy() ? (Value *) NewCI :
                                CastInst::CreateBitOrPointerCast(NewCI,
                                                                 IntegerType::get(I.getContext(),
                                                                                  DL.getTypeSizeInBits(
                                                                                          NewCI->getType())),
                                                                 "",
                                                                 &I);
-                    auto Ext = CastInst::CreateTruncOrBitCast(Int,
+                    auto *Ext = CastInst::CreateTruncOrBitCast(Int,
                                                               IntegerType::get(I.getContext(),
                                                                                DL.getTypeSizeInBits(OriginalRetTy)),
                                                               "",
                                                               &I);
-                    auto Final = CastInst::CreateBitOrPointerCast(Ext, OriginalRetTy, "", &I);
+                    auto *Final = CastInst::CreateBitOrPointerCast(Ext, OriginalRetTy, "", &I);
                     I.replaceAllUsesWith(Final);
                 }
                 return true;

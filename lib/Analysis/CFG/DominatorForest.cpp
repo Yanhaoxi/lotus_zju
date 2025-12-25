@@ -56,15 +56,15 @@
  }
  
  DominatorForest::~DominatorForest() {
-   for (auto node : nodes)
+   for (auto *node : nodes)
      delete node;
    nodes.clear();
    bbNodeMap.clear();
  }
  
- void DominatorForest::transferToClones(
-     std::unordered_map<BasicBlock *, BasicBlock *> &bbCloneMap) {
-   for (auto node : nodes) {
+void DominatorForest::transferToClones(
+    std::unordered_map<BasicBlock *, BasicBlock *> &bbCloneMap) {
+  for (auto *node : nodes) {
      assert(bbCloneMap.find(node->B) != bbCloneMap.end());
      node->B = bbCloneMap[node->B];
    }
@@ -83,22 +83,22 @@
     */
    worklist.push_back(T.getRootNode());
  
-   while (worklist.size() != 0) {
-     auto node = worklist.back();
-     worklist.pop_back();
-     nodes.insert(node);
-     for (auto child : *node)
+  while (worklist.size() != 0) {
+    auto *node = worklist.back();
+    worklist.pop_back();
+    nodes.insert(node);
+    for (auto *child : *node)
        worklist.push_back(child);
    }
  
    return nodes;
  }
  
- std::set<DominatorNode *> DominatorForest::filterNodes(
-     std::set<DominatorNode *> &nodes,
-     std::set<BasicBlock *> &bbSubset) {
-   std::set<DominatorNode *> nodesSubset;
-   for (auto node : nodes) {
+std::set<DominatorNode *> DominatorForest::filterNodes(
+    std::set<DominatorNode *> &nodes,
+    std::set<BasicBlock *> &bbSubset) {
+  std::set<DominatorNode *> nodesSubset;
+  for (auto *node : nodes) {
      if (bbSubset.find(node->B) != bbSubset.end()) {
        nodesSubset.insert(node);
      }
@@ -109,28 +109,28 @@
  void DominatorForest::cloneLLVMNodes(
      std::set<DTAliases::Node *> &nodesToClone) {
  
-   /*
-    * Clone nodes using DomNodeSummary constructors. Track cloned pairs in map
-    */
-   std::unordered_map<DTAliases::Node *, DominatorNode *> nodeMap;
-   for (auto node : nodesToClone) {
-     auto summary = new DominatorNode(*node);
+  /*
+   * Clone nodes using DomNodeSummary constructors. Track cloned pairs in map
+   */
+  std::unordered_map<DTAliases::Node *, DominatorNode *> nodeMap;
+  for (auto *node : nodesToClone) {
+    auto *summary = new DominatorNode(*node);
      nodeMap[node] = summary;
      this->nodes.insert(summary);
      this->bbNodeMap[summary->B] = summary;
    }
  
-   /*
-    * Populate parent, child relations between cloned nodes.
-    * Note the optional nature of these connections. It is possible
-    * that only a subset of the tree is being cloned
-    */
-   for (auto node : nodesToClone) {
-     auto summary = nodeMap[node];
-     for (auto child : node->children()) {
-       if (nodeMap.find(child) == nodeMap.end())
-         continue;
-       auto childSummary = nodeMap[child];
+  /*
+   * Populate parent, child relations between cloned nodes.
+   * Note the optional nature of these connections. It is possible
+   * that only a subset of the tree is being cloned
+   */
+  for (auto *node : nodesToClone) {
+    auto *summary = nodeMap[node];
+    for (auto *child : node->children()) {
+      if (nodeMap.find(child) == nodeMap.end())
+        continue;
+      auto *childSummary = nodeMap[child];
        childSummary->parent = summary;
        summary->children.push_back(childSummary);
      }
@@ -142,29 +142,29 @@
  template <typename NodeType>
  void DominatorForest::cloneNodes(std::set<NodeType *> &nodesToClone) {
  
-   /*
-    * Clone nodes using DominatorNode constructors. Track cloned pairs in map
-    */
-   std::unordered_map<NodeType *, DominatorNode *> nodeMap;
-   for (auto node : nodesToClone) {
-     auto summary = new DominatorNode(*node);
+  /*
+   * Clone nodes using DominatorNode constructors. Track cloned pairs in map
+   */
+  std::unordered_map<NodeType *, DominatorNode *> nodeMap;
+  for (auto *node : nodesToClone) {
+    auto *summary = new DominatorNode(*node);
      nodeMap[node] = summary;
      this->nodes.insert(summary);
      this->bbNodeMap[summary->B] = summary;
    }
  
-   /*
-    * Populate parent, child relations between cloned nodes.
-    * Note the optional nature of these connections. It is possible
-    * that only a subset of the tree is being cloned
-    */
-   for (auto node : nodesToClone) {
-     auto summary = nodeMap[node];
-     auto children = node->getChildren();
-     for (auto child : children) {
-       if (nodeMap.find(child) == nodeMap.end())
-         continue;
-       auto childSummary = nodeMap[child];
+  /*
+   * Populate parent, child relations between cloned nodes.
+   * Note the optional nature of these connections. It is possible
+   * that only a subset of the tree is being cloned
+   */
+  for (auto *node : nodesToClone) {
+    auto *summary = nodeMap[node];
+    auto children = node->getChildren();
+    for (auto *child : children) {
+      if (nodeMap.find(child) == nodeMap.end())
+        continue;
+      auto *childSummary = nodeMap[child];
        childSummary->parent = summary;
        summary->children.push_back(childSummary);
      }
@@ -176,20 +176,20 @@
    return nodeIter == bbNodeMap.end() ? nullptr : nodeIter->second;
  }
  
- bool DominatorForest::dominates(Instruction *I, Instruction *J) const {
-   auto B1 = I->getParent();
-   auto B2 = J->getParent();
+bool DominatorForest::dominates(Instruction *I, Instruction *J) const {
+  auto *B1 = I->getParent();
+  auto *B2 = J->getParent();
  
    /*
     * Check if the instructions belong to the same basic block.
     */
    if (B1 == B2) {
  
-     /*
-      * Define the first and second instruction.
-      */
-     auto firstOne = I;
-     auto secondOne = J;
+    /*
+     * Define the first and second instruction.
+     */
+    auto *firstOne = I;
+    auto *secondOne = J;
  
      /*
       * Check the dominance relation between I and J
@@ -248,9 +248,9 @@
    return d;
  }
  
- bool DominatorForest::dominates(BasicBlock *B1, BasicBlock *B2) const {
-   auto nodeB1 = this->getNode(B1);
-   auto nodeB2 = this->getNode(B2);
+bool DominatorForest::dominates(BasicBlock *B1, BasicBlock *B2) const {
+  auto *nodeB1 = this->getNode(B1);
+  auto *nodeB2 = this->getNode(B2);
    assert(
        nodeB1 && nodeB2
        && "The basic blocks provided to DominatorForest are not present in the tree");
@@ -275,16 +275,16 @@
  
  bool DominatorForest::dominates(DominatorNode *node1,
                                  DominatorNode *node2) const {
-   std::queue<DominatorNode *> worklist;
-   worklist.push(node1);
-   while (!worklist.empty()) {
-     auto node = worklist.front();
-     worklist.pop();
- 
-     if (node == node2) {
-       return true;
-     }
-     for (auto child : node->children)
+  std::queue<DominatorNode *> worklist;
+  worklist.push(node1);
+  while (!worklist.empty()) {
+    auto *node = worklist.front();
+    worklist.pop();
+
+    if (node == node2) {
+      return true;
+    }
+    for (auto *child : node->children)
        worklist.push(child);
    }
  
@@ -306,15 +306,15 @@
      BasicBlock *dominatedBB) const {
    std::set<Instruction *> r{};
  
-   /*
-    * Consider all elements of the set.
-    */
-   for (auto value : s) {
- 
-     /*
-      * Check if @value dominates @dominatedBB
-      */
-     auto valueBB = value->getParent();
+  /*
+   * Consider all elements of the set.
+   */
+  for (auto *value : s) {
+
+    /*
+     * Check if @value dominates @dominatedBB
+     */
+    auto *valueBB = value->getParent();
      if (this->dominates(valueBB, dominatedBB)) {
        r.insert(value);
      }
@@ -326,10 +326,10 @@
  std::set<BasicBlock *> DominatorForest::getDescendants(BasicBlock *bb) const {
    std::set<BasicBlock *> ds;
  
-   /*
-    * Fetch the node that represents @bb.
-    */
-   auto bbNode = this->getNode(bb);
+  /*
+   * Fetch the node that represents @bb.
+   */
+  auto *bbNode = this->getNode(bb);
    assert(bbNode != nullptr);
  
    this->addDescendants(bbNode, ds);
@@ -345,10 +345,10 @@
     */
    ds.insert(n->getBlock());
  
-   /*
-    * Iterate over children.
-    */
-   for (auto child : n->getChildren()) {
+  /*
+   * Iterate over children.
+   */
+  for (auto *child : n->getChildren()) {
      this->addDescendants(child, ds);
    }
  
@@ -360,16 +360,16 @@
          const std::set<Instruction *> &s) const {
    std::set<Instruction *> r{};
  
-   /*
-    * Consider all elements of the set.
-    */
-   for (auto value : s) {
- 
-     /*
-      * Check if @value dominates any other
-      */
-     auto isDominatingOthers = false;
-     for (auto otherValue : s) {
+  /*
+   * Consider all elements of the set.
+   */
+  for (auto *value : s) {
+
+    /*
+     * Check if @value dominates any other
+     */
+    auto isDominatingOthers = false;
+    for (auto *otherValue : s) {
        if (value == otherValue) {
          continue;
        }
@@ -397,18 +397,18 @@
    assert(B1 != nullptr);
    assert(B2 != nullptr);
  
-   /*
-    * Fetch the nodes in the dominator tree.
-    */
-   auto n1 = this->getNode(B1);
-   auto n2 = this->getNode(B2);
+  /*
+   * Fetch the nodes in the dominator tree.
+   */
+  auto *n1 = this->getNode(B1);
+  auto *n2 = this->getNode(B2);
    assert(n1 != nullptr);
    assert(n2 != nullptr);
  
-   /*
-    * Find the nearest common dominator.
-    */
-   auto c = findNearestCommonDominator(n1, n2);
+  /*
+   * Find the nearest common dominator.
+   */
+  auto *c = findNearestCommonDominator(n1, n2);
    assert(c != nullptr);
  
    return c->B;
@@ -418,11 +418,11 @@
      DominatorNode *node1,
      DominatorNode *node2) const {
  
-   /*
-    * Helpers to determine whether a node n dominates node2
-    */
-   auto dominatorsOf2 = this->dominates(node2);
-   auto dominates2 = [&](DominatorNode *node) -> bool {
+  /*
+   * Helpers to determine whether a node n dominates node2
+   */
+  auto dominatorsOf2 = this->dominates(node2);
+  auto dominates2 = [&](DominatorNode *node) -> bool {
      return dominatorsOf2.find(node) != dominatorsOf2.end();
    };
  
@@ -435,9 +435,9 @@
    return node;
  }
  
- raw_ostream &DominatorForest::print(raw_ostream &stream,
-                                     std::string prefixToUse) const {
-   for (auto node : nodes) {
+raw_ostream &DominatorForest::print(raw_ostream &stream,
+                                    std::string prefixToUse) const {
+  for (auto *node : nodes) {
      node->print(stream, prefixToUse);
    }
    return stream;

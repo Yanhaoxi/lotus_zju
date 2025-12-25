@@ -161,7 +161,7 @@ ObjectLocator::ObjectLocator(const ObjectLocator &locator)
 
 ObjectLocator::~ObjectLocator() {
   for (auto &it : loc_values) {
-    for (auto lv : it.second)
+    for (auto* lv : it.second)
       delete lv;
   }
 }
@@ -207,7 +207,7 @@ LocValue *ObjectLocator::storeValue(Value *val, Instruction *source,
   BasicBlock *src_bb = source->getParent();
   
   // Check if value already exists
-  for (LocValue *loc_val : loc_values[src_bb]) {
+  for (auto* loc_val : loc_values[src_bb]) {
     if (loc_val->getPos() == source && loc_val->getVal() == val) {
       loc_val->resetUpdateType(LocValue::STRONG);
       return loc_val;

@@ -123,7 +123,7 @@ void CommonUtil::LoadElementsStructNameMap(vector<pair<Module*, StringRef>> &Mod
     // 遍历所有的模块
     for (auto M : Modules) {
         // 遍历所有非匿名结构体
-        for (auto STy : M.first->getIdentifiedStructTypes()) {
+        for (auto *STy : M.first->getIdentifiedStructTypes()) {
             assert(STy->hasName());
             if (STy->isOpaque()) // 必须有定义，不能只是声明
                 continue;
@@ -194,7 +194,7 @@ size_t CommonUtil::callHash(CallInst *CI) {
 string CommonUtil::structTyStr(StructType *STy) {
     string ty_str;
     string sig;
-    for (auto Ty : STy->elements()) {
+    for (auto *Ty : STy->elements()) {
         ty_str += to_string(Ty->getTypeID());
     }
     return ty_str;

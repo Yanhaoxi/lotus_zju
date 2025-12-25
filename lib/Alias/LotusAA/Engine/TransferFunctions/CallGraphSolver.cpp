@@ -147,12 +147,12 @@ void IntraLotusAA::computeCG() {
       if (CallBase *call = dyn_cast<CallBase>(&inst)) {
         // Process both direct and indirect calls
         Function *base_func = func;
-        auto callees = lotus_aa->getCallees(base_func, call);
+        auto* callees = lotus_aa->getCallees(base_func, call);
 
         if (callees && IntraLotusAAConfig::lotus_restrict_inline_depth != 0) {
           // Inline input summaries from callees
           int callee_idx = 0;
-          for (Function *callee : *callees) {
+          for (auto* callee : *callees) {
             if (callee_idx >= IntraLotusAAConfig::lotus_restrict_cg_size)
               break;
 

@@ -51,7 +51,7 @@ std::string TaintAnalysis::demangle(const char* name) {
 
 void TaintAnalysis::mark_taint(Instruction& inst, const std::string& taint_name) {
     auto& ctx = inst.getContext();
-    auto md = MDNode::get(ctx, MDString::get(ctx, taint_name));
+    auto *md = MDNode::get(ctx, MDString::get(ctx, taint_name));
     inst.setMetadata(MKINT_IR_TAINT, md);
 }
 
@@ -74,7 +74,7 @@ std::vector<CallInst*> TaintAnalysis::get_taint_source(Function& F) {
             MKINT_LOG() << "Taint Analysis -> taint src arg -> call inst: " << call_name;
             FunctionType *FT = FunctionType::get(arg.getType(), /*isVarArg=*/false);
             auto Callee = F.getParent()->getOrInsertFunction(call_name, FT);
-            auto call_inst = CallInst::Create(Callee, arg.getName(), &*F.getEntryBlock().getFirstInsertionPt());
+            auto *call_inst = CallInst::Create(Callee, arg.getName(), &*F.getEntryBlock().getFirstInsertionPt());
             ret.push_back(call_inst);
             arg.replaceAllUsesWith(call_inst);
         }
@@ -88,8 +88,8 @@ bool TaintAnalysis::is_taint_src_arg_call(StringRef s) {
 
 SmallVector<Function*, 2> TaintAnalysis::get_sink_fns(Instruction* inst) {
     SmallVector<Function*, 2> ret;
-    for (auto user : inst->users()) {
-        if (auto call = dyn_cast<CallInst>(user)) {
+    for (auto *user : inst->users()) {
+        if (auto *call = dyn_cast<CallInst>(user)) {
             auto dname = demangle(call->getCalledFunction()->getName().data());
             if (std::find_if(
                     MKINT_SINKS.begin(), MKINT_SINKS.end(), [&dname](const auto& s) { return dname == s.first; })
@@ -107,7 +107,7 @@ bool TaintAnalysis::is_sink_reachable(Instruction* inst, SetVector<Function*>& t
     if (nullptr == inst) {
         return false;
     } else if (inst->getMetadata(MKINT_IR_SINK)) {
-        for (auto f : get_sink_fns(inst)) {
+        for (auto* f : get_sink_fns(inst)) {
             taint_funcs.insert(f); // sink are tainted.
         }
         return true;
@@ -116,11 +116,11 @@ bool TaintAnalysis::is_sink_reachable(Instruction* inst, SetVector<Function*>& t
     bool you_see_sink /* ? */ = false;
 
     // if store
-    if (auto store = dyn_cast<StoreInst>(inst)) {
-        auto ptr = store->getPointerOperand();
-        if (auto gv = dyn_cast<GlobalVariable>(ptr)) {
-            for (auto user : gv->users()) {
-                if (auto user_inst = dyn_cast<Instruction>(user)) {
+    if (auto *store = dyn_cast<StoreInst>(inst)) {
+        auto *ptr = store->getPointerOperand();
+        if (auto *gv = dyn_cast<GlobalVariable>(ptr)) {
+            for (auto* user : gv->users()) {
+                if (auto *user_inst = dyn_cast<Instruction>(user)) {
                     if (user != store) // no self-loop.
                         you_see_sink |= is_sink_reachable(user_inst, taint_funcs);
                 }
@@ -133,8 +133,8 @@ bool TaintAnalysis::is_sink_reachable(Instruction* inst, SetVector<Function*>& t
             }
         }
     } else {
-        if (auto call = dyn_cast<CallInst>(inst)) {
-            if (auto f = call->getCalledFunction()) {
+        if (auto *call = dyn_cast<CallInst>(inst)) {
+            if (auto *f = call->getCalledFunction()) {
                 // How to do taint analysis for call func?
                 // if func's impl is unknow we simply assume it is related.
                 // if func's impl is known, we analyze which arg determines the return value.
@@ -148,10 +148,10 @@ bool TaintAnalysis::is_sink_reachable(Instruction* inst, SetVector<Function*>& t
             }
         }
 
-        for (auto user : inst->users()) {
-            if (auto user_inst = dyn_cast<Instruction>(user)) {
+        for (auto* user : inst->users()) {
+            if (auto *user_inst = dyn_cast<Instruction>(user)) {
                 // if used by phi whose id is even smaller than you. -> loop
-                if (auto phi = dyn_cast<PHINode>(user_inst)) {
+                if (auto *phi = dyn_cast<PHINode>(user_inst)) {
                     if (get_id(phi) < get_id(inst)) {
                         continue;
                     }
@@ -162,8 +162,8 @@ bool TaintAnalysis::is_sink_reachable(Instruction* inst, SetVector<Function*>& t
 
         if (you_see_sink) {
             mark_taint(*inst);
-            if (auto call = dyn_cast<CallInst>(inst)) {
-                if (auto f = call->getCalledFunction()) {
+            if (auto *call = dyn_cast<CallInst>(inst)) {
+                if (auto *f = call->getCalledFunction()) {
                     if (!f->getReturnType()->isVoidTy()) {
                         taint_funcs.insert(f);
                     }
@@ -191,7 +191,7 @@ bool TaintAnalysis::taint_bcast_sink(Function* f, const std::vector<CallInst*>& 
     // try to broadcast all allocas.
     for (auto& bb : *f) {
         for (auto& inst : bb) {
-            if (auto alloc = dyn_cast<AllocaInst>(&inst)) {
+            if (auto *alloc = dyn_cast<AllocaInst>(&inst)) {
                 if (is_sink_reachable(alloc, taint_funcs)) {
                     mark_taint(*alloc, "source");
                     ret = true;
@@ -200,7 +200,7 @@ bool TaintAnalysis::taint_bcast_sink(Function* f, const std::vector<CallInst*>& 
         }
     }
 
-    for (auto ts : taint_source) {
+    for (auto *ts : taint_source) {
         if (is_sink_reachable(ts, taint_funcs)) {
             mark_taint(*ts, "source");
             ret = true;
@@ -215,7 +215,7 @@ bool TaintAnalysis::taint_bcast_sink(Iter taint_source, SetVector<Function*>& ta
     bool ret = false;
 
     for (auto& ts : taint_source) {
-        for (auto user : ts.users()) {
+        for (auto* user : ts.users()) {
             if (auto user_inst = dyn_cast<Instruction>(user)) {
                 if (is_sink_reachable(user_inst, taint_funcs)) {
                     mark_taint(*user_inst);
@@ -231,7 +231,7 @@ bool TaintAnalysis::taint_bcast_sink(Iter taint_source, SetVector<Function*>& ta
 void TaintAnalysis::mark_func_sinks(Function& F, SetVector<StringRef>& callback_tsrc_fn) {
     static auto mark_sink = [](Instruction& inst, const std::string& sink_name) {
         auto& ctx = inst.getContext();
-        auto md = MDNode::get(ctx, MDString::get(ctx, sink_name));
+        auto *md = MDNode::get(ctx, MDString::get(ctx, sink_name));
         inst.setMetadata(MKINT_IR_SINK, md);
     };
 
@@ -241,10 +241,10 @@ void TaintAnalysis::mark_func_sinks(Function& F, SetVector<StringRef>& callback_
             for (const auto& sink_pair : MKINT_SINKS) {
                 const char* name = sink_pair.first;
                 size_t idx = sink_pair.second;
-                if (auto called_fn = call->getCalledFunction()) {
+                if (auto *called_fn = call->getCalledFunction()) {
                     const auto demangled_func_name = demangle(called_fn->getName().str().c_str());
                     if (demangled_func_name == name) {
-                        if (auto arg = dyn_cast_or_null<Instruction>(call->getArgOperand(idx))) {
+                        if (auto *arg = dyn_cast_or_null<Instruction>(call->getArgOperand(idx))) {
                             MKINT_LOG()
                                 << "Taint Analysis -> sink: argument [" << idx << "] of " << demangled_func_name;
                             mark_sink(*arg, name);
@@ -265,8 +265,8 @@ void TaintAnalysis::mark_func_sinks(Function& F, SetVector<StringRef>& callback_
 
         // if there is any users.
         bool valid_use = false;
-        for (auto user : F.users()) {
-            if (auto user_inst = dyn_cast<Instruction>(user)) {
+        for (auto* user : F.users()) {
+            if (auto *user_inst = dyn_cast<Instruction>(user)) {
                 if (!is_taint_src(user_inst->getParent()->getParent()->getName())) {
                     valid_use = true;
                     break;
@@ -290,7 +290,7 @@ void TaintAnalysis::propagate_taint_across_functions(Module& /*M*/,
                                                     MapVector<Function*, std::vector<CallInst*>>& func2tsrc,
                                                     SetVector<Function*>& taint_funcs) {
     for (auto& func_tsrc_pair : func2tsrc) {
-        auto fp = func_tsrc_pair.first;
+        auto *fp = func_tsrc_pair.first;
         auto& tsrc = func_tsrc_pair.second;
         if (taint_bcast_sink(fp, tsrc, taint_funcs)) {
             taint_funcs.insert(fp);
@@ -300,7 +300,7 @@ void TaintAnalysis::propagate_taint_across_functions(Module& /*M*/,
     size_t n_tfunc_before = 0;
     do {
         n_tfunc_before = taint_funcs.size();
-        for (auto f : taint_funcs) {
+        for (auto* f : taint_funcs) {
             if (!is_taint_src(f->getName())) {
                 taint_bcast_sink(f->args(), taint_funcs);
             }

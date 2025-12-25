@@ -47,7 +47,7 @@ void pdg::GenericGraph::dumpGraph()
   errs() << "=============== Node Set ===============\n";
   for (auto node_iter = begin(); node_iter != end(); ++node_iter)
   {
-    auto node = *node_iter;
+    auto* node = *node_iter;
     std::string str;
     raw_string_ostream OS(str);
     Value* val = node->getValue();
@@ -69,8 +69,8 @@ void pdg::GenericGraph::dumpGraph()
   errs() << "=============== Edge Set ===============\n";
   for (auto node_iter = begin(); node_iter != end(); ++node_iter)
   {
-    auto node = *node_iter;
-    for (auto out_edge : node->getOutEdgeSet())
+    auto* node = *node_iter;
+    for (auto* out_edge : node->getOutEdgeSet())
     {
       errs() << "edge: " << out_edge << " / " << "src[" << out_edge->getSrcNode() << "] / " << " dst[" << out_edge->getDstNode() << "]" << " / " << pdgutils::getEdgeTypeStr(out_edge->getEdgeType()) << "\n";
     }
@@ -95,14 +95,14 @@ bool pdg::GenericGraph::canReach(pdg::Node &src, pdg::Node &dst, std::set<EdgeTy
 
   while (!node_stack.empty())
   {
-    auto current_node = node_stack.top();
+    auto* current_node = node_stack.top();
     node_stack.pop();
     if (visited.find(current_node) != visited.end())
       continue;
     visited.insert(current_node);
     if (current_node == &dst)
       return true;
-    for (auto out_edge : current_node->getOutEdgeSet())
+    for (auto* out_edge : current_node->getOutEdgeSet())
     {
       // exclude path
       if (exclude_edge_types.find(out_edge->getEdgeType()) != exclude_edge_types.end())
@@ -119,7 +119,7 @@ void pdg::ProgramGraph::build(Module &M)
   // build node for global variables
   for (auto &global_var : M.getGlobalList())
   {
-    auto global_var_type = global_var.getType();
+    auto* global_var_type = global_var.getType();
     // if (!global_var_type->isPointerTy() && !global_var_type->isStructTy())
     //   continue;
     DIType* global_var_di_type = dbgutils::getGlobalVarDIType(global_var);
@@ -200,9 +200,9 @@ void pdg::ProgramGraph::build(Module &M)
     
     FunctionWrapper *func_w = getFuncWrapper(F);
     auto call_insts = func_w->getCallInsts();
-    for (auto ci : call_insts)
+    for (auto* ci : call_insts)
     {
-      auto called_func = pdgutils::getCalledFunc(*ci);
+      auto* called_func = pdgutils::getCalledFunc(*ci);
       // indirect call, insert a call wrapper first, build parameter tree lazyly when actually connectting 
       // indirect call site and called function during PDG construction
       if (called_func == nullptr)
@@ -234,7 +234,7 @@ void pdg::ProgramGraph::bindDITypeToNodes(Module &M)
       continue;
     auto dbg_declare_insts = fw->getDbgDeclareInsts();
     // bind ditype to the top-level pointer (alloca)
-    for (auto dbg_declare_inst : dbg_declare_insts)
+    for (auto* dbg_declare_inst : dbg_declare_insts)
     {
       // For LLVM 14.0.0, we need to handle Metadata conversion correctly
       Metadata *MD = dbg_declare_inst->getRawLocation();
@@ -250,7 +250,7 @@ void pdg::ProgramGraph::bindDITypeToNodes(Module &M)
       Node *addr_node = getNode(*addr);
       if (!addr_node)
         continue;
-      auto DLV = dbg_declare_inst->getVariable(); // di local variable instance
+      auto* DLV = dbg_declare_inst->getVariable(); // di local variable instance
       assert(DLV != nullptr && "cannot find DILocalVariable Node for computing DIType");
       DIType *var_di_type = DLV->getType();
       std::string var_name = DLV->getName().str();
@@ -291,7 +291,7 @@ void pdg::ProgramGraph::bindDITypeToNodes(Module &M)
     Node *global_node = getNode(global_var);
     if (global_node != nullptr)
     {
-      auto dt = dbgutils::getGlobalVarDIType(global_var);
+      auto* dt = dbgutils::getGlobalVarDIType(global_var);
       global_node->setDIType(*dt);
     }
   }
@@ -351,7 +351,7 @@ DIType *pdg::ProgramGraph::computeNodeDIType(Node &n)
       return nullptr;
     if (!dbgutils::isStructType(*base_addr_lowest_di_type))
       return nullptr;
-    if (auto dict = dyn_cast<DICompositeType>(base_addr_lowest_di_type))
+    if (auto* dict = dyn_cast<DICompositeType>(base_addr_lowest_di_type))
     {
       auto di_node_arr = dict->getElements();
       for (unsigned i = 0; i < di_node_arr.size(); ++i)
@@ -389,7 +389,7 @@ void pdg::ProgramGraph::addTreeNodesToGraph(pdg::Tree &tree)
     TreeNode* current_node = node_queue.front();
     node_queue.pop();
     addNode(*current_node);
-    for (auto child_node : current_node->getChildNodes())
+    for (auto* child_node : current_node->getChildNodes())
     {
       node_queue.push(child_node);
     }
@@ -398,7 +398,7 @@ void pdg::ProgramGraph::addTreeNodesToGraph(pdg::Tree &tree)
 
 void pdg::ProgramGraph::addFormalTreeNodesToGraph(FunctionWrapper &func_w)
 {
-  for (auto arg : func_w.getArgList())
+  for (auto* arg : func_w.getArgList())
   {
     Tree* formal_in_tree = func_w.getArgFormalInTree(*arg);
     Tree* formal_out_tree = func_w.getArgFormalOutTree(*arg);
@@ -425,20 +425,20 @@ bool pdg::ProgramGraph::isAnnotationCallInst(Instruction &inst)
 
 void pdg::ProgramGraph::buildGlobalAnnotationNodes(Module &M)
 {
-  auto global_annos = M.getNamedGlobal("llvm.global.annotations");
+  auto* global_annos = M.getNamedGlobal("llvm.global.annotations");
   if (global_annos)
   {
     // build a node for the annotation
     Node* global_anno_node = new Node(*global_annos, GraphNodeType::ANNO_GLOBAL);
     _val_node_map.insert(std::pair<Value *, Node *>(global_annos, global_anno_node));
     addNode(*global_anno_node);
-    auto casted_array = cast<ConstantArray>(global_annos->getOperand(0));
+    auto* casted_array = cast<ConstantArray>(global_annos->getOperand(0));
     for (unsigned i = 0; i < casted_array->getNumOperands(); i++)
     {
-      auto casted_struct = cast<ConstantStruct>(casted_array->getOperand(i));
-      if (auto annotated_gv = dyn_cast<GlobalValue>(casted_struct->getOperand(0)->getOperand(0)))
+      auto* casted_struct = cast<ConstantStruct>(casted_array->getOperand(i));
+      if (auto* annotated_gv = dyn_cast<GlobalValue>(casted_struct->getOperand(0)->getOperand(0)))
       {
-        auto globalSenStr = cast<GlobalVariable>(casted_struct->getOperand(1)->getOperand(0));
+        auto* globalSenStr = cast<GlobalVariable>(casted_struct->getOperand(1)->getOperand(0));
         auto anno = cast<ConstantDataArray>(globalSenStr->getOperand(0))->getAsCString();
         Node *n = getNode(*annotated_gv);
         if (n == nullptr)

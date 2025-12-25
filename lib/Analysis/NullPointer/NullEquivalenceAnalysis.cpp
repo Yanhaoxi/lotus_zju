@@ -28,7 +28,7 @@ NullEquivalenceAnalysis::NullEquivalenceAnalysis(Function *F) {
     for (auto &B: *F) {
         for (auto &I: B) {
             for (unsigned K = 0; K < I.getNumOperands(); ++K) {
-                auto Op = I.getOperand(K);
+                auto *Op = I.getOperand(K);
                 DisSet.makeSet(Op);
             }
             DisSet.makeSet(&I);

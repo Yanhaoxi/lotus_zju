@@ -46,7 +46,7 @@ PreservedAnalyses SimplifyLatchPass::run(Module &M, ModuleAnalysisManager &MAM) 
         for (auto *Loop: AllLoops) {
             auto *Latch = Loop->getLoopLatch();
             if (!Latch) continue;
-            auto Term = Latch->getTerminator();
+            auto *Term = Latch->getTerminator();
             if (Term->getNumSuccessors() > 1) {
                 for (unsigned K = 0; K < Term->getNumSuccessors(); ++K) {
                     if (Term->getSuccessor(K) == Loop->getHeader()) {

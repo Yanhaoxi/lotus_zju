@@ -38,7 +38,7 @@ void pdg::PDGCallGraph::build(Module &M)
   {
     if (F.isDeclaration() || F.empty())
       continue;
-    auto caller_node = getNode(F);
+    auto* caller_node = getNode(F);
     if (caller_node == nullptr)
       continue;
       
@@ -47,11 +47,11 @@ void pdg::PDGCallGraph::build(Module &M)
       try {
         if (CallInst *ci = dyn_cast<CallInst>(&*inst_i))
         {
-          auto called_func = pdgutils::getCalledFunc(*ci);
+          auto* called_func = pdgutils::getCalledFunc(*ci);
           // direct calls
           if (called_func != nullptr)
           {
-            auto callee_node = getNode(*called_func);
+            auto* callee_node = getNode(*called_func);
             if (callee_node != nullptr)
               caller_node->addNeighbor(*callee_node, EdgeType::CONTROLDEP_CALLINV);
           }
@@ -59,7 +59,7 @@ void pdg::PDGCallGraph::build(Module &M)
           {
             // indirect calls
             auto ind_call_candidates = getIndirectCallCandidates(*ci, M);
-            for (auto ind_call_can : ind_call_candidates)
+            for (auto* ind_call_can : ind_call_candidates)
             {
               Node* callee_node = getNode(*ind_call_can);
               if (callee_node != nullptr)
@@ -88,15 +88,15 @@ bool pdg::PDGCallGraph::isFuncSignatureMatch(CallInst &ci, llvm::Function &f)
   if (actual_arg_list_size != formal_arg_list_size)
     return false;
   // compare return type
-  auto actual_ret_type = ci.getType();
-  auto formal_ret_type = f.getReturnType();
+  auto* actual_ret_type = ci.getType();
+  auto* formal_ret_type = f.getReturnType();
   if (!isTypeEqual(*actual_ret_type, *formal_ret_type))
     return false;
   
   for (unsigned i = 0; i < actual_arg_list_size; i++)
   {
-    auto actual_arg = ci.getOperand(i);
-    auto formal_arg = f.getArg(i);
+    auto* actual_arg = ci.getOperand(i);
+    auto* formal_arg = f.getArg(i);
     if (!isTypeEqual(*actual_arg->getType(), *formal_arg->getType()))
       return false;
   }
@@ -112,8 +112,8 @@ bool pdg::PDGCallGraph::isTypeEqual(Type& t1, Type &t2)
   if (!t1.isPointerTy() || !t2.isPointerTy())
     return false;
 
-  auto t1_pointed_ty = t1.getPointerElementType();
-  auto t2_pointed_ty = t2.getPointerElementType();
+  auto* t1_pointed_ty = t1.getPointerElementType();
+  auto* t2_pointed_ty = t2.getPointerElementType();
 
   if (!t1_pointed_ty->isStructTy() || !t2_pointed_ty->isStructTy())
     return false;
@@ -155,7 +155,7 @@ bool pdg::PDGCallGraph::canReach(Node &src, Node &sink)
         continue;
       seen_node.insert(n);
 
-      for (auto out_neighbor : n->getOutNeighbors())
+      for (auto* out_neighbor : n->getOutNeighbors())
       {
         node_queue.push(out_neighbor);
       }
@@ -170,7 +170,7 @@ void pdg::PDGCallGraph::dump()
     if (Function *f = dyn_cast<Function>(pair.first))
     {
       errs() << f->getName() << ": \n";
-      for (auto out_node : pair.second->getOutNeighbors())
+      for (auto* out_node : pair.second->getOutNeighbors())
       {
         if (Function *callee = dyn_cast<Function>(out_node->getValue()))
           errs() << "\t\t" << callee->getName() << "\n";
@@ -228,7 +228,7 @@ void pdg::PDGCallGraph::computePathsHelper(PathVecs &path_vecs, Node &src, Node 
     return;
   }
 
-  for (auto out_neighbor : src.getOutNeighbors())
+  for (auto* out_neighbor : src.getOutNeighbors())
   {
     computePathsHelper(path_vecs, *out_neighbor, sink, cur_path, visited_funcs, found_path);
   }

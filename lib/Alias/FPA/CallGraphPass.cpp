@@ -151,7 +151,7 @@ bool CallGraphPass::doFinalization(llvm::Module *M) {
 // FS = FS1 & FS2
 void CallGraphPass::intersectFuncSets(FuncSet &FS1, FuncSet &FS2, FuncSet &FS) {
     FS.clear();
-    for (auto F : FS1) {
+    for (auto *F : FS1) {
         // 如果FS1中的F在FS2中
         if (FS2.find(F) != FS2.end())
             FS.insert(F);
@@ -180,7 +180,7 @@ void CallGraphPass::unrollLoops(Function* F) {
             LP = LPL.front();
             LPL.pop_front();
             vector<Loop *> SubLPs = LP->getSubLoops();
-            for (auto SubLP : SubLPs) {
+            for (auto *SubLP : SubLPs) {
                 LPSet.insert(SubLP);
                 LPL.push_back(SubLP);
             }

@@ -21,7 +21,7 @@ ContextSensitiveLocalNullCheckAnalysis::ContextSensitiveLocalNullCheckAnalysis(
     for (unsigned K = 0; K < F->arg_size(); ++K) {
         auto *Arg = F->getArg(K);
         if (!Arg->getType()->isPointerTy()) continue;
-        auto ArgX = NEA.get(Arg);
+        auto* ArgX = NEA.get(Arg);
         
         // Get the first instruction in the function as the instruction point
         Instruction *FirstInst = nullptr;
@@ -39,9 +39,9 @@ ContextSensitiveLocalNullCheckAnalysis::ContextSensitiveLocalNullCheckAnalysis(
     for (auto &B : *F) {
         for (auto &I : B) {
             for (unsigned K = 0; K < I.getNumOperands(); ++K) {
-                auto Op = I.getOperand(K);
+                auto* Op = I.getOperand(K);
                 if (!Op->getType()->isPointerTy()) continue;
-                auto OpX = NEA.get(Op);
+                auto* OpX = NEA.get(Op);
                 
                 if (NFA->notNull(OpX, Ctx) || NFA->notNull(Op, Ctx)) continue;
                 
@@ -154,7 +154,7 @@ void ContextSensitiveLocalNullCheckAnalysis::tag() {
             IncomingEdges.clear();
             if (&I == &B.front()) {
                 for (auto PIt = pred_begin(&B), PE = pred_end(&B); PIt != PE; ++PIt) {
-                    auto Term = (*PIt)->getTerminator();
+                    auto* Term = (*PIt)->getTerminator();
                     for (unsigned K = 0; K < Term->getNumSuccessors(); ++K) {
                         if (Term->getSuccessor(K) == I.getParent()) {
                             IncomingEdges.emplace_back(Term, K);
@@ -175,7 +175,7 @@ void ContextSensitiveLocalNullCheckAnalysis::tag() {
             }
             auto &Orig = InstNonNullMap[&I];
             for (auto K = 0; K < I.getNumOperands(); ++K) {
-                auto OpK = I.getOperand(K);
+                auto* OpK = I.getOperand(K);
                 auto It = PtrIDMap.find(NEA.get(OpK));
                 if (It == PtrIDMap.end()) continue;
                 auto OpKMustNonNull = NonNulls->test(It->second);
@@ -253,7 +253,7 @@ void ContextSensitiveLocalNullCheckAnalysis::transfer(Edge E, const BitVector &I
             if (Inst->getType()->isPointerTy()) {
                 bool AllNonNull = true;
                 for (unsigned K = 0; K < Inst->getNumOperands(); ++K) {
-                    auto Op = Inst->getOperand(K);
+                    auto*  Op = Inst->getOperand(K);
                     if (!Op->getType()->isPointerTy()) continue;
                     if (!Count(Op)) {
                         AllNonNull = false;
@@ -343,7 +343,7 @@ void ContextSensitiveLocalNullCheckAnalysis::nca() {
         WorkList.pop_back();
         if (UnreachableEdges.count(Edge)) continue;
 
-        auto EdgeInst = Edge.first;
+        auto* EdgeInst = Edge.first;
         auto &EdgeFact = DataflowFacts.at(Edge); // this loop iteration re-compute EdgeFact
 
         // 1. merge
@@ -351,7 +351,7 @@ void ContextSensitiveLocalNullCheckAnalysis::nca() {
         if (EdgeInst == &(EdgeInst->getParent()->front())) {
             auto *B = EdgeInst->getParent();
             for (auto PIt = pred_begin(B), PE = pred_end(B); PIt != PE; ++PIt) {
-                auto Term = (*PIt)->getTerminator();
+                auto* Term = (*PIt)->getTerminator();
                 for (unsigned K = 0; K < Term->getNumSuccessors(); ++K) {
                     if (Term->getSuccessor(K) == B) {
                         IncomingEdges.emplace_back(Term, K);

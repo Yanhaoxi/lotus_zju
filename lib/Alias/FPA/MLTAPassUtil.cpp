@@ -198,7 +198,7 @@ bool MLTAPass::getBaseTypeChain(list<typeidx_t> &Chain, Value *V, bool &Complete
     }
 
     else {
-        for (auto U: NextV->users()) {
+        for (auto *U: NextV->users()) {
             if (StoreInst *SI = dyn_cast<StoreInst>(U)) {
                 if (NextV == SI->getPointerOperand()) {
                     Complete = false;
@@ -331,7 +331,7 @@ bool MLTAPass::getGEPLayerTypes(GEPOperator *GEP, list<typeidx_t> &TyList) {
         }
         else if (StructType *STy = dyn_cast<StructType>(ETy)) {
             bool OptGEP = false;
-            for (auto User: GEP->users()) {
+            for (auto *User: GEP->users()) {
                 if (BitCastOperator* BCO = dyn_cast<BitCastOperator>(User)) {
                     OptGEP = true;
                     // TODO: This conservative decision results may cases
@@ -345,7 +345,7 @@ bool MLTAPass::getGEPLayerTypes(GEPOperator *GEP, list<typeidx_t> &TyList) {
 
     // Indices保存getelementptr指令所有的索引，比如getelementptr inbounds %struct.ST, ptr %s, f1, f2, f3, f4 返回f1, f2, f3, f4
     if (Indices.empty()) {
-        for (auto it = GEP->idx_begin(); it != GEP->idx_end(); it++) {
+        for (auto *it = GEP->idx_begin(); it != GEP->idx_end(); it++) {
             ConstantInt *ConstII = dyn_cast<ConstantInt>(it->get());
             if (ConstII)
                 Indices.push_back(ConstII->getSExtValue());
@@ -377,7 +377,7 @@ bool MLTAPass::getGEPLayerTypes(GEPOperator *GEP, list<typeidx_t> &TyList) {
     if (STy && STy->getNumElements() > 0) {
         // Get the type of its first field
         Type *Ty0 = STy->getElementType(0);
-        for (auto U : GEP->users()) {
+        for (auto *U : GEP->users()) {
             if (BitCastOperator *BCO = dyn_cast<BitCastOperator>(U)) {
                 if (PointerType *PTy = dyn_cast<PointerType>(BCO->getType())) {
                     Type *ToTy = PTy->getPointerElementType();

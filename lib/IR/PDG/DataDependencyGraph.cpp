@@ -79,7 +79,7 @@ void pdg::DataDependencyGraph::addAliasEdges(Instruction &inst)
 void pdg::DataDependencyGraph::addDefUseEdges(Instruction &inst)
 {
   ProgramGraph &g = ProgramGraph::getInstance();
-  for (auto user : inst.users())
+  for (auto* user : inst.users())
   {
     Node *src = g.getNode(inst);
     Node *dst = g.getNode(*user);
@@ -101,7 +101,7 @@ void pdg::DataDependencyGraph::addRAWEdges(Instruction &inst)
 
   ProgramGraph &g = ProgramGraph::getInstance();
   auto dep_res = _mem_dep_res->getDependency(&inst);
-  auto dep_inst = dep_res.getInst();
+  auto* dep_inst = dep_res.getInst();
 
   if (!dep_inst)
     return;

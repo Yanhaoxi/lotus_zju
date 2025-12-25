@@ -180,7 +180,7 @@ DyckGraphNode *DyckGraph::combine(DyckGraphNode *NodeX, DyckGraphNode *NodeY) {
 
         YIIt++;
     }
-    auto Vals = NodeY->getEquivalentSet();
+    auto *Vals = NodeY->getEquivalentSet();
     for (auto &Val: *Vals) {
         ValVertexMap[Val] = NodeX;
     }
@@ -226,7 +226,7 @@ bool DyckGraph::qirunAlgorithm() {
         //outs()<<"HERE0.3\n"; outs().flush();
         assert(X != Y);
         Vertices.erase(Y);
-        auto Vals = Y->getEquivalentSet();
+        auto *Vals = Y->getEquivalentSet();
         for (auto &Val: *Vals) {
             ValVertexMap[Val] = X;
         }
@@ -345,8 +345,8 @@ void DyckGraph::validation(const char *File, int Line) {
     auto RepsIt = Reps.begin();
     while (RepsIt != Reps.end()) {
         DyckGraphNode *Rep = *RepsIt;
-        auto RepVal = Rep->getEquivalentSet();
-        for (auto Val: *RepVal)
+        auto *RepVal = Rep->getEquivalentSet();
+        for (auto *Val: *RepVal)
             assert(ValVertexMap[Val] == Rep);
         RepsIt++;
     }

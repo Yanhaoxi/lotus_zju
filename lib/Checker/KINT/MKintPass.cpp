@@ -38,15 +38,15 @@ MKintPass::MKintPass() : m_solver(llvm::None), m_function_timeout(FunctionTimeou
 
 void MKintPass::backedge_analysis(const Function& F) {
     for (const auto& bb_ref : F) {
-        auto bb = &bb_ref;
+        const auto *bb = &bb_ref;
         if (m_backedges.count(bb) == 0) {
             // compute backedges of bb
             m_backedges[bb] = {};
             std::vector<const BasicBlock*> remote_succs { bb };
             while (!remote_succs.empty()) {
-                auto cur_succ = remote_succs.back();
+                const auto *cur_succ = remote_succs.back();
                 remote_succs.pop_back();
-                for (const auto succ : successors(cur_succ)) {
+                for (const auto *const succ : successors(cur_succ)) {
                     if (succ != bb && !m_backedges[bb].contains(succ)) {
                         m_backedges[bb].insert(succ);
                         remote_succs.push_back(succ);
@@ -87,7 +87,7 @@ PreservedAnalyses MKintPass::run(Module& M, ModuleAnalysisManager& MAM) {
     }
 
     // FIXME: This is a hack.
-    auto ctx = new z3::context; // let it leak.
+    auto *ctx = new z3::context; // let it leak.
     m_solver = z3::solver(*ctx);
 
     // Mark taint sources.
@@ -127,7 +127,7 @@ PreservedAnalyses MKintPass::run(Module& M, ModuleAnalysisManager& MAM) {
         const auto old_glb_arrrng = m_garr2ranges;
         const auto old_fn_ret_rng = m_func2ret_range;
 
-        for (auto F : m_range_analysis_funcs) {
+        for (auto *F : m_range_analysis_funcs) {
             m_range_analysis->range_analysis(*F, m_func2range_info, m_backedges, 
                                            m_global2range, m_garr2ranges, m_func2ret_range,
                                            m_impossible_branches, m_gep_oob, m_func2tsrc, m_callback_tsrc_fn);
@@ -171,7 +171,7 @@ void MKintPass::pring_all_ranges() const {
 }
 
 void MKintPass::smt_solving(Module& /*M*/) {
-    for (auto F : m_taint_funcs) {
+    for (auto *F : m_taint_funcs) {
         if (F->isDeclaration())
             continue;
 
@@ -244,15 +244,15 @@ void MKintPass::path_solving(BasicBlock* cur, BasicBlock* pred) {
     auto cur_brng = m_func2range_info[cur->getParent()][cur];
 
     if (nullptr != pred) {
-        auto terminator = pred->getTerminator();
-        auto br = dyn_cast<BranchInst>(terminator);
+        auto *terminator = pred->getTerminator();
+        auto *br = dyn_cast<BranchInst>(terminator);
         if (br) {
             if (br->isConditional()) {
-                if (auto cmp = dyn_cast<ICmpInst>(br->getCondition())) {
+                if (auto *cmp = dyn_cast<ICmpInst>(br->getCondition())) {
                     // br: a op b == true or false
                     // makeAllowedICmpRegion turning a op b into a range.
-                    auto lhs = cmp->getOperand(0);
-                    auto rhs = cmp->getOperand(1);
+                    auto *lhs = cmp->getOperand(0);
+                    auto *rhs = cmp->getOperand(1);
 
                     if (!lhs->getType()->isIntegerTy() || !rhs->getType()->isIntegerTy()) {
                         // This should be covered by `ICmpInst`.
@@ -331,13 +331,13 @@ void MKintPass::path_solving(BasicBlock* cur, BasicBlock* pred) {
                     }
                 }
             }
-        } else if (auto swt = dyn_cast<SwitchInst>(terminator)) {
-            auto cond = swt->getCondition();
+        } else if (auto *swt = dyn_cast<SwitchInst>(terminator)) {
+            auto *cond = swt->getCondition();
             if (cond->getType()->isIntegerTy()) {
                 if (swt->getDefaultDest() == cur) { // default
                     // not (all)
                     for (auto c : swt->cases()) {
-                        auto case_val = c.getCaseValue();
+                        auto *case_val = c.getCaseValue();
                         m_solver.getValue().add(m_bug_detection->v2sym(cond, m_v2sym, m_solver.getValue())
                             != m_solver.getValue().ctx().bv_val(
                                 case_val->getZExtValue(), cond->getType()->getIntegerBitWidth()));
@@ -345,7 +345,7 @@ void MKintPass::path_solving(BasicBlock* cur, BasicBlock* pred) {
                 } else {
                     for (auto c : swt->cases()) {
                         if (c.getCaseSuccessor() == cur) {
-                            auto case_val = c.getCaseValue();
+                            auto *case_val = c.getCaseValue();
                             m_solver.getValue().add(m_bug_detection->v2sym(cond, m_v2sym, m_solver.getValue())
                                 == m_solver.getValue().ctx().bv_val(
                                     case_val->getZExtValue(), cond->getType()->getIntegerBitWidth()));
@@ -365,13 +365,13 @@ void MKintPass::path_solving(BasicBlock* cur, BasicBlock* pred) {
         if (!cur_brng.count(&inst) || !inst.getType()->isIntegerTy())
             continue;
 
-        if (auto op = dyn_cast<BinaryOperator>(&inst)) {
+        if (auto *op = dyn_cast<BinaryOperator>(&inst)) {
             m_bug_detection->binary_check(op, m_solver.getValue(), m_v2sym, 
                                         m_overflow_insts, m_bad_shift_insts, m_div_zero_insts);
             m_v2sym[op] = m_bug_detection->binary_op_propagate(op, m_v2sym, m_solver.getValue());
             if (!m_bug_detection->add_range_cons(m_range_analysis->get_range_by_bb(&inst, inst.getParent(), m_func2range_info), m_bug_detection->v2sym(&inst, m_v2sym, m_solver.getValue()), m_solver.getValue()))
                 return;
-        } else if (auto op = dyn_cast<CastInst>(&inst)) {
+        } else if (auto *op = dyn_cast<CastInst>(&inst)) {
             m_v2sym[op] = m_bug_detection->cast_op_propagate(op, m_v2sym, m_solver.getValue());
             if (!m_bug_detection->add_range_cons(m_range_analysis->get_range_by_bb(&inst, inst.getParent(), m_func2range_info), m_bug_detection->v2sym(&inst, m_v2sym, m_solver.getValue()), m_solver.getValue()))
                 return;
@@ -383,7 +383,7 @@ void MKintPass::path_solving(BasicBlock* cur, BasicBlock* pred) {
         }
     }
 
-    for (auto succ : m_bbpaths[cur]) {
+    for (auto *succ : m_bbpaths[cur]) {
         m_solver.getValue().push();
         path_solving(succ, cur);
         m_solver.getValue().pop();

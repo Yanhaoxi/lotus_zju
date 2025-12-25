@@ -22,7 +22,7 @@ using namespace llvm;
 // Check if a type is a vector that can be unrolled by this pass.
 // Only fixed-size vectors with byte-aligned elements are supported.
 static VectorType* unrollableVectorType(Type* Ty, Module* M) {
-  if (auto VecTy = dyn_cast<VectorType>(Ty)) {
+  if (auto *VecTy = dyn_cast<VectorType>(Ty)) {
     // LLVM 14 doesn't have isScalable() method
     // if (VecTy->isScalable()) {
     //   return nullptr;
@@ -117,7 +117,7 @@ static bool unrollVectorsInFunction(Function &F) {
 static bool handleKnownInst(Instruction* I, DenseMap<Value*, SmallVector<Value*, 2>>& UnrollMap) {
     Module* M = I->getModule();
 
-    if (auto InsertElement = dyn_cast<InsertElementInst>(I)) {
+    if (auto *InsertElement = dyn_cast<InsertElementInst>(I)) {
       if (!unrollableVectorType(InsertElement->getType(), M)) {
         return false;
       }
@@ -127,7 +127,7 @@ static bool handleKnownInst(Instruction* I, DenseMap<Value*, SmallVector<Value*,
       Value* IndexVal = InsertElement->getOperand(2);
 
       unsigned Index;
-      if (auto ConstIndexVal = dyn_cast<ConstantInt>(IndexVal)) {
+      if (auto *ConstIndexVal = dyn_cast<ConstantInt>(IndexVal)) {
         Index = ConstIndexVal->getZExtValue();
       } else {
         return false;
@@ -142,7 +142,7 @@ static bool handleKnownInst(Instruction* I, DenseMap<Value*, SmallVector<Value*,
       UnrollMap.try_emplace(InsertElement, std::move(Elems));
       return true;
 
-    } else if (auto ExtractElement = dyn_cast<ExtractElementInst>(I)) {
+    } else if (auto *ExtractElement = dyn_cast<ExtractElementInst>(I)) {
       if (!unrollableVectorType(ExtractElement->getVectorOperandType(), M)) {
         return false;
       }
@@ -151,7 +151,7 @@ static bool handleKnownInst(Instruction* I, DenseMap<Value*, SmallVector<Value*,
       Value* IndexVal = ExtractElement->getOperand(1);
 
       unsigned Index;
-      if (auto ConstIndexVal = dyn_cast<ConstantInt>(IndexVal)) {
+      if (auto *ConstIndexVal = dyn_cast<ConstantInt>(IndexVal)) {
         Index = ConstIndexVal->getZExtValue();
       } else {
         return false;
@@ -165,7 +165,7 @@ static bool handleKnownInst(Instruction* I, DenseMap<Value*, SmallVector<Value*,
       ExtractElement->replaceAllUsesWith(Elems[Index]);
       return true;
 
-    } else if (auto Load = dyn_cast<LoadInst>(I)) {
+    } else if (auto *Load = dyn_cast<LoadInst>(I)) {
       VectorType* VecTy = unrollableVectorType(Load->getType(), M);
       if (!VecTy) {
         return false;
@@ -215,7 +215,7 @@ static bool handleKnownInst(Instruction* I, DenseMap<Value*, SmallVector<Value*,
 
       return true;
 
-    } else if (auto Store = dyn_cast<StoreInst>(I)) {
+    } else if (auto *Store = dyn_cast<StoreInst>(I)) {
       // TODO: handle StoreInst
       return false;
 

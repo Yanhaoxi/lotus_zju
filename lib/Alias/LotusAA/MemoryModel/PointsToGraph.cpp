@@ -97,7 +97,7 @@ PTResultIterator::PTResultIterator(PTResult *target, PTGraph *parent_graph)
   if (!target->is_optimized) {
     target->pt_list.clear();
     int count = 0;
-    for (auto loc : res) {
+    for (auto* loc : res) {
       count++;
       if (lotus_restrict_pts_count != -1 && count > lotus_restrict_pts_count)
         break;
@@ -448,16 +448,16 @@ bool PTGraph::isSameValue(Value *ptr1, Instruction *pos1, Value *ptr2,
 
   // Check if all locations match
   set<ObjectLocator *, obj_loc_cmp> locs1, locs2;
-  for (auto loc : iter1)
+  for (auto*  loc : iter1)
     locs1.insert(loc->offsetBy(offset1));
-  for (auto loc : iter2)
+  for (auto* loc : iter2)
     locs2.insert(loc->offsetBy(offset2));
 
   if (locs1 != locs2)
     return false;
 
   // Check if versions match
-  for (auto loc : locs1) {
+  for (auto* loc : locs1) {
     MemObject *obj = loc->getObj();
     if (obj->isNull() || obj->isUnknown())
       continue;
@@ -497,7 +497,7 @@ int PTGraph::getObjectToCallApDepth(MemObject *obj, CallInst *call) {
       PTResult *pts_result = findPTResult(arg, false);
       if (pts_result) {
         PTResultIterator result_iter(pts_result, this);
-        for (auto pt_loc : result_iter) {
+        for (auto* pt_loc : result_iter) {
           MemObject *pt_obj = pt_loc->getObj();
           if (!cache.count(pt_obj)) {
             cache[pt_obj] = 1;
@@ -541,7 +541,7 @@ int PTGraph::getObjectToCallApDepth(MemObject *obj, CallInst *call) {
             PTResult *pts_result = findPTResult(val, false);
             if (pts_result) {
               PTResultIterator result_iter(pts_result, this);
-              for (auto pt_loc : result_iter) {
+              for (auto* pt_loc : result_iter) {
                 MemObject *pt_obj = pt_loc->getObj();
                 if (!cache.count(pt_obj)) {
                   cache[pt_obj] = frontier_depth + 1;

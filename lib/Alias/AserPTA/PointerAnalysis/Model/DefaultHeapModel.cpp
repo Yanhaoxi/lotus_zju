@@ -13,9 +13,9 @@ using namespace aser;
 static Type *getNextBitCastDestType(const Instruction *allocSite) {
     // a call instruction
     const Instruction *nextInst = nullptr;
-    if (auto call = dyn_cast<CallInst>(allocSite)) {
+    if (auto* call = dyn_cast<CallInst>(allocSite)) {
         nextInst = call->getNextNode();
-    } else if (auto invoke = dyn_cast<InvokeInst>(allocSite)) {
+    } else if (auto* invoke = dyn_cast<InvokeInst>(allocSite)) {
         // skip the exception handler code
         nextInst = invoke->getNormalDest()->getFirstNonPHIOrDbgOrLifetime();
     }
@@ -34,7 +34,7 @@ static Type *getNextBitCastDestType(const Instruction *allocSite) {
 // the signature of calloc is void *calloc(size_t elementNum, size_t elementSize);
 Type *DefaultHeapModel::inferCallocType(const Function *fun, const Instruction *allocSite,
                                         int numArgNo, int sizeArgNo) {
-    if (auto elemType = getNextBitCastDestType(allocSite)) {
+    if (auto* elemType = getNextBitCastDestType(allocSite)) {
         assert(elemType->isSized());
 
         aser::CallSite CS(allocSite);
@@ -43,10 +43,10 @@ Type *DefaultHeapModel::inferCallocType(const Function *fun, const Instruction *
         const Value *elementNum = CS.getArgOperand(numArgNo);
         const Value *elementSize = CS.getArgOperand(sizeArgNo);
 
-        if (auto size = dyn_cast<ConstantInt>(elementSize)) {
+        if (auto* size = dyn_cast<ConstantInt>(elementSize)) {
             if (elemSize == size->getSExtValue()) {
                 // GREAT, we are sure that the element type is the bitcast type
-                if (auto elemNum = dyn_cast<ConstantInt>(elementNum)) {
+                if (auto* elemNum = dyn_cast<ConstantInt>(elementNum)) {
                     return getBoundedArrayTy(elemType, elemNum->getSExtValue());
                 } else {
                     // the element number can not be determined
@@ -62,7 +62,7 @@ Type *DefaultHeapModel::inferCallocType(const Function *fun, const Instruction *
 Type *DefaultHeapModel::inferMallocType(const Function *fun, const Instruction *allocSite,
                                         int sizeArgNo) {
 
-    if (auto elemType = getNextBitCastDestType(allocSite)) {
+    if (auto* elemType = getNextBitCastDestType(allocSite)) {
         assert(elemType->isSized());
 
         // if the sizeArgNo is not specified, treat it as unbounded array
@@ -76,7 +76,7 @@ Type *DefaultHeapModel::inferMallocType(const Function *fun, const Instruction *
         const Value *totalSize = CS.getArgOperand(sizeArgNo);
 
         // the allocated object size is known statically
-        if (auto constSize = dyn_cast<ConstantInt>(totalSize)) {
+        if (auto* constSize = dyn_cast<ConstantInt>(totalSize)) {
             size_t memSize = constSize->getValue().getSExtValue();
             if (memSize == elemSize) {
                 // GREAT!

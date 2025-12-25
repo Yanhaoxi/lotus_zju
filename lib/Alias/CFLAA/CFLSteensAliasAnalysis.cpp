@@ -193,7 +193,7 @@ CFLSteensAAResult::FunctionInfo CFLSteensAAResult::buildSetsFrom(Function *Fn) {
   // Add all CFLGraph nodes and all Dereference edges to StratifiedSets
   auto &Graph = GraphBuilder.getCFLGraph();
   for (const auto &Mapping : Graph.value_mappings()) {
-    auto Val = Mapping.first;
+    auto *Val = Mapping.first;
     if (canSkipAddingToSets(Val))
       continue;
     auto &ValueInfo = Mapping.second;
@@ -213,7 +213,7 @@ CFLSteensAAResult::FunctionInfo CFLSteensAAResult::buildSetsFrom(Function *Fn) {
 
   // Add all assign edges to StratifiedSets
   for (const auto &Mapping : Graph.value_mappings()) {
-    auto Val = Mapping.first;
+    auto *Val = Mapping.first;
     if (canSkipAddingToSets(Val))
       continue;
     auto &ValueInfo = Mapping.second;

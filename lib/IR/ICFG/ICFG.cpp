@@ -24,12 +24,12 @@ using namespace llvm;
  
      std::cout << this->toString() << "\n";
      std::cout << "OutEdges:\n";
-     for (auto edge : getOutEdges()) {
+     for (auto* edge : getOutEdges()) {
  
          std::cout << "\t" << edge->toString() << "\n";
      }
      std::cout << "InEdges:\n";
-     for (auto edge : getInEdges()) {
+     for (auto* edge : getInEdges()) {
  
          std::cout << "\t" << edge->toString() << "\n";
      }

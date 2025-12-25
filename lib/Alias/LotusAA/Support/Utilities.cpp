@@ -227,7 +227,7 @@ void IntraLotusAA::getCallerObj(Value *call, Function *callee,
       
     PTResultIterator ptr_iter(pts, this);
 
-    for (auto loc : ptr_iter) {
+    for (auto* loc : ptr_iter) {
       MemObject *obj = loc->getObj();
       if (!obj->isValid())
         continue;

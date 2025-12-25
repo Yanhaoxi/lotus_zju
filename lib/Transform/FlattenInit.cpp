@@ -511,7 +511,7 @@ MemRegion& Memory::getRegion(Value* V) {
 }
 
 void Memory::initRegion(MemRegion& Region, Value* V) {
-  if (auto GV = dyn_cast<GlobalVariable>(V)) {
+  if (auto *GV = dyn_cast<GlobalVariable>(V)) {
     if (!GV->hasInitializer()) {
       return;
     }
@@ -521,25 +521,25 @@ void Memory::initRegion(MemRegion& Region, Value* V) {
 }
 
 void Memory::storeConstant(MemRegion& Region, uint64_t Offset, Constant* C) {
-  if (auto Array = dyn_cast<ConstantArray>(C)) {
+  if (auto *Array = dyn_cast<ConstantArray>(C)) {
     Type* ElemTy = Array->getType()->getElementType();
     uint64_t Stride = DL.getTypeAllocSize(ElemTy);
     for (unsigned I = 0; I < Array->getNumOperands(); ++I) {
       storeConstant(Region, Offset + I * Stride, Array->getOperand(I));
     }
-  } else if (auto DataArray = dyn_cast<ConstantDataArray>(C)) {
+  } else if (auto *DataArray = dyn_cast<ConstantDataArray>(C)) {
     Type* ElemTy = DataArray->getElementType();
     uint64_t Stride = DL.getTypeAllocSize(ElemTy);
     for (unsigned I = 0; I < DataArray->getNumElements(); ++I) {
       storeConstant(Region, Offset + I * Stride, DataArray->getElementAsConstant(I));
     }
-  } else if (auto Struct = dyn_cast<ConstantStruct>(C)) {
+  } else if (auto *Struct = dyn_cast<ConstantStruct>(C)) {
     const StructLayout* Layout = DL.getStructLayout(Struct->getType());
     for (unsigned I = 0; I < Struct->getNumOperands(); ++I) {
       uint64_t FieldOffset = Offset + Layout->getElementOffset(I);
       storeConstant(Region, FieldOffset, Struct->getOperand(I));
     }
-  } else if (auto AggZero = dyn_cast<ConstantAggregateZero>(C)) {
+  } else if (auto *AggZero = dyn_cast<ConstantAggregateZero>(C)) {
     uint64_t Len = DL.getTypeStoreSize(AggZero->getType());
     Region.pushOp(MemStore::CreateZero(Offset, Len), DL);
   } else if (C->getType()->isIntOrPtrTy() || C->getType()->isFloatingPointTy()) {
@@ -901,7 +901,7 @@ bool State::step() {
     // Compute all the new values first, so that all updates to `SF.Locals`
     // happen at once.
     SmallVector<std::tuple<PHINode*, Value*, SmallVector<Label, 8>>, 4> NewValues;
-    while (auto PHI = dyn_cast<PHINode>(&*SF.Iter)) {
+    while (auto *PHI = dyn_cast<PHINode>(&*SF.Iter)) {
       Value* OldVal = PHI->getIncomingValueForBlock(SF.PrevBB);
       Value* NewVal = SF.mapValue(OldVal);
       SmallVector<Label, 8> OldLabel = SF.getLabels(OldVal);
@@ -946,21 +946,21 @@ bool State::step() {
 
   // Try to handle function calls.  This can fail if the callee is unknown or
   // not defined, in which case we pass it through as an unknown instruction.
-  if (auto Call = dyn_cast<CallInst>(Inst)) {
+  if (auto *Call = dyn_cast<CallInst>(Inst)) {
     if (stepCall(Call, cast<CallInst>(OldInst), nullptr, nullptr)) {
       // Checks on target.
-      auto Callee = Call->getCalledOperand();
+      auto *Callee = Call->getCalledOperand();
       auto const& CalleeL = SF.getLabels(Callee);
       checkBottom(CalleeL);
 
       return true;
     }
   }
-  if (auto Invoke = dyn_cast<InvokeInst>(Inst)) {
+  if (auto *Invoke = dyn_cast<InvokeInst>(Inst)) {
     if (stepCall(Invoke, cast<InvokeInst>(OldInst), 
           Invoke->getNormalDest(), Invoke->getUnwindDest())) {
       // Checks on target.
-      auto Callee = Invoke->getCalledOperand();
+      auto *Callee = Invoke->getCalledOperand();
       auto const& CalleeL = SF.getLabels(Callee);
       checkBottom(CalleeL);
 
@@ -968,7 +968,7 @@ bool State::step() {
     }
   }
 
-  if (auto Return = dyn_cast<ReturnInst>(Inst)) {
+  if (auto *Return = dyn_cast<ReturnInst>(Inst)) {
     if (Stack.size() == 1) {
       // Returning from the top-level function should just be passed through.
       return false;
@@ -999,21 +999,21 @@ bool State::step() {
     return true;
   }
 
-  if (auto Branch = dyn_cast<BranchInst>(Inst)) {
+  if (auto *Branch = dyn_cast<BranchInst>(Inst)) {
     if (Branch->isUnconditional()) {
       // Taint analysis checks on target are unnecessary since the successor is a compile-time constant.
-      auto Succ = Branch->getSuccessor(0);
+      auto *Succ = Branch->getSuccessor(0);
 
       SF.enterBlock(Succ);
       Inst->deleteValue();
       return true;
     } else {
-      if (auto ConstCond = dyn_cast<Constant>(Branch->getCondition())) {
+      if (auto *ConstCond = dyn_cast<Constant>(Branch->getCondition())) {
         // Checks on conditional.
         auto const& CondL = SF.getLabels(ConstCond);
         checkBottom(CondL);
         // Taint analysis checks on target are unnecessary since the successor is a compile-time constant.
-        auto Succ = ConstCond->isOneValue() ? Branch->getSuccessor(0) : Branch->getSuccessor(1);
+        auto *Succ = ConstCond->isOneValue() ? Branch->getSuccessor(0) : Branch->getSuccessor(1);
 
         SF.enterBlock(Succ);
         Inst->deleteValue();
@@ -1021,13 +1021,13 @@ bool State::step() {
       }
     }
   }
-  if (auto Switch = dyn_cast<SwitchInst>(Inst)) {
-    if (auto ConstCond = dyn_cast<ConstantInt>(Switch->getCondition())) {
+  if (auto *Switch = dyn_cast<SwitchInst>(Inst)) {
+    if (auto *ConstCond = dyn_cast<ConstantInt>(Switch->getCondition())) {
       // Checks on target and conditional.
       auto const& CondL = SF.getLabels(ConstCond);
       checkBottom(CondL);
       // Taint analysis checks on target are unnecessary since the successor is a compile-time constant.
-      auto Succ = Switch->findCaseValue(ConstCond)->getCaseSuccessor();
+      auto *Succ = Switch->findCaseValue(ConstCond)->getCaseSuccessor();
 
       SF.enterBlock(Succ);
       Inst->deleteValue();
@@ -1035,8 +1035,8 @@ bool State::step() {
     }
   }
 
-  if (auto Load = dyn_cast<LoadInst>(Inst)) {
-    auto RawPtr = Load->getPointerOperand();
+  if (auto *Load = dyn_cast<LoadInst>(Inst)) {
+    auto *RawPtr = Load->getPointerOperand();
     if (auto Ptr = evalBaseOffset(RawPtr)) {
       // Checks on addr.
       auto const& AddrL = SF.getLabels(RawPtr);
@@ -1073,7 +1073,7 @@ bool State::step() {
 
 
   // Allocation instructions.
-  if (auto Alloca = dyn_cast<AllocaInst>(Inst)) {
+  if (auto *Alloca = dyn_cast<AllocaInst>(Inst)) {
     if (Value* V = stepAlloca(Alloca)) {
       SF.Locals[OldInst] = V;
       Inst->deleteValue();
@@ -1094,7 +1094,7 @@ bool State::step() {
 
 
   // Instructions that pass through, but with some special effect.
-  if (auto Store = dyn_cast<StoreInst>(Inst)) {
+  if (auto *Store = dyn_cast<StoreInst>(Inst)) {
     // We could actually handle some of these cases (e.g. stores of
     // non-constant values) without bailing out, but we'd have to call
     // `updateMemory()` before handling the instruction, which would require
@@ -1107,7 +1107,7 @@ bool State::step() {
       Inst->deleteValue();
       return false;
     }
-    auto RawPtr = Store->getPointerOperand();
+    auto *RawPtr = Store->getPointerOperand();
     if (auto Ptr = evalBaseOffset(RawPtr)) {
       // Checks on addr.
       auto const& AddrL = SF.getLabels(RawPtr);
@@ -1162,15 +1162,15 @@ Value* State::convertLoadResult(Value* V, uint64_t Offset, Type* T) {
   }
 
   // Complex case: extracting a byte from a larger value.
-  if (auto IntTy = dyn_cast<IntegerType>(T)) {
+  if (auto *IntTy = dyn_cast<IntegerType>(T)) {
     if (SrcTy->isIntOrPtrTy()) {
       Value* Src = V;
-      if (auto SrcPtrTy = dyn_cast<PointerType>(SrcTy)) {
+      if (auto *SrcPtrTy = dyn_cast<PointerType>(SrcTy)) {
         SrcTy = DL.getIntPtrType(SrcTy);
         Src = foldAndEmitInst(new PtrToIntInst(Src, SrcTy, "loadcast"));
       }
       if (Offset > 0) {
-        auto ShiftAmount = ConstantInt::get(SrcTy, 8 * Offset);
+        auto *ShiftAmount = ConstantInt::get(SrcTy, 8 * Offset);
         Src = foldAndEmitInst(BinaryOperator::Create(
               Instruction::LShr, Src, ShiftAmount, "loadshift"));
       }
@@ -1219,13 +1219,13 @@ SmallVector<Label, 8> const& StackFrame::getLabels(Value* OldVal) {
 }
 
 Function* getCallee(Value* V) {
-  if (auto Func = dyn_cast<Function>(V)) {
+  if (auto *Func = dyn_cast<Function>(V)) {
     return Func;
-  } else if (auto Expr = dyn_cast<ConstantExpr>(V)) {
+  } else if (auto *Expr = dyn_cast<ConstantExpr>(V)) {
     if (Expr->getOpcode() == Instruction::BitCast) {
       return getCallee(Expr->getOperand(0));
     }
-  } else if (auto Cast = dyn_cast<CastInst>(V)) {
+  } else if (auto *Cast = dyn_cast<CastInst>(V)) {
     if (Cast->getOpcode() == Instruction::BitCast) {
       return getCallee(Cast->getOperand(0));
     }
@@ -1314,16 +1314,16 @@ bool State::stepCall(
         errs() << ", ";
       }
       Value* V = Call->getArgOperand(I);
-      if (auto Int = dyn_cast<ConstantInt>(V)) {
+      if (auto *Int = dyn_cast<ConstantInt>(V)) {
         errs() << format_hex(Int->getZExtValue(), 0);
         continue;
       }
-      if (auto PtrToInt = dyn_cast<ConstantExpr>(V)) {
+      if (auto *PtrToInt = dyn_cast<ConstantExpr>(V)) {
         if (PtrToInt->getOpcode() == Instruction::PtrToInt) {
           V = PtrToInt->getOperand(0);
         }
       }
-      if (auto GV = dyn_cast<GlobalObject>(V)) {
+      if (auto *GV = dyn_cast<GlobalObject>(V)) {
         errs() << "@" << GV->getName();
         continue;
       }
@@ -1411,12 +1411,12 @@ bool State::stepMemset(CallBase* Call) {
     return false;
   }
 
-  auto ValConst = dyn_cast<Constant>(Call->getOperand(1));
+  auto *ValConst = dyn_cast<Constant>(Call->getOperand(1));
   if (ValConst == nullptr) {
     return false;
   }
 
-  auto LenConst = dyn_cast<ConstantInt>(Call->getOperand(2));
+  auto *LenConst = dyn_cast<ConstantInt>(Call->getOperand(2));
   if (LenConst == nullptr) {
     return false;
   }
@@ -1428,7 +1428,7 @@ bool State::stepMemset(CallBase* Call) {
     Mem.zero(DestPtr->first, DestPtr->second, Len);
   } else {
     Type* ByteTy = IntegerType::get(NewFunc->getContext(), 8);
-    auto ValByte = ConstantExpr::getTrunc(ValConst, ByteTy);
+    auto *ValByte = ConstantExpr::getTrunc(ValConst, ByteTy);
     for (unsigned I = 0; I < Len; ++I) {
       Mem.store(DestPtr->first, DestPtr->second + I, ValByte, EmptyLabels);
     }
@@ -1449,7 +1449,7 @@ bool State::stepMemmove(CallBase* Call) {
     return false;
   }
 
-  auto LenConst = dyn_cast<ConstantInt>(Call->getOperand(2));
+  auto *LenConst = dyn_cast<ConstantInt>(Call->getOperand(2));
   if (LenConst == nullptr) {
     return false;
   }
@@ -1538,7 +1538,7 @@ bool State::stepMalloc(CallBase* Call, CallBase* OldCall) {
 
   // Convert the arguments.
   uint64_t Size;
-  if (auto Int = dyn_cast<ConstantInt>(SizeV)) {
+  if (auto *Int = dyn_cast<ConstantInt>(SizeV)) {
     Size = Int->getZExtValue();
   } else {
     errs() << "malloc failed: non-constant size, in " << *Call << "\n";
@@ -1547,7 +1547,7 @@ bool State::stepMalloc(CallBase* Call, CallBase* OldCall) {
 
   uint64_t Size2 = 1;
   if (Size2V != nullptr) {
-    if (auto Int = dyn_cast<ConstantInt>(Size2V)) {
+    if (auto *Int = dyn_cast<ConstantInt>(Size2V)) {
       Size2 = Int->getZExtValue();
     } else {
       errs() << "malloc failed: non-constant size2, in " << *Call << "\n";
@@ -1567,7 +1567,7 @@ bool State::stepMalloc(CallBase* Call, CallBase* OldCall) {
 
   uint64_t Align;
   if (AlignV != nullptr) {
-    if (auto Int = dyn_cast<ConstantInt>(AlignV)) {
+    if (auto *Int = dyn_cast<ConstantInt>(AlignV)) {
       Align = Int->getZExtValue();
     } else {
       errs() << "malloc failed: non-constant align, in " << *Call << "\n";
@@ -1638,7 +1638,7 @@ bool State::stepRealloc(CallBase* Call, CallBase* OldCall) {
   }
 
   uint64_t Size;
-  if (auto Int = dyn_cast<ConstantInt>(SizeV)) {
+  if (auto *Int = dyn_cast<ConstantInt>(SizeV)) {
     Size = Int->getZExtValue();
   } else {
     errs() << "realloc failed: non-constant size, in " << *Call << "\n";
@@ -1652,7 +1652,7 @@ bool State::stepRealloc(CallBase* Call, CallBase* OldCall) {
   } else if (OldPtr->first == nullptr) {
     // If the old pointer is NULL, there's nothing to copy.
     MemcpySize = 0;
-  } else if (auto OldGV = dyn_cast<GlobalVariable>(OldPtr->first)) {
+  } else if (auto *OldGV = dyn_cast<GlobalVariable>(OldPtr->first)) {
     uint64_t GVSize = DL.getTypeAllocSize(OldGV->getValueType());
     if (GVSize < MemcpySize) {
       MemcpySize = GVSize;
@@ -1722,7 +1722,7 @@ bool State::stepFree(CallBase* Call, CallBase* OldCall) {
 
 Value* State::stepAlloca(AllocaInst* Alloca) {
   uint64_t Count;
-  if (auto Int = dyn_cast<ConstantInt>(Alloca->getArraySize())) {
+  if (auto *Int = dyn_cast<ConstantInt>(Alloca->getArraySize())) {
     Count = Int->getZExtValue();
   } else {
     errs() << "alloca failed: non-constant size, in " << *Alloca << "\n";
@@ -1746,7 +1746,7 @@ bool State::stepSetLabel(CallBase* Call) {
     return false;
   }
 
-  auto LabelConst = dyn_cast<ConstantInt>(Call->getArgOperand(1));
+  auto *LabelConst = dyn_cast<ConstantInt>(Call->getArgOperand(1));
   if (LabelConst == nullptr) {
     return false;
   }
@@ -1792,12 +1792,12 @@ std::pair<Value*, SmallVector<Label, 8>> State::memLoad(Value* Base, uint64_t Of
   uint64_t LoadOffset;
   std::tie(LoadVal, LoadLabels, LoadOffset) = Mem.load(Base, Offset, T);
   if (LoadVal != nullptr) {
-    if (auto V = convertLoadResult(LoadVal, LoadOffset, T)) {
+    if (auto *V = convertLoadResult(LoadVal, LoadOffset, T)) {
       return std::make_pair(V, LoadLabels);
     }
   }
 
-  auto IntTy = dyn_cast<IntegerType>(T);
+  auto *IntTy = dyn_cast<IntegerType>(T);
   if (IntTy == nullptr) {
     errs() << "memLoad failed: can't do bytewise load of " << *T << " from ";
     Base->printAsOperand(errs());
@@ -1845,7 +1845,7 @@ std::pair<Value*, SmallVector<Label, 8>> State::memLoad(Value* Base, uint64_t Of
     Byte = foldAndEmitInst(CastInst::Create(
           Instruction::ZExt, Byte, IntTy, "loadext"));
     if (I > 0) {
-      auto ShiftAmount = ConstantInt::get(IntTy, 8 * I);
+      auto *ShiftAmount = ConstantInt::get(IntTy, 8 * I);
       Byte = foldAndEmitInst(BinaryOperator::Create(
             Instruction::Shl, Byte, ShiftAmount, "loadshift"));
     }
@@ -1870,7 +1870,7 @@ std::string State::memLoadString(Value* V) {
       Out << "???";
       break;
     }
-    auto Int = dyn_cast<ConstantInt>(Byte);
+    auto *Int = dyn_cast<ConstantInt>(Byte);
     if (Int == nullptr) {
       Out << "???";
       break;
@@ -1980,7 +1980,7 @@ Value* State::foldInst(Instruction* Inst) {
     // ones.  The existing instruction was already processed by constant
     // folding, so we know it can't be folded further.
     return Simplified;
-  } else if (auto SimpleConst = dyn_cast<Constant>(Simplified)) {
+  } else if (auto *SimpleConst = dyn_cast<Constant>(Simplified)) {
     // Constants are handled below, for both simplify and constant folding.
     C = SimpleConst;
   } else {
@@ -1999,7 +1999,7 @@ Value* State::foldInst(Instruction* Inst) {
 SmallVector<Label, 8> State::labelInst(StackFrame* SF, Instruction* Inst) {
   // Handle each folded instruction.
   for (unsigned I = 0; I < Inst->getNumOperands(); ++I) {
-    auto Operand = Inst->getOperand(I);
+    auto *Operand = Inst->getOperand(I);
     auto const& OperandL = SF->getLabels(Operand);
     for (unsigned J = 0; J < OperandL.size(); ++J) {
       if (OperandL[J] != BOTTOM) {
@@ -2047,7 +2047,7 @@ Constant* State::constantFoldExtra(Constant* C) {
 /// functions like `memcpy` and `strcmp`.  We handle these by increasing the
 /// alignment of the declaration of `ptr` so the result has a known value.
 Constant* State::constantFoldAlignmentCheckAnd(Constant* C) {
-  auto And = dyn_cast<ConstantExpr>(C);
+  auto *And = dyn_cast<ConstantExpr>(C);
   if (And == nullptr || And->getOpcode() != Instruction::And) {
     return C;
   }
@@ -2072,7 +2072,7 @@ Constant* State::constantFoldAlignmentCheckAnd(Constant* C) {
   // strcmp tries to be clever, and does two alignment checks at once via
   // `((ptr1 | ptr2) & 7) == 0`.  We handle this by reassociating the
   // expression as `(ptr1 & 7) | (ptr2 & 7)`, then fold it recursively.
-  auto ValOr = dyn_cast<ConstantExpr>(Val);
+  auto *ValOr = dyn_cast<ConstantExpr>(Val);
   if (ValOr != nullptr && ValOr->getOpcode() == Instruction::Or) {
     Constant* C0 = constantFoldExtra(ConstantExpr::getAnd(ValOr->getOperand(0), Mask));
     Constant* C1 = constantFoldExtra(ConstantExpr::getAnd(ValOr->getOperand(1), Mask));
@@ -2088,7 +2088,7 @@ Constant* State::constantFoldAlignmentCheckAnd(Constant* C) {
 }
 
 Constant* State::constantFoldAlignmentCheckURem(Constant* C) {
-  auto URem = dyn_cast<ConstantExpr>(C);
+  auto *URem = dyn_cast<ConstantExpr>(C);
   if (URem == nullptr || URem->getOpcode() != Instruction::URem) {
     return C;
   }
@@ -2126,7 +2126,7 @@ Constant* State::constantFoldAlignmentCheckPtr(
   for (auto& Term : LP->Terms) {
     // If the base is a global variable or function, adjust its alignment to at
     // least `Align`.
-    auto Global = dyn_cast<GlobalObject>(Term.Ptr);
+    auto *Global = dyn_cast<GlobalObject>(Term.Ptr);
     if (Global == nullptr) {
       return C;
     }
@@ -2165,7 +2165,7 @@ Constant* State::constantFoldInstructionExtra(Instruction* Inst) {
 /// Null checks.  We handle `ptr == NULL` by evaluating a `ptr` to a
 /// `LinearPtr` and checking if it's null.
 Constant* State::constantFoldNullCheckInst(Instruction* Inst) {
-  auto ICmp = dyn_cast<ICmpInst>(Inst);
+  auto *ICmp = dyn_cast<ICmpInst>(Inst);
   if (ICmp == nullptr || !ICmp->isEquality()) {
     return nullptr;
   }
@@ -2212,7 +2212,7 @@ Constant* State::constantFoldNullCheckInst(Instruction* Inst) {
 /// evaluating both pointers to `LinearPtr`s and checking if their bases and
 /// offsets are the same.
 Constant* State::constantFoldPointerCompare(Instruction* Inst) {
-  auto ICmp = dyn_cast<ICmpInst>(Inst);
+  auto *ICmp = dyn_cast<ICmpInst>(Inst);
   if (ICmp == nullptr || ICmp->getPredicate() != CmpInst::ICMP_EQ) {
     return nullptr;
   }
@@ -2261,9 +2261,9 @@ LinearPtr* State::evalPtr(Value* V) {
 }
 
 Optional<LinearPtr> State::evalPtrImpl(Value* V) {
-  if (auto C = dyn_cast<Constant>(V)) {
+  if (auto *C = dyn_cast<Constant>(V)) {
     return evalPtrConstant(C);
-  } else if (auto Inst = dyn_cast<Instruction>(V)) {
+  } else if (auto *Inst = dyn_cast<Instruction>(V)) {
     return evalPtrInstruction(Inst);
   } else if (isa<ConstantPointerNull>(V)) {
     return LinearPtr((uint64_t)0);
@@ -2273,13 +2273,13 @@ Optional<LinearPtr> State::evalPtrImpl(Value* V) {
 }
 
 Optional<LinearPtr> State::evalPtrConstant(Constant* C) {
-  if (auto Global = dyn_cast<GlobalObject>(C)) {
+  if (auto *Global = dyn_cast<GlobalObject>(C)) {
     return LinearPtr(C);
-  } else if (auto Alias = dyn_cast<GlobalAlias>(C)) {
+  } else if (auto *Alias = dyn_cast<GlobalAlias>(C)) {
     return evalPtrConstant(Alias->getAliasee());
-  } else if (auto Expr = dyn_cast<ConstantExpr>(C)) {
+  } else if (auto *Expr = dyn_cast<ConstantExpr>(C)) {
     return evalPtrOpcode(Expr->getOpcode(), Expr);
-  } else if (auto Int = dyn_cast<ConstantInt>(C)) {
+  } else if (auto *Int = dyn_cast<ConstantInt>(C)) {
     if (Int->getBitWidth() > 64) {
       // Don't convert if it will cause us to lose data.
       return None;
@@ -2342,7 +2342,7 @@ Optional<LinearPtr> State::evalPtrOpcode(unsigned Opcode, User* U) {
 Optional<LinearPtr> State::evalPtrGEP(User* U) {
   // Get the pointee type for the base of the GEP.  Note the cast can fail,
   // since GEP works on vectors of pointers as well as ordinary pointers.
-  auto BasePtrTy = dyn_cast<PointerType>(U->getOperand(0)->getType());
+  auto *BasePtrTy = dyn_cast<PointerType>(U->getOperand(0)->getType());
   if (BasePtrTy == nullptr) {
     return None;
   }
@@ -2358,7 +2358,7 @@ Optional<LinearPtr> State::evalPtrGEP(User* U) {
   DataLayout const& DL = NewFunc->getParent()->getDataLayout();
 
   // Apply the first offset, which does pointer arithmeon to the base pointer.
-  auto Idx0 = dyn_cast<ConstantInt>(U->getOperand(1));
+  auto *Idx0 = dyn_cast<ConstantInt>(U->getOperand(1));
   if (Idx0 == nullptr) {
     return None;
   }
@@ -2366,16 +2366,16 @@ Optional<LinearPtr> State::evalPtrGEP(User* U) {
 
   Type* CurTy = BaseTy;
   for (unsigned I = 2; I < U->getNumOperands(); ++I) {
-    auto Idx = dyn_cast<ConstantInt>(U->getOperand(I));
+    auto *Idx = dyn_cast<ConstantInt>(U->getOperand(I));
     if (Idx == nullptr) {
       return None;
     }
     int64_t IdxVal = Idx->getSExtValue();
 
-    if (auto StructTy = dyn_cast<StructType>(CurTy)) {
+    if (auto *StructTy = dyn_cast<StructType>(CurTy)) {
       Result.Offset += DL.getStructLayout(StructTy)->getElementOffset(IdxVal);
       CurTy = StructTy->getElementType(IdxVal);
-    } else if (auto ArrayTy = dyn_cast<ArrayType>(CurTy)) {
+    } else if (auto *ArrayTy = dyn_cast<ArrayType>(CurTy)) {
       Result.Offset += DL.getTypeAllocSize(ArrayTy->getElementType()) * IdxVal;
       CurTy = ArrayTy->getElementType();
     } else {
@@ -2567,7 +2567,7 @@ void State::unwindFrame(StackFrame& SF, UnwindContext* PrevUC, UnwindContext* UC
 }
 
 void UnwindFrameState::emitInst(Instruction* Inst, BasicBlock* Out) {
-  if (auto PHI = dyn_cast<PHINode>(Inst)) {
+  if (auto *PHI = dyn_cast<PHINode>(Inst)) {
     // Add a new empty PHI node of the same type.  Incoming values will be
     // populated in a postprocessing pass, based on the edges actually
     // traversed.  (E.g. if we unwind in the middle of one side of a
@@ -2580,7 +2580,7 @@ void UnwindFrameState::emitInst(Instruction* Inst, BasicBlock* Out) {
     return;
   }
 
-  if (auto Return = dyn_cast<ReturnInst>(Inst)) {
+  if (auto *Return = dyn_cast<ReturnInst>(Inst)) {
     if (PrevUC != nullptr) {
       BranchInst::Create(PrevUC->ReturnDest, Out);
       Value* OldVal = Return->getReturnValue();
@@ -2593,7 +2593,7 @@ void UnwindFrameState::emitInst(Instruction* Inst, BasicBlock* Out) {
     }
   }
 
-  if (auto Resume = dyn_cast<ResumeInst>(Inst)) {
+  if (auto *Resume = dyn_cast<ResumeInst>(Inst)) {
     if (PrevUC != nullptr && PrevUC->UnwindDest != nullptr) {
       BranchInst::Create(PrevUC->UnwindDest, Out);
       PHINode* PHI = cast<PHINode>(&*PrevUC->UnwindDest->begin());
@@ -2618,16 +2618,16 @@ void UnwindFrameState::emitInst(Instruction* Inst, BasicBlock* Out) {
     // Basic blocks are handled below, after setting `BlockLocals[Out][Inst]`.
   }
 
-  if (auto LandingPad = dyn_cast<LandingPadInst>(Inst)) {
+  if (auto *LandingPad = dyn_cast<LandingPadInst>(Inst)) {
     if (PrevUC != nullptr) {
       // Accumulate clauses from enclosing landing pads.  According to the LLVM
       // exception handling docs, this is roughly what LLVM does when inlining.
       unsigned TotalNewClauses = 0;
-      for (auto EnclosingPad : PrevUC->LandingPads) {
+      for (auto *EnclosingPad : PrevUC->LandingPads) {
         TotalNewClauses += EnclosingPad->getNumClauses();
       }
       LandingPad->reserveClauses(TotalNewClauses);
-      for (auto EnclosingPad : PrevUC->LandingPads) {
+      for (auto *EnclosingPad : PrevUC->LandingPads) {
         for (unsigned I = 0; I < EnclosingPad->getNumClauses(); ++I) {
           LandingPad->addClause(EnclosingPad->getClause(I));
         }
@@ -2658,7 +2658,7 @@ void UnwindFrameState::emitInst(Instruction* Inst, BasicBlock* Out) {
   // successor block will inherit the mapping for `Inst`.
   for (unsigned I = 0; I < Inst->getNumOperands(); ++I) {
     Value* OldVal = Inst->getOperand(I);
-    if (auto OldBB = dyn_cast<BasicBlock>(OldVal)) {
+    if (auto *OldBB = dyn_cast<BasicBlock>(OldVal)) {
       BasicBlock* NewBB = mapBlock(OldBB, Out);
       NewInst->setOperand(I, NewBB);
     }
@@ -2843,7 +2843,7 @@ void State::updateMemory() {
       continue;
     }
 
-    auto GV = dyn_cast<GlobalVariable>(Base);
+    auto *GV = dyn_cast<GlobalVariable>(Base);
     if (GV == nullptr) {
       errs() << "alloc base is not a global variable: " << *Base << "\n";
       assert(0 && "alloc base is not a global variable");
@@ -2883,7 +2883,7 @@ void State::updateMemory() {
       switch (Op.Kind) {
         case OpStore:
           {
-            auto C = dyn_cast<Constant>(Op.Val);
+            auto *C = dyn_cast<Constant>(Op.Val);
             if (C == nullptr) {
               errs() << "region ";
               GV->printAsOperand(errs());
@@ -3003,11 +3003,11 @@ struct FlattenInit : public ModulePass {
     for (auto& BB : *S.NewFunc) {
       for (auto& Inst : BB) {
         for (Value* V : Inst.operand_values()) {
-          if (auto OpBB = dyn_cast<BasicBlock>(V)) {
+          if (auto *OpBB = dyn_cast<BasicBlock>(V)) {
             if (OpBB->getParent() != S.NewFunc) {
               errs() << "INVALID: inst " << Inst << " references basic block " << OpBB << " " << OpBB->getName() << " of function " << OpBB->getParent()->getName() << "\n";
             }
-          } else if (auto OpInst = dyn_cast<Instruction>(V)) {
+          } else if (auto *OpInst = dyn_cast<Instruction>(V)) {
             if (OpInst->getFunction() != S.NewFunc) {
               errs() << "INVALID: inst " << Inst << " references instruction " << *OpInst << " of function " << OpInst->getFunction()->getName() << "\n";
             }

@@ -68,7 +68,7 @@ bool ContextSensitiveNullFlowAnalysis::runOnModule(Module &M) {
     auto MustNotNull = [this](Value *V, Instruction *I) -> bool {
         V = V->stripPointerCastsAndAliases();
         if (isa<GlobalValue>(V)) return true;
-        if (auto CI = dyn_cast<Instruction>(V))
+        if (auto* CI = dyn_cast<Instruction>(V))
             return API::isMemoryAllocate(CI);
         return !AAA->mayNull(V, I);
     };
@@ -79,7 +79,7 @@ bool ContextSensitiveNullFlowAnalysis::runOnModule(Module &M) {
         if (!F.empty()) NewNonNullEdges[{&F, EmptyContext}];
         for (auto &I: instructions(&F)) {
             if (I.getType()->isPointerTy() && !MustNotNull(&I, &I)) {
-                if (auto INode = VFG->getVFGNode(&I)) {
+                if (auto *INode = VFG->getVFGNode(&I)) {
                     MayNullNodes.insert(INode);
                 }
             }

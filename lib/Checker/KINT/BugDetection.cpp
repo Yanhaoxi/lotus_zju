@@ -104,7 +104,7 @@ void BugDetection::binary_check(BinaryOperator* op,
     const auto rhs_bits = rhs_bv.get_sort().bv_size();
 
     auto is_nsw_is_nuw = [op] {
-        if (const auto ofop = dyn_cast<OverflowingBinaryOperator>(op)) {
+        if (auto *const ofop = dyn_cast<OverflowingBinaryOperator>(op)) {
             return std::make_pair(ofop->hasNoSignedWrap(), ofop->hasNoUnsignedWrap());
         }
         return std::make_pair(false, false);
@@ -277,7 +277,7 @@ z3::expr BugDetection::v2sym(const Value* v,
     if (it != v2sym_map.end())
         return it->second.getValue();
 
-    auto lconst = dyn_cast<ConstantInt>(v);
+    auto*  lconst = dyn_cast<ConstantInt>(v);
     MKINT_CHECK_ABORT(nullptr != lconst) << "unsupported value -> symbol mapping: " << *v;
     return solver.ctx().bv_val(lconst->getZExtValue(), lconst->getType()->getIntegerBitWidth());
 }
@@ -319,7 +319,7 @@ void BugDetection::mark_errors(const std::map<ICmpInst*, bool>& impossible_branc
                               const std::set<Instruction*>& div_zero_insts) {
     if (CheckDeadBranch) {
         for (auto& cmp_istbr_pair : impossible_branches) {
-            auto cmp = cmp_istbr_pair.first;
+            auto* cmp = cmp_istbr_pair.first;
             auto is_tbr = cmp_istbr_pair.second;
             if (is_tbr)
                 mark_err<interr::DEAD_TRUE_BR>(cmp);
@@ -329,25 +329,25 @@ void BugDetection::mark_errors(const std::map<ICmpInst*, bool>& impossible_branc
     }
 
     if (CheckArrayOOB) {
-        for (auto gep : gep_oob) {
+        for (auto* gep : gep_oob) {
             mark_err<interr::ARRAY_OOB>(gep);
         }
     }
 
     if (CheckIntOverflow) {
-        for (auto inst : overflow_insts) {
+        for (auto* inst : overflow_insts) {
             mark_err<interr::INT_OVERFLOW>(inst);
         }
     }
 
     if (CheckBadShift) {
-        for (auto inst : bad_shift_insts) {
+        for (auto* inst : bad_shift_insts) {
             mark_err<interr::BAD_SHIFT>(inst);
         }
     }
 
     if (CheckDivByZero) {
-        for (auto inst : div_zero_insts) {
+        for (auto* inst : div_zero_insts) {
             mark_err<interr::DIV_BY_ZERO>(inst);
         }
     }
@@ -459,28 +459,28 @@ void BugDetection::generateSarifReport(const std::string& filename,
 
     // Add results for integer overflow bugs
     if (CheckIntOverflow) {
-        for (auto inst : overflow_insts) {
+        for (auto* inst : overflow_insts) {
             addBugResult(inst, interr::INT_OVERFLOW);
         }
     }
 
     // Add results for division by zero bugs
     if (CheckDivByZero) {
-        for (auto inst : div_zero_insts) {
+        for (auto* inst : div_zero_insts) {
             addBugResult(inst, interr::DIV_BY_ZERO);
         }
     }
 
     // Add results for bad shift bugs
     if (CheckBadShift) {
-        for (auto inst : bad_shift_insts) {
+        for (auto* inst : bad_shift_insts) {
             addBugResult(inst, interr::BAD_SHIFT);
         }
     }
 
     // Add results for array out of bounds bugs
     if (CheckArrayOOB) {
-        for (auto inst : gep_oob) {
+        for (auto* inst : gep_oob) {
             addBugResult(inst, interr::ARRAY_OOB);
         }
     }

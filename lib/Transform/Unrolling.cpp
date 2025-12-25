@@ -46,7 +46,7 @@ bool CloneMetadata(const llvm::Instruction *, llvm::Instruction *);
 
 static BasicBlock *createTerminatingBlock(Function *F,
                                           Instruction *I) {
-  auto M = F->getParent();
+  auto *M = F->getParent();
   LLVMContext& Ctx = M->getContext();
   BasicBlock *block = BasicBlock::Create(Ctx, "loop_term");
 
@@ -58,7 +58,7 @@ static BasicBlock *createTerminatingBlock(Function *F,
   // The contents of the block is:
   //  __VERIFIER_assume(0)
   //  unreachable
-  auto CI
+  auto *CI
     = CallInst::Create(assume, {ConstantInt::get(Type::getInt32Ty(Ctx), 0)},
                        "", block);
   new UnreachableInst(Ctx, block);
@@ -76,8 +76,8 @@ static BasicBlock *createTerminatingBlock(Function *F,
 static void redirectEdges(const BasicBlock *origB,
                           BasicBlock *newB,
                           const std::map<BasicBlock *, BasicBlock *>& BlocksMap) {
-  auto origTI = origB->getTerminator();
-  auto newTI = newB->getTerminator();
+  const auto *origTI = origB->getTerminator();
+  auto *newTI = newB->getTerminator();
 
   // copy the metadata from origTI,
   // some passes would consider the module
@@ -98,9 +98,9 @@ static void redirectEdges(const BasicBlock *origB,
 static void replaceSuccessor(const std::vector<BasicBlock *>& Blocks,
                              BasicBlock *oldB, BasicBlock *newB) {
   for (size_t i = 0; i < Blocks.size(); ++i) {
-    auto origTI = Blocks[i]->getTerminator();
+    auto *origTI = Blocks[i]->getTerminator();
     for (unsigned i = 0; i < origTI->getNumSuccessors(); ++i) {
-      auto succ = origTI->getSuccessor(i);
+      auto *succ = origTI->getSuccessor(i);
       // do we jump on the header?
       if (succ == oldB) {
           origTI->setSuccessor(i, newB);
@@ -139,7 +139,7 @@ cloneLoopBody(Function *F, const std::vector<BasicBlock *> Blocks) {
   // clone the blocks
   std::vector<BasicBlock *> NewBlocks;
   NewBlocks.reserve(Blocks.size());
-  for (auto Block : Blocks) {
+  for (auto *Block : Blocks) {
     NewBlocks.push_back(CloneBasicBlock(Block, VMap));
     BlocksMap[Block] = NewBlocks.back();
 
@@ -166,7 +166,7 @@ bool LoopUnroll::runOnLoop(Loop *L, LPPassManager& /*LPM*/) {
   if (UnrollCount <= 1)
     return false;
 
-  auto F = (*L->block_begin())->getParent();
+  auto *F = (*L->block_begin())->getParent();
   const auto& Blocks = L->getBlocks();
 
   std::vector<BasicBlock *> LastBlocks(Blocks.begin(), Blocks.end());
@@ -180,7 +180,7 @@ bool LoopUnroll::runOnLoop(Loop *L, LPPassManager& /*LPM*/) {
 
   // replace the next iterations with assume(false) if desired
   if (TerminateLoop) {
-    auto termB = createTerminatingBlock(F, LastBlocks[0]->getTerminator());
+    auto *termB = createTerminatingBlock(F, LastBlocks[0]->getTerminator());
     replaceSuccessor(LastBlocks, LastBlocks[0], termB);
   }
 

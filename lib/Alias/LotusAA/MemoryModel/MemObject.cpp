@@ -99,7 +99,7 @@ void MemObject::dump() {
     alloc_site->print(outs());
     outs() << "\n";
   }
-  for (auto &loc_pair : locators) {
+  for (auto& loc_pair : locators) {
     outs() << "  Offset " << loc_pair.first << ":\n";
     loc_pair.second->dump();
   }

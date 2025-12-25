@@ -58,7 +58,7 @@
    else
      stream << "null";
    stream << "\n" << prefix << "Children: ";
-   for (auto child : getChildren()) {
+   for (auto* child : getChildren()) {
      child->getBlock()->printAsOperand(stream << "\t");
    }
    return stream << "\n";

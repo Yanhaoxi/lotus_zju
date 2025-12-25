@@ -33,8 +33,8 @@ bool LowerGlobalConstantArraySelect::runOnModule(Module &M) {
             for (auto &I: B) {
                 if (!isSelectGlobalConstantArray(I)) continue;
                 auto *GP = dyn_cast<GlobalVariable>(I.getOperand(0));
-                auto Idx = I.getOperand(2);
-                auto ConstArray = dyn_cast<ConstantDataArray>(GP->getInitializer());
+                auto *Idx = I.getOperand(2);
+                auto *ConstArray = dyn_cast<ConstantDataArray>(GP->getInitializer());
                 auto *ElmtTy = ConstArray->getElementType();
                 auto *NextLoad = I.getNextNode();
 
@@ -87,17 +87,17 @@ bool LowerGlobalConstantArraySelect::isSelectGlobalConstantArray(Instruction &I)
     auto *GVPtr = dyn_cast<GlobalVariable>(Pointer);
     if (!GVPtr || !GVPtr->hasInitializer()) return false;
 
-    auto Initializer = dyn_cast_or_null<ConstantDataArray>(GVPtr->getInitializer());
+    auto *Initializer = dyn_cast_or_null<ConstantDataArray>(GVPtr->getInitializer());
     if (!Initializer || Initializer->getNumElements() > MaxConstantGlobalArray.getValue()) return false;
     if (!Initializer->getElementType()->isIntegerTy()) return false;
 
     if (GEP->getNumIndices() != 2) return false;
-    auto FirstIndex = dyn_cast_or_null<ConstantInt>(GEP->getOperand(1));
+    auto *FirstIndex = dyn_cast_or_null<ConstantInt>(GEP->getOperand(1));
     if (!FirstIndex || FirstIndex->getZExtValue() != 0) return false;
-    auto SecondIndex = GEP->getOperand(2);
+    auto *SecondIndex = GEP->getOperand(2);
     if (isa<ConstantInt>(SecondIndex)) return false;
 
-    auto NextInst = dyn_cast_or_null<LoadInst>(I.getNextNode());
+    auto *NextInst = dyn_cast_or_null<LoadInst>(I.getNextNode());
     if (!NextInst) return false;
 
     return NextInst->getPointerOperand() == GEP;
@@ -118,13 +118,13 @@ void LowerGlobalConstantArraySelect::initialize(Function *F, ConstantDataArray *
                            CDA->getElementAsAPInt(K));
     }
 
-    auto SI = SwitchInst::Create(Idx, Default, Cases.size(), Entry);
+    auto *SI = SwitchInst::Create(Idx, Default, Cases.size(), Entry);
     unsigned CaseIdx = 0;
     for (auto &P: Cases) {
         SI->addCase(ConstantInt::get(cast<IntegerType>(Idx->getType()), CaseIdx++), P.first);
     }
 
-    auto RetBlock = BasicBlock::Create(Ctx, "ret", F, nullptr);
+    auto *RetBlock = BasicBlock::Create(Ctx, "ret", F, nullptr);
     for (auto &P: Cases) {
         BranchInst::Create(RetBlock, P.first);
     }

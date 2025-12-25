@@ -130,7 +130,7 @@ bool KELPPass::doInitialization(Module* M) {
         // NOTE: to delete an item, must iterate by reference
         for (auto &SF : Ctx->sigFuncsMap) {
             // 遍历所有的external link function
-            for (auto F : SF.second) {
+            for (auto *F : SF.second) {
                 if (!F)
                     continue;
                 // 保留外部链接的函数
@@ -144,7 +144,7 @@ bool KELPPass::doInitialization(Module* M) {
 
         for (auto &TF: typeIdxFuncsMap) {
             for (auto &IF : TF.second) {
-                for (auto F : IF.second) {
+                for (auto *F : IF.second) {
                     if (F->isDeclaration()) {
                         IF.second.erase(F);
                         if (Function *AF = Ctx->GlobalFuncMap[F->getGUID()])

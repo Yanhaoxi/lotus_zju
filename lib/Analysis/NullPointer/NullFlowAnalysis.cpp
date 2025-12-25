@@ -50,7 +50,7 @@ bool NullFlowAnalysis::runOnModule(Module &M) {
     auto MustNotNull = [this](Value *V) -> bool {
         V = V->stripPointerCastsAndAliases();
         if (isa<GlobalValue>(V)) return true;
-        if (auto CI = dyn_cast<Instruction>(V))
+        if (auto *CI = dyn_cast<Instruction>(V))
             return API::isMemoryAllocate(CI);
         return !DAA->mayNull(V);
     };
@@ -59,14 +59,14 @@ bool NullFlowAnalysis::runOnModule(Module &M) {
         if (!F.empty()) NewNonNullEdges[&F];
         for (auto &I: instructions(&F)) {
             if (I.getType()->isPointerTy() && !MustNotNull(&I)) {
-                if (auto INode = VFG->getVFGNode(&I)) {
+                if (auto *INode = VFG->getVFGNode(&I)) {
                     MayNullNodes.insert(INode);
                 }
             }
             for (unsigned K = 0; K < I.getNumOperands(); ++K) {
                 auto *Op = I.getOperand(K);
                 if (Op->getType()->isPointerTy() && !MustNotNull(Op)) {
-                    if (auto OpNode = VFG->getVFGNode(Op)) {
+                    if (auto *OpNode = VFG->getVFGNode(Op)) {
                         MayNullNodes.insert(OpNode);
                     }
                 }

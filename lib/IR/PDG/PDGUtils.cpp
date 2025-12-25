@@ -64,10 +64,10 @@ uint64_t pdg::pdgutils::getGEPOffsetInBits(Module& M, StructType &struct_type, G
   
   // Use the struct layout to figure out the offset in bits
   auto const &data_layout = M.getDataLayout();
-  auto const struct_layout = data_layout.getStructLayout(&struct_type);
+  auto const* struct_layout = data_layout.getStructLayout(&struct_type);
   
   // Check for out-of-bounds access
-  if (gep_offset >= struct_type.getNumElements())
+  if (gep_offset >= static_cast<int>(struct_type.getNumElements()))
   {
     errs() << "dubious gep access outof bound: " << gep << " in func " << gep.getFunction()->getName() << "\n";
     return INT_MIN;
@@ -164,7 +164,7 @@ bool pdg::pdgutils::isNodeBitOffsetMatchGEPBitOffset(Node &n, GetElementPtrInst 
 // a wrapper func that strip pointer casts
 Function *pdg::pdgutils::getCalledFunc(CallInst &call_inst)
 {
-  auto called_val = call_inst.getCalledOperand();
+  auto* called_val = call_inst.getCalledOperand();
   if (!called_val)
     return nullptr;
   if (Function *func = dyn_cast<Function>(called_val->stripPointerCasts()))
@@ -175,11 +175,11 @@ Function *pdg::pdgutils::getCalledFunc(CallInst &call_inst)
 // check access type
 bool pdg::pdgutils::hasReadAccess(Value &v)
 {
-  for (auto user : v.users())
+  for (auto* user : v.users())
   {
     if (isa<LoadInst>(user))
       return true;
-    if (auto gep = dyn_cast<GetElementPtrInst>(user))
+    if (auto* gep = dyn_cast<GetElementPtrInst>(user))
     {
       if (gep->getPointerOperand() == &v)
         return true;
@@ -190,9 +190,9 @@ bool pdg::pdgutils::hasReadAccess(Value &v)
 
 bool pdg::pdgutils::hasWriteAccess(Value &v)
 {
-  for (auto user : v.users())
+  for (auto* user : v.users())
   {
-    if (auto si = dyn_cast<StoreInst>(user))
+    if (auto* si = dyn_cast<StoreInst>(user))
     {
       if (!isa<Argument>(si->getValueOperand()) && si->getPointerOperand() == &v)
         return true;
@@ -268,7 +268,7 @@ std::set<Instruction *> pdg::pdgutils::getInstructionAfterInst(Instruction &i)
 std::set<Value *> pdg::pdgutils::computeAddrTakenVarsFromAlloc(AllocaInst &ai)
 {
   std::set<Value *> addr_taken_vars;
-  for (auto user : ai.users())
+  for (auto* user : ai.users())
   {
     if (isa<LoadInst>(user))
       addr_taken_vars.insert(user);
@@ -302,7 +302,7 @@ std::string pdg::pdgutils::computeTreeNodeID(TreeNode &tree_node)
   TreeNode* parent_node = tree_node.getParentNode();
   if (parent_node != nullptr)
   {
-    auto parent_di_type = dbgutils::stripMemberTag(*parent_node->getDIType());
+    auto* parent_di_type = dbgutils::stripMemberTag(*parent_node->getDIType());
     if (parent_di_type != nullptr)
       parent_type_name = dbgutils::getSourceLevelTypeName(*parent_di_type);
   }
@@ -335,11 +335,11 @@ std::string pdg::pdgutils::stripVersionTag(std::string str)
 
 Value *pdg::pdgutils::getLShrOnGep(GetElementPtrInst &gep)
 {
-  for (auto u : gep.users())
+  for (auto* u : gep.users())
   {
     if (LoadInst *li = dyn_cast<LoadInst>(u))
     {
-      for (auto user : li->users())
+      for (auto* user : li->users())
       {
         if (isa<UnaryOperator>(user))
           return user;

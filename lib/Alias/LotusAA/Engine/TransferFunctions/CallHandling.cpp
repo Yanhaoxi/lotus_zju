@@ -80,7 +80,7 @@ void IntraLotusAA::processUnknownLibraryCall(CallBase *call) {
       continue;
 
     PTResultIterator iter(pt_result, this);
-    for (auto loc : iter) {
+    for (auto* loc : iter) {
       loc->storeValue(LocValue::NO_VALUE, call, 0);
     }
   }
@@ -103,7 +103,7 @@ void IntraLotusAA::processCall(CallBase *call) {
   }
 
   Function *base_func = call->getParent()->getParent();
-  auto callees = lotus_aa->getCallees(base_func, call);
+  auto* callees = lotus_aa->getCallees(base_func, call);
 
   if (!callees) {
     processUnknownLibraryCall(call);
@@ -112,7 +112,7 @@ void IntraLotusAA::processCall(CallBase *call) {
 
   // Process each possible callee
   int callee_idx = 0;
-  for (Function *callee : *callees) {
+  for (auto* callee : *callees) {
     if (callee_idx >= IntraLotusAAConfig::lotus_restrict_cg_size)
       break;
 
@@ -145,7 +145,7 @@ void IntraLotusAA::processCall(CallBase *call) {
     func_arg_t &arg_result = func_arg[call][callee];
 
     std::vector<Value *> formal_args, real_args;
-    for (Argument &arg : callee->args()) {
+    for (auto& arg : callee->args()) {
       formal_args.push_back(&arg);
     }
     for (unsigned i = 0; i < call->arg_size(); i++) {
@@ -470,7 +470,7 @@ void IntraLotusAA::linkOutputValues(
         pt_result_cache.emplace(pt_res, std::move(pt_iter));
       }
 
-      for (auto loc : pt_result_cache.at(pt_res)) {
+      for (auto* loc : pt_result_cache.at(pt_res)) {
         ObjectLocator *revised_locator = loc->offsetBy(output_offset);
         revised_locator->storeValue(curr_output, callsite, 0);
       }

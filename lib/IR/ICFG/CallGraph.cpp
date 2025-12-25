@@ -57,7 +57,7 @@ LTCallGraph::LTCallGraph(Module &M)
          return RHS->getFunction() != nullptr;
      });
  
-     for (auto CN : Nodes)
+     for (auto* CN : Nodes)
          CN->dump();
  }
  
@@ -192,7 +192,7 @@ void LTCallGraphNode::replaceCallEdge(const Instruction *CS,
  
  void LTCallGraphNode::dump() const {
  
-     if (auto f = getFunction())
+     if (auto* f = getFunction())
          std::cout << "Call graph node for function: '" << f->getName().str() << "'";
      else
          std::cout << "Call graph node <<null function>>";

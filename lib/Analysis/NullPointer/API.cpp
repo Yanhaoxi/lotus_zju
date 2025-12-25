@@ -40,8 +40,8 @@ bool API::isMemoryAllocate(Instruction *I) {
 
 // Returns true if the instruction is a call to a heap allocation function.
 bool API::isHeapAllocate(Instruction *I) {
-  if (auto CI = dyn_cast<CallInst>(I)) {
-    if (auto Callee = CI->getCalledFunction()) {
+  if (auto* CI = dyn_cast<CallInst>(I)) {
+    if (auto* Callee = CI->getCalledFunction()) {
       return HeapAllocFunctions.count(Callee->getName().str());
     }
   }

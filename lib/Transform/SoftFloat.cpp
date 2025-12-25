@@ -20,7 +20,7 @@ const char* typeName(Type* T) {
     return "sf";
   } else if (T->isDoubleTy()) {
     return "df";
-  } else if (auto IntTy = dyn_cast<IntegerType>(T)) {
+  } else if (auto *IntTy = dyn_cast<IntegerType>(T)) {
     switch (IntTy->getBitWidth()) {
       case 32: return "si";
       case 64: return "di";
@@ -51,7 +51,7 @@ void replaceConvert(Module* M, Instruction& I, StringRef Prefix, StringRef Suffi
   Type* RetTy = I.getType();
   Type* OrigRetTy = RetTy;
 
-  if (auto ArgIntTy = dyn_cast<IntegerType>(ArgTy)) {
+  if (auto *ArgIntTy = dyn_cast<IntegerType>(ArgTy)) {
     if (ArgIntTy->getBitWidth() < 32) {
       // Extend argument before conversion.
       ArgTy = IntegerType::get(M->getContext(), 32);
@@ -63,7 +63,7 @@ void replaceConvert(Module* M, Instruction& I, StringRef Prefix, StringRef Suffi
     }
   }
 
-  if (auto RetIntTy = dyn_cast<IntegerType>(RetTy)) {
+  if (auto *RetIntTy = dyn_cast<IntegerType>(RetTy)) {
     if (RetIntTy->getBitWidth() < 32) {
       RetTy = IntegerType::get(M->getContext(), 32);
     }
@@ -252,7 +252,7 @@ static bool softFloatInFunction(Function &F) {
     std::vector<Instruction*> ToErase;
     for (BasicBlock& BB : F) {
       for (Instruction& I : BB) {
-        if (auto Cast = dyn_cast<CastInst>(&I)) {
+        if (auto *Cast = dyn_cast<CastInst>(&I)) {
           switch (Cast->getOpcode()) {
             case Instruction::FPToUI:
               replaceConvert(M, I, "__fixuns", "", false);
@@ -279,14 +279,14 @@ static bool softFloatInFunction(Function &F) {
               ToErase.push_back(&I);
               break;
           }
-        } else if (auto UnOp = dyn_cast<UnaryOperator>(&I)) {
+        } else if (auto *UnOp = dyn_cast<UnaryOperator>(&I)) {
           switch (UnOp->getOpcode()) {
             case Instruction::FNeg:
               replaceUnary(M, I, "__neg");
               ToErase.push_back(&I);
               break;
           }
-        } else if (auto BinOp = dyn_cast<BinaryOperator>(&I)) {
+        } else if (auto *BinOp = dyn_cast<BinaryOperator>(&I)) {
           switch (BinOp->getOpcode()) {
             case Instruction::FAdd:
               replaceBinary(M, I, "__add");
@@ -305,7 +305,7 @@ static bool softFloatInFunction(Function &F) {
               ToErase.push_back(&I);
               break;
           }
-        } else if (auto FCmp = dyn_cast<FCmpInst>(&I)) {
+        } else if (auto *FCmp = dyn_cast<FCmpInst>(&I)) {
           replaceFCmp(M, *FCmp);
         }
       }

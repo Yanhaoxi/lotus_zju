@@ -27,7 +27,7 @@ static const Value *stripNullOrUnDef(const Value *V) {
     }
 
     // a null ptr
-    if (auto C = dyn_cast<Constant>(V)) {
+    if (auto* C = dyn_cast<Constant>(V)) {
         if (C->isNullValue()) {
             V = ConstantPointerNull::get(Type::getInt8PtrTy(V->getContext()));
         }

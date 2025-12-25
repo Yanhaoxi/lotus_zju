@@ -84,7 +84,7 @@ void IntraLotusAA::collectEscapedObjects(
       PTResult *pt_result = processBasePointer(ret_val);
       PTResultIterator ptr_iter(pt_result, this);
       
-      for (auto loc : ptr_iter) {
+      for (auto* loc : ptr_iter) {
         MemObject *obj = loc->getObj();
         int64_t offset = loc->getOffset();
         
@@ -140,7 +140,7 @@ void IntraLotusAA::collectEscapedObjects(
           continue;
 
         PTResultIterator ptr_iter(pt_result, this);
-        for (auto loc : ptr_iter) {
+        for (auto* loc : ptr_iter) {
           MemObject *obj = loc->getObj();
           int64_t offset = loc->getOffset();
           
@@ -352,7 +352,7 @@ void IntraLotusAA::collectOutputs() {
           if (pt_result) {
             PTResultIterator iter(pt_result, this);
             
-            for (auto loc : iter) {
+            for (auto* loc : iter) {
               int64_t offset = loc->getOffset();
               MemObject *point_to_obj = loc->getObj();
 
@@ -408,7 +408,7 @@ void IntraLotusAA::collectInputs() {
       bool found = false;
       
       // Check if in escaped objects
-      for (auto obj : escape_objs) {
+      for (auto* obj : escape_objs) {
         if (obj->getAllocSite() == parent_ptr) {
           found = true;
           break;
