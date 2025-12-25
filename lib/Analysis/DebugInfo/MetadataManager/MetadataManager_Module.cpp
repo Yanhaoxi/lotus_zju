@@ -28,7 +28,7 @@
    /*
     * Check if the metadata exists.
     */
-   auto metaNode = this->program.getNamedMetadata(metadataName);
+   auto *metaNode = this->program.getNamedMetadata(metadataName);
    if (!metaNode) {
      return false;
    }
@@ -42,12 +42,12 @@
    /*
     * Create the metadata.
     */
-   auto n = this->program.getOrInsertNamedMetadata(metadataName);
+   auto *n = this->program.getOrInsertNamedMetadata(metadataName);
  
    /*
     * Create the metadata value.
     */
-   auto v =
+   auto *v =
        MDNode::get(this->program.getContext(),
                    MDString::get(this->program.getContext(), metadataValue));
  
@@ -59,4 +59,4 @@
    return;
  }
  
- } // namespace arcana::noelle
+ } // namespace noelle

@@ -86,7 +86,7 @@ bool HasReturn(Function &F, ReturnInst *&retInst) {
 bool recursivelyDeleteTriviallyDeadInstructions(
     llvm::Value *V, const llvm::TargetLibraryInfo *TLI = nullptr) {
 
-  if (auto I = dyn_cast<Instruction>(V))
+  if (auto *I = dyn_cast<Instruction>(V))
     if (!I->getParent()) return false;
   return llvm::RecursivelyDeleteTriviallyDeadInstructions(V, TLI);
 }

@@ -38,4 +38,4 @@
    return this->value;
  }
  
- } // namespace arcana::noelle
+ } // namespace noelle

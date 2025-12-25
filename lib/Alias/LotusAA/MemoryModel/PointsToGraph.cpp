@@ -333,7 +333,7 @@ void PTGraph::loadPtrAtImpl(Value *ptr, Instruction *from_loc, mem_value_t &resu
   if (lotus_restrict_pts_count != -1 && iter.size() > lotus_restrict_pts_count)
     return;
 
-  for (auto loc : iter) {
+  for (auto *loc : iter) {
     int64_t offset = loc->getOffset();
     MemObject *obj = loc->getObj();
     

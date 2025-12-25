@@ -28,8 +28,8 @@ cl::opt<AAType> AA(cl::Positional, cl::desc("<alias-analysis>"),
 void checkAAResult(AAResults& aaResult, const DenseSet<AliasPair>& aliasSet,
                    const IDAssigner& idMap) {
     for (auto const& pair : aliasSet) {
-        auto valA = idMap.getValue(pair.getFirst());
-        auto valB = idMap.getValue(pair.getSecond());
+        const auto *valA = idMap.getValue(pair.getFirst());
+        const auto *valB = idMap.getValue(pair.getSecond());
         if (valA == nullptr || valB == nullptr)
             continue;
 
@@ -78,8 +78,8 @@ int main(int argc, char** argv) {
 
     IDAssigner idMap(*module);
     for (auto& f : *module) {
-        if (auto id = idMap.getID(f)) {
-            if (auto aliasSet = dynAA.getAliasPairs(*id)) {
+        if (const auto *id = idMap.getID(f)) {
+            if (const auto *aliasSet = dynAA.getAliasPairs(*id)) {
                 auto result = aaManager.run(f, funManager);
                 checkAAResult(result, *aliasSet, idMap);
             }

@@ -44,7 +44,7 @@ std::vector<ConcurrencyBugReport> ConditionVariableChecker::checkConditionVariab
                         LockSet mustHeld = m_locksetAnalysis->getMustLockSetAt(&inst);
                         bool isHeld = false;
                         
-                        for (auto heldLock : mustHeld) {
+                        for (const auto *heldLock : mustHeld) {
                             if (heldLock == mutex) {
                                 isHeld = true;
                                 break;
@@ -54,7 +54,7 @@ std::vector<ConcurrencyBugReport> ConditionVariableChecker::checkConditionVariab
                         if (!isHeld) {
                             LockSet mayHeld = m_locksetAnalysis->getMayLockSetAt(&inst);
                             bool mayBeHeld = false;
-                            for (auto heldLock : mayHeld) {
+                            for (const auto *heldLock : mayHeld) {
                                 if (heldLock == mutex) {
                                     mayBeHeld = true;
                                     break;

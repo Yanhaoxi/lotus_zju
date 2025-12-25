@@ -155,8 +155,8 @@ llvm::AliasResult SeaDsaAAResult::alias(const llvm::MemoryLocation &LocA,
   // We tried to run seadsa but we couldn't
   if (!m_dsa) { return AAResultBase::alias(LocA, LocB, AAQI); }
 
-  auto FnA = const_cast<Function *>(llvm::cflaa::parentFunctionOfValue(ValA));
-  auto FnB = const_cast<Function *>(llvm::cflaa::parentFunctionOfValue(ValB));
+  auto *FnA = const_cast<Function *>(llvm::cflaa::parentFunctionOfValue(ValA));
+  auto *FnB = const_cast<Function *>(llvm::cflaa::parentFunctionOfValue(ValB));
   if (!FnA || !FnB) { return AAResultBase::alias(LocA, LocB, AAQI); }
 
   assert(m_dsa);

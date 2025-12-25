@@ -143,7 +143,7 @@ void DsaInfo::recordMemAccesses(const Function &F) {
   //
   // Here we just count the number of **non-trivial** memory accesses
   // because it is useful for passes that will instrument them.
-  auto g = getDsaGraph(F);
+  auto *g = getDsaGraph(F);
   if (!g) return;
 
   for (const_inst_iterator i = inst_begin(F), e = inst_end(F); i != e; ++i) {

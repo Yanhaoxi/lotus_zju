@@ -955,11 +955,11 @@ void Graph::remove_dead() {
   // --- compute all reachable nodes from referenced nodes
   std::vector<const Node *> worklist(reachable.begin(), reachable.end());
   while (!worklist.empty()) {
-    auto n = worklist.back();
+    const auto *n = worklist.back();
     worklist.pop_back();
     for (auto &kv : n->links()) {
       if (kv.second->isNull()) continue;
-      auto s = kv.second->getNode();
+      auto *s = kv.second->getNode();
       if (reachable.insert(s).second) {
         worklist.push_back(s);
         LOG("dsa-dead", errs()

@@ -121,7 +121,7 @@ visitIntStoreInst2(StoreInst *SI, Function &F, const DataLayout &DL,
   if (addr->getType() != Int8PtrPtrTy)
     addr = IRB.CreateBitCast(addr, Int8PtrPtrTy);
 
-  auto newSI = IRB.CreateStore(val, addr);
+  auto *newSI = IRB.CreateStore(val, addr);
   newSI->setAlignment(SI->getAlign());
   newSI->setOrdering(SI->getOrdering());
   newSI->setSyncScopeID(SI->getSyncScopeID());

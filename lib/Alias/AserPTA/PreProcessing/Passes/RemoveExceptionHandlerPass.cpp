@@ -14,7 +14,7 @@ using namespace aser;
 using namespace llvm;
 
 static BasicBlock *createUnReachableBB(Function &F) {
-    auto BB = BasicBlock::Create(F.getContext(), "aser.unreachable", &F);
+    auto *BB = BasicBlock::Create(F.getContext(), "aser.unreachable", &F);
     IRBuilder<> builder(BB);
     builder.CreateUnreachable();
 
@@ -32,7 +32,7 @@ bool RemoveExceptionHandlerPass::runOnFunction(Function &F) {
 
     for (auto &BB : F) {
         for (auto &I : BB) {
-            if (auto invokeInst = dyn_cast<InvokeInst>(&I)) {
+            if (auto *invokeInst = dyn_cast<InvokeInst>(&I)) {
                 if (unReachableBB == nullptr) {
                     unReachableBB = createUnReachableBB(F);
                 }

@@ -44,9 +44,9 @@ public:
 
     // determine whether the resolved indirect call is compatible
     inline bool isCompatible(const llvm::Instruction *callsite, const llvm::Function *target) {
-        auto call = llvm::cast<llvm::CallBase>(callsite);
+        const auto *call = llvm::cast<llvm::CallBase>(callsite);
         // only pthread will override to indirect call in default language model
-        auto pthread = call->getCalledFunction();
+        auto *pthread = call->getCalledFunction();
         assert(pthread && pthread->getName().equals("pthread_create"));
 
         // pthread call back type -> i8* (*) (i8*)
@@ -105,7 +105,7 @@ protected:
             aser::CallSite CS(callsite);
             assert(CS.isCallOrInvoke());
             const llvm::Value *v = CS.getArgOperand(2);
-            if (auto threadFun = llvm::dyn_cast<llvm::Function>(v->stripPointerCasts())) {
+            if (const auto *threadFun = llvm::dyn_cast<llvm::Function>(v->stripPointerCasts())) {
                 fun = threadFun;  // replace call to pthread_create to the thread
                 // starting routine
             } else {
@@ -129,7 +129,7 @@ protected:
         // we need to use callsite to identify the thread creation as the
         // ctxfunction might be intercepted before
         // TODO: what about the indirect call resolved to pthread_create?
-        if (auto fun = CS.getCalledFunction()) {
+        if (const auto *fun = CS.getCalledFunction()) {
         //if (auto fun = callee->getFunction()) {
             if (DefaultExtFunctions::isThreadCreation(fun)) {
                 // TODO: HANDLE MORE APIs

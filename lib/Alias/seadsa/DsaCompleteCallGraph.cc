@@ -267,7 +267,7 @@ void CompleteCallGraphAnalysis::printStats(Module &M, raw_ostream &o) {
   raw_string_ostream str_os(str);
 
   auto printFunction = [&str_os](const Function *F) {
-    auto Ty = F->getFunctionType();
+    auto *Ty = F->getFunctionType();
     str_os << *(Ty->getReturnType());
     str_os << " " << F->getName() << "(";
     for (unsigned i = 0, num_params = Ty->getNumParams(); i < num_params;) {
@@ -705,8 +705,8 @@ void CompleteCallGraph::getAnalysisUsage(AnalysisUsage &AU) const {
 bool CompleteCallGraph::runOnModule(Module &M) {
   auto &dl = M.getDataLayout();
   auto &tli = getAnalysis<TargetLibraryInfoWrapperPass>();
-  auto allocInfo = &getAnalysis<AllocWrapInfo>();
-  auto dsaLibFuncInfo = &getAnalysis<DsaLibFuncInfo>();
+  auto *allocInfo = &getAnalysis<AllocWrapInfo>();
+  auto *dsaLibFuncInfo = &getAnalysis<DsaLibFuncInfo>();
   allocInfo->initialize(M, this);
   dsaLibFuncInfo->initialize(M);
   CallGraph &cg = getAnalysis<CallGraphWrapperPass>().getCallGraph();

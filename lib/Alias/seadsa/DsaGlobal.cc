@@ -58,8 +58,8 @@ void ContextInsensitiveGlobalAnalysis::resolveArguments(
     DsaCallSite &cs, Graph &g, const DsaLibFuncInfo &dlfi) {
 
   // unify return
-  auto callee = cs.getCallee();
-  auto calleeSpec =
+  const auto *callee = cs.getCallee();
+  const auto *calleeSpec =
       dlfi.hasSpecFunc(*callee) ? dlfi.getSpecFunc(*callee) : callee;
 
   if (g.hasRetCell(*calleeSpec)) {
@@ -115,7 +115,7 @@ bool ContextInsensitiveGlobalAnalysis::runOnModule(Module &M) {
         continue;
       // compute local graph
 
-      auto spec = m_dsaLibFuncInfo.hasSpecFunc(*fn)
+      auto *spec = m_dsaLibFuncInfo.hasSpecFunc(*fn)
                       ? m_dsaLibFuncInfo.getSpecFunc(*fn)
                       : fn;
 
@@ -420,13 +420,13 @@ bool ContextSensitiveGlobalAnalysis::runOnModule(Module &M) {
   unsigned bu_props = 0;
   while (!w.empty()) {
     DsaCallSite dsaCS = w.dequeue();
-    auto callee = dsaCS.getCallee();
+    const auto *callee = dsaCS.getCallee();
     if (!callee || callee->isDeclaration() || callee->empty()) continue;
 
     LOG("dsa-global", errs()
                           << "Selected callsite " << *(dsaCS.getInstruction())
                           << " from queue ... ";);
-    auto caller = dsaCS.getCaller();
+    const auto *caller = dsaCS.getCaller();
 
     assert(m_graphs.count(caller) > 0);
     assert(m_graphs.count(callee) > 0);
@@ -574,7 +574,7 @@ bool ContextSensitiveGlobalAnalysis::checkNoMorePropagation(CallGraph &cg) {
         PropagationKind pkind =
             decidePropagation(dsaCS.getValue(), calleeG, callerG);
         if (pkind != NONE) {
-          auto pkind_str = (pkind == UP) ? "bottom-up" : "top-down";
+          const auto *pkind_str = (pkind == UP) ? "bottom-up" : "top-down";
           errs() << "ERROR (sea-dsa) sanity check failed:"
                  << *(dsaCS.getValue().getInstruction()) << " requires "
                  << pkind_str << " propagation.\n";

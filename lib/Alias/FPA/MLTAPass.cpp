@@ -438,7 +438,7 @@ bool MLTAPass::typeConfineInFunction(Function *F) {
                     if (Argument* Arg = Ctx->util.getParamByArgNo(CF, OI->getOperandNo())) { // CF为被调用的函数，这里返回函数指针对应的形参
                         // U为函数CF中使用了该形参的指令
                         // 遍历所有使用形参的指令
-                        for (auto U: Arg->users()) {
+                        for (auto *U: Arg->users()) {
                             // 如果使用形参的是store指令或者bitcast指令
                             if (StoreInst* _SI = dyn_cast<StoreInst>(U))
                                 confineTargetFunction(_SI->getPointerOperand(), FF);

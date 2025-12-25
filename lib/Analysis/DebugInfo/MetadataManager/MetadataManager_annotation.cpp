@@ -47,4 +47,4 @@
    return this->globalMetadata.at(g);
  }
  
- } // namespace arcana::noelle
+ } // namespace noelle

@@ -30,39 +30,39 @@
     */
    for (auto &F : M) {
      for (auto &inst : instructions(F)) {
-       auto call = dyn_cast<CallInst>(&inst);
+       auto *call = dyn_cast<CallInst>(&inst);
        if (call == nullptr) {
          continue;
        }
-       auto callee = call->getCalledFunction();
+       auto *callee = call->getCalledFunction();
        if (callee == nullptr) {
          continue;
        }
        if (callee->getName().compare("llvm.var.annotation") != 0) {
          continue;
        }
-       auto ptr = dyn_cast<Instruction>(call->getOperand(0));
+       auto *ptr = dyn_cast<Instruction>(call->getOperand(0));
        if (ptr == nullptr) {
          continue;
        }
-       if (auto aliasPtr = dyn_cast<BitCastInst>(ptr)) {
-         auto origPtr = aliasPtr->getOperand(0);
+       if (auto *aliasPtr = dyn_cast<BitCastInst>(ptr)) {
+         auto *origPtr = aliasPtr->getOperand(0);
          ptr = dyn_cast<Instruction>(origPtr);
        }
        if (ptr == nullptr) {
          continue;
        }
-       auto var = dyn_cast<AllocaInst>(ptr);
+       auto *var = dyn_cast<AllocaInst>(ptr);
        if (var == nullptr) {
          continue;
        }
-       auto gep = dyn_cast<GetElementPtrInst>(call->getOperand(1));
+       auto *gep = dyn_cast<GetElementPtrInst>(call->getOperand(1));
        if (gep != nullptr) {
-         auto annoteStr = dyn_cast<GlobalVariable>(gep->getOperand(0));
+         auto *annoteStr = dyn_cast<GlobalVariable>(gep->getOperand(0));
          if (annoteStr == nullptr) {
            continue;
          }
-         auto data =
+         auto *data =
              dyn_cast<ConstantDataSequential>(annoteStr->getInitializer());
          if (data == nullptr) {
            continue;
@@ -77,10 +77,10 @@
    /*
     * Collect metadata attached to functions.
     */
-   auto globalArray = M.getGlobalVariable("llvm.global.annotations");
+   auto *globalArray = M.getGlobalVariable("llvm.global.annotations");
    if (globalArray != nullptr) {
      for (auto &globalArrayEntry : globalArray->operands()) {
-       auto globalArrayEntryConstant = dyn_cast<ConstantArray>(globalArrayEntry);
+       auto *globalArrayEntryConstant = dyn_cast<ConstantArray>(globalArrayEntry);
        if (globalArrayEntryConstant == nullptr) {
          continue;
        }
@@ -90,7 +90,7 @@
          /*
           * Fetch the annotation.
           */
-         auto globalArrayEntryOperandStruct =
+         auto *globalArrayEntryOperandStruct =
              dyn_cast<ConstantStruct>(globalArrayEntryOperand);
          if (globalArrayEntryOperandStruct == nullptr) {
            continue;
@@ -98,12 +98,12 @@
          if (globalArrayEntryOperandStruct->getNumOperands() < 2) {
            continue;
          }
-         auto annotationVariable = dyn_cast<GlobalVariable>(
+         auto *annotationVariable = dyn_cast<GlobalVariable>(
              globalArrayEntryOperandStruct->getOperand(1)->getOperand(0));
          if (annotationVariable == nullptr) {
            continue;
          }
-         auto A = dyn_cast<ConstantDataArray>(annotationVariable->getOperand(0));
+         auto *A = dyn_cast<ConstantDataArray>(annotationVariable->getOperand(0));
          if (A == nullptr) {
            continue;
          }
@@ -114,7 +114,7 @@
           *
           * Case 0: function
           */
-         auto annotatedFunction = dyn_cast<Function>(
+         auto *annotatedFunction = dyn_cast<Function>(
              globalArrayEntryOperandStruct->getOperand(0)->getOperand(0));
          if (annotatedFunction != nullptr) {
            this->functionMetadata[annotatedFunction].insert(AS.str());
@@ -124,7 +124,7 @@
          /*
           * Case 1: global
           */
-         auto annotatedGlobal = dyn_cast<GlobalVariable>(
+         auto *annotatedGlobal = dyn_cast<GlobalVariable>(
              globalArrayEntryOperandStruct->getOperand(0)->getOperand(0));
          if (annotatedGlobal != nullptr) {
            this->globalMetadata[annotatedGlobal].insert(AS.str());
@@ -145,7 +145,7 @@
     */
    auto loopEntriesIt = this->metadata.find(loop);
    if (loopEntriesIt != this->metadata.end()) {
-     const auto loopEntriesPair = &*loopEntriesIt;
+     auto *const loopEntriesPair = &*loopEntriesIt;
      const auto &loopEntries = loopEntriesPair->second;
      if (loopEntries.find(metadataName) != loopEntries.end()) {
  
@@ -162,12 +162,12 @@
     *
     * Fetch the header terminator.
     */
-   auto headerTerm = loop->getHeader()->getTerminator();
+   auto *headerTerm = loop->getHeader()->getTerminator();
  
    /*
     * Check if the metadata exists.
     */
-   auto metaNode = headerTerm->getMetadata(metadataName);
+   auto *metaNode = headerTerm->getMetadata(metadataName);
    if (!metaNode) {
      return false;
    }
@@ -193,7 +193,7 @@
    }
  
    auto loopEntries = this->metadata.at(loop);
-   auto metadataEntry = loopEntries.at(metadataName);
+   auto *metadataEntry = loopEntries.at(metadataName);
    return metadataEntry->getValue();
  }
  
@@ -204,12 +204,12 @@
    /*
     * Fetch the header terminator.
     */
-   auto headerTerm = loop->getHeader()->getTerminator();
+   auto *headerTerm = loop->getHeader()->getTerminator();
  
    /*
     * Check if the metadata node already exists.
     */
-   auto metaNode = headerTerm->getMetadata(metadataName);
+   auto *metaNode = headerTerm->getMetadata(metadataName);
    if (!metaNode) {
      errs() << "MetadataManager::setMetadata: ERROR = the metadata \""
             << metadataName << "\" does not exists in the loop " << *headerTerm
@@ -221,8 +221,8 @@
     * Set the metadata
     */
    auto &cxt = headerTerm->getContext();
-   auto s = MDString::get(cxt, metadataValue);
-   auto n = MDNode::get(cxt, s);
+   auto *s = MDString::get(cxt, metadataValue);
+   auto *n = MDNode::get(cxt, s);
    headerTerm->setMetadata(metadataName, n);
  
    /*
@@ -239,12 +239,12 @@
    /*
     * Fetch the header terminator.
     */
-   auto headerTerm = loop->getHeader()->getTerminator();
+   auto *headerTerm = loop->getHeader()->getTerminator();
  
    /*
     * Check if the metadata node already exists.
     */
-   auto metaNode = headerTerm->getMetadata(metadataName);
+   auto *metaNode = headerTerm->getMetadata(metadataName);
    if (!metaNode) {
      errs() << "MetadataManager::deleteMetadata: ERROR = the metadata \""
             << metadataName << "\" does not exists in the loop " << *headerTerm
@@ -274,12 +274,12 @@
    /*
     * Fetch the header terminator.
     */
-   auto headerTerm = loop->getHeader()->getTerminator();
+   auto *headerTerm = loop->getHeader()->getTerminator();
  
    /*
     * Check if the metadata node already exists.
     */
-   auto metaNode = headerTerm->getMetadata(metadataName);
+   auto *metaNode = headerTerm->getMetadata(metadataName);
    if (metaNode) {
      errs() << "MetadataManager::addMetadata: ERROR = the metadata \""
             << metadataName << "\" already exists in the loop " << *headerTerm
@@ -291,8 +291,8 @@
     * Create the metadata and add it to the IR.
     */
    auto &cxt = headerTerm->getContext();
-   auto s = MDString::get(cxt, metadataValue);
-   auto n = MDNode::get(cxt, s);
+   auto *s = MDString::get(cxt, metadataValue);
+   auto *n = MDNode::get(cxt, s);
    headerTerm->setMetadata(metadataName, n);
  
    /*
@@ -309,12 +309,12 @@
    /*
     * Fetch the header terminator.
     */
-   auto headerTerm = loop->getHeader()->getTerminator();
+   auto *headerTerm = loop->getHeader()->getTerminator();
  
    /*
     * Fetch the metadata node.
     */
-   auto metaNode = headerTerm->getMetadata(metadataName);
+   auto *metaNode = headerTerm->getMetadata(metadataName);
    if (!metaNode) {
      return;
    }
@@ -333,4 +333,4 @@
    return;
  }
  
- } // namespace arcana::noelle
+ } // namespace noelle

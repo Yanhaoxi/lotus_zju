@@ -33,7 +33,7 @@ static bool expandNestedGEP(Function &F, IRBuilder<NoFolder> &builder) {
                 // for every instruction in the Function, try
                 for (unsigned i = 0; i < I.getNumOperands(); i++) {
                     Value *op = I.getOperand(i);
-                    if (auto CE = dyn_cast<ConstantExpr>(op)) {
+                    if (auto *CE = dyn_cast<ConstantExpr>(op)) {
                         changed = true;
                         fixPoint = false;
 
@@ -59,7 +59,7 @@ static bool splitVariableGEP(Function &F, IRBuilder<NoFolder> &builder) {
     // 2nd, split instructions with that uses variable to index
     for (auto &BB : F) {
         for (auto &I : BB) {
-            if (auto GEP = dyn_cast<GetElementPtrInst>(&I)) {
+            if (auto *GEP = dyn_cast<GetElementPtrInst>(&I)) {
                 if (GEP->hasAllConstantIndices()) {
                     continue;
                 }
@@ -127,7 +127,7 @@ static bool splitVariableGEP(Function &F, IRBuilder<NoFolder> &builder) {
         }
     }
 
-    for (auto GEP : erasedGEP) {
+    for (auto *GEP : erasedGEP) {
         changed = true;
         GEP->eraseFromParent();
     }

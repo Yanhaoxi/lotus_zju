@@ -65,7 +65,7 @@ void AggregateIterator::doStep() {
       // elements may not be fixed. So I used `FixedVectorType` here.
       assert(llvm::isa<FixedVectorType>(Ty) &&
              "ScalableVectorType is not supported!");
-      auto fvt = llvm::cast<FixedVectorType>(Ty);
+      auto *fvt = llvm::cast<FixedVectorType>(Ty);
       for (size_t i = 0, e = fvt->getNumElements(); i != e; ++i)
         Worklist.push_back(fvt->getElementType());
       continue;

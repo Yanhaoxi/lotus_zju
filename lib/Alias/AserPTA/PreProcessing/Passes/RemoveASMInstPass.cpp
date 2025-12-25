@@ -15,8 +15,8 @@ static bool destroyASMInst(Function &F, IRBuilder<NoFolder> &builder) {
     std::vector<Instruction *> removeThese;
     for (auto &BB : F) {
         for (auto &I : BB) {
-            if (auto callInst = dyn_cast<CallBase>(&I)) {
-                auto V = callInst->getCalledOperand();
+            if (auto *callInst = dyn_cast<CallBase>(&I)) {
+                auto *V = callInst->getCalledOperand();
                 if (V != nullptr && isa<InlineAsm>(V)) {
                     removeThese.push_back(callInst);
                 }
@@ -24,7 +24,7 @@ static bool destroyASMInst(Function &F, IRBuilder<NoFolder> &builder) {
         }
     }
 
-    for (auto I : removeThese) {
+    for (auto *I : removeThese) {
         I->replaceAllUsesWith(llvm::UndefValue::get(I->getType()));
         I->eraseFromParent();
     }

@@ -40,17 +40,17 @@ void DsaLibFuncInfo::getAnalysisUsage(llvm::AnalysisUsage &AU) const {
 }
 
 void DsaLibFuncInfo::initSpecModule() const {
-  auto specFnModify = m_specLang->getFunction("sea_dsa_set_modified");
-  auto specFnRead = m_specLang->getFunction("sea_dsa_set_read");
-  auto specFnCollapse = m_specLang->getFunction("sea_dsa_collapse");
-  auto specFnHeap = m_specLang->getFunction("sea_dsa_set_heap");
-  auto specFnP2I = m_specLang->getFunction("sea_dsa_set_ptrtoint");
-  auto specFnI2P = m_specLang->getFunction("sea_dsa_set_inttoptr");
-  auto specFnExtern = m_specLang->getFunction("sea_dsa_set_external");
-  auto specFnAlias = m_specLang->getFunction("sea_dsa_alias");
-  auto specFnMk = m_specLang->getFunction("sea_dsa_mk");
-  auto specFnLink = m_specLang->getFunction("sea_dsa_link");
-  auto specFnAccess = m_specLang->getFunction("sea_dsa_access");
+  auto *specFnModify = m_specLang->getFunction("sea_dsa_set_modified");
+  auto *specFnRead = m_specLang->getFunction("sea_dsa_set_read");
+  auto *specFnCollapse = m_specLang->getFunction("sea_dsa_collapse");
+  auto *specFnHeap = m_specLang->getFunction("sea_dsa_set_heap");
+  auto *specFnP2I = m_specLang->getFunction("sea_dsa_set_ptrtoint");
+  auto *specFnI2P = m_specLang->getFunction("sea_dsa_set_inttoptr");
+  auto *specFnExtern = m_specLang->getFunction("sea_dsa_set_external");
+  auto *specFnAlias = m_specLang->getFunction("sea_dsa_alias");
+  auto *specFnMk = m_specLang->getFunction("sea_dsa_mk");
+  auto *specFnLink = m_specLang->getFunction("sea_dsa_link");
+  auto *specFnAccess = m_specLang->getFunction("sea_dsa_access");
 
   assert(specFnModify != nullptr && "Could not find sea_dsa_set_modified");
   assert(specFnRead != nullptr && "Could not find sea_dsa_set_read");
@@ -187,15 +187,15 @@ void DsaLibFuncInfo::generateSpec(const llvm::Function &F,
                                   const GraphRef G) const {
   using namespace llvm;
 
-  auto specFnModify = m_specModule->getFunction("sea_dsa_set_modified");
-  auto specFnRead = m_specModule->getFunction("sea_dsa_set_read");
-  auto specFnCollapse = m_specModule->getFunction("sea_dsa_collapse");
-  auto specFnHeap = m_specModule->getFunction("sea_dsa_set_heap");
-  auto specFnP2I = m_specModule->getFunction("sea_dsa_set_ptrtoint");
-  auto specFnI2P = m_specModule->getFunction("sea_dsa_set_inttoptr");
-  auto specFnExtern = m_specModule->getFunction("sea_dsa_set_external");
-  auto specFnAlias = m_specModule->getFunction("sea_dsa_alias");
-  auto specFnMk = m_specModule->getFunction("sea_dsa_mk");
+  auto *specFnModify = m_specModule->getFunction("sea_dsa_set_modified");
+  auto *specFnRead = m_specModule->getFunction("sea_dsa_set_read");
+  auto *specFnCollapse = m_specModule->getFunction("sea_dsa_collapse");
+  auto *specFnHeap = m_specModule->getFunction("sea_dsa_set_heap");
+  auto *specFnP2I = m_specModule->getFunction("sea_dsa_set_ptrtoint");
+  auto *specFnI2P = m_specModule->getFunction("sea_dsa_set_inttoptr");
+  auto *specFnExtern = m_specModule->getFunction("sea_dsa_set_external");
+  auto *specFnAlias = m_specModule->getFunction("sea_dsa_alias");
+  auto *specFnMk = m_specModule->getFunction("sea_dsa_mk");
 
   if (F.getName() == "main") return;
   if (F.isDeclaration() || F.empty()) return;
@@ -224,7 +224,7 @@ void DsaLibFuncInfo::generateSpec(const llvm::Function &F,
     auto str = rso.str();
     Function *baseFn = specM->getFunction("sea_dsa_access");
 
-    auto baseFnTy = baseFn->getFunctionType();
+    auto *baseFnTy = baseFn->getFunctionType();
     llvm::FunctionType *derivedFnTy = llvm::FunctionType::get(
         baseFnTy->getReturnType(), {ty, baseFnTy->getParamType(1)}, false);
 
@@ -244,7 +244,7 @@ void DsaLibFuncInfo::generateSpec(const llvm::Function &F,
     auto str = rso.str();
     Function *baseFn = specM->getFunction("sea_dsa_link");
 
-    auto baseFnTy = baseFn->getFunctionType();
+    auto *baseFnTy = baseFn->getFunctionType();
     llvm::FunctionType *derivedFnTy = llvm::FunctionType::get(
         baseFnTy->getReturnType(),
         {baseFnTy->getParamType(0), baseFnTy->getParamType(1), ty}, false);
@@ -256,7 +256,7 @@ void DsaLibFuncInfo::generateSpec(const llvm::Function &F,
 
   // sets the attributes that the original node has onto the spec graph value
   auto setAttributes = [&](const Node *gNode, Value *specVal) {
-    auto bitCastVal = builder.CreateBitCast(specVal, builder.getInt8PtrTy());
+    auto *bitCastVal = builder.CreateBitCast(specVal, builder.getInt8PtrTy());
 
     if (gNode->isModified()) { builder.CreateCall(specFnModify, bitCastVal); }
     if (gNode->isHeap()) { builder.CreateCall(specFnHeap, bitCastVal); }
@@ -272,8 +272,8 @@ void DsaLibFuncInfo::generateSpec(const llvm::Function &F,
   std::stack<std::pair<Node *, Value *>> visitStack;
   llvm::DenseMap<Node *, Value *> aliasMap;
 
-  auto fIt = F.arg_begin();
-  auto specIt = specFn->arg_begin();
+  const auto *fIt = F.arg_begin();
+  auto *specIt = specFn->arg_begin();
 
   for (; fIt != F.arg_end(); ++fIt, ++specIt) {
     if (!fIt->getType()->isPointerTy()) continue;
@@ -291,8 +291,8 @@ void DsaLibFuncInfo::generateSpec(const llvm::Function &F,
   }
 
   while (!visitStack.empty()) {
-    auto graphNode = visitStack.top().first;
-    auto specVal = visitStack.top().second;
+    auto *graphNode = visitStack.top().first;
+    auto *specVal = visitStack.top().second;
     visitStack.pop();
 
     // we have already visited this node
@@ -306,11 +306,11 @@ void DsaLibFuncInfo::generateSpec(const llvm::Function &F,
         Type *ty = link.first.getType().getLLVMType();
         unsigned offset = link.first.getOffset();
 
-        auto uIntTy = llvm::Type::getInt32Ty(m_specModule->getContext());
-        auto llvmOffset = llvm::ConstantInt::get(
+        auto *uIntTy = llvm::Type::getInt32Ty(m_specModule->getContext());
+        auto *llvmOffset = llvm::ConstantInt::get(
             uIntTy, llvm::APInt(uIntTy->getIntegerBitWidth(), offset, false));
 
-        auto linkFn = getOrInsertLinkFnTy(m_specModule, ty);
+        auto *linkFn = getOrInsertLinkFnTy(m_specModule, ty);
         Value *castChild;
         if (ty)
           castChild = builder.CreateBitCast(newNodeVal, ty);
@@ -327,17 +327,17 @@ void DsaLibFuncInfo::generateSpec(const llvm::Function &F,
         unsigned offset = typeIt.first;
         auto typeSet = typeIt.second;
 
-        auto uIntTy = llvm::Type::getInt32Ty(m_specModule->getContext());
-        auto llvmOffset = llvm::ConstantInt::get(
+        auto *uIntTy = llvm::Type::getInt32Ty(m_specModule->getContext());
+        auto *llvmOffset = llvm::ConstantInt::get(
             uIntTy, llvm::APInt(uIntTy->getIntegerBitWidth(), offset, false));
 
-        for (auto type : typeSet) {
+        for (auto *type : typeSet) {
           if (!type->isPointerTy()) continue;
 
-          auto mutTy = const_cast<Type *>(type);
+          auto *mutTy = const_cast<Type *>(type);
           Function *accessFn = getOrInsertAccessFnTy(m_specModule, mutTy);
 
-          auto castVal = builder.CreateBitCast(specVal, mutTy);
+          auto *castVal = builder.CreateBitCast(specVal, mutTy);
           builder.CreateCall(accessFn, {castVal, llvmOffset});
         }
       }

@@ -9,7 +9,7 @@ using namespace aser;
 
 void aser::prettyFunctionPrinter(const Function *func, raw_ostream &os) {
     os << *func->getReturnType() << " @" << func->getName() << "(";
-    auto funcType = func->getFunctionType();
+    auto *funcType = func->getFunctionType();
     for (unsigned I = 0, E = funcType->getNumParams(); I != E; ++I) {
         if (I) os << ", ";
         os << *funcType->getParamType(I);
@@ -49,7 +49,7 @@ bool aser::isCompatibleCall(const llvm::Instruction *indirectCall, const llvm::F
 
     // LLVM IR is strongly typed, so ensure every actually argument is of the
     // same type as the formal arguments.
-    auto fit = CS.arg_begin();
+    const auto *fit = CS.arg_begin();
     for (const Argument &arg : target->args()) {
         const Value *param = *fit;
         if (param->getType()->isPointerTy() != arg.getType()->isPointerTy()) {

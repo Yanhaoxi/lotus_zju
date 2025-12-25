@@ -60,7 +60,7 @@ GlobalContext GlobalCtx;
 void PrintResults(GlobalContext *GCtx) {
     int TotalTargets = 0;
     // 计算间接调用总共调用的target function数量
-    for (auto IC : GCtx->IndirectCallInsts)
+    for (auto *IC : GCtx->IndirectCallInsts)
         TotalTargets += GCtx->Callees[IC].size();
 
     int totalsize = 0;

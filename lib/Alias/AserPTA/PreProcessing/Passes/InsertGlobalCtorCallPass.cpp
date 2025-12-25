@@ -13,13 +13,13 @@ using namespace llvm;
 #define INIT_FUNC_INDEX 1
 
 bool InsertGlobalCtorCallPass::runOnModule(llvm::Module &M) {
-    auto ctors = M.getGlobalVariable("llvm.global_ctors");
+    auto *ctors = M.getGlobalVariable("llvm.global_ctors");
     if (ctors == nullptr) {
         // no global ctors
         return false;
     }
     // TODO: make main configurable
-    auto mainFun = M.getFunction("cr_main");
+    auto *mainFun = M.getFunction("cr_main");
     if (mainFun == nullptr || mainFun->isDeclaration()) {
         return false;
     }
@@ -39,7 +39,7 @@ bool InsertGlobalCtorCallPass::runOnModule(llvm::Module &M) {
             llvm::Constant *curCtor = initArray->getOperand(i);
             // the ctor is a structure of type { i32, void ()*, i8* }
             llvm::Constant *init = llvm::cast<llvm::ConstantAggregate>(curCtor)->getOperand(1);
-            auto initFun = llvm::cast<Function>(init);
+            auto *initFun = llvm::cast<Function>(init);
             builder.CreateCall(FunctionCallee(initFun->getFunctionType(), initFun));
         }
     }

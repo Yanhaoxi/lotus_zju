@@ -223,7 +223,7 @@ protected:
         }
       } else if (Ty->isArrayTy()) {
         workList.push_back(Ty->getArrayElementType());
-      } else if (auto vt = dyn_cast<VectorType>(Ty)) {
+      } else if (const auto *vt = dyn_cast<VectorType>(Ty)) {
         workList.push_back(vt->getPointerElementType());
       }
     }
@@ -904,7 +904,7 @@ std::pair<int64_t, uint64_t> computeGepOffset(Type *ptrTy,
         Ty = ptrTy->getPointerElementType();
       else if (Ty->isArrayTy())
         Ty = Ty->getArrayElementType();
-      else if (auto vt = dyn_cast<VectorType>(Ty))
+      else if (auto *vt = dyn_cast<VectorType>(Ty))
         Ty = vt->getPointerElementType();
       assert(Ty && "Type is neither PointerType nor SequentialType");
 
@@ -943,7 +943,7 @@ uint64_t computeIndexedOffset(Type *ty, ArrayRef<unsigned> indecies,
         ty = ptrTy->getPointerElementType();
       else if (ty->isArrayTy())
         ty = ty->getArrayElementType();
-      else if (auto vt = dyn_cast<VectorType>(ty))
+      else if (auto *vt = dyn_cast<VectorType>(ty))
         ty = vt->getPointerElementType();
       assert(ty && "Type is neither PointerType nor SequentialType");
       offset += idx * dl.getTypeAllocSize(ty);
@@ -1503,7 +1503,7 @@ bool hasNoPointerTy(const llvm::Type *t) {
       if (!hasNoPointerTy(*it)) return false;
   } else if (t->isArrayTy())
     return hasNoPointerTy(t->getArrayElementType());
-  else if (auto vt = dyn_cast<const VectorType>(t))
+  else if (const auto *vt = dyn_cast<const VectorType>(t))
     return hasNoPointerTy(vt->getPointerElementType());
 
   return true;

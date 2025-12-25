@@ -46,7 +46,7 @@
    /*
     * Set the basic blocks and latches of the loop.
     */
-   for (auto bb : l->blocks()) {
+   for (auto *bb : l->blocks()) {
      // NOTE: Unsure if this is program forward order
      this->bbs.insert(bb);
      if (l->isLoopLatch(bb)) {
@@ -90,8 +90,8 @@
  }
  
  Instruction *LoopStructure::getEntryInstruction(void) const {
-   auto header = this->getHeader();
-   auto firstInst = &*header->begin();
+   auto *header = this->getHeader();
+   auto *firstInst = &*header->begin();
    return firstInst;
  }
  
@@ -100,13 +100,13 @@
    /*
     * Fetch the header.
     */
-   auto header = this->getHeader();
+   auto *header = this->getHeader();
  
    /*
     * The successor of the header that belongs to the loop is the first loop
     * basic block executed after executing the header.
     */
-   for (auto succ : successors(header)) {
+   for (auto *succ : successors(header)) {
      if (this->isIncluded(succ)) {
        return succ;
      }
@@ -129,7 +129,7 @@
  
  std::unordered_set<Instruction *> LoopStructure::getInstructions(void) const {
    std::unordered_set<Instruction *> insts{};
-   for (auto bb : this->bbs) {
+   for (auto *bb : this->bbs) {
      for (auto &inst : *bb) {
        insts.insert(&inst);
      }
@@ -140,7 +140,7 @@
  
  uint64_t LoopStructure::getNumberOfInstructions(void) const {
    uint64_t t = 0;
-   for (auto bb : this->bbs) {
+   for (auto *bb : this->bbs) {
      t += bb->size();
    }
  
@@ -153,8 +153,8 @@
  
  bool LoopStructure::isALoopExit(Instruction *i) const {
    for (auto p : this->getLoopExitEdges()) {
-     auto exitingBB = p.first;
-     auto e = exitingBB->getTerminator();
+     auto *exitingBB = p.first;
+     auto *e = exitingBB->getTerminator();
      if (e == i) {
        return true;
      }
@@ -173,7 +173,7 @@
    /*
     * Check if value is an instruction.
     */
-   if (auto inst = dyn_cast<Instruction>(value)) {
+   if (auto *inst = dyn_cast<Instruction>(value)) {
  
      /*
       * Check if the instruction is not included in the loop.
@@ -225,7 +225,7 @@
  }
  
  bool LoopStructure::isIncluded(Instruction *i) const {
-   auto bb = i->getParent();
+   auto *bb = i->getParent();
    auto contained = this->isIncluded(bb);
  
    return contained;
@@ -277,7 +277,7 @@ uint64_t LoopStructure::getID(void) {
  }
  
  Function *LoopStructure::getFunction(void) const {
-   auto f = this->header->getParent();
+   auto *f = this->header->getParent();
    return f;
  }
  
@@ -285,4 +285,4 @@ uint64_t LoopStructure::getID(void) {
    return this->exitBlocks.size();
  }
  
- } // namespace arcana::noelle
+ } // namespace noelle

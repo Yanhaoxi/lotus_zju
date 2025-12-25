@@ -124,15 +124,15 @@ void AAAnalyzer::interProcedureAnalysis() {
         auto *FN = DyckCG->getOrInsertFunction(&F);
         for (auto It = FN->common_call_begin(), E = FN->common_call_end(); It != E; ++It) {
             auto *CC = *It;
-            auto Callee = CC->getCalledFunction();
-            auto CalleeN = DyckCG->getOrInsertFunction(Callee);
+            auto *Callee = CC->getCalledFunction();
+            auto *CalleeN = DyckCG->getOrInsertFunction(Callee);
             FN->addCalledFunction(CC, CalleeN);
         }
 
         for (auto It = FN->pointer_call_begin(), E = FN->pointer_call_end(); It != E; ++It) {
             auto *PC = *It;
             for (auto *Callee: *PC) {
-                auto CalleeN = DyckCG->getOrInsertFunction(Callee);
+                auto *CalleeN = DyckCG->getOrInsertFunction(Callee);
                 FN->addCalledFunction(PC, CalleeN);
             }
         }
@@ -490,7 +490,7 @@ DyckGraphNode *AAAnalyzer::wrapValue(Value *V) {
         }
         VDV = wrapValue(V);
     } else if (isa<ConstantVector>(V)) {
-        auto CV = (ConstantVector *) V;
+        auto *CV = (ConstantVector *) V;
         unsigned NumElmt = CV->getNumOperands();
         for (unsigned K = 0; K < NumElmt; K++) {
             Value *ElmtK = CV->getOperand(K);
@@ -511,7 +511,7 @@ DyckGraphNode *AAAnalyzer::wrapValue(Value *V) {
         } else if (isa<GlobalAlias>(V)) {
             auto *Global = (GlobalAlias *) V;
             Value *Aliasee = Global->getAliasee();
-            auto AliaseeV = wrapValue(Aliasee);
+            auto *AliaseeV = wrapValue(Aliasee);
             VDV = wrapValue(V);
             VDV = makeAlias(VDV, AliaseeV);
         } else if (isa<Function>(V)) {
@@ -880,8 +880,8 @@ void AAAnalyzer::handleInst(Instruction *Inst, DyckCallGraphNode *Parent) {
 
 void AAAnalyzer::handleExtractInsertValueInst(Value *AggValue, Type *AggTy, ArrayRef<unsigned> &Indices,
                                               Value *InsertedOrExtractedValue) {
-    auto ToInOrExVal = wrapValue(InsertedOrExtractedValue);
-    auto CurrentStruct = wrapValue(AggValue);
+    auto *ToInOrExVal = wrapValue(InsertedOrExtractedValue);
+    auto *CurrentStruct = wrapValue(AggValue);
 
     for (unsigned int K = 0; K < Indices.size(); K++) {
         assert(AggTy->isAggregateType() && "Error in handleExtractInsertValueInst, not an agg (array/struct) type!");
@@ -904,8 +904,8 @@ void AAAnalyzer::handleExtractInsertValueInst(Value *AggValue, Type *AggTy, Arra
 }
 
 void AAAnalyzer::handleExtractInsertElmtInst(Value *Vec, Value *Elmt) {
-    auto ElmtVer = wrapValue(Elmt);
-    auto VecVer = wrapValue(Vec);
+    auto *ElmtVer = wrapValue(Elmt);
+    auto *VecVer = wrapValue(Vec);
     this->makeAlias(VecVer, ElmtVer);
 }
 

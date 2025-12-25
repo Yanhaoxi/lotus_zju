@@ -22,7 +22,7 @@ void LoweringMemCpyPass::lowerMemCpyForType(Type *type, Value *src, Value *dst, 
                                             IRBuilder<NoFolder> &builder) {
     switch (type->getTypeID()) {
         case llvm::Type::StructTyID: {
-            auto structType = static_cast<const StructType *>(type);
+            const auto *structType = static_cast<const StructType *>(type);
             for (int i = 0; i < structType->getNumElements(); i++) {
                 idx.push_back(ConstantInt::get(idxType, i));
                 lowerMemCpyForType(structType->getElementType(i), src, dst, idx, builder);
@@ -31,17 +31,17 @@ void LoweringMemCpyPass::lowerMemCpyForType(Type *type, Value *src, Value *dst, 
             break;
         }
         case llvm::Type::ArrayTyID: {
-            auto arrayType = static_cast<const ArrayType *>(type);
+            const auto *arrayType = static_cast<const ArrayType *>(type);
             idx.push_back(ConstantInt::get(idxType, 0));
             lowerMemCpyForType(arrayType->getElementType(), src, dst, idx, builder);
             idx.pop_back();
             break;
         }
         case llvm::Type::PointerTyID: {
-            auto srcGEP = builder.CreateGEP(src->getType()->getPointerElementType(), src, idx, "");
-            auto dstGEP = builder.CreateGEP(dst->getType()->getPointerElementType(), dst, idx, "");
+            auto *srcGEP = builder.CreateGEP(src->getType()->getPointerElementType(), src, idx, "");
+            auto *dstGEP = builder.CreateGEP(dst->getType()->getPointerElementType(), dst, idx, "");
 
-            auto srcLoad = builder.CreateLoad(srcGEP->getType()->getPointerElementType(), srcGEP);
+            auto *srcLoad = builder.CreateLoad(srcGEP->getType()->getPointerElementType(), srcGEP);
             builder.CreateStore(srcLoad, dstGEP, false);
             break;
         }
@@ -74,15 +74,15 @@ bool LoweringMemCpyPass::runOnModule(llvm::Module &M) {
     for (StringRef MemCpyName : MemCpys) {
         Function *memcpy = M.getFunction(MemCpyName);
         if (memcpy != nullptr) {
-            for (auto user : memcpy->users()) {
+            for (auto *user : memcpy->users()) {
                 if (auto *callInst = dyn_cast<CallInst>(user)) {
                     Value *dst = callInst->getArgOperand(0);
                     Value *src = callInst->getArgOperand(1);
                     Value *len = callInst->getArgOperand(2);
 
-                    auto constLen = dyn_cast<ConstantInt>(len);
-                    auto dstBitCast = dyn_cast<BitCastInst>(dst);
-                    auto srcBitCast = dyn_cast<BitCastInst>(src);
+                    auto *constLen = dyn_cast<ConstantInt>(len);
+                    auto *dstBitCast = dyn_cast<BitCastInst>(dst);
+                    auto *srcBitCast = dyn_cast<BitCastInst>(src);
 
                     if (constLen && dstBitCast && srcBitCast) {
                         // we only lowering memcpy that uses

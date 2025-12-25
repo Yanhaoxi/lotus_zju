@@ -67,7 +67,7 @@ static bool inlineHeapWrapperAPIs(Module &M, set<StringRef> &HeapAPIs) {
 
         // Here inline all the uses of the allocFun
         for (User *user : allocFun->users()) {
-            auto allocSite = dyn_cast<CallBase>(user);
+            auto *allocSite = dyn_cast<CallBase>(user);
             if (allocSite == nullptr) {
                 continue;
             }
@@ -87,7 +87,7 @@ static bool inlineHeapWrapperAPIs(Module &M, set<StringRef> &HeapAPIs) {
             std::string funBaseName;
             if (isItaniumEncoding(caller->getName())) {
                 demangler.partialDemangle(caller->getName().begin());
-                auto result = demangler.getFunctionBaseName(nullptr, nullptr);
+                auto *result = demangler.getFunctionBaseName(nullptr, nullptr);
                 if (result == nullptr) {
                     // If this function was alloc wrapper we will fail to inline
                     LOG_WARN("Failed to demangle function: {}", caller->getName());
@@ -158,8 +158,8 @@ static bool inlineSimpleFunction(Module &M) {
 
         for (BasicBlock &BB : F) {
             for (Instruction &I : BB) {
-                if (auto call = dyn_cast<CallBase>(&I)) {
-                    if (auto calleeFun = call->getCalledFunction()) {
+                if (auto *call = dyn_cast<CallBase>(&I)) {
+                    if (auto *calleeFun = call->getCalledFunction()) {
                         if (calleeFun->getName().startswith("llvm."))
                             // skip llvm intrinsics
                             continue;
@@ -209,8 +209,8 @@ static bool inlineSimpleWrappers(llvm::Module &M) {
         auto it = candidate->user_begin();
         auto ie = candidate->user_end();
         for (; it != ie; it++) {
-            if (auto call = dyn_cast<CallBase>(*it)) {
-                auto wrapper = call->getFunction();
+            if (auto *call = dyn_cast<CallBase>(*it)) {
+                auto *wrapper = call->getFunction();
 
                 if (wrapper->getNumUses() == 1 || wrapper->hasFnAttribute(Attribute::AlwaysInline)) {
                     // small opts, no different if the function is only called once

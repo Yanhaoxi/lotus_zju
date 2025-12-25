@@ -29,7 +29,7 @@
    /*
     * Check if the metadata exists.
     */
-   auto metaNode = inst->getMetadata(metadataName);
+   auto *metaNode = inst->getMetadata(metadataName);
    if (!metaNode) {
      return false;
    }
@@ -43,7 +43,7 @@
    /*
     * Get the metadata.
     */
-   auto metaNode = inst->getMetadata(metadataName);
+   auto *metaNode = inst->getMetadata(metadataName);
    if (metaNode) {
      errs() << "MetadataManager::getMetadata: ERROR = the metadata \""
             << metadataName << "\" already exists in the instruction " << *inst
@@ -66,7 +66,7 @@
    /*
     * Get the metadata.
     */
-   auto metaNode = inst->getMetadata(metadataName);
+   auto *metaNode = inst->getMetadata(metadataName);
    if (metaNode) {
      errs() << "MetadataManager::addMetadata: ERROR = the metadata \""
             << metadataName << "\" already exists in the instruction " << *inst
@@ -78,8 +78,8 @@
     * Create the metadata value.
     */
    auto &cxt = this->program.getContext();
-   auto s = MDString::get(cxt, metadataValue);
-   auto n = MDNode::get(cxt, s);
+   auto *s = MDString::get(cxt, metadataValue);
+   auto *n = MDNode::get(cxt, s);
  
    /*
     * Add the metadata to the instruction
@@ -96,7 +96,7 @@
    /*
     * Check if the metadata node already exists.
     */
-   auto metaNode = inst->getMetadata(metadataName);
+   auto *metaNode = inst->getMetadata(metadataName);
    if (!metaNode) {
      errs() << "MetadataManager::setMetadata: ERROR = the metadata \""
             << metadataName << "\" does not exists in the instruction " << *inst
@@ -108,8 +108,8 @@
     * Set the metadata
     */
    auto &cxt = this->program.getContext();
-   auto s = MDString::get(cxt, metadataValue);
-   auto n = MDNode::get(cxt, s);
+   auto *s = MDString::get(cxt, metadataValue);
+   auto *n = MDNode::get(cxt, s);
    inst->setMetadata(metadataName, n);
  
    return;
@@ -121,7 +121,7 @@
    /*
     * Check if the metadata node already exists.
     */
-   auto metaNode = inst->getMetadata(metadataName);
+   auto *metaNode = inst->getMetadata(metadataName);
    if (!metaNode) {
      errs() << "MetadataManager::deleteMetadata: ERROR = the metadata \""
             << metadataName << "\" does not exists in the instruction " << *inst
@@ -137,4 +137,4 @@
    return;
  }
  
- } // namespace arcana::noelle
+ } // namespace noelle

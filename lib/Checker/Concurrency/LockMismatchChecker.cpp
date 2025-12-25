@@ -85,7 +85,7 @@ std::vector<ConcurrencyBugReport> LockMismatchChecker::checkLockMisuse() {
                     }
 
                     if (!intentional) {
-                         for (auto lock : heldLocks) {
+                         for (const auto *lock : heldLocks) {
                              ConcurrencyBugReport report(
                                 ConcurrencyBugType::LOCK_MISMATCH,
                                 "Lock leak: function returns with lock held",

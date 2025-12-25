@@ -45,7 +45,7 @@ static bool identifyOverridenHeapAPIs(Module &M, set<StringRef> &HeapAPIs) {
                 F.deleteBody();
             }
 
-            auto entryBB = BasicBlock::Create(C, "aser.heap", &F);
+            auto *entryBB = BasicBlock::Create(C, "aser.heap", &F);
             builder.SetInsertPoint(entryBB);
 
             const Attribute& attr = F.getFnAttribute(Attribute::AllocSize);
@@ -98,7 +98,7 @@ static bool identifyOverridenHeapAPIs(Module &M, set<StringRef> &HeapAPIs) {
             }
 
             // FIXME: handle debug information correctly
-            auto entryBB = BasicBlock::Create(C, "aser.heap", &F);
+            auto *entryBB = BasicBlock::Create(C, "aser.heap", &F);
             builder.SetInsertPoint(entryBB);
 
             Value *args[1] = {&(*F.arg_begin())};
@@ -147,7 +147,7 @@ static bool identifyOverridenHeapAPIs(Module &M, set<StringRef> &HeapAPIs) {
                     F.deleteBody();
                 }
 
-                auto entryBB = BasicBlock::Create(C, "aser.heap", &F);
+                auto *entryBB = BasicBlock::Create(C, "aser.heap", &F);
                 builder.SetInsertPoint(entryBB);
 
                 uint64_t allocSize = M.getDataLayout().getTypeAllocSize(F.getReturnType()->getPointerElementType());

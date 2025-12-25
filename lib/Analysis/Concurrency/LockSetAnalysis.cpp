@@ -83,7 +83,7 @@ LockSet LockSetAnalysis::getMustLockSetAt(const Instruction *inst) const {
 
 bool LockSetAnalysis::mayHoldLock(const Instruction *inst, LockID lock) const {
   auto lockset = getMayLockSetAt(inst);
-  for (auto held_lock : lockset) {
+  for (const auto *held_lock : lockset) {
     if (mayAlias(lock, held_lock)) {
       return true;
     }
@@ -112,12 +112,12 @@ bool LockSetAnalysis::mayHoldCommonLock(const Instruction *i1,
   auto locks1 = getMayLockSetAt(i1);
   auto locks2 = getMayLockSetAt(i2);
 
-  for (auto lock : locks1) {
+  for (const auto *lock : locks1) {
     if (locks2.find(lock) != locks2.end()) {
       return true;
     }
     // Check for aliasing
-    for (auto lock2 : locks2) {
+    for (const auto *lock2 : locks2) {
       if (mayAlias(lock, lock2)) {
         return true;
       }
@@ -257,7 +257,7 @@ void LockSetAnalysis::printResults(raw_ostream &os) const {
   printStatistics(os);
 
   os << "\n=== All Locks ===\n";
-  for (auto lock : m_all_locks) {
+  for (const auto *lock : m_all_locks) {
     os << "Lock: ";
     lock->printAsOperand(os, false);
     os << "\n";
@@ -306,7 +306,7 @@ void LockSetAnalysis::printLockSetsForFunction(const Function *func,
 
       os << "  May-Locks: {";
       bool first = true;
-      for (auto lock : may_locks) {
+      for (const auto *lock : may_locks) {
         if (!first)
           os << ", ";
         lock->printAsOperand(os, false);
@@ -316,7 +316,7 @@ void LockSetAnalysis::printLockSetsForFunction(const Function *func,
 
       os << "  Must-Locks: {";
       first = true;
-      for (auto lock : must_locks) {
+      for (const auto *lock : must_locks) {
         if (!first)
           os << ", ";
         lock->printAsOperand(os, false);
@@ -351,7 +351,7 @@ void LockSetAnalysis::dumpLockGraph(const std::string &filename) const {
   // Create nodes for locks
   size_t id = 0;
   std::unordered_map<LockID, size_t> lock_ids;
-  for (auto lock : m_all_locks) {
+  for (const auto *lock : m_all_locks) {
     lock_ids[lock] = id;
     file << "  lock" << id << " [label=\"";
     lock->printAsOperand(file, false);
@@ -555,12 +555,12 @@ LockSet LockSetAnalysis::transfer(const Instruction *inst,
       // In may-analysis this would under-approximate the held set.
       if (is_must && m_alias_analysis) {
         LockSet to_remove;
-        for (auto l : out_set) {
+        for (const auto *l : out_set) {
           if (mayAlias(l, lock)) {
             to_remove.insert(l);
           }
         }
-        for (auto l : to_remove) {
+        for (const auto *l : to_remove) {
           out_set.erase(l);
         }
       }
@@ -624,14 +624,13 @@ LockSet LockSetAnalysis::merge(const std::vector<LockSet> &sets,
       result = intersection;
     }
     return result;
-  } else {
-    // May-analysis: union
+  }      // May-analysis: union
     LockSet result;
     for (const auto &set : sets) {
       result.insert(set.begin(), set.end());
     }
     return result;
-  }
+ 
 }
 
 void LockSetAnalysis::identifyLocks() {
@@ -693,7 +692,7 @@ void LockSetAnalysis::trackLockOrdering() {
         }
 
         // Record ordering with all currently held locks
-        for (auto held_lock : locks_held) {
+        for (const auto *held_lock : locks_held) {
           if (held_lock != new_lock) {
             m_observed_lock_orders.insert({held_lock, new_lock});
           }
@@ -881,12 +880,12 @@ void LockSetAnalysis::applyFunctionSummary(const CallInst *call,
     // Also remove aliases if alias analysis is available
     if (m_alias_analysis) {
       LockSet to_remove;
-      for (auto l : may_locks) {
+      for (const auto *l : may_locks) {
         if (mayAlias(l, lock)) {
           to_remove.insert(l);
         }
       }
-      for (auto l : to_remove) {
+      for (const auto *l : to_remove) {
         may_locks.erase(l);
       }
     }
@@ -898,12 +897,12 @@ void LockSetAnalysis::applyFunctionSummary(const CallInst *call,
     // Also remove aliases if alias analysis is available
     if (m_alias_analysis) {
       LockSet to_remove;
-      for (auto l : must_locks) {
+      for (const auto *l : must_locks) {
         if (mayAlias(l, lock)) {
           to_remove.insert(l);
         }
       }
-      for (auto l : to_remove) {
+      for (const auto *l : to_remove) {
         must_locks.erase(l);
       }
     }
