@@ -1,5 +1,13 @@
 # SymbolicAbstraction: Static Program Analysis Toolkit Using Satisfiability
 # Integrated into Lotus framework
+#
+# This is a PROGRAM-LEVEL analysis framework for LLVM IR with abstract interpretation.
+# It provides fixpoint engines, abstract domains, and LLVM pass integration.
+#
+# ⚠️ This is NOT the same as SymAbs (lib/Solvers/SMT/SymAbs), which provides
+# FORMULA-LEVEL abstraction algorithms for SMT formulas.
+#
+# See README.md for details on the distinction.
 
 # SymbolicAbstraction library sources
 set(SYMBOLIC_ABSTRACTION_SOURCES

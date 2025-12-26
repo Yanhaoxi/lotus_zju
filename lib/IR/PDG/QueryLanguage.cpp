@@ -348,7 +348,7 @@ std::unique_ptr<QueryResult> PrimitiveExprAST::evaluate(QueryExecutor& executor)
                 if (args_.size() == 1) {
                     auto argResult = args_[0]->evaluate(executor);
                     if (argResult->getType() == QueryResult::Type::STRING) {
-                        auto stringResult = static_cast<const StringResult*>(argResult.get());
+                        const auto *stringResult = static_cast<const StringResult*>(argResult.get());
                         return executor.entriesOf(stringResult->getValue());
                     }
                     return std::make_unique<NodeSetResult>();
@@ -357,7 +357,7 @@ std::unique_ptr<QueryResult> PrimitiveExprAST::evaluate(QueryExecutor& executor)
             }
             auto argResult = args_[1]->evaluate(executor);
             if (argResult->getType() == QueryResult::Type::STRING) {
-                auto stringResult = static_cast<const StringResult*>(argResult.get());
+                const auto *stringResult = static_cast<const StringResult*>(argResult.get());
                 return executor.entriesOf(stringResult->getValue());
             }
             return std::make_unique<NodeSetResult>();
@@ -486,7 +486,7 @@ std::unique_ptr<QueryResult> PrimitiveExprAST::evaluate(QueryExecutor& executor)
             }
             auto argResult = args_[1]->evaluate(executor);
             if (argResult->getType() == QueryResult::Type::STRING) {
-                auto stringResult = static_cast<const StringResult*>(argResult.get());
+                const auto *stringResult = static_cast<const StringResult*>(argResult.get());
                 return executor.returnsOf(stringResult->getValue());
             }
             return std::make_unique<NodeSetResult>();

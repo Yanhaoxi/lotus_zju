@@ -224,12 +224,12 @@ Static Single Information (SSI) form = SSA + σ-functions
      bool operator<(const ProgramPoint& o) const;
      bool operator>(const ProgramPoint& o) const;
  
-     /*
-      * 	Return the type of a program point
-      */
-     inline bool is_join() const;
-     inline bool is_branch() const;
-     inline bool is_copy() const;
+    /*
+     * 	Return the type of a program point
+     */
+    bool is_join() const;
+    bool is_branch() const;
+    bool is_copy() const;
  
      Instruction* I;
      Position P;
@@ -244,13 +244,13 @@ Static Single Information (SSI) form = SSA + σ-functions
      SmallVector<Instruction*, 4> stack;
      Value* V;
  
- public:
-     RenamingStack(Value* V);
-     inline Value* getValue() const;
-     inline void push(Instruction* I);
-     inline void pop();
-     inline Instruction* peek() const;
-     inline bool empty() const;
+public:
+    RenamingStack(Value* V);
+    Value* getValue() const;
+    void push(Instruction* I);
+    void pop();
+    Instruction* peek() const;
+    bool empty() const;
  };
  
  /*

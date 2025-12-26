@@ -1,3 +1,12 @@
+/*
+NOTE: we have two classes of "symbolic abstraction" algorithms:
+1. lib/Verification/SymbolicAbstraction
+2. lib/Solvers/SMT/SymAbs
+
+At first glance, the abstract domains have overlap. However, it 
+lib/Solvers/SMT/SymAbs, we actually use linear integer formulas to "approximate" bit-vector formulas, which can be unintuitive.
+
+*/
 #include <gtest/gtest.h>
 #include <z3++.h>
 #include "Solvers/SMT/SymAbs/SymbolicAbstraction.h"

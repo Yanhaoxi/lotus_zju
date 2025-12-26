@@ -2,6 +2,25 @@
  * @file Analyzer.h
  * @brief Fixpoint engine that runs SymbolicAbstraction abstract interpretation on a
  *        function for a given abstract domain.
+ * 
+ * ⚠️ **IMPORTANT**: This is part of the PROGRAM-LEVEL analysis framework for LLVM IR.
+ * This is NOT the same as `Solvers/SMT/SymAbs`, which provides FORMULA-LEVEL abstraction
+ * algorithms for SMT formulas.
+ * 
+ * This analyzer works on LLVM IR programs and provides:
+ * - Fixpoint computation over program control flow
+ * - Abstract interpretation with multiple abstract domains
+ * - Integration with LLVM optimization passes
+ * 
+ * **When to use this framework:**
+ * - You're analyzing LLVM IR programs
+ * - You need a complete abstract interpretation framework with fixpoint engines
+ * - You want to integrate analysis into LLVM optimization passes
+ * 
+ * **When to use Solvers/SMT/SymAbs instead:**
+ * - You have SMT formulas (bit-vectors) that need abstraction
+ * - You need to approximate bit-vector constraints with linear integer constraints
+ * - You're working at the formula/solver level, not the program level
  */
 #pragma once
 

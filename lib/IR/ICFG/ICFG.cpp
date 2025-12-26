@@ -105,8 +105,7 @@ ICFG::ICFG(): totalICFGNode(0) {}
          assert(outEdge == inEdge && "edges not match");
          return outEdge;
      }
-     else
-         return nullptr;
+     return nullptr;
  }
  
 /// @brief Checks if an interprocedural edge exists between two nodes.
@@ -120,8 +119,7 @@ ICFG::ICFG(): totalICFGNode(0) {}
          assert(outEdge == inEdge && "edges not match");
          return outEdge;
      }
-     else
-         return nullptr;
+     return nullptr;
  }
  
 /// @brief Retrieves an edge between two nodes of a specific kind.
@@ -150,11 +148,8 @@ ICFG::ICFG(): totalICFGNode(0) {}
          assert(edge->isIntraCFGEdge() && "this should be an intra CFG edge!");
          return nullptr;
      }
-     else
-     {
-         IntraCFGEdge* intraEdge = new IntraCFGEdge(srcNode,dstNode);
-         return (addICFGEdge(intraEdge) ? intraEdge : nullptr);
-     }
+     IntraCFGEdge* intraEdge = new IntraCFGEdge(srcNode,dstNode);
+     return (addICFGEdge(intraEdge) ? intraEdge : nullptr);
  }
  
 /// @brief Adds an interprocedural call edge from caller to callee.
@@ -165,11 +160,8 @@ ICFG::ICFG(): totalICFGNode(0) {}
          assert(edge->isCallCFGEdge() && "this should be a call CFG edge!");
          return nullptr;
      }
-     else
-     {
-         CallCFGEdge* callEdge = new CallCFGEdge(srcNode,dstNode,cs);
-         return (addICFGEdge(callEdge) ? callEdge : nullptr);
-     }
+     CallCFGEdge* callEdge = new CallCFGEdge(srcNode,dstNode,cs);
+     return (addICFGEdge(callEdge) ? callEdge : nullptr);
  }
  
 /// @brief Adds an interprocedural return edge from callee to caller.
@@ -180,11 +172,8 @@ ICFG::ICFG(): totalICFGNode(0) {}
          assert(edge->isRetCFGEdge() && "this should be a return CFG edge!");
          return nullptr;
      }
-     else
-     {
-         RetCFGEdge* retEdge = new RetCFGEdge(srcNode,dstNode,cs);
-         return (addICFGEdge(retEdge) ? retEdge : nullptr);
-     }
+     RetCFGEdge* retEdge = new RetCFGEdge(srcNode,dstNode,cs);
+     return (addICFGEdge(retEdge) ? retEdge : nullptr);
  }
  
  bool ICFG::hasIntraBlockNode(const llvm::BasicBlock* bb) {

@@ -9,11 +9,12 @@
 #include "Solvers/SMT/SymAbs/SymbolicAbstraction.h"
 #include "Solvers/SMT/SymAbs/SymAbsUtils.h"
 #include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
-#include <z3++.h>
-#include <z3.h>
-#include <numeric>
+
 #include <cassert>
 #include <cmath>
+#include <numeric>
+#include <z3++.h>
+#include <z3.h>
 
 using namespace z3;
 

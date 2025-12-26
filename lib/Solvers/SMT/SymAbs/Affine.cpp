@@ -1,6 +1,6 @@
 /**
  * @file Affine.cpp
- * @brief Implementation of Algorithm 12: α_aff^V
+ * @brief Implementation of α_aff^V
  *
  * Computes the affine hull of the models of φ. We iteratively look for models
  * that violate the current hull and rebuild the hull from all collected models
@@ -10,11 +10,12 @@
 #include "Solvers/SMT/SymAbs/SymbolicAbstraction.h"
 #include "Solvers/SMT/SymAbs/SymAbsUtils.h"
 #include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
-#include <z3++.h>
-#include <z3.h>
+
 #include <algorithm>
 #include <cassert>
 #include <numeric>
+#include <z3++.h>
+#include <z3.h>
 
 using namespace z3;
 

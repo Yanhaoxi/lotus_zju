@@ -8,10 +8,11 @@
 
 #include "Solvers/SMT/SymAbs/SymbolicAbstraction.h"
 #include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
+
+#include <cassert>
+#include <map>
 #include <z3++.h>
 #include <z3.h>
-#include <map>
-#include <cassert>
 
 using namespace z3;
 

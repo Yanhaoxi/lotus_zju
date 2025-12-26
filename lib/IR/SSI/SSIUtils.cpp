@@ -262,7 +262,5 @@
      if (it != this->vertices.end()) {
          return it->second.count(to);
      }
-     else {
-         return false;
-     }
+     return false;
  }

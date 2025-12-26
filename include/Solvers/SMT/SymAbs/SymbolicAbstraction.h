@@ -4,10 +4,28 @@
  * @file SymbolicAbstraction.h
  * @brief Core algorithms for automatic abstraction of bit-vector formulae
  * 
+ * ⚠️ **IMPORTANT**: This is a FORMULA-LEVEL abstraction library for SMT formulas.
+ * This is NOT the same as `Verification/SymbolicAbstraction`, which is a PROGRAM-LEVEL
+ * analysis framework for LLVM IR.
+ * 
  * This module implements algorithms from "Automatic Abstraction of Bit-Vector Formulae"
- * for computing symbolic abstractions using SMT solvers. The algorithms compute abstractions
- * in various domains: intervals, octagons, zones, convex polyhedra, affine equalities, 
- * congruences, and polynomials.
+ * for computing symbolic abstractions of SMT bit-vector formulas using SMT solvers.
+ * 
+ * **Key Characteristics:**
+ * - Works on SMT formulas (Z3 bit-vector expressions), NOT LLVM IR
+ * - Converts bit-vectors to linear integer formulas for approximation
+ * - Provides abstraction algorithms (α_oct^V, α_zone^V, etc.) that take formulas and return constraints
+ * - Lower-level, mathematical/algorithmic library
+ * 
+ * **When to use this library:**
+ * - You have SMT formulas (bit-vectors) that need abstraction
+ * - You need to approximate bit-vector constraints with linear integer constraints
+ * - You're working at the formula/solver level, not the program level
+ * 
+ * **When to use Verification/SymbolicAbstraction instead:**
+ * - You're analyzing LLVM IR programs
+ * - You need a complete abstract interpretation framework with fixpoint engines
+ * - You want to integrate analysis into LLVM optimization passes
  * 
  * Key algorithms:
  * - Algorithm 7: α_lin-exp - Linear expression maximization

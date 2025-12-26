@@ -11,9 +11,10 @@
 #include "Solvers/SMT/SymAbs/LinearExpression.h"
 #include "Solvers/SMT/SymAbs/SymAbsUtils.h"
 #include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
+
+#include <cassert>
 #include <z3++.h>
 #include <z3.h>
-#include <cassert>
 #include <llvm/ADT/Optional.h>
 
 using namespace z3;

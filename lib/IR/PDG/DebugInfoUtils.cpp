@@ -80,7 +80,7 @@ bool pdg::dbgutils::isFuncPointerType(DIType &dt)
   DIType* di = stripMemberTag(dt);
   if (di->getTag() == dwarf::DW_TAG_subroutine_type || isa<DISubroutineType>(di) || isa<DISubprogram>(di))
     return true;
-  auto lowest_di_type = getLowestDIType(*di);
+  auto *lowest_di_type = getLowestDIType(*di);
   if (lowest_di_type != nullptr)
     return (lowest_di_type->getTag() == dwarf::DW_TAG_subroutine_type) || isa<DISubroutineType>(lowest_di_type) || isa<DISubprogram>(lowest_di_type);
   return false;
