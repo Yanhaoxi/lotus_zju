@@ -35,7 +35,7 @@ namespace {
 
       bool runOnLoop(Loop *, LPPassManager&) override;
   };
-}
+} // namespace
 
 static RegisterPass<LoopUnroll> SLU("sbt-loop-unroll",
                                     "Unroll loops in the program");
@@ -131,7 +131,7 @@ static void redirectValues(BasicBlock *newB,
 }
 
 static std::vector<BasicBlock *>
-cloneLoopBody(Function *F, const std::vector<BasicBlock *> Blocks) {
+cloneLoopBody(Function *F, const std::vector<BasicBlock *>& Blocks) {
 
   ValueToValueMapTy VMap;
   std::map<BasicBlock *, BasicBlock *> BlocksMap;

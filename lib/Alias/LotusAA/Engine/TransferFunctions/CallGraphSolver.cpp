@@ -206,10 +206,10 @@ void IntraLotusAA::computeCG() {
 
   // Compute output CG summary
   if (IntraLotusAAConfig::lotus_restrict_inline_depth != 0) {
-    int output_size = outputs.size();
+    size_t output_size = outputs.size();
     output_cg_summary.resize(output_size);
     
-    for (int idx = 0; idx < output_size; idx++) {
+    for (size_t idx = 0; idx < output_size; idx++) {
       OutputItem *output_item = outputs[idx];
       if (!output_item->getType()->isPointerTy())
         continue;

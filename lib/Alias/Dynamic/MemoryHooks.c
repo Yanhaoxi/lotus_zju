@@ -9,8 +9,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-static FILE* logFile = NULL;
+static FILE* logFile = NULL;  ///< File handle for the binary log file
 
+/// Constructs the full path to the log file in the given directory
 static char* getLogFileName(const char* dirName)
 {
 	const char* logName = "pts.log";
@@ -22,6 +23,7 @@ static char* getLogFileName(const char* dirName)
 	return fileNameStr;
 }
 
+/// Prints an error message and exits the program
 static void panic(const char* fmt, ...)
 {
 	va_list args;
@@ -34,6 +36,7 @@ static void panic(const char* fmt, ...)
 	exit(-1);
 }
 
+/// Opens the log file for binary writing in the specified directory
 static void openLogFile(const char* dirName)
 {
 	assert(logFile == NULL);
@@ -44,6 +47,7 @@ static void openLogFile(const char* dirName)
 	free(logFileName);
 }
 
+/// Writes binary data to the log file
 static void writeData(void* data, size_t size)
 {
 	size_t numBytesWritten = fwrite(data, size, 1, logFile);
@@ -51,6 +55,7 @@ static void writeData(void* data, size_t size)
 		panic("Log write error\n");
 }
 
+/// Writes a log record to the file in binary format
 static void writeLogRecord(struct LogRecord* rec)
 {
 	assert(logFile != NULL && rec != NULL);
@@ -81,12 +86,15 @@ static void writeLogRecord(struct LogRecord* rec)
 	}
 }
 
+/// Closes the log file (called at program exit)
 extern void HookFinalize()
 {
 	assert(logFile != NULL);
 	fclose(logFile);
 }
 
+/// Initializes logging: creates log directory and opens the log file.
+/// Uses LOG_DIR environment variable if set, otherwise defaults to "log".
 extern void HookInit()
 {
 	const char* logDirName = "log";
@@ -101,6 +109,7 @@ extern void HookInit()
 	atexit(HookFinalize);
 }
 
+/// Logs a memory allocation event (global, stack, or heap)
 extern void HookAlloc(char ty, unsigned id, void* addr)
 {
 	struct LogRecord record;
@@ -113,6 +122,7 @@ extern void HookAlloc(char ty, unsigned id, void* addr)
 	writeLogRecord(&record);
 }
 
+/// Logs main() function arguments (argv and envp) as global allocations
 extern void HookMain(int argvId, char** argv, int envpId, char** envp)
 {
 	HookAlloc(1, argvId, argv);
@@ -120,6 +130,7 @@ extern void HookMain(int argvId, char** argv, int envpId, char** envp)
 		HookAlloc(1, envpId, envp);
 }
 
+/// Logs a pointer assignment (pointer ID -> target address)
 extern void HookPointer(unsigned id, void* addr)
 {
 	struct LogRecord record;
@@ -130,6 +141,7 @@ extern void HookPointer(unsigned id, void* addr)
 	writeLogRecord(&record);
 }
 
+/// Logs a function entry event
 extern void HookEnter(unsigned id)
 {
 	struct LogRecord record;
@@ -139,6 +151,7 @@ extern void HookEnter(unsigned id)
 	writeLogRecord(&record);
 }
 
+/// Logs a function exit event
 extern void HookExit(unsigned id)
 {
 	struct LogRecord record;
@@ -148,6 +161,7 @@ extern void HookExit(unsigned id)
 	writeLogRecord(&record);
 }
 
+/// Logs a function call event
 extern void HookCall(unsigned id)
 {
 	struct LogRecord record;

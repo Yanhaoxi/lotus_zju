@@ -16,7 +16,7 @@ public:
     SExpr(const char *s) : SExpr(Token{s}) {}
     SExpr(std::string s) : SExpr(Token{std::move(s)}) {}
     SExpr(std::vector<SExpr> l) : SExpr(List{std::move(l)}) {}
-    SExpr(std::initializer_list<SExpr> l) : SExpr(List{std::move(l)}) {}
+    SExpr(std::initializer_list<SExpr> l) : SExpr(List{l}) {}
 
     enum Kind : int {
         TOKEN,

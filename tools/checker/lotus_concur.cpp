@@ -11,6 +11,7 @@
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/raw_ostream.h>
 
+#include <cstddef>
 #include <string>
 
 using namespace llvm;
@@ -83,6 +84,6 @@ int main(int argc, char** argv) {
         outs() << "\nNote: SARIF output support coming soon (centralized in BugReportMgr)\n";
     }
     
-    int total_bugs = stats.dataRacesFound + stats.deadlocksFound + stats.atomicityViolationsFound;
+    size_t total_bugs = stats.dataRacesFound + stats.deadlocksFound + stats.atomicityViolationsFound;
     return total_bugs > 0 ? 1 : 0;
 }

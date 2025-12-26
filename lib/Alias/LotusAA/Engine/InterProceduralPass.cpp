@@ -337,7 +337,7 @@ void LotusAA::computePtsCgIteratively(Module &M, std::vector<Function *> &func_s
       set<Function *> callersNeedingReanalysis = changed_func;
       changed_func.clear();
       
-      for (int i = func_seq.size() - 1; i >= 0; i--) {
+      for (size_t i = func_seq.size() - 1; i >= 0; i--) {
         Function *func = func_seq[i];
         IntraLotusAA *func_result = getPtGraph(func);
         

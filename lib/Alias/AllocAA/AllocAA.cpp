@@ -1,5 +1,7 @@
 
 #include "Alias/AllocAA/AllocAA.h"
+
+#include <utility>
 #include "Alias/Spec/AliasSpecManager.h"
 
 
@@ -8,9 +10,9 @@ AllocAA::AllocAA(Module &M,
                  std::function<llvm::LoopInfo &(Function &F)> getLoopInfo,
                  std::function<llvm::CallGraph &(void)> getCallGraph)
   : M{ M },
-    getSCEV{ getSCEV },
-    getLoopInfo{ getLoopInfo },
-    getCallGraph{ getCallGraph },
+    getSCEV{ std::move(getSCEV) },
+    getLoopInfo{ std::move(getLoopInfo) },
+    getCallGraph{ std::move(getCallGraph) },
     CGUnderMain{},
     allocatorCalls{},
     readOnlyFunctionNames{},

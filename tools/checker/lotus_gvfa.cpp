@@ -116,7 +116,7 @@ int main(int argc, char **argv) {
                << "Total queries: " << GVFA.AllQueryCounter << "\n"
                << "Successful queries: " << GVFA.SuccsQueryCounter << "\n";
         if (GVFA.AllQueryCounter > 0) {
-            outs() << "Success rate: " << (100.0 * GVFA.SuccsQueryCounter / GVFA.AllQueryCounter) << "%\n";
+            outs() << "Success rate: " << (100.0f * static_cast<float>(GVFA.SuccsQueryCounter) / static_cast<float>(GVFA.AllQueryCounter)) << "%\n";
         }
         GVFA.printOnlineQueryTime(outs(), "Online Query");
     }

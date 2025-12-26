@@ -9,24 +9,28 @@ namespace dynamic {
 
 namespace {
 
+/// Processes execution logs to identify alias pairs between pointers.
+/// Maintains per-function point-to sets and detects when pointers alias
+/// by checking for overlapping target addresses.
 class AnalysisImpl : public LogProcessor<AnalysisImpl>
 {
 private:
     using AliasPairSet = DenseSet<AliasPair>;
     using AnalysisMap = DenseMap<DynamicPointer, AliasPairSet>;
-    AnalysisMap& aliasPairMap;
+    AnalysisMap& aliasPairMap;  ///< Maps functions to their discovered alias pairs
 
     using GlobalMap = DenseMap<DynamicPointer, const void*>;
-    GlobalMap globalMap;
+    GlobalMap globalMap;  ///< Maps global pointer IDs to their addresses
 
     using PtsSet = SmallPtrSet<const void*, 4>;
     using LocalMap = DenseMap<DynamicPointer, PtsSet>;
+    /// Represents a function call frame with its local pointer mappings
     struct Frame
     {
-        DynamicPointer func;
-        LocalMap localMap;
+        DynamicPointer func;      ///< Function identifier
+        LocalMap localMap;        ///< Maps local pointer IDs to their point-to sets
     };
-    std::vector<Frame> stackFrames;
+    std::vector<Frame> stackFrames;  ///< Call stack for tracking nested functions
 
     static bool intersects(const PtsSet&, const PtsSet&);
     void findAliasPairs();
@@ -42,6 +46,7 @@ public:
     void visitCallRecord(const CallRecord&);
 };
 
+/// Checks if two point-to sets have any common addresses
 bool AnalysisImpl::intersects(const PtsSet& lhs, const PtsSet& rhs) {
     for (const auto* ptr : lhs) {
         if (rhs.count(ptr))
@@ -50,6 +55,8 @@ bool AnalysisImpl::intersects(const PtsSet& lhs, const PtsSet& rhs) {
     return false;
 }
 
+/// Analyzes the current function frame to find all alias pairs.
+/// Compares local pointers with each other and with globals.
 void AnalysisImpl::findAliasPairs() {
     auto func = stackFrames.back().func;
     auto& summary = aliasPairMap[func];
@@ -72,6 +79,7 @@ void AnalysisImpl::findAliasPairs() {
     }
 }
 
+/// Records a memory allocation, tracking the address for the pointer ID
 void AnalysisImpl::visitAllocRecord(const AllocRecord& allocRecord) {
     if (allocRecord.type == AllocType::Global) {
         globalMap[allocRecord.id] = allocRecord.address;
@@ -80,14 +88,17 @@ void AnalysisImpl::visitAllocRecord(const AllocRecord& allocRecord) {
     }
 }
 
+/// Records a pointer assignment, adding the target address to the pointer's point-to set
 void AnalysisImpl::visitPointerRecord(const PointerRecord& ptrRecord) {
     stackFrames.back().localMap[ptrRecord.id].insert(ptrRecord.address);
 }
 
+/// Pushes a new function frame onto the call stack
 void AnalysisImpl::visitEnterRecord(const EnterRecord& enterRecord) {
     stackFrames.push_back(Frame{enterRecord.id, LocalMap()});
 }
 
+/// Pops the current function frame and analyzes aliases before exiting
 void AnalysisImpl::visitExitRecord(const ExitRecord& exitRecord) {
     if (stackFrames.back().func != exitRecord.id)
         throw std::logic_error("Function entry/exit do not match");
@@ -95,6 +106,7 @@ void AnalysisImpl::visitExitRecord(const ExitRecord& exitRecord) {
     stackFrames.pop_back();
 }
 
+/// Records a function call (currently unused)
 void AnalysisImpl::visitCallRecord(const CallRecord& callRecord) {
     // TODO
 }
@@ -103,10 +115,12 @@ void AnalysisImpl::visitCallRecord(const CallRecord& callRecord) {
 DynamicAliasAnalysis::DynamicAliasAnalysis(const char* fileName)
     : fileName(fileName) {}
 
+/// Processes the log file and populates the alias pair map
 void DynamicAliasAnalysis::runAnalysis() {
     AnalysisImpl(fileName, aliasPairMap).process();
 }
 
+/// Returns alias pairs for a given function pointer, or nullptr if none found
 const DynamicAliasAnalysis::AliasPairSet* DynamicAliasAnalysis::getAliasPairs(
     DynamicPointer p) const {
     auto itr = aliasPairMap.find(p);

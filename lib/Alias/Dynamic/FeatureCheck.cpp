@@ -8,12 +8,14 @@ using namespace llvm;
 
 namespace dynamic {
 
+/// Prints a warning message for a value that may cause issues
 void FeatureCheck::issueWarning(const Value& v, const StringRef& msg) {
     errs().changeColor(raw_ostream::RED);
     errs() << v.getName() << ": " << msg << "\n";
     errs().resetColor();
 }
 
+/// Warns about indirect calls to external functions, which may not be instrumented
 void FeatureCheck::checkIndirectLibraryCall(const Function& f) {
     if (f.isDeclaration()) {
         for (const auto* user : f.users()) {
@@ -38,6 +40,7 @@ void FeatureCheck::checkIndirectLibraryCall(const Function& f) {
     }
 }
 
+/// Warns about array types in function parameters or instructions (not fully supported)
 void FeatureCheck::checkArrayArgOrInst(const Function& f) {
     for (auto const& arg : f.args())
         if (arg.getType()->isArrayTy())
@@ -49,6 +52,7 @@ void FeatureCheck::checkArrayArgOrInst(const Function& f) {
                 issueWarning(inst, "inst is an array");
 }
 
+/// Runs all feature checks on the module and issues warnings for unsupported features
 void FeatureCheck::runOnModule(const Module& module) {
     for (auto const& f : module) {
         checkIndirectLibraryCall(f);

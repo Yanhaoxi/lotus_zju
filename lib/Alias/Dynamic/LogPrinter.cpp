@@ -8,6 +8,7 @@ namespace dynamic
 
 LogPrinter::LogPrinter(const char* fileName, std::ostream& o): LogProcessor(fileName), os(o) {}
 
+/// Prints a memory allocation record in human-readable format
 void LogPrinter::visitAllocRecord(const AllocRecord& allocRecord)
 {
 	os << "[ALLOC] ";
@@ -29,21 +30,25 @@ void LogPrinter::visitAllocRecord(const AllocRecord& allocRecord)
 	os << "Ptr# " << allocRecord.id << " = " << allocRecord.address << '\n';
 }
 
+/// Prints a pointer assignment record
 void LogPrinter::visitPointerRecord(const PointerRecord& ptrRecord)
 {
 	os << "[POINTER] Ptr# " << ptrRecord.id << " = " << ptrRecord.address << '\n';
 }
 
+/// Prints a function entry record
 void LogPrinter::visitEnterRecord(const EnterRecord& enterRecord)
 {
 	os << "[ENTER] Function# " << enterRecord.id << '\n';
 }
 
+/// Prints a function exit record
 void LogPrinter::visitExitRecord(const ExitRecord& exitRecord)
 {
 	os << "[EXIT] Function# " << exitRecord.id << '\n';
 }
 
+/// Prints a function call record
 void LogPrinter::visitCallRecord(const CallRecord& callRecord)
 {
 	os << "[CALL] Inst# " << callRecord.id << '\n';

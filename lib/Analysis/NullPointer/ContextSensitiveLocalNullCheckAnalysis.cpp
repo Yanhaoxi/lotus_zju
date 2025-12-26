@@ -174,7 +174,7 @@ void ContextSensitiveLocalNullCheckAnalysis::tag() {
                 NonNulls = &ResultOfMerging;
             }
             auto &Orig = InstNonNullMap[&I];
-            for (auto K = 0; K < I.getNumOperands(); ++K) {
+            for (unsigned K = 0; K < I.getNumOperands(); ++K) {
                 auto* OpK = I.getOperand(K);
                 auto It = PtrIDMap.find(NEA.get(OpK));
                 if (It == PtrIDMap.end()) continue;

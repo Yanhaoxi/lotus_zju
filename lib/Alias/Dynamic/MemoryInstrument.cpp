@@ -16,18 +16,20 @@ namespace dynamic {
 
 namespace {
 
+/// Returns the insertion point immediately after an instruction
 BasicBlock::iterator nextInsertionPos(Instruction& inst) {
     BasicBlock::iterator loc(&inst);
     ++loc;
     return loc;
 }
 
+/// Instruments LLVM IR with runtime hooks to track memory operations and pointer assignments
 class Instrumenter
 {
 private:
-    DynamicHooks& hooks;
-    const IDAssigner& idMap;
-    const lotus::alias::AliasSpecManager& specMgr;
+    DynamicHooks& hooks;              ///< Hook function declarations
+    const IDAssigner& idMap;          ///< Maps LLVM values to unique IDs
+    const lotus::alias::AliasSpecManager& specMgr;  ///< Identifies allocator functions
 
     LLVMContext& context;
 
@@ -36,6 +38,7 @@ private:
         assert(id != nullptr && "ID not found");
         return *id;
     }
+    /// Helper functions to create LLVM types for hook arguments
     Type* getIntType() { return Type::getIntNTy(context, sizeof(int) * 8); }
     Type* getLongType() { return Type::getIntNTy(context, sizeof(size_t) * 8); }
     Type* getCharType() { return Type::getInt8Ty(context); }
@@ -65,6 +68,7 @@ public:
     void instrument(Module&);
 };
 
+/// Inserts a hook call to log a pointer assignment
 void Instrumenter::instrumentPointer(Value* val, Instruction* pos) {
     assert(val != nullptr && pos != nullptr && val->getType()->isPointerTy());
     auto id = getID(*val);
@@ -75,6 +79,7 @@ void Instrumenter::instrumentPointer(Value* val, Instruction* pos) {
     CallInst::Create(hooks.getPointerHook(), {idArg, val}, "", pos);
 }
 
+/// Inserts a hook call to log a memory allocation (global, stack, or heap)
 void Instrumenter::instrumentAllocation(AllocType allocType, Value* ptr,
                                         Instruction* pos) {
     assert(ptr != nullptr && pos != nullptr && ptr->getType()->isPointerTy());
@@ -87,6 +92,7 @@ void Instrumenter::instrumentAllocation(AllocType allocType, Value* ptr,
     CallInst::Create(hooks.getAllocHook(), {allocTypeArg, idArg, ptr}, "", pos);
 }
 
+/// Instruments all global variables and functions as global allocations
 void Instrumenter::instrumentGlobals(Module& module) {
     auto* bb = BasicBlock::Create(context, "entry", hooks.getGlobalHook());
     auto* retInst = ReturnInst::Create(context, bb);
@@ -115,6 +121,7 @@ void Instrumenter::instrumentGlobals(Module& module) {
     }
 }
 
+/// Instruments function parameters: logs byval allocations and pointer assignments
 void Instrumenter::instrumentFunctionParams(Function& f) {
     auto entry = f.begin()->getFirstInsertionPt();
     for (auto& arg : f.args()) {
@@ -128,6 +135,7 @@ void Instrumenter::instrumentFunctionParams(Function& f) {
     }
 }
 
+/// Inserts a function entry hook at the beginning of the function
 void Instrumenter::instrumentEntry(Function& f) {
     auto entry = f.begin()->getFirstInsertionPt();
     const auto id = getID(f);
@@ -135,6 +143,7 @@ void Instrumenter::instrumentEntry(Function& f) {
     CallInst::Create(hooks.getEnterHook(), {idArg}, "", &*entry);
 }
 
+/// Inserts a function exit hook before a return instruction
 void Instrumenter::instrumentExit(Instruction& inst) {
     auto* func = inst.getParent()->getParent();
     auto funcID = getID(*func);
@@ -142,16 +151,19 @@ void Instrumenter::instrumentExit(Instruction& inst) {
     CallInst::Create(hooks.getExitHook(), {idArg}, "", &inst);
 }
 
+/// Instruments stack allocations (alloca instructions)
 void Instrumenter::instrumentAlloca(AllocaInst& allocInst) {
     auto pos = nextInsertionPos(allocInst);
     instrumentAllocation(AllocType::Stack, &allocInst, &*pos);
 }
 
+/// Instruments heap allocations (malloc, calloc, etc.)
 void Instrumenter::instrumentMalloc(Instruction* inst) {
     auto pos = nextInsertionPos(*inst);
     instrumentAllocation(AllocType::Heap, inst, &*pos);
 }
 
+/// Instruments call instructions: logs allocators and regular calls, tracks return values
 void Instrumenter::instrumentCallInst(CallInst* CI) {
     // Instrument memory allocation function calls.
     auto* callee = CI->getCalledFunction();
@@ -170,6 +182,7 @@ void Instrumenter::instrumentCallInst(CallInst* CI) {
     }
 }
 
+/// Instruments invoke instructions (exception-handling calls): similar to call instructions
 void Instrumenter::instrumentInvokeInst(InvokeInst* II) {
     // Instrument memory allocation function calls.
     auto* callee = II->getCalledFunction();
@@ -193,6 +206,7 @@ void Instrumenter::instrumentInvokeInst(InvokeInst* II) {
     }
 }
 
+/// Instruments pointer-producing instructions, handling PHI nodes specially
 void Instrumenter::instrumentPointerInst(Instruction& inst) {
     if (isa<PHINode>(inst)) {
         // Cannot insert hooks right after a PHI, because PHINodes have to be
@@ -205,6 +219,7 @@ void Instrumenter::instrumentPointerInst(Instruction& inst) {
     }
 }
 
+/// Instruments a single instruction based on its type
 void Instrumenter::instrumentInst(Instruction& inst) {
     // Do not touch the instrumented codes
     if (idMap.getID(inst) == nullptr)
@@ -225,6 +240,7 @@ void Instrumenter::instrumentInst(Instruction& inst) {
         instrumentExit(inst);
 }
 
+/// Special instrumentation for main(): initializes logging and handles argv/envp
 void Instrumenter::instrumentMain(Function& mainFunc) {
     assert(mainFunc.getName() == "main");
 
@@ -259,6 +275,7 @@ void Instrumenter::instrumentMain(Function& mainFunc) {
     CallInst::Create(hooks.getEnterHook(), {idArg}, "", &*pos);
 }
 
+/// Instruments a function: processes all instructions and adds entry/exit hooks
 void Instrumenter::instrumentFunction(Function& f) {
     if (f.isDeclaration())
         return;
@@ -278,6 +295,7 @@ void Instrumenter::instrumentFunction(Function& f) {
     }
 }
 
+/// Main instrumentation entry point: instruments globals and all functions
 void Instrumenter::instrument(Module& module) {
     instrumentGlobals(module);
 
@@ -286,6 +304,7 @@ void Instrumenter::instrument(Module& module) {
 }
 } // namespace  
 
+/// LLVM pass entry point: checks features, assigns IDs, and instruments the module
 void MemoryInstrument::runOnModule(llvm::Module& module) {
     // Check unsupported features in the input IR and issue warnings accordingly
     FeatureCheck().runOnModule(module);

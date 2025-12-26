@@ -3,16 +3,16 @@
  * Supports CNF and SMT-LIB2 format inputs
  */
 
-#include <iostream>
-//#include <memory>
-#include <string>
-//#include <cstdlib>
-
 #include "Solvers/SMT/SMTSolver.h"
 #include "Solvers/SMT/SMTFactory.h"
 #include "Solvers/SMT/SMTModel.h"
 #include "Solvers/SMT/CNF.h"
 #include "Solvers/SMT/SATSolver.h"
+
+#include <iostream>
+//#include <memory>
+#include <string>
+//#include <cstdlib>
 
 #ifdef _MSC_VER
 #include <ctime>

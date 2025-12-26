@@ -179,9 +179,9 @@ void IntraLotusAA::processCalleeInput(
     CallBase *callsite, func_arg_t &result) {
 
   // (1) Collect the real arguments and link the values to pseudo-arguments
-  int real_size = real_args.size();
-  int formal_size = formal_args.size();
-  for (int idx = 0; idx < real_size && idx < formal_size; idx++) {
+  size_t real_size = real_args.size();
+  size_t formal_size = formal_args.size();
+  for (size_t idx = 0; idx < real_size && idx < formal_size; idx++) {
     Value *formal_arg = formal_args[idx];
     Value *real_arg = real_args[idx];
     
@@ -217,7 +217,7 @@ void IntraLotusAA::processCalleeInput(
       parent_iter = parent_arg;
     }
 
-    for (int i = parents.size() - 1; i >= 0; i--) {
+    for (size_t i = parents.size() - 1; i >= 0; i--) {
       Value *curr_arg_val = parents[i];
       processed.insert(curr_arg_val);
       assert(callee_input.count(curr_arg_val) && "Invalid Value found");

@@ -10,6 +10,7 @@ namespace dynamic {
 
 namespace {
 
+/// Helper functions to create LLVM types for hook function signatures
 Type* getVoidType(const Module& m) {
     return Type::getVoidTy(m.getContext());
 }
@@ -30,6 +31,7 @@ Type* getCharPtrPtrType(const Module& m) {
     return PointerType::getUnqual(getCharPtrType(m));
 }
 
+/// Creates an external function declaration with the given name and argument types
 Function* createFunctionWithArgType(const StringRef& name,
                                     ArrayRef<Type*> argTypes, Module& module) {
     auto* funType =
@@ -39,6 +41,8 @@ Function* createFunctionWithArgType(const StringRef& name,
 }
 } // namespace
 
+/// Creates all hook function declarations that will be called during execution.
+/// These hooks are implemented in MemoryHooks.c and log runtime events.
 DynamicHooks::DynamicHooks(Module& module) {
     initHook = createFunctionWithArgType("HookInit", {}, module);
     allocHook = createFunctionWithArgType(
@@ -60,6 +64,7 @@ DynamicHooks::DynamicHooks(Module& module) {
         module);
 }
 
+/// Checks if a function is one of the instrumentation hooks
 bool DynamicHooks::isHook(const llvm::Function& f) const {
     return &f == initHook || &f == allocHook || &f == pointerHook ||
            &f == callHook || &f == enterHook || &f == exitHook ||

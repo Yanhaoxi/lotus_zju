@@ -6,6 +6,7 @@
 namespace dynamic
 {
 
+/// Reads a binary value of type T from the input stream
 template <typename T>
 static bool readData(std::istream& is, T* data)
 {
@@ -14,6 +15,7 @@ static bool readData(std::istream& is, T* data)
 	return is.good();
 }
 
+/// Reads a single log record from the binary stream based on its type tag
 static boost::optional<LogRecord> readRecord(std::istream& is)
 {
 	LogRecord rec;
@@ -55,6 +57,7 @@ static boost::optional<LogRecord> readRecord(std::istream& is)
 	return boost::make_optional(std::move(rec));
 }
 
+/// Reads all log records from a file into memory (eager loading)
 std::vector<LogRecord> EagerLogReader::readLogFromFile(const char* fileName)
 {
 	std::vector<LogRecord> ret;
@@ -78,6 +81,7 @@ std::vector<LogRecord> EagerLogReader::readLogFromFile(const char* fileName)
 	return ret;
 }
 
+/// Opens a log file for lazy (streaming) reading
 LazyLogReader::LazyLogReader(const char* fileName): ifs(fileName, std::ios::in|std::ios::binary)
 {
 	if (!ifs.is_open())
@@ -87,6 +91,7 @@ LazyLogReader::LazyLogReader(const char* fileName): ifs(fileName, std::ios::in|s
 	}
 }
 
+/// Reads the next log record from the file (lazy loading, one at a time)
 boost::optional<LogRecord> LazyLogReader::readLogRecord()
 {
 	return readRecord(ifs);
