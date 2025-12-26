@@ -1,10 +1,44 @@
 /**
  * @file Affine.cpp
- * @brief Implementation of α_aff^V
+ * @brief Implementation of Algorithm 12: α_aff^V
  *
- * Computes the affine hull of the models of φ. We iteratively look for models
- * that violate the current hull and rebuild the hull from all collected models
- * using exact rational arithmetic to avoid loss of precision.
+ * This module implements Algorithm 12 from "Automatic Abstraction of Bit-Vector Formulae"
+ * for computing the affine hull of the models of a formula φ.
+ *
+ * **Affine Hull:**
+ * The affine hull of a set of points is the smallest affine space containing all points.
+ * It can be represented as a system of affine equalities: [A|b] such that A·x = b
+ * for all points x in the hull.
+ *
+ * **Mathematical Background:**
+ * - An affine space is defined by a point p (anchor) and a linear subspace (nullspace)
+ * - The nullspace is computed from difference vectors (p_i - p_1) for i = 2, ..., n
+ * - Using RREF, we find the nullspace basis and derive equality constraints
+ * - Each free variable in RREF corresponds to an equality constraint
+ *
+ * **Algorithm Overview:**
+ * The algorithm uses an iterative refinement approach similar to polyhedral abstraction:
+ * 1. Find an initial satisfying model (anchor point)
+ * 2. While iteration limit not exceeded:
+ *    a. Compute affine hull from collected points using RREF
+ *    b. Check if φ ∧ ¬hull is satisfiable (find counter-example)
+ *    c. If unsatisfiable, hull is exact, terminate
+ *    d. If satisfiable, add new point and repeat
+ *
+ * **Exact Rational Arithmetic:**
+ * The algorithm uses exact rational arithmetic (Rational class) to avoid floating-point
+ * precision issues when computing nullspaces and equality constraints. This ensures
+ * soundness and correctness of the derived equalities.
+ *
+ * **Use Cases:**
+ * - Discovering linear relationships between variables (e.g., x + y = 10)
+ * - Detecting affine dependencies in numerical code
+ * - Simplifying constraints by identifying equalities
+ *
+ * **Comparison with Polyhedral Abstraction:**
+ * - Affine abstraction discovers **equalities** (A·x = b)
+ * - Polyhedral abstraction discovers **inequalities** (A·x ≤ b)
+ * - Affine hull is typically smaller than convex hull (equalities are stronger)
  */
 
 #include "Solvers/SMT/SymAbs/SymbolicAbstraction.h"
@@ -25,7 +59,23 @@ namespace {
 using Rat = Rational;
 
 /**
- * Given a set of points, compute the affine equalities describing their hull.
+ * @brief Given a set of points, compute the affine equalities describing their hull.
+ *
+ * This function computes the affine hull of a set of points by:
+ * 1. Selecting the first point as an anchor
+ * 2. Building difference vectors (p_i - anchor) for i = 2, ..., n
+ * 3. Computing RREF to find the nullspace (affine dependencies)
+ * 4. Deriving equality constraints from the nullspace basis
+ *
+ * **Mathematical Details:**
+ * - The difference vectors form a matrix whose nullspace corresponds to affine equalities
+ * - RREF reveals free columns, each of which corresponds to an equality constraint
+ * - Nullspace basis vectors are scaled to integer coefficients using LCM
+ * - Coefficients are normalized by GCD for canonical representation
+ *
+ * @param points The set of points (each point is a vector of coordinates)
+ * @param variables The variables corresponding to point coordinates
+ * @return Vector of affine equalities [A|b] representing the hull (A·x = b)
  */
 std::vector<AffineEquality> build_equalities_from_points(
     const std::vector<std::vector<int64_t>>& points,
@@ -137,6 +187,17 @@ std::vector<AffineEquality> build_equalities_from_points(
     return result;
 }
 
+/**
+ * @brief Convert an affine equality to a Z3 integer equality expression.
+ *
+ * Converts an AffineEquality (which represents Σ c_i · v_i = d) into a Z3
+ * integer equality expression. Each bit-vector variable is converted to
+ * an unbounded integer using bv_signed_to_int().
+ *
+ * @param eq The affine equality to convert
+ * @param vars The variables corresponding to coefficients
+ * @return Z3 expression representing the equality Σ c_i · v_i = d
+ */
 expr equality_to_expr(const AffineEquality& eq, const std::vector<expr>& vars) {
     context& ctx = vars.front().ctx();
     assert(eq.coefficients.size() == vars.size());
@@ -152,6 +213,41 @@ expr equality_to_expr(const AffineEquality& eq, const std::vector<expr>& vars) {
 
 } // namespace
 
+/**
+ * @brief Compute affine equality abstraction α_aff^V(φ)
+ *
+ * Algorithm 12: Computes the affine hull of models of φ using iterative
+ * counter-example guided refinement.
+ *
+ * **Algorithm Steps:**
+ * 1. **Initialization**: Find an initial satisfying model (anchor point)
+ * 2. **Refinement Loop**: While iteration limit not exceeded:
+ *    a. Compute affine hull from collected points using build_equalities_from_points()
+ *    b. Build hull as conjunction of equality constraints
+ *    c. Check if φ ∧ ¬hull is satisfiable (find counter-example)
+ *    d. If unsatisfiable, hull is exact (φ ⊨ hull), terminate
+ *    e. If satisfiable, extract new point and add to point set
+ *    f. If point already exists, terminate (no progress)
+ * 3. Return the final affine equalities
+ *
+ * **Termination:**
+ * - Terminates when φ ⊨ hull (no counter-examples exist)
+ * - Terminates when max_iterations is reached
+ * - Terminates when no new points can be found (point already in set)
+ *
+ * **Correctness:**
+ * The algorithm is sound: the returned equalities are satisfied by all models
+ * of φ. It is complete in the limit (with enough iterations), but may terminate
+ * early due to iteration limits.
+ *
+ * @param phi The formula to abstract (bit-vector SMT formula)
+ * @param variables The set of variables V = {v_1, ..., v_n}
+ * @param config Configuration including timeout and max_iterations
+ * @return Vector of affine equalities [A|b] representing the affine hull (A·x = b)
+ *
+ * @note Returns empty vector if φ is unsatisfiable
+ * @note The result is exact (all models of φ satisfy the equalities)
+ */
 std::vector<AffineEquality> alpha_aff_V(
     z3::expr phi,
     const std::vector<z3::expr>& variables,
@@ -168,7 +264,9 @@ std::vector<AffineEquality> alpha_aff_V(
     init.set(p);
     init.add(phi);
 
+    // Step 1: Find initial satisfying model (anchor point)
     if (init.check() != sat) {
+        // Formula is unsatisfiable, return empty equalities
         return {};
     }
 
@@ -176,41 +274,49 @@ std::vector<AffineEquality> alpha_aff_V(
     std::vector<std::vector<int64_t>> points;
     points.push_back(SymAbs::extract_point(m0, variables));
 
+    // Step 2: Iterative refinement loop
     unsigned iteration = 0;
     while (iteration < config.max_iterations) {
+        // Compute affine hull from current set of points
         auto equalities = build_equalities_from_points(points, variables);
         if (equalities.empty()) {
             return equalities;
         }
 
+        // Build hull as conjunction of equality constraints
         expr_vector hull_conj(ctx);
         for (const auto& eq : equalities) {
             hull_conj.push_back(equality_to_expr(eq, variables));
         }
         expr hull = mk_and(hull_conj);
 
+        // Check for counter-examples: points satisfying φ but not hull
         solver refine(ctx);
         refine.set(p);
         refine.add(phi);
-        refine.add(!hull);
+        refine.add(!hull);  // Require violation of hull
 
         auto res = refine.check();
         if (res != sat) {
+            // No counter-examples exist: φ ⊨ hull, so hull is exact
             return equalities;
         }
 
+        // Extract new point from counter-example model
         model m_new = refine.get_model();
         auto new_point = SymAbs::extract_point(m_new, variables);
         if (std::find(points.begin(), points.end(), new_point) == points.end()) {
+            // New point found, add to set and continue
             points.push_back(std::move(new_point));
         } else {
-            // No progress; return current hull.
+            // Point already in set, no progress, return current hull
             return equalities;
         }
 
         ++iteration;
     }
 
+    // Return hull computed from final point set
     return build_equalities_from_points(points, variables);
 }
 

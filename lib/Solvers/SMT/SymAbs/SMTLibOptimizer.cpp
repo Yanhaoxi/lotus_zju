@@ -1,3 +1,34 @@
+/**
+ * @file SMTLibOptimizer.cpp
+ * @brief Implementation of SMT-LIB formula optimizer
+ *
+ * This module provides functionality for optimizing variables in SMT-LIB format formulas.
+ * It parses SMT-LIB strings, identifies variables, and uses binary search to find
+ * optimal (minimum/maximum) values for variables subject to formula constraints.
+ *
+ * **Key Features:**
+ * - Parses SMT-LIB format formulas
+ * - Identifies variable declarations
+ * - Uses binary search to optimize variable values
+ * - Supports batch optimization from files
+ * - Configurable verbosity and error handling
+ *
+ * **Optimization Method:**
+ * The optimizer uses binary search over the variable's value space to find the
+ * maximum value. It iteratively tests constraints of the form "variable >= value"
+ * to narrow down the search space.
+ *
+ * **Use Cases:**
+ * - Optimizing variables in SMT-LIB formulas
+ * - Batch optimization from specification files
+ * - Finding bounds for variables in constraint systems
+ *
+ * **Limitations:**
+ * - Currently supports integer variables (extended from SMT-LIB format)
+ * - Binary search assumes non-negative values by default
+ * - Optimization is limited to single-variable queries
+ */
+
 #include "Solvers/SMT/SymAbs/SMTLibOptimizer.h"
 
 #include <iostream>

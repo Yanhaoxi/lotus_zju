@@ -2,8 +2,36 @@
  * @file Polynomial.cpp
  * @brief Implementation of Algorithm 13: α_poly^V
  * 
- * Computes polynomial hull of φ with template monomials S.
- * This extends affine abstraction to handle non-linear terms.
+ * This module implements Algorithm 13 from "Automatic Abstraction of Bit-Vector Formulae"
+ * for computing polynomial abstraction with template monomials.
+ *
+ * **Polynomial Abstraction:**
+ * Polynomial abstraction extends affine abstraction to handle non-linear terms.
+ * Given a set of template monomials S = {s_1, ..., s_k} (e.g., x², xy, x³, ...),
+ * the algorithm computes an affine system over the extended variable set
+ * (v_1, ..., v_n, s_1, ..., s_k), where the s_i represent polynomial terms.
+ *
+ * **Mathematical Formulation:**
+ * The polynomial hull is computed by treating monomials as additional variables
+ * and computing the affine hull over the extended variable set. This reduces
+ * polynomial abstraction to affine abstraction over extended dimensions.
+ *
+ * **Algorithm Overview:**
+ * Algorithm 13 follows a similar structure to Algorithm 12 (affine abstraction),
+ * but operates over extended variables that include both original variables
+ * and monomial terms. The algorithm:
+ * 1. Extends the variable set with monomials S
+ * 2. Computes affine equalities over the extended set
+ * 3. Iteratively refines by finding counter-examples
+ *
+ * **Use Cases:**
+ * - Discovering polynomial relationships (e.g., x² + y² = r²)
+ * - Non-linear invariant discovery
+ * - Extending affine analysis to handle non-linear terms
+ *
+ * **Note:** The current implementation appears to be a simplified version.
+ * A complete implementation would properly handle monomial evaluation and
+ * constraint generation for polynomial terms.
  */
 
 #include "Solvers/SMT/SymAbs/SymbolicAbstraction.h"
@@ -19,7 +47,22 @@ using namespace z3;
 namespace SymAbs {
 
 /**
- * @brief Evaluate a monomial expression under a model
+ * @brief Evaluate a monomial expression under a Z3 model.
+ *
+ * This helper function evaluates a monomial (polynomial term) under a given
+ * model, extracting its integer value. The function handles:
+ * - Numeric constants
+ * - Variable constants
+ * - Multiplications (e.g., x * y)
+ *
+ * **Limitations:**
+ * The current implementation is simplified and handles only basic cases.
+ * A complete implementation would need to handle arbitrary polynomial terms.
+ *
+ * @param monomial The monomial expression to evaluate
+ * @param m The Z3 model providing variable values
+ * @param ctx The Z3 context
+ * @return The integer value of the monomial under the model
  */
 static int64_t eval_monomial(const expr& monomial, const model& m, context& ctx) {
     // For now, handle simple cases
@@ -50,6 +93,45 @@ static int64_t eval_monomial(const expr& monomial, const model& m, context& ctx)
     return 0;
 }
 
+/**
+ * @brief Compute polynomial abstraction α_poly^V(φ, S)
+ *
+ * Algorithm 13: Computes polynomial hull with template monomials S by reducing
+ * to affine abstraction over extended variables.
+ *
+ * **Algorithm Overview:**
+ * The algorithm treats polynomial abstraction as affine abstraction over an
+ * extended variable set that includes both original variables and monomial terms:
+ * - Original variables: v_1, ..., v_n
+ * - Monomials: s_1, ..., s_k (from template S)
+ * - Extended set: (v_1, ..., v_n, s_1, ..., s_k)
+ *
+ * The algorithm builds an affine system [A|b] over the extended variables,
+ * where each equality may involve both original variables and their polynomial
+ * relationships (captured by monomials).
+ *
+ * **Current Implementation Status:**
+ * This implementation appears to be a simplified version. A complete implementation
+ * would:
+ * - Properly encode monomial constraints (ensuring s_i actually equals the monomial)
+ * - Use full affine abstraction (Algorithm 12) over extended variables
+ * - Handle monomial evaluation and constraint generation correctly
+ *
+ * **Use Cases:**
+ * - Non-linear invariant discovery
+ * - Polynomial relationship detection (e.g., quadratic forms)
+ * - Extending numerical abstract domains to non-linear constraints
+ *
+ * @param phi The formula to abstract (bit-vector SMT formula)
+ * @param variables The set of original variables V = {v_1, ..., v_n}
+ * @param monomials The set of template monomials S = {s_1, ..., s_k}
+ * @param config Configuration including timeout and max_iterations
+ * @return Vector of affine equalities over extended variables (v_1, ..., v_n, s_1, ..., s_k)
+ *
+ * @note Returns empty vector if variables is empty
+ * @note This is a simplified implementation - full Algorithm 13 would require
+ *       proper monomial constraint encoding
+ */
 std::vector<AffineEquality> alpha_poly_V(
     z3::expr phi,
     const std::vector<z3::expr>& variables,
@@ -65,6 +147,7 @@ std::vector<AffineEquality> alpha_poly_V(
     size_t k = monomials.size();
     
     // Extended variable set: (v_1, ..., v_n, s_1, ..., s_k)
+    // This treats monomials as additional variables in an affine abstraction
     std::vector<expr> extended_vars = variables;
     extended_vars.insert(extended_vars.end(), monomials.begin(), monomials.end());
     

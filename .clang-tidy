@@ -1,6 +1,7 @@
 Checks: '-*,
          clang-diagnostic-*,
          llvm-*,
+           -llvm-else-after-return,
          misc-*,
            -misc-non-private-member-variables-in-classes,
            -misc-no-recursion,

@@ -185,7 +185,7 @@ bool SWPrefetchingLLVMPass::IsDep(Instruction* I ,LoopInfo &LI, Instruction* &Ph
 // canonical pattern is not matched.
 ConstantInt* SWPrefetchingLLVMPass::getValueAddedToIndVarInLoopIterxxx(Loop* L){
   SetVector<Instruction*> BBInsts;
-  auto B = L->getExitingBlock();
+  auto *B = L->getExitingBlock();
   int count=0;
   if(!B) return nullptr;
   for(Instruction &J : *B) {
@@ -256,7 +256,7 @@ PHINode* SWPrefetchingLLVMPass::getCanonicalishInductionVariable(Loop* L) {
 // Try to return the invariant operand used in the loop's exiting comparison.
 Value* SWPrefetchingLLVMPass::getLoopEndCondxxx(Loop* L){
   SetVector<Instruction*> BBInsts;
-  auto B = L->getExitingBlock();
+  auto *B = L->getExitingBlock();
   int count=0;
   if(!B) return nullptr;
   for(Instruction &J : *B) {
@@ -284,7 +284,7 @@ Value* SWPrefetchingLLVMPass::getLoopEndCondxxx(Loop* L){
 // instruction (the induction update).
 CmpInst* SWPrefetchingLLVMPass::getCompareInstrADD(Loop* L, Instruction* nextInd){
    SetVector<Instruction*> BBInsts;
-   auto B = L->getExitingBlock();
+   auto *B = L->getExitingBlock();
    int count=0;
    
    if(!B) return nullptr;
@@ -308,7 +308,7 @@ CmpInst* SWPrefetchingLLVMPass::getCompareInstrADD(Loop* L, Instruction* nextInd
 // update.
 CmpInst* SWPrefetchingLLVMPass::getCompareInstrGetElememntPtr(Loop* L, Instruction* nextInd){
    SetVector<Instruction*> BBInsts;
-   auto B = L->getExitingBlock();
+   auto *B = L->getExitingBlock();
    int count=0;
    
    if(!B) return nullptr;
@@ -681,7 +681,7 @@ bool SWPrefetchingLLVMPass::InjectPrefeches(Instruction* curLoad,  LoopInfo &LI,
        Instruction* x;  
 
 
-       for(auto p: CapturedPhis){
+       for(auto *p: CapturedPhis){
          curPLoop = LI.getLoopFor(p->getParent());
          curLoop = LI.getLoopFor(curLoad->getParent());
          //if(curPLoop ==curLoop)
@@ -689,7 +689,7 @@ bool SWPrefetchingLLVMPass::InjectPrefeches(Instruction* curLoad,  LoopInfo &LI,
          if(curPLoop !=curLoop){
             phi=p;
             curPLoop = LI.getLoopFor(p->getParent());
-        auto PEB = curPLoop->getExitingBlock();
+        auto *PEB = curPLoop->getExitingBlock();
         Value * EndCond;
         if(PEB ){
           SmallVector<llvm::Instruction*, 8> DepPhiInsts;
@@ -984,7 +984,7 @@ bool SWPrefetchingLLVMPass::InjectPrefechesOnePhiPartTwo(Instruction* I, LoopInf
     for(auto &curDep : DepInstrs){
       if(curDep == phi){
         SetVector<Instruction*> BBInsts;
-        auto B = curLoop->getExitingBlock();
+        auto *B = curLoop->getExitingBlock();
         if(B){
            for(Instruction &J : *B) {
                Instruction* I = &J;

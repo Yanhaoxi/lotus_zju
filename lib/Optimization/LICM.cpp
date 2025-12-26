@@ -899,14 +899,14 @@ bool llvm::hoistRegion(DomTreeNode *N, AAResults *AA, LoopInfo *LI,
       // converting it to a reciprocal multiplication.
       if (I.getOpcode() == Instruction::FDiv && I.hasAllowReciprocal() &&
           CurLoop->isLoopInvariant(I.getOperand(1))) {
-        auto Divisor = I.getOperand(1);
-        auto One = llvm::ConstantFP::get(Divisor->getType(), 1.0);
-        auto ReciprocalDivisor = BinaryOperator::CreateFDiv(One, Divisor);
+        auto *Divisor = I.getOperand(1);
+        auto *One = llvm::ConstantFP::get(Divisor->getType(), 1.0);
+        auto *ReciprocalDivisor = BinaryOperator::CreateFDiv(One, Divisor);
         ReciprocalDivisor->setFastMathFlags(I.getFastMathFlags());
         SafetyInfo->insertInstructionTo(ReciprocalDivisor, I.getParent());
         ReciprocalDivisor->insertBefore(&I);
 
-        auto Product =
+        auto *Product =
             BinaryOperator::CreateFMul(I.getOperand(0), ReciprocalDivisor);
         Product->setFastMathFlags(I.getFastMathFlags());
         SafetyInfo->insertInstructionTo(Product, I.getParent());
@@ -2188,7 +2188,7 @@ bool llvm::promoteLoopAccessesToScalars(
 
   // Look at all the loop uses, and try to merge their locations.
   std::vector<const DILocation *> LoopUsesLocs;
-  for (auto U : LoopUses)
+  for (auto *U : LoopUses)
     LoopUsesLocs.push_back(U->getDebugLoc().get());
   auto DL = DebugLoc(DILocation::getMergedLocations(LoopUsesLocs));
 

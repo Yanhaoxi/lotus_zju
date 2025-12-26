@@ -2,20 +2,34 @@
  * @file SMTOptimization.cpp
  * @brief Implementation of optimization techniques for SMT constraints
  *
- * This file implements various approaches for solving optimization problems over SMT formulas:
- * - Linear search optimization
- * - Binary search optimization
- * - Direct use of Z3's optimization features
- * - Utility functions for finding minimum and maximum values of variables
+ * This module provides various optimization strategies for solving minimization and
+ * maximization problems over SMT formulas. These techniques extend basic SMT solving
+ * to support optimization queries, which are essential for symbolic abstraction algorithms.
  *
- * The implementation supports:
- * - Finding minimum and maximum values for expressions
- * - Handling both signed and unsigned bitvector constraints
- * - Configurable timeouts for optimization procedures
- * - Different search strategies with performance tradeoffs
+ * **Optimization Strategies:**
+ * - **Linear Search**: Iteratively improves bounds by adding constraints (simple but potentially slow)
+ * - **Binary Search**: Uses binary search over the value space (more efficient for bounded domains)
+ * - **Compact Search**: Optimizes multiple queries simultaneously using compact checking
+ * - **Z3 Optimize**: Direct use of Z3's optimization engine (most efficient when supported)
+ * - **QSMT**: Quantified SMT approach for optimization
  *
- * These optimization capabilities extend the basic SMT solving functionality to
- * support minimization and maximization, which are essential for many analysis tasks.
+ * **Key Features:**
+ * - Supports both minimization and maximization
+ * - Handles signed and unsigned bitvector constraints
+ * - Configurable timeouts and verbosity
+ * - Multiple search strategies with different performance characteristics
+ * - Compact checking for batch optimization queries
+ *
+ * **Use Cases:**
+ * These optimization capabilities are used internally by symbolic abstraction algorithms
+ * (e.g., Algorithm 7: α_lin-exp) to compute bounds and extremal values. They can also
+ * be used directly for optimization queries over SMT formulas.
+ *
+ * **Performance Considerations:**
+ * - Linear search: O(k) where k is the gap between initial and optimal value
+ * - Binary search: O(log(max_val)) solver calls
+ * - Z3 Optimize: Leverages Z3's internal optimization (typically fastest)
+ * - Compact search: Reduces solver calls for multiple queries via batch checking
  */
 
 //#include <cstdint>
