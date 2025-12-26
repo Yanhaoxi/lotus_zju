@@ -24,7 +24,7 @@ z3::expr ValueMapping::getFullRepresentation(llvm::Value* value) const
     } else if (AtEnd_) {
         primed = true;
     } else if (Fragment_.defines(value)) {
-        auto inst = llvm::cast<llvm::Instruction>(value);
+        auto *inst = llvm::cast<llvm::Instruction>(value);
         primed = (inst != Point_ && Fragment_.reachable(inst, Point_));
     } else {
         primed = false;

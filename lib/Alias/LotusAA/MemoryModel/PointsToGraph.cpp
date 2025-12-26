@@ -149,7 +149,7 @@ raw_ostream &operator<<(raw_ostream &out, PTResultIterator &pt_it) {
   return out;
 }
 
-} // namespace llvm (for operator<<)
+} // namespace llvm
 
 // PTGraph
 PTGraph::PTGraph(Function *F, LotusAA *lotus_aa)

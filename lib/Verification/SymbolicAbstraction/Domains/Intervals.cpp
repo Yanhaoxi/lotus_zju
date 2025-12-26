@@ -273,7 +273,7 @@ void ThresholdInterval::abstractConsequence(const AbstractValue& av_other)
 
 bool ThresholdInterval::isJoinableWith(const AbstractValue& other) const
 {
-    if (auto other_val = dynamic_cast<const ThresholdInterval*>(&other)) {
+    if (const auto *other_val = dynamic_cast<const ThresholdInterval*>(&other)) {
         if (other_val->Value_ != Value_)
             return false;
         if (other_val->Thresholds_ != Thresholds_)

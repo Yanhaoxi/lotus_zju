@@ -131,6 +131,14 @@ set_target_properties(mhp_analysis_test PROPERTIES
 target_include_directories(mhp_analysis_test PRIVATE ${COMMON_INCLUDES})
 target_link_libraries(mhp_analysis_test lotus_test_utils LLVMAnalysis)
 
+# AserPTA test
+add_executable(aser_pta_test unit/AserPTATest.cpp)
+set_target_properties(aser_pta_test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${LOTUS_TEST_BIN_DIR}
+)
+target_include_directories(aser_pta_test PRIVATE ${COMMON_INCLUDES})
+target_link_libraries(aser_pta_test lotus_test_utils AserPTA LLVMIRReader)
+
 enable_testing()
 add_test(NAME TaintAnalysisTest COMMAND ${LOTUS_TEST_BIN_DIR}/taint_analysis_test)
 add_test(NAME IFDSSolverTest COMMAND ${LOTUS_TEST_BIN_DIR}/ifds_solver_test)
@@ -147,8 +155,9 @@ add_test(NAME DyckAATest COMMAND ${LOTUS_TEST_BIN_DIR}/dyck_aa_test)
 add_test(NAME AllocAATest COMMAND ${LOTUS_TEST_BIN_DIR}/alloc_aa_test)
 add_test(NAME MonoTest COMMAND ${LOTUS_TEST_BIN_DIR}/mono_test)
 add_test(NAME WPDSTest COMMAND ${LOTUS_TEST_BIN_DIR}/wpds_test)
-set_tests_properties(TaintAnalysisTest IFDSSolverTest EGraphTest PDGSlicingTest MHPAnalysisTest FPSolveTest SymAbsTest LowerSelectTest RemoveDeadBlockTest SparrowAATest ICFGTest DyckAATest AllocAATest MonoTest WPDSTest PROPERTIES TIMEOUT 300 WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+add_test(NAME AserPTATest COMMAND ${LOTUS_TEST_BIN_DIR}/aser_pta_test)
+set_tests_properties(TaintAnalysisTest IFDSSolverTest EGraphTest PDGSlicingTest MHPAnalysisTest FPSolveTest SymAbsTest LowerSelectTest RemoveDeadBlockTest SparrowAATest ICFGTest DyckAATest AllocAATest MonoTest WPDSTest AserPTATest PROPERTIES TIMEOUT 300 WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
-add_custom_target(run_all_tests COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure DEPENDS taint_analysis_test ifds_solver_test egraph_test pdg_slicing_test mhp_analysis_test fpsolve_test symabs_test lower_select_test remove_dead_block_test sparrow_aa_test icfg_test dyck_aa_test alloc_aa_test mono_test wpds_test)
-add_custom_target(run_unit_tests COMMAND ${CMAKE_CTEST_COMMAND} -R "Test$" --output-on-failure DEPENDS taint_analysis_test ifds_solver_test egraph_test pdg_slicing_test mhp_analysis_test fpsolve_test symabs_test lower_select_test remove_dead_block_test sparrow_aa_test icfg_test dyck_aa_test alloc_aa_test mono_test wpds_test)
+add_custom_target(run_all_tests COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure DEPENDS taint_analysis_test ifds_solver_test egraph_test pdg_slicing_test mhp_analysis_test fpsolve_test symabs_test lower_select_test remove_dead_block_test sparrow_aa_test icfg_test dyck_aa_test alloc_aa_test mono_test wpds_test aser_pta_test)
+add_custom_target(run_unit_tests COMMAND ${CMAKE_CTEST_COMMAND} -R "Test$" --output-on-failure DEPENDS taint_analysis_test ifds_solver_test egraph_test pdg_slicing_test mhp_analysis_test fpsolve_test symabs_test lower_select_test remove_dead_block_test sparrow_aa_test icfg_test dyck_aa_test alloc_aa_test mono_test wpds_test aser_pta_test)
 

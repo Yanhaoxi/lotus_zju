@@ -874,8 +874,8 @@ z3::expr InstructionSemantics::visitBitCast(llvm::BitCastInst& I)
     // (inttoptr and ptrtoint serve this purpose) and all conversions must
     // be lossless. This leaves two cases: conversions between different
     // pointer types and a no-op conversion from n-bit int to an n-bit int.
-    auto src_ty = I.getSrcTy();
-    auto dst_ty = I.getDestTy();
+    auto *src_ty = I.getSrcTy();
+    auto *dst_ty = I.getDestTy();
 
     if (src_ty->isPointerTy() && dst_ty->isPointerTy())
         return lValue() == rValue(I.getOperand(0));
@@ -1001,10 +1001,10 @@ z3::expr InstructionSemantics::visitCall(llvm::CallInst& I)
     z3::expr_vector src(*Z3Context_), dst(*Z3Context_);
 
     // substitute arguments
-    auto formal_itr = callee->arg_begin();
-    auto formal_end = callee->arg_end();
-    auto actual_itr = I.operands().begin();
-    auto actual_end = I.operands().end();
+    auto *formal_itr = callee->arg_begin();
+    auto *formal_end = callee->arg_end();
+    auto *actual_itr = I.operands().begin();
+    auto *actual_end = I.operands().end();
 
     for (; formal_itr != formal_end && actual_itr != actual_end;
          ++formal_itr, ++actual_itr) {

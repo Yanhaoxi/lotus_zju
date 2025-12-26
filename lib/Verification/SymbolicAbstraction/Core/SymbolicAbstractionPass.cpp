@@ -122,7 +122,7 @@ template <typename T> bool containsDomain(const symbolic_abstraction::AbstractVa
     // get flat vector of resulting AbstractValues
     std::vector<const AbstractValue*> vec;
     value->gatherFlattenedSubcomponents(&vec);
-    for (auto inner_val : vec) {
+    for (const auto *inner_val : vec) {
         if (dynamic_cast<const T*>(inner_val)) {
             res = true;
             break;
@@ -238,7 +238,7 @@ bool SymbolicAbstractionPass::replaceUsesOfWithInBBAndPHISuccs(BasicBlock& bb, V
 
     for (auto& inst : bb) {
         bool found_use = false;
-        for (auto arg : inst.operand_values()) {
+        for (auto *arg : inst.operand_values()) {
             if (arg == from) {
                 found_use = true;
                 ++NumReplacedUses;
@@ -260,7 +260,7 @@ bool SymbolicAbstractionPass::replaceUsesOfWithInBBAndPHISuccs(BasicBlock& bb, V
     // in the successors AbstractValue.
     for (auto it = succ_begin(&bb); it != succ_end(&bb); ++it) {
         for (auto& inst : **it) {
-            if (auto phi = dyn_cast<PHINode>(&inst)) {
+            if (auto *phi = dyn_cast<PHINode>(&inst)) {
                 if (phi->getIncomingValueForBlock(&bb) == from) {
                     int idx = phi->getBasicBlockIndex(&bb);
                     phi->setIncomingValue(idx, to);
@@ -304,7 +304,7 @@ bool SymbolicAbstractionPass::performConstPropForBB(
     int bw = sort.bv_size();
 
     // Create llvm constant with identical type to eliminate use
-    auto type = var->getType();
+    auto *type = var->getType();
     auto apval = APInt(bw, val, false);
     Value* const_int = Constant::getIntegerValue(type, apval);
 
@@ -347,7 +347,7 @@ Value* SymbolicAbstractionPass::getReplacementCanditdate(const equals_t& eqs, Va
         // find the set that contains val
         if (eq.find(val) != eq.end()) {
             // find most dominating Value in set
-            for (auto oth : eq) {
+            for (auto *oth : eq) {
                 if (auto* oth_inst = dyn_cast_or_null<Instruction>(oth)) {
                     if (dt.dominates(oth_inst, candidate)) {
                         candidate = oth_inst;
@@ -363,8 +363,7 @@ Value* SymbolicAbstractionPass::getReplacementCanditdate(const equals_t& eqs, Va
     }
     if (candidate == val)
         return nullptr;
-    else
-        return candidate;
+            return candidate;
 }
 
 /**
@@ -390,7 +389,7 @@ bool SymbolicAbstractionPass::performRedundancyReplForBB(const equals_t& eqs,
     for (auto& eq : eqs) {
         vout << "    [";
         bool first = true;
-        for (auto val : eq) {
+        for (auto *val : eq) {
             if (!first)
                 vout << ", ";
             first = false;
@@ -404,7 +403,7 @@ bool SymbolicAbstractionPass::performRedundancyReplForBB(const equals_t& eqs,
 
     // Perform the replacements with the values that we found
     for (auto& eq : eqs) {
-        for (auto val : eq) {
+        for (auto *val : eq) {
             if (repl[val]) {
                 bool tmp = replaceUsesOfWithInBBAndPHISuccs(bb, val, repl[val]);
                 changed = changed || tmp;
@@ -466,13 +465,13 @@ bool SymbolicAbstractionPass::runOnFunction(llvm::Function& function)
         // Perform the actual transformations for Constant Replacement
         // and find equal values for Redundant Computation Elimination
         for (auto& val : results) {
-            if (auto scp = dynamic_cast<const SimpleConstProp*>(val)) {
+            if (const auto *scp = dynamic_cast<const SimpleConstProp*>(val)) {
                 // Constant Replacement transformation
                 if (!Config_.ConstantPropagation)
                     continue; // Do not perform this transformation
                 bool res = performConstPropForBB(*fctx.get(), bb, scp);
                 changed = changed || res;
-            } else if (auto pred = dynamic_cast<const EqDomain*>(val)) {
+            } else if (const auto *pred = dynamic_cast<const EqDomain*>(val)) {
                 // Redundant Computation Elimination transformation
                 if (!Config_.RedundantComputationRemoval)
                     continue; // Do not perform this transformation

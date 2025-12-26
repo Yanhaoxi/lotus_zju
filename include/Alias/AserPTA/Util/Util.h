@@ -55,7 +55,7 @@ bool isTupleEqual(const std::tuple<Args...> &tuple1, const std::tuple<Args...> &
 
 // instead of compare pointer value, compare they content of them
 template <typename PtrTy, typename Comparator = std::less<PtrTy>>
-class PtrContentComparator : public std::binary_function<PtrTy *, PtrTy *, bool> {
+class PtrContentComparator {
     using comp = Comparator;
     comp _M_comp;
 
@@ -64,7 +64,7 @@ public:
 };
 
 template <typename PtrTy, typename Comparator = std::less<PtrTy>>
-class UniquePtrContentComparator : public std::binary_function<std::unique_ptr<PtrTy>, std::unique_ptr<PtrTy>, bool> {
+class UniquePtrContentComparator {
     using comp = Comparator;
     comp _M_comp;
 
@@ -96,7 +96,7 @@ template <typename ElemType>
 class FixSizedVector {
 private:
     std::vector<ElemType> vec;
-    const uint capacity;
+    const unsigned int capacity;
 
     const std::vector<ElemType> &getVec() const { return vec; }
 
@@ -120,9 +120,9 @@ public:
         assert(vec.size() <= capacity);
     }
 
-    [[nodiscard]] inline uint getCapacity() const { return capacity; }
+    [[nodiscard]] inline unsigned int getCapacity() const { return capacity; }
 
-    [[nodiscard]] inline uint size() const { return vec.size(); }
+    [[nodiscard]] inline unsigned int size() const { return vec.size(); }
 
     inline iterator begin() { return vec.begin(); }
     inline iterator end() { return vec.end(); }

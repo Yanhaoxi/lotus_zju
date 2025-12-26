@@ -125,7 +125,7 @@ void Affine::prettyPrint(PrettyPrinter& out) const
 
 bool Affine::isJoinableWith(const AbstractValue& other) const
 {
-    if (auto other_val = dynamic_cast<const Affine*>(&other)) {
+    if (const auto *other_val = dynamic_cast<const Affine*>(&other)) {
         if (other_val->Left_ == Left_ && other_val->Right_ == Right_) {
             return true;
         }

@@ -44,7 +44,7 @@ class IEEEModel : public FloatingPointModel
         // FIXME: The order of the arguments in the call to Z3_mk_fpa_fp does
         // not agree with the Z3 documentation (bv_significand is switched with
         // bv_exponent). Most likely a bug in the documentation.
-        auto res = Z3_mk_fpa_fp(Ctx_, bv_sign, bv_significand, bv_exponent);
+        auto *res = Z3_mk_fpa_fp(Ctx_, bv_sign, bv_significand, bv_exponent);
 
         return to_expr(Ctx_, res);
     }

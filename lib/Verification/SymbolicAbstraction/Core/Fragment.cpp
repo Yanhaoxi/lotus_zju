@@ -117,7 +117,7 @@ bool Fragment::isPredecessor(const Fragment& frag) const
 
 bool Fragment::defines(llvm::Value* value) const
 {
-    auto inst = dyn_cast<llvm::Instruction>(value);
+    auto *inst = dyn_cast<llvm::Instruction>(value);
 
     if (inst == nullptr)
         return false;

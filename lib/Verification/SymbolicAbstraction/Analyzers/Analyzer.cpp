@@ -133,7 +133,7 @@ bool Analyzer::bestTransformer(const AbstractValue* input,
  */
 AbstractValue* Analyzer::at(llvm::BasicBlock* location)
 {
-    auto store = FunctionContext_.getModuleContext().getResultStore();
+    auto *store = FunctionContext_.getModuleContext().getResultStore();
     if (store) {
         ResultStore::Key key(0); // Dummy key since dynamic analysis is disabled
         unique_ptr<AbstractValue> res = store->get(key, const_cast<FunctionContext*>(&FunctionContext_));
@@ -324,7 +324,7 @@ Analyzer::createInitialValue(DomainConstructor& domain, llvm::BasicBlock* bb,
     if (after)
         return domain.makeBottom(FunctionContext_, bb, after);
 
-    auto store = FunctionContext_.getModuleContext().getResultStore();
+    auto *store = FunctionContext_.getModuleContext().getResultStore();
 
     if (!store)
         return domain.makeBottom(FunctionContext_, bb, after);

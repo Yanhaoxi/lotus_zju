@@ -78,15 +78,15 @@ int runMemSafetyCheck(Analyzer* analyzer, Function* targetFunc) {
 
     for (auto& instr : bb) {
       llvm::Value* ptr = nullptr;
-      if (auto asStore = llvm::dyn_cast<llvm::StoreInst>(&instr))
+      if (auto *asStore = llvm::dyn_cast<llvm::StoreInst>(&instr))
         ptr = asStore->getPointerOperand();
-      if (auto asLoad = llvm::dyn_cast<llvm::LoadInst>(&instr))
+      if (auto *asLoad = llvm::dyn_cast<llvm::LoadInst>(&instr))
         ptr = asLoad->getPointerOperand();
       if (!ptr) continue;
 
       bool isValid = false;
-      for (auto v : vals) {
-        if (auto asVr =
+      for (const auto *v : vals) {
+        if (const auto *asVr =
                 dynamic_cast<const symbolic_abstraction::domains::ValidRegion*>(v)) {
           if (asVr->getRepresentedPointer() == ptr && asVr->isValid()) {
             isValid = true;
