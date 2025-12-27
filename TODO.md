@@ -4,6 +4,7 @@ For Summer Research, Final Year Project Topics, etc.
 
 ## Frontend
 
+- Go: https://github.com/goplus/llgo
 - MLIR: https://github.com/seahorn/mlir2crab
 - Btor2
 - SystemVerilog
