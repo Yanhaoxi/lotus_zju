@@ -1,7 +1,6 @@
-#include "Annotation/Pointer/ExternalPointerTable.h"
 #include "Utils/LLVM/IO/ReadFile.h"
 #include "Utils/General/pcomb/pcomb.h"
-
+#include "Annotation/Pointer/ExternalPointerTable.h"
 #include <llvm/Support/raw_ostream.h>
 
 using namespace llvm;
@@ -265,4 +264,4 @@ void ExternalPointerTable::addEffect(const llvm::StringRef& name, PointerEffect&
 	table[name.str()].addEffect(std::move(e));
 }
 
-}
+} // namespace annotation

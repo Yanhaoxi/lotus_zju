@@ -26,7 +26,7 @@ class SimpleConstProp : public AbstractValue
   protected:
     const FunctionContext* FunctionContext_;
     RepresentedValue Value_;
-    bool Top_, Bottom_;
+    bool Top_{}, Bottom_{};
     ConcreteState::Value Constant_;
 
   public:

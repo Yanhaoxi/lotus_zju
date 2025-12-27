@@ -314,7 +314,7 @@ class RestrictedVarRegion : public Cut<RestrictedVarRegion, VariableRegion>
 
     virtual AbstractValue* clone() const
     {
-        auto res = new RestrictedVarRegion(Fctx_, Ptr_, Expr_, Fact_);
+        auto *res = new RestrictedVarRegion(Fctx_, Ptr_, Expr_, Fact_);
         res->joinWith(*this);
         return res;
     }

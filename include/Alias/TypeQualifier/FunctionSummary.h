@@ -4,10 +4,13 @@
 #include "Alias/TypeQualifier/Annotation.h"
 #include "Alias/TypeQualifier/Common.h"
 #include "Alias/TypeQualifier/PtsSet.h"
+#include <unordered_map>
 
 using namespace llvm;
 typedef unsigned NodeIndex;
-typedef std::set<std::string> BBList;
+
+using BBList = std::set<std::string>;
+
 class SumAndersNode {
 public:
   enum AndersNodeType { VALUE_NODE, OBJ_NODE };
@@ -27,6 +30,7 @@ public:
   unsigned getOffset() const { return offset; }
   friend class SumNodeFactory;
 };
+
 class SumNodeFactory {
 public:
   static const unsigned InvalidIndex = std::numeric_limits<unsigned int>::max();
@@ -221,6 +225,7 @@ public:
   void setMayNull(bool _mayNull) { mayNull = _mayNull; }
   bool getMayNull() { return mayNull; }
 };
+
 class Summary {
   typedef std::map<unsigned, std::set<NodeIndex>> PtsGraph;
   typedef std::unordered_map<std::string, llvm::GlobalVariable *> GObjMap;
@@ -411,7 +416,7 @@ public:
     for (unsigned i = 0; i < noNodes; i++) {
       errs() << "i = " << i << ", argNo = " << args[i].getNodeArgNo() << "\n";
       errs() << "related nodes:\n";
-      for (auto item : args[i].getRelatedArgs()) {
+      for (auto &item : args[i].getRelatedArgs()) {
         errs() << item << ", ";
       }
       errs() << "\n";
@@ -421,18 +426,18 @@ public:
       errs() << "arg idx: " << i << "\n";
       errs() << "argNo : " << args[i].getNodeArgNo() << "\n";
       errs() << "whitelist: \n";
-      for (auto item : args[i].getWhiteList()) {
+      for (auto &item : args[i].getWhiteList()) {
         errs() << item << ":";
       }
       errs() << "\n";
       errs() << "blacklist: \n";
-      for (auto item : args[i].getBlackList()) {
+      for (auto &item : args[i].getBlackList()) {
         errs() << item << ":";
       }
       errs() << "\n";
     }
     errs() << "\nRelated bitcode:\n";
-    for (auto item : relatedBC) {
+    for (auto &item : relatedBC) {
       errs() << "=" << item << "\n";
     }
   }

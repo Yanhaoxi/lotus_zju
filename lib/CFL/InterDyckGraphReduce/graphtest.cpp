@@ -49,7 +49,7 @@ void findMatch(unsigned nodeID, SummaryGraph &sGraph) {
     unsigned nextnid = it->nodeID;
     cout << "Candidate: " << nodeID << " -" << eid << "-> " << nextnid;
     findMatch(nextnid, sGraph, eid, usedNodes, nodeID, nextnid);
-    cout << endl;
+    cout << '\n';
   }
 }
 
@@ -107,7 +107,7 @@ void printGraphBlue(SummaryGraph &sGraph) {
       unsigned tonodeID = root(it->nodeID, sGraph);
       unsigned eid = it->edgeID;
       cout << node2orig[i] << "->" << node2orig[tonodeID] << "[label=\"o"
-           << eid2orig[eid] << "\"]" << endl;
+           << eid2orig[eid] << "\"]" << '\n';
     }
   }
 }
@@ -143,7 +143,7 @@ void createNodeMergeMap(SummaryGraph &sGraph) {
     for (list<unsigned>::iterator lit = l->begin(); lit != l->end(); lit++) {
       out << node2orig[*lit] << " ";
     }
-    out << endl;
+    out << '\n';
   }
 }
 
@@ -169,7 +169,7 @@ void exportMergeNodes(SummaryGraph &sGraph) {
          lit++) {
       out << *lit << " ";
     }
-    out << endl;
+    out << '\n';
   }
 }
 

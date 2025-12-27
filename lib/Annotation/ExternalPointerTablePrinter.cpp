@@ -198,4 +198,4 @@ void ExternalPointerTablePrinter::printTable(const ExternalPointerTable& table)
 	os << "--------- End of Table ---------\n\n";
 }
 
-}
+} // namespace annotation

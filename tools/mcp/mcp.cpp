@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
     
     MCPServer server;
     if (!server.loadModule(argv[1])) {
-        std::cerr << "Failed to load: " << argv[1] << std::endl;
+        std::cerr << "Failed to load: " << argv[1] << '\n';
         return 1;
     }
     server.buildCallGraph();

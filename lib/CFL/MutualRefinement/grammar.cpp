@@ -19,18 +19,18 @@ void Grammar::addBinaryProduction(int l, int r1, int r2) {
 }
 
 void Grammar::initFastIndices() {
-  int ne = emptyProductions.size();
-  for (int i = 0; i < ne; i++) {
+  size_t ne = emptyProductions.size();
+  for (size_t i = 0; i < ne; i++) {
     emptyL[emptyProductions[i]].push_back(i);
   }
-  int nu = unaryProductions.size();
-  for (int i = 0; i < nu; i++) {
+  size_t nu = unaryProductions.size();
+  for (size_t i = 0; i < nu; i++) {
     // first and second have different types here
     unaryL[unaryProductions[i].first].push_back(i);
     unaryR[unaryProductions[i].second].push_back(i);
   }
-  int nb = binaryProductions.size();
-  for (int i = 0; i < nb; i++) {
+  size_t nb = binaryProductions.size();
+  for (size_t i = 0; i < nb; i++) {
     binaryL[binaryProductions[i].first].push_back(i);
     binaryR[binaryProductions[i].second].push_back(i);
   }

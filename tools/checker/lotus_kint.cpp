@@ -80,6 +80,9 @@ int main(int argc, char **argv) {
             logConfig.logLevel = mkint::LogLevel::NONE;
             logConfig.quiet = true; // Also set quiet mode for backward compatibility
             break;
+        default:
+            logConfig.logLevel = mkint::LogLevel::INFO;
+            break;
     }
     
     // If quiet is set manually, override the log level

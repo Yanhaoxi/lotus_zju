@@ -198,7 +198,7 @@ void arrayreach(CFLHashMap &cm, vector<CFLGrammar> &CGVec) {
                        cm.HasEdgeBetween(j, i, (unsigned)S_edge))) {
           sssize = sssize + 2;
           // msize++;
-          cout << "i " << i << " j " << j << endl;
+          cout << "i " << i << " j " << j << '\n';
           // cout<<"have "<<j<<endl;
         }
         if (i == j)
@@ -213,15 +213,15 @@ void arrayreach(CFLHashMap &cm, vector<CFLGrammar> &CGVec) {
 
     // cout<<"msize "<<msize<<endl;
     // cout<<"psize "<<psize<<endl;
-    cout << "s size " << sssize << endl;
+    cout << "s size " << sssize << '\n';
   }
 
-  cout << "total S " << sedges << endl;
+  cout << "total S " << sedges << '\n';
 }
 
 int arrayversion() {
 
-  cout << version << endl;
+  cout << version << '\n';
   string line;
 
   while (getline(in, line)) { // for every file
@@ -234,7 +234,7 @@ int arrayversion() {
 
     vector<CFLGrammar> CGVec;
 
-    cout << "Processing " << line << endl;
+    cout << "Processing " << line << '\n';
     // cout<<"doing "<<line<<endl;
     NodeNum = dotparser.BuildNodeMap(line, NodeID);
     // cout<<"doing "<<line<<" of size "<<NodeNum<<endl;
@@ -257,8 +257,8 @@ int arrayversion() {
     // dotparser.BuildMatrix(line, NodeID, cm1);
     // dotparser.BuildBitTable(line, NodeID, cm1);
 
-    cout << "Node: " << cm1.GetVtxNum() << " Edge " << cm1.GetEdgNum() << endl;
-    cout << "Grammar: " << CGVec.size() << endl;
+    cout << "Node: " << cm1.GetVtxNum() << " Edge " << cm1.GetEdgNum() << '\n';
+    cout << "Grammar: " << CGVec.size() << '\n';
     // cout<<"para: "<<EdgeID.size()<<endl;
 
     arrayreach(cm1, CGVec);
@@ -266,7 +266,7 @@ int arrayversion() {
   // SimpleDotParser dotparser;
   // dotparser.ParsingFile("./data/CINT2000/254.gap/plist.o.lala.dot");
 
-  cout << "Runtime: " << elapsed << endl;
+  cout << "Runtime: " << elapsed << '\n';
 
   MEM_USAGE();
 

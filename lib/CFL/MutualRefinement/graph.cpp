@@ -1,6 +1,7 @@
 #include "CFL/MutualRefinement/graph.h"
 #include "CFL/MutualRefinement/grammar.h"
 #include "CFL/MutualRefinement/hasher.h"
+#include <cstddef>
 #include <deque>
 #include <unordered_map>
 #include <unordered_set>
@@ -124,13 +125,13 @@ std::unordered_set<Edge, EdgeHasher> Graph::runCFLReachabilityCore(
     w.push_front(e);
   }
   // Empty productions
-  int nv = adjacencyVector.size();
-  for (int x : grammar.emptyProductions) {
-    for (int i = 0; i < nv; i++) {
+  size_t nv = adjacencyVector.size();
+  for (size_t x : grammar.emptyProductions) {
+    for (size_t i = 0; i < nv; i++) {
       Edge e = std::make_tuple(i, x, i);
       addEdge(e);
       w.push_front(e);
-      if (x == grammar.startSymbol) {
+      if (static_cast<size_t>(grammar.startSymbol) == x) {
         result.insert(e);
       }
     }

@@ -16,7 +16,7 @@
 
 std::unordered_set<std::pair<int, int>, IntPairHasher> intersectResults(
     const std::vector<std::unordered_set<Edge, EdgeHasher>> &results) {
-  int n = results.size();
+  size_t n = results.size();
   assert(n >= 1);
   std::unordered_set<std::pair<int, int>, IntPairHasher> pairset;
   for (auto &e : results[0]) {
@@ -24,7 +24,7 @@ std::unordered_set<std::pair<int, int>, IntPairHasher> intersectResults(
       pairset.insert(std::make_pair(std::get<0>(e), std::get<2>(e)));
     }
   }
-  for (int i = 1; i < n; i++) {
+  for (size_t i = 1; i < n; i++) {
     std::unordered_set<std::pair<int, int>, IntPairHasher> tmp;
     for (auto &e : results[i]) {
       std::pair<int, int> p = std::make_pair(std::get<0>(e), std::get<2>(e));
@@ -40,7 +40,7 @@ std::unordered_set<std::pair<int, int>, IntPairHasher> intersectResults(
 std::unordered_map<std::string, int>
 number(const std::vector<std::string> &names) {
   std::unordered_map<std::string, int> mp;
-  int n = 0;
+  size_t n = 0;
   for (auto &name : names) {
     if (mp.count(name) == 0) {
       mp[name] = n++;
@@ -148,8 +148,8 @@ encode(
       }
     }
     // Productions
-    int n = rawGrammar.size();
-    for (int i = 1; i < n; i++) {
+    size_t n = rawGrammar.size();
+    for (size_t i = 1; i < n; i++) {
       if (rawGrammar[i].size() == 1) {
         gm.addEmptyProduction(symMap[rawGrammar[i][0]]);
       } else if (rawGrammar[i].size() == 2) {
@@ -169,7 +169,7 @@ encode(
     grammars.push_back(std::move(gm));
   }
   // Graph node count
-  int numNode = nodeMap.size();
+  size_t numNode = nodeMap.size();
   // Graph edges
   std::unordered_set<Edge, EdgeHasher> edges;
   for (auto &rawEdge : rawGraph) {
@@ -184,7 +184,7 @@ void run(int argc, char *argv[]) {
   if (argc != 4) {
     std::cerr << "Usage: " << argv[0]
               << " <grammar-file> <graph-file> <\"naive\"/\"refine\">"
-              << std::endl;
+              << '\n';
     return;
   }
   // Get arguments
@@ -194,30 +194,30 @@ void run(int argc, char *argv[]) {
   // Read and encode
   auto encoded = encode(readRawGrammars(grammarFile), readRawGraph(graphFile));
   const std::vector<Grammar> &grammars = std::get<0>(encoded);
-  int numNode = std::get<1>(encoded);
+  size_t numNode = std::get<1>(encoded);
   const std::unordered_set<Edge, EdgeHasher> &edges = std::get<2>(encoded);
-  int numGrammar = grammars.size();
+  size_t numGrammar = grammars.size();
   // Handle modes
   if (mode == "naive") {
     std::vector<Graph> graphs(numGrammar);
     std::vector<std::unordered_set<Edge, EdgeHasher>> results(numGrammar);
-    for (int i = 0; i < numGrammar; i++) {
+    for (size_t i = 0; i < numGrammar; i++) {
       graphs[i].reinit(numNode, edges);
       results[i] = graphs[i].runCFLReachability(grammars[i]);
     }
     std::cout << "Number of Reachable Pairs (Excluding Self-loops): "
-              << intersectResults(results).size() << std::endl;
+              << intersectResults(results).size() << '\n';
   } else if (mode == "refine") {
     std::unordered_set<Edge, EdgeHasher> edgeSet = edges;
-    int originalEdgeSetSize = edgeSet.size();
+    size_t originalEdgeSetSize = edgeSet.size();
     std::unordered_set<Edge, EdgeHasher>::size_type previousEdgeSetSize;
     std::vector<Graph> graphs(numGrammar);
     std::vector<std::unordered_set<Edge, EdgeHasher>> results(numGrammar);
-    int refineIterationCounter = 0;
+    size_t refineIterationCounter = 0;
     // Mutual refinement loop
     do {
       previousEdgeSetSize = edgeSet.size();
-      for (int i = 0; i < numGrammar; i++) {
+      for (size_t i = 0; i < numGrammar; i++) {
         graphs[i].reinit(numNode, edgeSet);
         std::unordered_map<Edge, std::unordered_set<int>, EdgeHasher>
             singleRecord;
@@ -233,13 +233,13 @@ void run(int argc, char *argv[]) {
       }
       refineIterationCounter++;
     } while (edgeSet.size() != previousEdgeSetSize);
-    int reducedEdgeSetSize = edgeSet.size();
+    size_t reducedEdgeSetSize = edgeSet.size();
     std::cout << "Edge Set Reduction: " << originalEdgeSetSize << " -> "
-              << reducedEdgeSetSize << std::endl;
+              << reducedEdgeSetSize << '\n';
     std::cout << "Number of Refinement Iterations: " << refineIterationCounter
-              << std::endl;
+              << '\n';
     std::cout << "Number of Reachable Pairs (Excluding Self-loops): "
-              << intersectResults(results).size() << std::endl;
+              << intersectResults(results).size() << '\n';
   }
 }
 
@@ -264,7 +264,8 @@ int mutual_refinement_main(int argc, char *argv[]) {
   run(argc, argv);
   auto end = std::chrono::steady_clock::now();
   std::chrono::duration<double> elapsed_seconds = end - start;
-  std::cout << "*** Resource Consumption ***" << std::endl
-            << "Total Time (Seconds): " << elapsed_seconds.count() << std::endl
-            << "Peak Space (kB): " << getPeakMemory() << std::endl;
+  std::cout << "*** Resource Consumption ***" << '\n'
+            << "Total Time (Seconds): " << elapsed_seconds.count() << '\n'
+            << "Peak Space (kB): " << getPeakMemory() << '\n';
+  return 0;
 }

@@ -27,12 +27,7 @@ public:
   unsigned bfrom;
   unsigned bto;
   unsigned eid;
-  MergedEdges(unsigned af, unsigned at, unsigned bf, unsigned bt, unsigned e) {
-    afrom = af;
-    ato = at;
-    bfrom = bf;
-    bto = bt;
-    eid = e;
+  MergedEdges(unsigned af, unsigned at, unsigned bf, unsigned bt, unsigned e) : afrom(af), ato(at), bfrom(bf), bto(bt), eid(e) {
   }
 };
 
@@ -102,7 +97,7 @@ void arrayreach(CFLHashMap &cm, unordered_map<string, unsigned> &edgeStrToID,
            c != color.end(); ++c) {
 
         if (debug)
-          cout << "[debug]: " << j << " " << i << " c " << (c->first) << endl;
+          cout << "[debug]: " << j << " " << i << " c " << (c->first) << '\n';
         // add to color in nodes
         string s;
         stringstream convert;
@@ -178,7 +173,7 @@ void arrayreach(CFLHashMap &cm, unordered_map<string, unsigned> &edgeStrToID,
       y = n1;
     }
     if (debug)
-      cout << "now x " << x << " y " << y << endl;
+      cout << "now x " << x << " y " << y << '\n';
 
     // append y to x and del y.
     s_sets[x].splice(s_sets[x].end(), s_sets[y]);
@@ -209,14 +204,14 @@ void arrayreach(CFLHashMap &cm, unordered_map<string, unsigned> &edgeStrToID,
           cm.InsertEdge(x, x, c->first);
           if (debug)
             cout << "[graph] inst: " << x << " " << x << " c " << (c->first)
-                 << endl;
+                 << '\n';
           // add to color in nodes
           string s;
           stringstream convert;
           convert << x << "_" << (c->first);
           s = convert.str();
           if (debug)
-            cout << "add " << s << "  " << x << endl;
+            cout << "add " << s << "  " << x << '\n';
 
           if (!ColorInNodes[s].isInFDLL(x)) {
             ColorInNodes[s].add(x);
@@ -230,13 +225,13 @@ void arrayreach(CFLHashMap &cm, unordered_map<string, unsigned> &edgeStrToID,
 
             // add x to dll if D[x] > 1
             if (debug)
-              cout << "[cin] add " << s << " node " << x << endl;
+              cout << "[cin] add " << s << " node " << x << '\n';
           }
           if ((ColorInNodes[s]).size() > 1) {
             if (!fdll.isInFDLL(s)) {
               fdll.add(s);
               if (debug)
-                cout << "[fdll] add " << s << endl;
+                cout << "[fdll] add " << s << '\n';
             }
           }
         } else {
@@ -249,18 +244,18 @@ void arrayreach(CFLHashMap &cm, unordered_map<string, unsigned> &edgeStrToID,
 
         if (debug)
           cout << "[graph] del: " << y << "  " << y << " c " << (c->first)
-               << endl;
+               << '\n';
         cm.DeleteEdge(y, y, c->first);
         if (ColorInNodes[sy].isInFDLL(y)) {
           ColorInNodes[sy].remove(y);
           if (debug)
-            cout << "[cin] remove " << sy << " node " << y << endl;
+            cout << "[cin] remove " << sy << " node " << y << '\n';
         }
         if ((ColorInNodes[sy]).size() < 2) {
           if (fdll.isInFDLL(sy)) {
             fdll.remove(sy);
             if (debug)
-              cout << "[fdll] remove " << sy << endl;
+              cout << "[fdll] remove " << sy << '\n';
           }
         }
       }
@@ -285,7 +280,7 @@ void arrayreach(CFLHashMap &cm, unordered_map<string, unsigned> &edgeStrToID,
         if (!cm.HasEdgeBetween(w, x, c->first)) {
           if (debug)
             cout << "[graph] inst: " << w << " " << x << " c " << (c->first)
-                 << endl;
+                 << '\n';
           cm.InsertEdge(w, x, c->first);
 
           // add to color in nodes
@@ -295,7 +290,7 @@ void arrayreach(CFLHashMap &cm, unordered_map<string, unsigned> &edgeStrToID,
           s = convert.str();
           if (!ColorInNodes[s].isInFDLL(w)) {
             if (debug)
-              cout << "[cin] add " << s << " node " << w << endl;
+              cout << "[cin] add " << s << " node " << w << '\n';
 
             ColorInNodes[s].add(w);
           }
@@ -313,7 +308,7 @@ void arrayreach(CFLHashMap &cm, unordered_map<string, unsigned> &edgeStrToID,
             if (!fdll.isInFDLL(s)) {
               fdll.add(s);
               if (debug)
-                cout << "[fdll] add " << s << endl;
+                cout << "[fdll] add " << s << '\n';
             }
           }
         } else {
@@ -331,7 +326,7 @@ void arrayreach(CFLHashMap &cm, unordered_map<string, unsigned> &edgeStrToID,
         if (ColorInNodes[sy].isInFDLL(w)) {
           ColorInNodes[sy].remove(w);
           if (debug)
-            cout << "[cin] remove " << sy << " node " << w << endl;
+            cout << "[cin] remove " << sy << " node " << w << '\n';
         }
 
         // remove w to dll if D[w] <2 1
@@ -340,12 +335,12 @@ void arrayreach(CFLHashMap &cm, unordered_map<string, unsigned> &edgeStrToID,
           if (fdll.isInFDLL(sy)) {
             fdll.remove(sy);
             if (debug)
-              cout << "[fdll] remove " << sy << endl;
+              cout << "[fdll] remove " << sy << '\n';
           }
         }
         if (debug)
           cout << "[graph] del(y in) : " << w << "  " << y << " c "
-               << (c->first) << endl;
+               << (c->first) << '\n';
         cm.DeleteEdge(w, y, c->first);
         // remove to color in nodes
         /*
@@ -383,7 +378,7 @@ void arrayreach(CFLHashMap &cm, unordered_map<string, unsigned> &edgeStrToID,
         if (!cm.HasEdgeBetween(x, w, c->first)) {
           if (debug)
             cout << "[graph] inst: " << x << " " << w << " c " << (c->first)
-                 << endl;
+                 << '\n';
           cm.InsertEdge(x, w, c->first);
 
           // add to color in nodes
@@ -391,7 +386,7 @@ void arrayreach(CFLHashMap &cm, unordered_map<string, unsigned> &edgeStrToID,
           if (!ColorInNodes[s].isInFDLL(x)) {
             ColorInNodes[s].add(x);
             if (debug)
-              cout << "[cin] add " << s << " node " << x << endl;
+              cout << "[cin] add " << s << " node " << x << '\n';
           }
           /*	    if(ColorInNodes.find(s) == ColorInNodes.end()){
             In_FastDLL<unsigned> ifd;
@@ -413,7 +408,7 @@ void arrayreach(CFLHashMap &cm, unordered_map<string, unsigned> &edgeStrToID,
         if (ColorInNodes[s].isInFDLL(y)) {
 
           if (debug)
-            cout << s << "[cin] remove " << s << " node " << y << endl;
+            cout << s << "[cin] remove " << s << " node " << y << '\n';
           (ColorInNodes[s]).remove(y);
         }
         // remove w to dll if D[w] <2 1
@@ -422,14 +417,14 @@ void arrayreach(CFLHashMap &cm, unordered_map<string, unsigned> &edgeStrToID,
           if (fdll.isInFDLL(s)) {
             fdll.remove(s);
             if (debug)
-              cout << "[fdll] remove " << s << endl;
+              cout << "[fdll] remove " << s << '\n';
           }
         }
         if (debug) {
           cout << "[graph] del (y out): " << y << "  " << w << " c "
-               << (c->first) << endl;
+               << (c->first) << '\n';
           cout << "now " << s << " and degree " << ColorInNodes[s].size()
-               << endl;
+               << '\n';
         }
         cm.DeleteEdge(y, w, c->first);
       }
@@ -439,7 +434,7 @@ void arrayreach(CFLHashMap &cm, unordered_map<string, unsigned> &edgeStrToID,
       if (!fdll.isInFDLL(z_string)) {
         fdll.add(z_string);
         if (debug)
-          cout << "[fdll] add " << z_string << endl;
+          cout << "[fdll] add " << z_string << '\n';
       }
     }
 
@@ -488,7 +483,7 @@ void arrayreach(CFLHashMap &cm, unordered_map<string, unsigned> &edgeStrToID,
       mergedTo[*listit] = nid;
       cout << nodeid2str[*listit] << " ";
     }
-    cout << endl;
+    cout << '\n';
   }
 
   unordered_map<unsigned, string> edgeIDToStr;
@@ -515,7 +510,7 @@ void arrayreach(CFLHashMap &cm, unordered_map<string, unsigned> &edgeStrToID,
     myss1 >> nid;
     outInterNd << nodeid2str[mergedTo[nid]];
     myss2 >> eid;
-    outInterNd << ": " << edgeIDToStr[eid] << endl;
+    outInterNd << ": " << edgeIDToStr[eid] << '\n';
   }
 
   ofstream out(edge_merge_result);
@@ -529,7 +524,7 @@ void arrayreach(CFLHashMap &cm, unordered_map<string, unsigned> &edgeStrToID,
     out << "Merge " << nodeid2str[mEdges.afrom] << "->"
         << nodeid2str[mEdges.ato] << " to " << nodeid2str[mEdges.bfrom] << "->"
         << nodeid2str[mEdges.bto] << ", eid " << edgeIDToStr[mEdges.eid]
-        << endl;
+        << '\n';
   }
 
   for (unsigned i = 0; i < NodeNum; i++) {
