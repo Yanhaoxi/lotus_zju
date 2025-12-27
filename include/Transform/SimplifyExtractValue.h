@@ -12,6 +12,7 @@
 // Derived from InstCombine
 //
 //===----------------------------------------------------------------------===//
+#pragma once
 
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
@@ -27,5 +28,5 @@ namespace llvm {
     SimplifyEV() : ModulePass(ID) {}
     virtual bool runOnModule(Module& M) override;
   };
-}
+} // namespace llvm
 

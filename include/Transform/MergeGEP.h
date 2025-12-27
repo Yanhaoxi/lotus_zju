@@ -10,6 +10,7 @@
 // Merge chained GEPs; Specially useful for arrays inside structs
 //
 //===----------------------------------------------------------------------===//
+#pragma once
 
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/Instructions.h"
@@ -26,5 +27,5 @@ namespace llvm {
     MergeArrayGEP() : ModulePass(ID) {}
     virtual bool runOnModule(Module& M) override;
   };
-}
+} // namespace llvm
 

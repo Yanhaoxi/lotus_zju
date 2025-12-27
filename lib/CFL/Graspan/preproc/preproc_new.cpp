@@ -469,14 +469,18 @@ void Preproc_new::loadPartChunk(Context & context, int pID)
 		f = fopen(name.c_str(), "r");
 		if (f != NULL) {
 			while (0 != fread(&src, 4, 1, f)) {
-				fread(&degree, 4, 1, f);
+				if (fread(&degree, 4, 1, f) != 1)
+					break;
 				temp = degree * 5;
 				size += degree;
 				numVert++;
 				vector<vertexid_t> &outEdges = vTemp[src-start].getOutEdges();
 				vector<label_t> &outEdgeValues = vTemp[src-start].getOutEdgeValues();
 				bbuf = (char *)malloc(temp);
-				fread(bbuf, temp, 1, f);
+				if (fread(bbuf, temp, 1, f) != 1) {
+					free(bbuf);
+					break;
+				}
 				for (int j = 0; j < temp; j += 5) {
 
 					dst = *((int*)(bbuf + j));

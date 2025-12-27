@@ -122,7 +122,8 @@ ModuleContext::getSharedSymbols(FunctionContext* fctx) const
     // all formal arguments of represented types
     for (auto& arg : fctx->getFunction()->args()) {
         if (fctx->findRepresentedValue(&arg) != nullptr) {
-            const char* name = arg.getName().str().c_str();
+            std::string name_str = arg.getName().str();
+            const char* name = name_str.c_str();
             z3::symbol s(zctx, Z3_mk_string_symbol(zctx, name));
             result.insert(s);
         }

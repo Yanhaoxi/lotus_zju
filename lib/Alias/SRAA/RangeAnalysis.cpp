@@ -490,6 +490,8 @@ static RegisterPass<IntraProceduralRA<Cousot>>
 static RegisterPass<IntraProceduralRA<CropDFS>>
     Z("ra-intra-crop", "Range Analysis (Crop - intra)");
 template <class CGT> char InterProceduralRA<CGT>::ID = 2;
+// Explicit instantiation for Cousot to ensure ID is available
+template char InterProceduralRA<Cousot>::ID;
 static RegisterPass<InterProceduralRA<Cousot>>
     W("ra-inter-cousot", "Range Analysis (Cousot - inter)");
 static RegisterPass<InterProceduralRA<CropDFS>>

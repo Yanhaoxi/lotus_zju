@@ -143,8 +143,8 @@
  unsigned getMaxNumOfThread() {
  
  //    return 1;
-     unsigned n_threads = std::thread::hardware_concurrency();
-     auto n_cores = 4;
+     unsigned int n_threads = std::thread::hardware_concurrency();
+     unsigned int n_cores = 4;
      if (n_cores > 0 && n_cores <= n_threads)
          return n_cores;
  

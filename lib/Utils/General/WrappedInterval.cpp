@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <inttypes.h>
 #include "Utils/General/WrappedInterval.h"
 
 #define DEBUG 0
@@ -324,10 +325,10 @@ const char* op_to_string(optype op)
 void wi_print(wrapped_interval_t* interval)
 {
     if (!is_wrapping(interval))
-        fprintf(stderr, "[ 0x%llx, 0x%llx ] (%u)\n", interval->min, interval->max,
+        fprintf(stderr, "[ 0x%" PRIx64 ", 0x%" PRIx64 " ] (%u)\n", interval->min, interval->max,
                 interval->size);
     else
-        fprintf(stderr, "[ 0x%llx, 0x%llx ] U [ 0x%llx, 0x%llx ] (%u)\n", interval->min,
+        fprintf(stderr, "[ 0x%" PRIx64 ", 0x%" PRIx64 " ] U [ 0x%" PRIx64 ", 0x%" PRIx64 " ] (%u)\n", interval->min,
                 get_size_mask(interval->size), 0ULL, interval->max,
                 interval->size);
 }

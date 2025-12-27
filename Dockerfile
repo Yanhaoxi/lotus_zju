@@ -73,6 +73,3 @@ ENV PATH=/usr/local/bin:${PATH}
 
 # Set working directory
 WORKDIR /workspace
-
-# Default command
-CMD ["lotus", "--help"]
