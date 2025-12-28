@@ -72,13 +72,13 @@
 #include "Alias/LotusAA/MemoryModel/PointsToGraph.h"
 #include "Alias/LotusAA/Support/LotusConfig.h"
 
+#include <llvm/Analysis/IteratedDominanceFrontier.h>
 #include <llvm/IR/Constants.h>
-#include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Dominators.h>
-#include <llvm/Analysis/IteratedDominanceFrontier.h>
-#include <llvm/Support/raw_ostream.h>
+#include <llvm/IR/GlobalVariable.h>
 #include <llvm/Support/CommandLine.h>
+#include <llvm/Support/raw_ostream.h>
 
 using namespace llvm;
 using namespace std;

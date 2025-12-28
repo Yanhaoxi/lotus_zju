@@ -3,10 +3,10 @@
 #include <string>
 
 #include "Verification/SymbolicAbstraction/Core/DomainConstructor.h"
+#include "Verification/SymbolicAbstraction/Core/Expression.h"
 #include "Verification/SymbolicAbstraction/Core/MemoryModel.h"
 #include "Verification/SymbolicAbstraction/Core/ParamStrategy.h"
 #include "Verification/SymbolicAbstraction/Domains/Combinators.h"
-#include "Verification/SymbolicAbstraction/Core/Expression.h"
 #include "Verification/SymbolicAbstraction/Utils/Utils.h"
 
 #include <llvm/IR/BasicBlock.h>
@@ -317,7 +317,7 @@ unique_ptr<AbstractValue> MemoryRegion::Create(const FunctionContext& fctx,
             if (!(sort.is_bv() && (int)sort.bv_size() == fctx.getPointerSize()))
                 continue;
             Expression rhs = vars[j];
-            auto ptr = new RestrictedVarRegion(fctx, vars[i], rhs, byte_factor);
+            auto *ptr = new RestrictedVarRegion(fctx, vars[i], rhs, byte_factor);
             temp->add(unique_ptr<AbstractValue>(ptr));
         }
         temp->finalize();

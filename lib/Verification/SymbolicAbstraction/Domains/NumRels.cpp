@@ -1,20 +1,20 @@
 #include "Verification/SymbolicAbstraction/Domains/NumRels.h"
 
-#include "Verification/SymbolicAbstraction/Core/ResultStore.h"
 #include "Verification/SymbolicAbstraction/Core/DomainConstructor.h"
-#include "Verification/SymbolicAbstraction/Utils/Utils.h"
+#include "Verification/SymbolicAbstraction/Core/DomainConstructor.h"
+#include "Verification/SymbolicAbstraction/Core/Expression.h"
 #include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
+#include "Verification/SymbolicAbstraction/Core/ParamStrategy.h"
 #include "Verification/SymbolicAbstraction/Core/RepresentedValue.h"
-#include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
+#include "Verification/SymbolicAbstraction/Core/ResultStore.h"
 #include "Verification/SymbolicAbstraction/Core/ValueMapping.h"
 #include "Verification/SymbolicAbstraction/Core/repr.h"
 #include "Verification/SymbolicAbstraction/Utils/PrettyPrinter.h"
-#include "Verification/SymbolicAbstraction/Core/Expression.h"
-#include "Verification/SymbolicAbstraction/Core/ParamStrategy.h"
-#include "Verification/SymbolicAbstraction/Core/DomainConstructor.h"
+#include "Verification/SymbolicAbstraction/Utils/Utils.h"
+#include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
 
-#include <vector>
 #include <algorithm>
+#include <vector>
 #include <z3++.h>
 
 namespace symbolic_abstraction

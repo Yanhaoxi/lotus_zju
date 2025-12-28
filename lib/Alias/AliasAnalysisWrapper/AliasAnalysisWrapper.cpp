@@ -1,17 +1,17 @@
 #include "Alias/AliasAnalysisWrapper/AliasAnalysisWrapper.h"
-#include "Alias/SparrowAA/AndersenAA.h"
-#include "Alias/DyckAA/DyckAliasAnalysis.h"
-#include "Alias/UnderApproxAA/UnderApproxAA.h"
+#include "Alias/AllocAA/AllocAA.h"
 #include "Alias/CFLAA/CFLAndersAliasAnalysis.h"
 #include "Alias/CFLAA/CFLSteensAliasAnalysis.h"
+#include "Alias/DyckAA/DyckAliasAnalysis.h"
+#include "Alias/SparrowAA/AndersenAA.h"
+#include "Alias/UnderApproxAA/UnderApproxAA.h"
 #include "Alias/seadsa/SeaDsaAliasAnalysis.hh"
-#include "Alias/AllocAA/AllocAA.h"
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/Analysis/AliasAnalysis.h>
 #include <llvm/Analysis/MemoryLocation.h>
 #include <llvm/Analysis/TargetLibraryInfo.h>
-#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Constants.h>
+#include <llvm/IR/Instructions.h>
 #include <llvm/Support/raw_ostream.h>
 
 using namespace llvm;

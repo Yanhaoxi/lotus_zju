@@ -1,15 +1,15 @@
 #include "Verification/SymbolicAbstraction/Core/InstructionSemantics.h"
+#include "Verification/SymbolicAbstraction/Core/FloatingPointModel.h"
 #include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
+#include "Verification/SymbolicAbstraction/Core/MemoryModel.h"
 #include "Verification/SymbolicAbstraction/Core/ModuleContext.h"
 #include "Verification/SymbolicAbstraction/Core/ValueMapping.h"
-#include "Verification/SymbolicAbstraction/Core/MemoryModel.h"
-#include "Verification/SymbolicAbstraction/Core/FloatingPointModel.h"
 #include "Verification/SymbolicAbstraction/Core/repr.h"
 #include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
 
-#include <llvm/IR/InstrTypes.h>
-#include <llvm/IR/CFG.h>
 #include <llvm/Analysis/MemoryBuiltins.h>
+#include <llvm/IR/CFG.h>
+#include <llvm/IR/InstrTypes.h>
 #include <z3_fpa.h>
 
 #include <sstream>
@@ -34,7 +34,7 @@ z3::expr getShrExactCondition(z3::context* const ctx, const z3::expr in0,
     // the shifted-out bits have to be all zeros
 }
 
-} // anonymous
+} // namespace
 
 namespace symbolic_abstraction
 {
@@ -59,14 +59,14 @@ bool InstructionSemantics::hasValidOperands(llvm::Instruction& instr)
 {
     if (!hasSupportedType(&instr)) {
         vout << "Instruction " << repr(instr) << " has unsupported type."
-             << endl;
+             << '\n';
         return false;
     }
 
     for (auto& op : instr.operands()) {
         if (!hasSupportedType(op.get())) {
             vout << "Instruction '" << repr(instr)
-                 << "' uses arguments with unsupported type." << endl;
+                 << "' uses arguments with unsupported type." << '\n';
             return false;
         }
     }
@@ -282,7 +282,7 @@ z3::expr InstructionSemantics::visitIndirectBr(llvm::IndirectBrInst& I)
     // TODO Implement this.
     std::cerr << "Skipping instruction '"
               << llvm::Instruction::getOpcodeName(I.getOpcode())
-              << "'. Not yet implemented." << std::endl;
+              << "'. Not yet implemented." << '\n';
     return Z3Context_->bool_val(true);
 }
 
@@ -291,7 +291,7 @@ z3::expr InstructionSemantics::visitInvoke(llvm::InvokeInst& I)
     // TODO Implement this.
     std::cerr << "Skipping instruction '"
               << llvm::Instruction::getOpcodeName(I.getOpcode())
-              << "'. Not yet implemented." << std::endl;
+              << "'. Not yet implemented." << '\n';
     return Z3Context_->bool_val(true);
 }
 
@@ -300,7 +300,7 @@ z3::expr InstructionSemantics::visitResume(llvm::ResumeInst& I)
     // TODO Implement this.
     std::cerr << "Skipping instruction '"
               << llvm::Instruction::getOpcodeName(I.getOpcode())
-              << "'. Not yet implemented." << std::endl;
+              << "'. Not yet implemented." << '\n';
     return Z3Context_->bool_val(true);
 }
 
@@ -689,7 +689,7 @@ z3::expr InstructionSemantics::visitGetElementPtr(llvm::GetElementPtrInst& I)
     z3::expr offset_expr = FunctionContext_.getZ3().bv_val(0, ptr_size);
     llvm::DataLayout* dl = FunctionContext_.getModuleContext().getDataLayout();
 
-    for (auto itr = I.op_begin() + 1; itr != I.op_end(); ++itr) {
+    for (auto *itr = I.op_begin() + 1; itr != I.op_end(); ++itr) {
         if (StructType* type_st = dyn_cast<StructType>(type)) {
             uint64_t field_id = cast<ConstantInt>(*itr)->getZExtValue();
             type = type_st->getElementType(field_id);
@@ -733,7 +733,7 @@ z3::expr InstructionSemantics::visitFence(llvm::FenceInst& I)
     // TODO Implement this.
     std::cerr << "Skipping instruction '"
               << llvm::Instruction::getOpcodeName(I.getOpcode())
-              << "'. Not yet implemented." << std::endl;
+              << "'. Not yet implemented." << '\n';
     return Z3Context_->bool_val(true);
 }
 
@@ -742,7 +742,7 @@ z3::expr InstructionSemantics::visitAtomicCmpXchg(llvm::AtomicCmpXchgInst& I)
     // TODO Implement this.
     std::cerr << "Skipping instruction '"
               << llvm::Instruction::getOpcodeName(I.getOpcode())
-              << "'. Not yet implemented." << std::endl;
+              << "'. Not yet implemented." << '\n';
     return Z3Context_->bool_val(true);
 }
 
@@ -751,7 +751,7 @@ z3::expr InstructionSemantics::visitAtomicRMW(llvm::AtomicRMWInst& I)
     // TODO Implement this.
     std::cerr << "Skipping instruction '"
               << llvm::Instruction::getOpcodeName(I.getOpcode())
-              << "'. Not yet implemented." << std::endl;
+              << "'. Not yet implemented." << '\n';
     return Z3Context_->bool_val(true);
 }
 
@@ -789,7 +789,7 @@ z3::expr InstructionSemantics::visitFPToUI(llvm::FPToUIInst& I)
     // TODO Implement this.
     std::cerr << "Skipping instruction '"
               << llvm::Instruction::getOpcodeName(I.getOpcode())
-              << "'. Not yet implemented." << std::endl;
+              << "'. Not yet implemented." << '\n';
     return Z3Context_->bool_val(true);
 }
 
@@ -798,7 +798,7 @@ z3::expr InstructionSemantics::visitFPToSI(llvm::FPToSIInst& I)
     // TODO Implement this.
     std::cerr << "Skipping instruction '"
               << llvm::Instruction::getOpcodeName(I.getOpcode())
-              << "'. Not yet implemented." << std::endl;
+              << "'. Not yet implemented." << '\n';
     return Z3Context_->bool_val(true);
 }
 
@@ -807,7 +807,7 @@ z3::expr InstructionSemantics::visitUIToFP(llvm::UIToFPInst& I)
     // TODO Implement this.
     std::cerr << "Skipping instruction '"
               << llvm::Instruction::getOpcodeName(I.getOpcode())
-              << "'. Not yet implemented." << std::endl;
+              << "'. Not yet implemented." << '\n';
     return Z3Context_->bool_val(true);
 }
 
@@ -816,7 +816,7 @@ z3::expr InstructionSemantics::visitSIToFP(llvm::SIToFPInst& I)
     // TODO Implement this.
     std::cerr << "Skipping instruction '"
               << llvm::Instruction::getOpcodeName(I.getOpcode())
-              << "'. Not yet implemented." << std::endl;
+              << "'. Not yet implemented." << '\n';
     return Z3Context_->bool_val(true);
 }
 
@@ -825,7 +825,7 @@ z3::expr InstructionSemantics::visitFPTrunc(llvm::FPTruncInst& I)
     // TODO Implement this.
     std::cerr << "Skipping instruction '"
               << llvm::Instruction::getOpcodeName(I.getOpcode())
-              << "'. Not yet implemented." << std::endl;
+              << "'. Not yet implemented." << '\n';
     return Z3Context_->bool_val(true);
 }
 
@@ -834,7 +834,7 @@ z3::expr InstructionSemantics::visitFPExt(llvm::FPExtInst& I)
     // TODO Implement this.
     std::cerr << "Skipping instruction '"
               << llvm::Instruction::getOpcodeName(I.getOpcode())
-              << "'. Not yet implemented." << std::endl;
+              << "'. Not yet implemented." << '\n';
     return Z3Context_->bool_val(true);
 }
 
@@ -895,7 +895,7 @@ z3::expr InstructionSemantics::visitAddrSpaceCast(llvm::AddrSpaceCastInst& I)
     // TODO Implement this.
     std::cerr << "Skipping instruction '"
               << llvm::Instruction::getOpcodeName(I.getOpcode())
-              << "'. Not yet implemented." << std::endl;
+              << "'. Not yet implemented." << '\n';
     return Z3Context_->bool_val(true);
 }
 
@@ -1060,7 +1060,7 @@ z3::expr InstructionSemantics::visitVAArg(llvm::VAArgInst& I)
     // TODO Implement this.
     std::cerr << "Skipping instruction '"
               << llvm::Instruction::getOpcodeName(I.getOpcode())
-              << "'. Not yet implemented." << std::endl;
+              << "'. Not yet implemented." << '\n';
     return Z3Context_->bool_val(true);
 }
 
@@ -1071,7 +1071,7 @@ z3::expr InstructionSemantics::visitExtractElement(llvm::ExtractElementInst& I)
     // TODO Implement this.
     std::cerr << "Skipping instruction '"
               << llvm::Instruction::getOpcodeName(I.getOpcode())
-              << "'. Not yet implemented." << std::endl;
+              << "'. Not yet implemented." << '\n';
     return Z3Context_->bool_val(true);
 }
 
@@ -1080,7 +1080,7 @@ z3::expr InstructionSemantics::visitInsertElement(llvm::InsertElementInst& I)
     // TODO Implement this.
     std::cerr << "Skipping instruction '"
               << llvm::Instruction::getOpcodeName(I.getOpcode())
-              << "'. Not yet implemented." << std::endl;
+              << "'. Not yet implemented." << '\n';
     return Z3Context_->bool_val(true);
 }
 
@@ -1089,7 +1089,7 @@ z3::expr InstructionSemantics::visitShuffleVector(llvm::ShuffleVectorInst& I)
     // TODO Implement this.
     std::cerr << "Skipping instruction '"
               << llvm::Instruction::getOpcodeName(I.getOpcode())
-              << "'. Not yet implemented." << std::endl;
+              << "'. Not yet implemented." << '\n';
     return Z3Context_->bool_val(true);
 }
 
@@ -1100,7 +1100,7 @@ z3::expr InstructionSemantics::visitExtractValue(llvm::ExtractValueInst& I)
     // TODO Implement this.
     std::cerr << "Skipping instruction '"
               << llvm::Instruction::getOpcodeName(I.getOpcode())
-              << "'. Not yet implemented." << std::endl;
+              << "'. Not yet implemented." << '\n';
     return Z3Context_->bool_val(true);
 }
 
@@ -1109,7 +1109,7 @@ z3::expr InstructionSemantics::visitInsertValue(llvm::InsertValueInst& I)
     // TODO Implement this.
     std::cerr << "Skipping instruction '"
               << llvm::Instruction::getOpcodeName(I.getOpcode())
-              << "'. Not yet implemented." << std::endl;
+              << "'. Not yet implemented." << '\n';
     return Z3Context_->bool_val(true);
 }
 
@@ -1120,7 +1120,7 @@ z3::expr InstructionSemantics::visitLandingPad(llvm::LandingPadInst& I)
     // TODO Implement this.
     std::cerr << "Skipping instruction '"
               << llvm::Instruction::getOpcodeName(I.getOpcode())
-              << "'. Not yet implemented." << std::endl;
+              << "'. Not yet implemented." << '\n';
     return Z3Context_->bool_val(true);
 }
 
@@ -1131,7 +1131,7 @@ InstructionSemantics::visitCleanupReturnInst(llvm::CleanupReturnInst& I)
     // TODO Implement this.
     std::cerr << "Skipping instruction '"
               << llvm::Instruction::getOpcodeName(I.getOpcode())
-              << "'. Not yet implemented." << std::endl;
+              << "'. Not yet implemented." << '\n';
     return Z3Context_->bool_val(true);
 }
 
@@ -1140,7 +1140,7 @@ z3::expr InstructionSemantics::visitCatchReturnInst(llvm::CatchReturnInst& I)
     // TODO Implement this.
     std::cerr << "Skipping instruction '"
               << llvm::Instruction::getOpcodeName(I.getOpcode())
-              << "'. Not yet implemented." << std::endl;
+              << "'. Not yet implemented." << '\n';
     return Z3Context_->bool_val(true);
 }
 
@@ -1149,7 +1149,7 @@ z3::expr InstructionSemantics::visitCatchSwitchInst(llvm::CatchSwitchInst& I)
     // TODO Implement this.
     std::cerr << "Skipping instruction '"
               << llvm::Instruction::getOpcodeName(I.getOpcode())
-              << "'. Not yet implemented." << std::endl;
+              << "'. Not yet implemented." << '\n';
     return Z3Context_->bool_val(true);
 }
 
@@ -1158,7 +1158,7 @@ z3::expr InstructionSemantics::visitFuncletPadInst(llvm::FuncletPadInst& I)
     // TODO Implement this.
     std::cerr << "Skipping instruction '"
               << llvm::Instruction::getOpcodeName(I.getOpcode())
-              << "'. Not yet implemented." << std::endl;
+              << "'. Not yet implemented." << '\n';
     return Z3Context_->bool_val(true);
 }
 
@@ -1167,7 +1167,7 @@ z3::expr InstructionSemantics::visitCleanupPadInst(llvm::CleanupPadInst& I)
     // TODO Implement this.
     std::cerr << "Skipping instruction '"
               << llvm::Instruction::getOpcodeName(I.getOpcode())
-              << "'. Not yet implemented." << std::endl;
+              << "'. Not yet implemented." << '\n';
     return Z3Context_->bool_val(true);
 }
 
@@ -1176,7 +1176,7 @@ z3::expr InstructionSemantics::visitCatchPadInst(llvm::CatchPadInst& I)
     // TODO Implement this.
     std::cerr << "Skipping instruction '"
               << llvm::Instruction::getOpcodeName(I.getOpcode())
-              << "'. Not yet implemented." << std::endl;
+              << "'. Not yet implemented." << '\n';
     return Z3Context_->bool_val(true);
 }
 

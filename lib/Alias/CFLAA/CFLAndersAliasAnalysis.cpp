@@ -811,7 +811,7 @@ CFLAndersAAResult::buildInfoFrom(const Function &Fn) {
   auto IValueAttrMap = buildAttrMap(Graph, ReachSet);
 
   return FunctionInfo(Fn, GraphBuilder.getReturnValues(), ReachSet,
-                      std::move(IValueAttrMap));
+                      IValueAttrMap);
 }
 
 void CFLAndersAAResult::scan(const Function &Fn) {

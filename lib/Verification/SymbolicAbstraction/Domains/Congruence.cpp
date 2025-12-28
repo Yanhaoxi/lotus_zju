@@ -1,16 +1,15 @@
 // TODO: by LLM; to be checked.
 #include "Verification/SymbolicAbstraction/Domains/Congruence.h"
 
+#include "Verification/SymbolicAbstraction/Core/DomainConstructor.h"
 #include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
 #include "Verification/SymbolicAbstraction/Core/ParamStrategy.h"
 #include "Verification/SymbolicAbstraction/Utils/PrettyPrinter.h"
-#include "Verification/SymbolicAbstraction/Core/DomainConstructor.h"
 
 #include <z3++.h>
 
 using namespace symbolic_abstraction;
 using namespace symbolic_abstraction::domains;
-using std::unique_ptr;
 
 bool Congruence::joinWith(const AbstractValue &av_other) {
     auto &other = dynamic_cast<const Congruence &>(av_other);
@@ -267,4 +266,4 @@ void Congruence::prettyPrint(PrettyPrinter &out) const {
 namespace {
 DomainConstructor::Register _("Congruence", "value congruence domain (x ≡ r mod m)", 
                               params::ForNonPointers<Congruence>);
-}
+} // namespace

@@ -1,19 +1,19 @@
 #include "Verification/SymbolicAbstraction/Utils/Utils.h"
 
-#include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
 #include "Verification/SymbolicAbstraction/Core/AbstractValue.h"
 #include "Verification/SymbolicAbstraction/Core/DomainConstructor.h"
-#include "Verification/SymbolicAbstraction/Utils/PrettyPrinter.h"
 #include "Verification/SymbolicAbstraction/Core/Expression.h"
+#include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
 #include "Verification/SymbolicAbstraction/Core/ParamStrategy.h"
+#include "Verification/SymbolicAbstraction/Core/repr.h"
 #include "Verification/SymbolicAbstraction/Domains/Combinators.h"
-#include "Verification/SymbolicAbstraction/Domains/Product.h"
 #include "Verification/SymbolicAbstraction/Domains/Intervals.h"
 #include "Verification/SymbolicAbstraction/Domains/NumRels.h"
-#include "Verification/SymbolicAbstraction/Core/repr.h"
+#include "Verification/SymbolicAbstraction/Domains/Product.h"
+#include "Verification/SymbolicAbstraction/Utils/PrettyPrinter.h"
 
-#include <llvm/IR/Module.h>
 #include <llvm/IR/DebugInfo.h>
+#include <llvm/IR/Module.h>
 #include <z3++.h>
 
 namespace symbolic_abstraction
@@ -286,10 +286,10 @@ class AddrVarOffset : public If, public PrintAsDereference
         // accessed
         auto max_addr = Expression(addr) + cv_bytes;
 
-        auto r_candidate = new RestrictedRelational(
+        auto *r_candidate = new RestrictedRelational(
             fctx, max_addr, Expression(base) + candidate);
 
-        auto r_base = new RestrictedRelational(fctx, base, addr);
+        auto *r_base = new RestrictedRelational(fctx, base, addr);
 
         product->add(r_candidate);
         RelCandidate_ = &r_candidate->value();

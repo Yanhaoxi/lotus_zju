@@ -4,13 +4,13 @@
 
 #include <set>
 
-#include <llvm/IR/Value.h>
-#include <llvm/IR/Instruction.h>
 #include <llvm/IR/BasicBlock.h>
-#include <llvm/IR/Instructions.h>
-#include <llvm/IR/Function.h>
 #include <llvm/IR/DebugInfo.h>
 #include <llvm/IR/DebugLoc.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/Instruction.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/Value.h>
 
 #include <z3++.h>
 
@@ -61,7 +61,7 @@ std::string getSourceName(const llvm::Value* value)
     std::set<const llvm::Value*> forbidden;
     return getSourceName(value, &forbidden);
 }
-} // namespace unnamed
+} // namespace
 
 namespace symbolic_abstraction
 {
@@ -91,7 +91,7 @@ PrettyPrinter::Entry::~Entry()
     if (PP_->OutputHTML_) {
         PP_->Result_ << "</div>";
     } else {
-        PP_->Result_ << std::endl;
+        PP_->Result_ << '\n';
     }
 }
 
@@ -170,20 +170,20 @@ JsonAnnotationOutput::JsonAnnotationOutput(std::ostream* out,
                                            const llvm::Function* func)
     : Out_(out)
 {
-    *Out_ << "{" << endl;
+    *Out_ << "{" << '\n';
     std::string filename = getFunctionSourcePath(func);
     if (filename.size()) {
-        *Out_ << "\"source\": \"" << escapeJSON(filename) << "\"," << endl;
+        *Out_ << "\"source\": \"" << escapeJSON(filename) << "\"," << '\n';
     }
 
-    *Out_ << "\"annotations\": [" << endl;
+    *Out_ << "\"annotations\": [" << '\n';
 }
 
 void JsonAnnotationOutput::emit(const std::string& annotation, int line,
                                 int col)
 {
     if (NeedsComma_)
-        *Out_ << "," << endl;
+        *Out_ << "," << '\n';
     else
         NeedsComma_ = true;
 
@@ -205,7 +205,7 @@ void JsonAnnotationOutput::emit(const AbstractValue* aval, int line, int col)
 
 JsonAnnotationOutput::~JsonAnnotationOutput()
 {
-    *Out_ << "]" << endl
+    *Out_ << "]" << '\n'
           << "}";
 }
 } // namespace symbolic_abstraction

@@ -13,9 +13,9 @@
 #include <utility>
 
 #include "Alias/SparrowAA/Andersen.h"
-#include "Alias/SparrowAA/Log.h"
 #include "Alias/AserPTA/PointerAnalysis/Context/CtxTrait.h"
 #include "Alias/AserPTA/PointerAnalysis/Context/NoCtx.h"
+#include "Alias/SparrowAA/Log.h"
 
 #define DEBUG_TYPE "andersen"
 

@@ -65,13 +65,13 @@
 
 #include "Alias/LotusAA/Engine/InterProceduralPass.h"
 #include "Alias/LotusAA/Engine/IntraProceduralAnalysis.h"
-#include "Alias/LotusAA/MemoryModel/PointsToGraph.h"
 #include "Alias/LotusAA/MemoryModel/MemObject.h"
+#include "Alias/LotusAA/MemoryModel/PointsToGraph.h"
 #include "Alias/LotusAA/Support/LotusConfig.h"
 
-#include <llvm/IR/Module.h>
-#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Dominators.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/Module.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/raw_ostream.h>
 

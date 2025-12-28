@@ -9,12 +9,12 @@
 #include "Verification/SymbolicAbstraction/Utils/Config.h"
 
 #include <llvm/IR/CFG.h>
-#include <llvm/IR/Function.h>
 #include <llvm/IR/Dominators.h>
+#include <llvm/IR/Function.h>
 
-#include <queue>
 #include <algorithm>
 #include <map>
+#include <queue>
 
 namespace symbolic_abstraction
 {
@@ -250,7 +250,7 @@ FragmentDecomposition FragmentDecomposition::ForAbstractionPoints(
            abstraction_points.end());
     assert(abstraction_points.find(Fragment::EXIT) != abstraction_points.end());
 
-    vout << "Abstraction points: " << repr(abstraction_points) << endl;
+    vout << "Abstraction points: " << repr(abstraction_points) << '\n';
 
     FragmentDecomposition fdec(fctx);
 

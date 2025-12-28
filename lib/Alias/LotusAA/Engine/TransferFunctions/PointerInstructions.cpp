@@ -28,8 +28,8 @@
 
 #include "Alias/LotusAA/Engine/IntraProceduralAnalysis.h"
 
-#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Constants.h>
+#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Operator.h>
 
 using namespace llvm;

@@ -1,9 +1,9 @@
 #include "Verification/SymbolicAbstraction/Core/Fragment.h"
 #include "Verification/SymbolicAbstraction/Core/repr.h"
 
+#include <llvm/IR/CFG.h>
 #include <llvm/IR/InstrTypes.h>
 #include <llvm/IR/Instructions.h>
-#include <llvm/IR/CFG.h>
 
 #include <queue>
 
@@ -29,8 +29,7 @@ bool findLoop(std::set<Fragment::edge>& edges,
 
     for (auto itr_bb_to = succ_begin(bb), end = succ_end(bb); itr_bb_to != end;
          ++itr_bb_to) {
-        if (std::find(edges.begin(), edges.end(),
-                      std::make_pair(bb, *itr_bb_to)) != edges.end()) {
+        if (edges.find(std::make_pair(bb, *itr_bb_to)) != edges.end()) {
             // allowed edge
             if (findLoop(edges, seen, *itr_bb_to)) {
                 return true;
@@ -42,7 +41,7 @@ bool findLoop(std::set<Fragment::edge>& edges,
 
     return false;
 }
-} // namespace unnamed
+} // namespace
 
 /**
  * Decide for a set of edges and a set of starting nodes whether any of

@@ -9,7 +9,6 @@
 #include "Alias/TypeQualifier/Helper.h"
 
 #include <limits>
-#include <sstream>
 
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/Analysis/ValueTracking.h>

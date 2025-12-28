@@ -16,15 +16,15 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/FileSystem.h>
+#include <llvm/Support/raw_ostream.h>
 #include <cstdio>
 
 #include "Alias/DyckAA/DyckAliasAnalysis.h"
-#include "Alias/DyckAA/DyckCallGraph.h"
 #include "Alias/DyckAA/AAAnalyzer.h"
-#include "Alias/DyckAA/DyckVFG.h"
+#include "Alias/DyckAA/DyckCallGraph.h"
 #include "Alias/DyckAA/DyckModRefAnalysis.h"
+#include "Alias/DyckAA/DyckVFG.h"
 #include "Utils/LLVM/RecursiveTimer.h"
 
 static cl::opt<bool> PrintAliasSetInformation("print-alias-set-info", cl::init(false), cl::Hidden,

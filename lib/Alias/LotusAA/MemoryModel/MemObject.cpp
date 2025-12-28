@@ -56,9 +56,9 @@
 /// @see PTGraph for object ownership and creation
 
 #include "Alias/LotusAA/MemoryModel/MemObject.h"
-#include "Alias/LotusAA/Support/Config.h"
-#include "Alias/LotusAA/MemoryModel/PointsToGraph.h"
 #include "Alias/LotusAA/Engine/InterProceduralPass.h"
+#include "Alias/LotusAA/MemoryModel/PointsToGraph.h"
+#include "Alias/LotusAA/Support/Config.h"
 
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/GlobalVariable.h>

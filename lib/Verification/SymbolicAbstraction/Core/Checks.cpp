@@ -1,9 +1,9 @@
 // SymbolicAbstraction check helpers: assertion and memory-safety reporting
 #include "Verification/SymbolicAbstraction/Core/Checks.h"
 #include "Verification/SymbolicAbstraction/Analyzers/Analyzer.h"
-#include "Verification/SymbolicAbstraction/Utils/PrettyPrinter.h"
-#include "Verification/SymbolicAbstraction/Domains/MemRegions.h"
 #include "Verification/SymbolicAbstraction/Core/repr.h"
+#include "Verification/SymbolicAbstraction/Domains/MemRegions.h"
+#include "Verification/SymbolicAbstraction/Utils/PrettyPrinter.h"
 
 #include <llvm/IR/Instructions.h>
 #include <llvm/Support/raw_ostream.h>

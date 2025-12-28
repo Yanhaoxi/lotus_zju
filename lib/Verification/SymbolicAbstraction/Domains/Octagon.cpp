@@ -1,12 +1,12 @@
 // TODO: by LLM; to be checked.
 #include "Verification/SymbolicAbstraction/Domains/Octagon.h"
 
+#include "Verification/SymbolicAbstraction/Core/DomainConstructor.h"
 #include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
 #include "Verification/SymbolicAbstraction/Core/ParamStrategy.h"
-#include "Verification/SymbolicAbstraction/Utils/PrettyPrinter.h"
-#include "Verification/SymbolicAbstraction/Core/DomainConstructor.h"
-#include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
 #include "Verification/SymbolicAbstraction/Domains/Product.h"
+#include "Verification/SymbolicAbstraction/Utils/PrettyPrinter.h"
+#include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
 
 #include <z3++.h>
 #include <algorithm>
@@ -218,5 +218,5 @@ std::unique_ptr<AbstractValue> OctagonFactory(const FunctionContext& fctx, llvm:
 }
 
 DomainConstructor::Register _octagon("Octagon", "octagonal constraint domain (±x ± y ≤ c)", OctagonFactory);
-}
+} // namespace
 

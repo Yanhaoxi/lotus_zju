@@ -52,7 +52,7 @@ void check_all_equal_commutative(const std::string& startsymbol,
 
   auto nc_equations = p.free_parser(inputs[0]);
 
-  std::cout << "Eq (non-comm) : " << std::endl;
+  std::cout << "Eq (non-comm) : " << '\n';
   PrintEquations(nc_equations);
 
   // Use appropriate semiring (has to be commutative!)
@@ -62,7 +62,7 @@ void check_all_equal_commutative(const std::string& startsymbol,
       return c.Eval(srconv);
     });
 
-  std::cout << "Eq (comm) : "  << std::endl;
+  std::cout << "Eq (comm) : "  << '\n';
   PrintEquations(equations_fst);
 
   Timer timer;
@@ -95,11 +95,11 @@ void check_all_equal_commutative(const std::string& startsymbol,
     else {
       if(sol.find(Var::GetVarId(startsymbol)) == sol.end() || 
          sol_fst.find(Var::GetVarId(startsymbol)) == sol_fst.end()) {
-        std::cout << "[ERROR] startsymbol (" << startsymbol << ") does not occur!"<< std::endl;
+        std::cout << "[ERROR] startsymbol (" << startsymbol << ") does not occur!"<< '\n';
         return;
       }
       else if(sol[Var::GetVarId(startsymbol)] != sol_fst[Var::GetVarId(startsymbol)]) {
-        std::cout << "[DIFF] Difference found for startsymbol (" << startsymbol << ")" << std::endl 
+        std::cout << "[DIFF] Difference found for startsymbol (" << startsymbol << ")" << '\n' 
                   << "0:" << result_string(sol_fst)
                   << std::endl << i << ":" << result_string(sol) << std::endl;
         all_equal = false;
@@ -109,7 +109,7 @@ void check_all_equal_commutative(const std::string& startsymbol,
   }
 
   if(all_equal) {
-    std::cout << "[EQUIV] All grammars equivalent modulo commutativity" << std::endl;
+    std::cout << "[EQUIV] All grammars equivalent modulo commutativity" << '\n';
   }
 
   timer.Stop();
@@ -117,7 +117,7 @@ void check_all_equal_commutative(const std::string& startsymbol,
   << "Total checking time:\t" << timer.GetMilliseconds().count()
   << " ms" << " ("
   << timer.GetMicroseconds().count()
-  << "us)" << std::endl;
+  << "us)" << '\n';
 }
 
 #ifdef USE_LIBFA
@@ -208,21 +208,21 @@ void check_all_equal_lossy(const std::string& startsymbol,
  */
 int grammar_checker_main(int argc, char* argv[]) {
   
-  std::cout << "FPSolve Grammar Equivalence Checker" << std::endl;
-  std::cout << "====================================" << std::endl;
-  std::cout << std::endl;
-  std::cout << "This is a reference implementation for checking grammar equivalence." << std::endl;
-  std::cout << "For command-line options, refer to FPsolve-master/c/src/gr_checker.cpp" << std::endl;
-  std::cout << std::endl;
+  std::cout << "FPSolve Grammar Equivalence Checker" << '\n';
+  std::cout << "====================================" << '\n';
+  std::cout << '\n';
+  std::cout << "This is a reference implementation for checking grammar equivalence." << '\n';
+  std::cout << "For command-line options, refer to FPsolve-master/c/src/gr_checker.cpp" << '\n';
+  std::cout << '\n';
   
   // Example usage would go here
   // In a real application, parse command-line arguments and call
   // check_all_equal_commutative() or check_all_equal_lossy()
   
-  std::cout << "Usage example:" << std::endl;
-  std::cout << "  - Prepare grammar files in FPSolve format" << std::endl;
-  std::cout << "  - Call check_all_equal_commutative<SemilinearSetL>(startsymbol, inputs)" << std::endl;
-  std::cout << "  - Or call check_all_equal_lossy(startsymbol, inputs, refinement_depth)" << std::endl;
+  std::cout << "Usage example:" << '\n';
+  std::cout << "  - Prepare grammar files in FPSolve format" << '\n';
+  std::cout << "  - Call check_all_equal_commutative<SemilinearSetL>(startsymbol, inputs)" << '\n';
+  std::cout << "  - Or call check_all_equal_lossy(startsymbol, inputs, refinement_depth)" << '\n';
   
   return EXIT_SUCCESS;
 }

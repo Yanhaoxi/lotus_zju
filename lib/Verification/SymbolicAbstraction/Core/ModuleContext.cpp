@@ -43,7 +43,7 @@ ModuleContext::ModuleContext(llvm::Module* module, configparser::Config config)
     auto database_path = readGlobalString(Module_, "symbolic_abstraction_rt_database_path");
     // incorporate dynamic analysis results if available
     if (database_path.size() > 0) {
-        vout << "Using dynamic results from `" << database_path << "`" << endl;
+        vout << "Using dynamic results from `" << database_path << "`" << '\n';
         Store_.reset(new ResultStore(database_path));
     }
 
@@ -150,13 +150,13 @@ z3::expr ModuleContext::formulaFor(llvm::Function* function) const
         result = formulaForBuiltin(function);
     else if (recursive) {
         VOutBlock vb("Recursively analyzing callee");
-        vout << "Function name: " << function->getName().str() << endl;
+        vout << "Function name: " << function->getName().str() << '\n';
 
         FunctionContext fctx(function, this);
         auto fragment_decomp = FragmentDecomposition::For(fctx);
         DomainConstructor domain(fctx.getConfig());
         auto analyzer = Analyzer::New(fctx, fragment_decomp, domain);
-        vout << "Fragment decomposition: " << fragment_decomp << endl;
+        vout << "Fragment decomposition: " << fragment_decomp << '\n';
         auto symbs = getSharedSymbols(&fctx);
 
         // `result` will be a disjunction of formulas for different exit BBs
@@ -201,7 +201,7 @@ z3::expr ModuleContext::formulaFor(llvm::Function* function) const
             }
         }
 
-        vout << "Function summary: " << repr(result) << endl;
+        vout << "Function summary: " << repr(result) << '\n';
     }
 
     RecurFuncs_.erase(function);

@@ -1,23 +1,23 @@
 #include "Verification/SymbolicAbstraction/Utils/Utils.h"
 #include "Verification/SymbolicAbstraction/Core/repr.h"
 
-#include <llvm/IR/Function.h>
+#include <llvm/Bitcode/BitcodeReader.h>
 #include <llvm/IR/CFG.h>
 #include <llvm/IR/DebugInfoMetadata.h>
-#include <llvm/IR/Module.h>
-#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
 #include <llvm/Support/CommandLine.h>
-#include <llvm/Support/Path.h>
 #include <llvm/Support/FileSystem.h>
-#include <llvm/Bitcode/BitcodeReader.h>
 #include <llvm/Support/MemoryBuffer.h>
+#include <llvm/Support/Path.h>
 #include <llvm/Transforms/Utils/PromoteMemToReg.h>
 
-#include <sstream>
-#include <iostream>
-#include <iomanip>
 #include <cstdio>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
 
 namespace symbolic_abstraction
 {
@@ -42,7 +42,7 @@ std::ostream vout(&VerboseOutBufInstance);
 
 void panic(const std::string& in)
 {
-    std::cerr << "Error: " << in << std::endl;
+    std::cerr << "Error: " << in << '\n';
     exit(13);
 }
 

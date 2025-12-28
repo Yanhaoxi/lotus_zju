@@ -125,7 +125,7 @@ int64_t expr_to_int(const z3::expr& e)
     // large values that do not fit into a signed int)
     int64_t result = (int64_t)res;
     if (!succ)
-        std::cerr << e << std::endl;
+        std::cerr << e << '\n';
     assert(succ && "unsupported conversion from numeral");
     unsigned int size = e.get_sort().bv_size();
     if (size < 64 && (result & (1L << (size - 1L)))) {

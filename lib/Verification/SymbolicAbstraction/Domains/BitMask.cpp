@@ -1,10 +1,10 @@
 #include "Verification/SymbolicAbstraction/Domains/BitMask.h"
 
-#include "Verification/SymbolicAbstraction/Core/ParamStrategy.h"
-#include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
 #include "Verification/SymbolicAbstraction/Core/DomainConstructor.h"
-#include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
+#include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
+#include "Verification/SymbolicAbstraction/Core/ParamStrategy.h"
 #include "Verification/SymbolicAbstraction/Core/repr.h"
+#include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
 
 using namespace domains;
 using namespace symbolic_abstraction;

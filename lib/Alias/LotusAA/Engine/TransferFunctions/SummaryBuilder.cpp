@@ -145,7 +145,7 @@ void IntraLotusAA::collectEscapedObjects(
           int64_t offset = loc->getOffset();
           
           // Handle globals separately
-          if (obj->getAllocSite() && isa<GlobalValue>(obj->getAllocSite())) {
+          if (isa_and_nonnull<GlobalValue>(obj->getAllocSite())) {
             if (!escape_objs.count(obj)) {
               escape_objs.insert(obj);
               

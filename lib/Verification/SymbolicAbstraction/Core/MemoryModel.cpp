@@ -29,7 +29,7 @@ z3::expr makeDummyIntConst(z3::context& ctx)
 
     return ctx.int_const(name.c_str());
 }
-} // namespace unnamed
+} // namespace
 
 namespace symbolic_abstraction
 {

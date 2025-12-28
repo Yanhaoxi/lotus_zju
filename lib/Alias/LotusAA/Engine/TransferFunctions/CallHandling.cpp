@@ -52,10 +52,10 @@
 
 #include "Alias/LotusAA/Engine/IntraProceduralAnalysis.h"
 
-#include <unordered_map>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/IntrinsicInst.h>
 #include <llvm/Support/raw_ostream.h>
+#include <unordered_map>
 
 using namespace llvm;
 using namespace std;

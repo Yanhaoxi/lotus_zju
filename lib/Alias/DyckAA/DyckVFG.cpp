@@ -16,8 +16,6 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <llvm/IR/InstIterator.h>
-#include <llvm/IR/Instructions.h>
 #include "Alias/DyckAA/DyckAliasAnalysis.h"
 #include "Alias/DyckAA/DyckGraph.h"
 #include "Alias/DyckAA/DyckGraphNode.h"
@@ -26,6 +24,8 @@
 #include "Analysis/CFG/CFGReachability.h"
 #include "Utils/LLVM/RecursiveTimer.h"
 #include "Utils/LLVM/ThreadPool.h"
+#include <llvm/IR/InstIterator.h>
+#include <llvm/IR/Instructions.h>
 
 DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, DyckModRefAnalysis *DMRA, Module *M) {
     // create a VFG for each function

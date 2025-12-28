@@ -5,30 +5,30 @@
  */
 #include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
 
-#include "Verification/SymbolicAbstraction/Core/repr.h"
-#include "Verification/SymbolicAbstraction/Core/RepresentedValue.h"
-#include "Verification/SymbolicAbstraction/Core/Fragment.h"
-#include "Verification/SymbolicAbstraction/Core/FragmentDecomposition.h"
-#include "Verification/SymbolicAbstraction/Core/DomainConstructor.h"
 #include "Verification/SymbolicAbstraction/Core/AbstractValue.h"
-#include "Verification/SymbolicAbstraction/Core/ValueMapping.h"
-#include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
-#include "Verification/SymbolicAbstraction/Core/MemoryModel.h"
+#include "Verification/SymbolicAbstraction/Core/DomainConstructor.h"
 #include "Verification/SymbolicAbstraction/Core/FloatingPointModel.h"
-#include "Verification/SymbolicAbstraction/Utils/Config.h"
+#include "Verification/SymbolicAbstraction/Core/Fragment.h"
+//#include "Verification/SymbolicAbstraction/Core/FragmentDecomposition.h"
+#include "Verification/SymbolicAbstraction/Core/MemoryModel.h"
 #include "Verification/SymbolicAbstraction/Core/ModuleContext.h"
+#include "Verification/SymbolicAbstraction/Core/RepresentedValue.h"
+#include "Verification/SymbolicAbstraction/Core/ValueMapping.h"
+//#include "Verification/SymbolicAbstraction/Core/repr.h"
+#include "Verification/SymbolicAbstraction/Utils/Config.h"
+//#include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
 
-#include <llvm/IR/Module.h>
-#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/CFG.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/Dominators.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
-#include <llvm/IR/Constants.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
 #include <llvm/IR/ValueSymbolTable.h>
-#include <llvm/IR/CFG.h>
-#include <llvm/IR/Dominators.h>
 
-#include <queue>
 #include <algorithm>
+#include <queue>
 
 namespace symbolic_abstraction
 {
@@ -48,7 +48,7 @@ struct ValueNameCompare {
             return a->getName().str() < b->getName().str();
     }
 };
-} // namespace unnamed
+} // namespace
 
 // prefix used for edge indicator variables to make sure they don't clash
 // with state variables

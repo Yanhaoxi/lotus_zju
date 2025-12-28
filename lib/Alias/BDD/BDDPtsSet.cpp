@@ -63,6 +63,10 @@ struct BDDAndersPtsSet::Impl {
   Impl() : Impl(logicZero()) {}
   ~Impl() { Cudd_RecursiveDeref(getManager(), bdd); }
 
+  // Non-copyable: copying is handled at BDDAndersPtsSet level
+  Impl(const Impl &) = delete;
+  Impl &operator=(const Impl &) = delete;
+
   DdNode *bdd;
 };
 

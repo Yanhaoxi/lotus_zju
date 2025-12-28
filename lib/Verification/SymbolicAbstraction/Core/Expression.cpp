@@ -1,7 +1,9 @@
 #include "Verification/SymbolicAbstraction/Core/Expression.h"
+
 #include "Verification/SymbolicAbstraction/Core/RepresentedValue.h"
-#include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
 #include "Verification/SymbolicAbstraction/Core/repr.h"
+#include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
+#include <utility>
 
 namespace symbolic_abstraction
 {
@@ -51,7 +53,7 @@ class ConstantExpression : public ExpressionBase
     ConcreteState::Value Const_;
 
   public:
-    ConstantExpression(ConcreteState::Value x) : Const_(x) {}
+    ConstantExpression(ConcreteState::Value x) : Const_(std::move(x)) {}
     ConstantExpression() {}
 
     unsigned bits() const override { return Const_.bits(); }
@@ -95,7 +97,7 @@ class BinopExpression : public ExpressionBase
     op_t Op_;
 
   public:
-    BinopExpression(op_t op, Expression a, Expression b) : A_(a), B_(b), Op_(op)
+    BinopExpression(op_t op, const Expression& a, const Expression& b) : A_(a), B_(b), Op_(op)
     {
     }
 
@@ -259,7 +261,7 @@ class Conversion : public ExpressionBase
     bool SignExtend_;
 
   public:
-    Conversion(unsigned bits, Expression expr, bool sign_extend)
+    Conversion(unsigned bits, const Expression& expr, bool sign_extend)
         : Bits_(bits), Expr_(expr), SignExtend_(sign_extend)
     {
     }
@@ -351,7 +353,7 @@ class Z3Wrapper : public ExpressionBase
   public:
     template <typename F>
     Z3Wrapper(F f, std::string repr)
-        : ToFormula_(f), Repr_(repr)
+        : ToFormula_(f), Repr_(std::move(repr))
     {
     }
 

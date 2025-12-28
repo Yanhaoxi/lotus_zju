@@ -9,21 +9,21 @@
 #include "Verification/SymbolicAbstraction/Utils/Utils.h"
 #include "Verification/SymbolicAbstraction/Core/repr.h"
 
-#include "Verification/SymbolicAbstraction/Core/ModuleContext.h"
-#include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
 #include "Verification/SymbolicAbstraction/Analyzers/Analyzer.h"
-#include "Verification/SymbolicAbstraction/Core/MemoryModel.h"
 #include "Verification/SymbolicAbstraction/Core/DomainConstructor.h"
+#include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
+#include "Verification/SymbolicAbstraction/Core/MemoryModel.h"
+#include "Verification/SymbolicAbstraction/Core/ModuleContext.h"
 
-#include "Verification/SymbolicAbstraction/Domains/Product.h"
 #include "Verification/SymbolicAbstraction/Core/ParamStrategy.h"
 #include "Verification/SymbolicAbstraction/Domains/Boolean.h"
+#include "Verification/SymbolicAbstraction/Domains/Product.h"
 #include "Verification/SymbolicAbstraction/Domains/SimpleConstProp.h"
 
 #include "Verification/SymbolicAbstraction/Utils/Config.h"
 
-#include <iostream>
 #include <deque>
+#include <iostream>
 
 #include <llvm/Pass.h>
 #include <llvm/ADT/Statistic.h>
@@ -103,7 +103,7 @@ class EqDomain : public BooleanValue
         return false;
     }
 };
-}
+} // namespace domains
 namespace // unnamed
 {
 using namespace llvm;
@@ -175,7 +175,7 @@ SymbolicAbstractionPass::getAugmentedDomain(symbolic_abstraction::FunctionContex
     bool needs_eqres = Config_.RedundantComputationRemoval && !contains_eqres;
 
     if (needs_cp && needs_eqres) {
-        vout << "Adding SimpleConstProp and EqRes to domain." << std::endl;
+        vout << "Adding SimpleConstProp and EqRes to domain." << '\n';
         return DomainConstructor(
             domain.name() + "+consts", "",
             [=](const FunctionContext& fctx, BasicBlock* for_bb, bool after) {
@@ -189,7 +189,7 @@ SymbolicAbstractionPass::getAugmentedDomain(symbolic_abstraction::FunctionContex
             });
     }
     if (needs_cp) {
-        vout << "Adding SimpleConstProp to domain." << std::endl;
+        vout << "Adding SimpleConstProp to domain." << '\n';
         return DomainConstructor(
             domain.name() + "+consts", "",
             [=](const FunctionContext& fctx, BasicBlock* for_bb, bool after) {
@@ -201,7 +201,7 @@ SymbolicAbstractionPass::getAugmentedDomain(symbolic_abstraction::FunctionContex
             });
     }
     if (needs_eqres) {
-        vout << "Adding EqRes to domain." << std::endl;
+        vout << "Adding EqRes to domain." << '\n';
         return DomainConstructor(
             domain.name() + "+consts", "",
             [=](const FunctionContext& fctx, BasicBlock* for_bb, bool after) {
@@ -251,7 +251,7 @@ bool SymbolicAbstractionPass::replaceUsesOfWithInBBAndPHISuccs(BasicBlock& bb, V
             vout << "  Replaced use of `" << from->getName().str()
                  << "` by value " << getText(to) << " in `"
                  << inst.getName().str() << "` (bb: `" << bb.getName().str()
-                 << "`)" << std::endl;
+                 << "`)" << '\n';
         }
     }
 
@@ -269,7 +269,7 @@ bool SymbolicAbstractionPass::replaceUsesOfWithInBBAndPHISuccs(BasicBlock& bb, V
                     vout << "  Replaced PHI use of `" << from->getName().str()
                          << "` by value " << getText(to) << " in `"
                          << inst.getName().str() << "` (bb: `"
-                         << bb.getName().str() << "`)" << std::endl;
+                         << bb.getName().str() << "`)" << '\n';
                 }
             } else {
                 break;
@@ -385,7 +385,7 @@ bool SymbolicAbstractionPass::performRedundancyReplForBB(const equals_t& eqs,
     bool changed = false;
 
     // Try to compute for each value another value which we can replace it with
-    vout << "  equalities for " << bb.getName().str() << ": [" << std::endl;
+    vout << "  equalities for " << bb.getName().str() << ": [" << '\n';
     for (auto& eq : eqs) {
         vout << "    [";
         bool first = true;
@@ -397,9 +397,9 @@ bool SymbolicAbstractionPass::performRedundancyReplForBB(const equals_t& eqs,
             repl[val] = getReplacementCanditdate(eqs, val);
             vout << " -> " << (repl[val] ? repl[val]->getName().str() : "NONE");
         }
-        vout << "]" << std::endl;
+        vout << "]" << '\n';
     }
-    vout << "  ]" << std::endl;
+    vout << "  ]" << '\n';
 
     // Perform the replacements with the values that we found
     for (auto& eq : eqs) {
@@ -427,9 +427,9 @@ bool SymbolicAbstractionPass::performRedundancyReplForBB(const equals_t& eqs,
 bool SymbolicAbstractionPass::runOnFunction(llvm::Function& function)
 {
     vout << "Perform SymbolicAbstractionPass on function `" << function.getName().str()
-         << "'." << std::endl
-         << "¸.·´¯`·.´¯`·.¸¸.·´¯`·.¸><(((º>" << std::endl
-         << std::endl;
+         << "'." << '\n'
+         << "¸.·´¯`·.´¯`·.¸¸.·´¯`·.¸><(((º>" << '\n'
+         << '\n';
     bool changed = false;
 
     using namespace symbolic_abstraction;
@@ -445,7 +445,7 @@ bool SymbolicAbstractionPass::runOnFunction(llvm::Function& function)
     // Generate the FragmentDecomposition that is specified by the Config_ field
     // of the FunctionContext
     auto fragment_decomp = FragmentDecomposition::For(*fctx.get());
-    vout << "Fragment decomposition: " << fragment_decomp << endl;
+    vout << "Fragment decomposition: " << fragment_decomp << '\n';
 
     // add necessary components to domain if not yet contained
     DomainConstructor domain = getAugmentedDomain(*fctx.get());
@@ -454,7 +454,7 @@ bool SymbolicAbstractionPass::runOnFunction(llvm::Function& function)
     std::vector<const AbstractValue*> results;
     equals_t equalities;
 
-    vout << "Analysis Results {{{" << std::endl;
+    vout << "Analysis Results {{{" << '\n';
     for (llvm::BasicBlock& bb : function) {
         results.clear();
         equalities.clear();
@@ -490,8 +490,8 @@ bool SymbolicAbstractionPass::runOnFunction(llvm::Function& function)
         }
     }
 
-    vout << "}}}" << std::endl
-         << "DONE." << std::endl;
+    vout << "}}}" << '\n'
+         << "DONE." << '\n';
     return changed;
 }
 } // namespace symbolic_abstraction

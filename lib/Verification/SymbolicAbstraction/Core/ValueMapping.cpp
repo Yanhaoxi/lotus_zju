@@ -1,6 +1,6 @@
 #include "Verification/SymbolicAbstraction/Core/ValueMapping.h"
-#include "Verification/SymbolicAbstraction/Core/MemoryModel.h"
 #include "Verification/SymbolicAbstraction/Core/FloatingPointModel.h"
+#include "Verification/SymbolicAbstraction/Core/MemoryModel.h"
 
 #include <sstream>
 

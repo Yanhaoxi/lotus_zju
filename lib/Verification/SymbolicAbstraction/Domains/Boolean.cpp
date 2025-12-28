@@ -8,7 +8,7 @@ namespace domains
 {
 bool BooleanValue::joinWith(const AbstractValue& av_other)
 {
-    auto other = dynamic_cast<const BooleanValue*>(&av_other);
+    const auto *other = dynamic_cast<const BooleanValue*>(&av_other);
     assert(other);
     if (other->isBottom()) {
         return false;
@@ -34,7 +34,7 @@ bool BooleanValue::joinWith(const AbstractValue& av_other)
 
 bool BooleanValue::meetWith(const AbstractValue& av_other)
 {
-    auto other = dynamic_cast<const BooleanValue*>(&av_other);
+    const auto *other = dynamic_cast<const BooleanValue*>(&av_other);
     assert(other);
     if (other->isTop()) {
         return false;
@@ -112,5 +112,5 @@ bool BooleanValue::updateWith(const ConcreteState& cstate)
     Val_ = TOP;
     return true;
 }
-}
-}
+} // namespace domains
+} // namespace symbolic_abstraction

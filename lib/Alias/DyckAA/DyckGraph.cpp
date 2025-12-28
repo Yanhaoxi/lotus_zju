@@ -16,11 +16,11 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "Alias/DyckAA/DyckGraphEdgeLabel.h"
+#include "Alias/DyckAA/DyckGraph.h"
 #include <cassert>
 #include <cstdio>
 #include <stack>
-#include "Alias/DyckAA/DyckGraphEdgeLabel.h"
-#include "Alias/DyckAA/DyckGraph.h"
 
 DyckGraph::DyckGraph() {
     DerefEdgeLabel = new DereferenceEdgeLabel;

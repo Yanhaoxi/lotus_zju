@@ -141,7 +141,7 @@ std::string PrefixSemiring::string() const
 {
 	std::stringstream ss;
 	ss << "{";
-	for(auto v : this->val)
+	for(const auto& v : this->val)
 	{
 		ss << "(";
 		for(auto var : v)

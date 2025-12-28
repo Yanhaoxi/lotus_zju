@@ -8,8 +8,8 @@
  */
 #include "Verification/SymbolicAbstraction/Analyzers/Analyzer.h"
 
-#include "Verification/SymbolicAbstraction/Utils/Utils.h"
 #include "Verification/SymbolicAbstraction/Core/ValueMapping.h"
+#include "Verification/SymbolicAbstraction/Utils/Utils.h"
 
 namespace symbolic_abstraction
 {

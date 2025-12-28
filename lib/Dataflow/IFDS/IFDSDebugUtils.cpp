@@ -8,8 +8,8 @@
  */
 
 #include "Dataflow/IFDS/IFDSFramework.h"
-#include "Dataflow/IFDS/Clients/IFDSTaintAnalysis.h"
 #include "Dataflow/IFDS/Clients/IFDSReachingDefinitions.h"
+#include "Dataflow/IFDS/Clients/IFDSTaintAnalysis.h"
 
 #include <llvm/Support/raw_ostream.h>
 

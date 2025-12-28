@@ -16,10 +16,10 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <llvm/IR/GetElementPtrTypeIterator.h>
-#include <llvm/IR/InstIterator.h>
 #include "Alias/DyckAA/AAAnalyzer.h"
 #include "Utils/LLVM/RecursiveTimer.h"
+#include <llvm/IR/GetElementPtrTypeIterator.h>
+#include <llvm/IR/InstIterator.h>
 
 static cl::opt<unsigned> FunctionTypeCheckLevel("function-type-check-level", cl::init(4), cl::Hidden,
                                                 cl::desc("The level of checking the compatability of function types"

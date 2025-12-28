@@ -64,8 +64,8 @@
 
 #include <llvm/Analysis/DominanceFrontier.h>
 #include <llvm/Support/CommandLine.h>
-#include <tuple>
 #include <set>
+#include <tuple>
 
 using namespace llvm;
 using namespace std;
@@ -199,7 +199,7 @@ MemObject *PTGraph::newObject(Value *alloc_site, MemObject::ObjKind obj_type) {
                     ? new MemObject(alloc_site, this, obj_type)
                     : new SymbolicMemObject(alloc_site, this);
 
-  if (alloc_site && isa<GlobalValue>(alloc_site)) {
+  if (isa_and_nonnull<GlobalValue>(alloc_site)) {
     global_objects.insert(obj);
   }
 

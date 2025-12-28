@@ -6,13 +6,13 @@
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/raw_ostream.h>
 
-#include <map>
-#include <queue>
-
 #include "Alias/SparrowAA/Andersen.h"
 #include "Alias/SparrowAA/CycleDetector.h"
-#include "Alias/SparrowAA/SparseBitVectorGraph.h"
 #include "Alias/SparrowAA/Log.h"
+#include "Alias/SparrowAA/SparseBitVectorGraph.h"
+
+#include <map>
+#include <queue>
 
 #define DEBUG_TYPE "andersen"
 

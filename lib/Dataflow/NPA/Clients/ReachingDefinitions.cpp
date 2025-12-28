@@ -4,9 +4,9 @@
 */
 #include "Dataflow/NPA/Clients/ReachingDefinitions.h"
 #include "Dataflow/NPA/Info/BitVectorInfo.h"
-#include <unordered_map>
-#include <llvm/IR/Instructions.h>
 #include <llvm/IR/CFG.h>
+#include <llvm/IR/Instructions.h>
+#include <unordered_map>
 
 namespace npa {
 
