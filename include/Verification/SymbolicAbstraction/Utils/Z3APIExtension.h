@@ -8,9 +8,9 @@
  * C++ API.
  */
 
-#include <z3++.h>
-#include <vector>
 #include <llvm/IR/Constants.h>
+#include <vector>
+#include <z3++.h>
 
 namespace z3_ext
 {
@@ -57,7 +57,7 @@ z3::expr mul_nuf(z3::expr const& a, z3::expr const& b);
 
 // creates a predicate which states that no overflow occurred
 z3::expr sdiv_nof(z3::expr const& a, z3::expr const& b);
-}
+} // namespace z3_ext
 
 /**
  * Convertes a Z3 expression to an unsigned integer.

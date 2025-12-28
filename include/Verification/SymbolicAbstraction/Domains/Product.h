@@ -6,9 +6,9 @@
 #include <llvm/IR/CFG.h>
 
 #include "Verification/SymbolicAbstraction/Utils/Utils.h"
-#include "Verification/SymbolicAbstraction/Core/ResultStore.h"
 #include "Verification/SymbolicAbstraction/Core/AbstractValue.h"
 #include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
+#include "Verification/SymbolicAbstraction/Core/ResultStore.h"
 #include "Verification/SymbolicAbstraction/Utils/Config.h"
 
 namespace symbolic_abstraction
@@ -241,7 +241,7 @@ class Product : public AbstractValue
 
     virtual bool isJoinableWith(const AbstractValue& other) const override
     {
-        if (auto oth_val = static_cast<const Product*>(&other)) {
+        if (const auto *oth_val = static_cast<const Product*>(&other)) {
             if (oth_val->Values_.size() != Values_.size()) {
                 return false;
             }

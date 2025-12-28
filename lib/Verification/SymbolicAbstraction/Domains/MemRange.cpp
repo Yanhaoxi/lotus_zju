@@ -23,6 +23,7 @@ namespace domains
 class PrintAsDereference
 {
   public:
+virtual ~PrintAsDereference() = default;
     virtual void printAsDereference(PrettyPrinter& out) const = 0;
     virtual int accuracy() const { return 0; }
 };
@@ -247,8 +248,8 @@ class AddrOffset : public AbstractValue, public PrintAsDereference
 class RestrictedRelational : public Cut<RestrictedRelational, NumRels>
 {
   public:
-    RestrictedRelational(const FunctionContext& fctx, Expression left,
-                         Expression right)
+    RestrictedRelational(const FunctionContext& fctx, const Expression& left,
+                         const Expression& right)
         : Cut<RestrictedRelational, NumRels>(
               make_unique<NumRels>(fctx, left, right))
     {
@@ -274,7 +275,7 @@ class AddrVarOffset : public If, public PrintAsDereference
 
     unique_ptr<AbstractValue> init(const FunctionContext& fctx,
                                    RepresentedValue base, RepresentedValue addr,
-                                   Expression candidate, unsigned bytes)
+                                   const Expression& candidate, unsigned bytes)
     {
         assert(bytes != 0);
         auto product = make_unique<Product>(fctx);
@@ -302,7 +303,7 @@ class AddrVarOffset : public If, public PrintAsDereference
 
   public:
     AddrVarOffset(const FunctionContext& fctx, RepresentedValue base,
-                  RepresentedValue addr, Expression candidate, unsigned bytes)
+                  RepresentedValue addr, const Expression& candidate, unsigned bytes)
         : If(Expression(base).ule(Expression(base) + Expression(candidate)),
              init(fctx, base, addr, candidate, bytes)),
           FunctionContext_(fctx), Base_(base), Addr_(addr),

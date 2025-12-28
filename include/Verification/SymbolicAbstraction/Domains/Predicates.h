@@ -3,14 +3,14 @@
 #include "Verification/SymbolicAbstraction/Utils/Utils.h"
 #include "Verification/SymbolicAbstraction/Core/AbstractValue.h"
 #include "Verification/SymbolicAbstraction/Core/ConcreteState.h"
-#include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
 #include "Verification/SymbolicAbstraction/Core/Expression.h"
+#include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
 
 #include "Verification/SymbolicAbstraction/Domains/Product.h"
 #include <memory>
 
-#include <llvm/IR/Value.h>
 #include <llvm/IR/CFG.h>
+#include <llvm/IR/Value.h>
 
 namespace symbolic_abstraction
 {
@@ -47,7 +47,7 @@ class Predicates : public AbstractValue
     Value Val_ = BOTTOM;
 
   public:
-    Predicates(const FunctionContext& fctx, Expression predicate)
+    Predicates(const FunctionContext& fctx, const Expression& predicate)
         : FunctionContext_(fctx), Predicate_(predicate)
     {
     }

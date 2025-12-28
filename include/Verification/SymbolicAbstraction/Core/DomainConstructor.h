@@ -5,8 +5,8 @@
 #include "Verification/SymbolicAbstraction/Core/Expression.h"
 
 #include <llvm/IR/CFG.h>
-#include <vector>
 #include <iostream>
+#include <vector>
 
 namespace symbolic_abstraction
 {
@@ -194,4 +194,4 @@ class DomainConstructor
         return out << ">";
     }
 };
-}
+} // namespace symbolic_abstraction

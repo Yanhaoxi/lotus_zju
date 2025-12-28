@@ -1,8 +1,8 @@
 #pragma once
 #include "Verification/SymbolicAbstraction/Utils/Utils.h"
 #include "Verification/SymbolicAbstraction/Core/ConcreteState.h"
-#include "Verification/SymbolicAbstraction/Utils/PrettyPrinter.h"
 #include "Verification/SymbolicAbstraction/Core/ResultStore.h"
+#include "Verification/SymbolicAbstraction/Utils/PrettyPrinter.h"
 
 namespace symbolic_abstraction
 {

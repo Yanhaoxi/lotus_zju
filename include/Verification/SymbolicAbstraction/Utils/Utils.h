@@ -13,9 +13,9 @@
 #endif
 #define DEBUG_TYPE "symbolic-abstraction"
 
+#include <llvm/ADT/StringRef.h>
 #include <llvm/Config/llvm-config.h>
 #include <llvm/Support/Compiler.h>
-#include <llvm/ADT/StringRef.h>
 
 // LLVM version compatibility - Lotus supports LLVM 14
 #if LLVM_VERSION_MAJOR == 14
@@ -34,7 +34,7 @@ namespace llvm
     class Function;
     class Module;
     class Instruction;
-}
+} // namespace llvm
 
 namespace symbolic_abstraction
 {
@@ -60,12 +60,12 @@ extern std::ostream vout;
 extern bool VerboseEnable;
 
 struct VOutBlock {
-    VOutBlock(std::string name) { vout << name << " {{{" << endl; }
+    VOutBlock(const std::string& name) { vout << name << " {{{" << '\n'; }
 
     ~VOutBlock()
     {
-        vout << endl
-             << "}}}" << endl;
+        vout << '\n'
+             << "}}}" << '\n';
     }
 };
 
@@ -85,6 +85,6 @@ std::string getFunctionSourcePath(const llvm::Function*);
 unique_ptr<llvm::Module> loadModule(std::string file_name);
 
 bool isInSSAForm(llvm::Function* function);
-}
+} // namespace symbolic_abstraction
 
 #undef DEBUG_TYPE

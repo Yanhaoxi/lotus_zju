@@ -8,12 +8,12 @@
 #ifndef REPR_HPP
 #define REPR_HPP
 
+#include <algorithm>
+#include <cctype>
+#include <functional>
 #include <iostream>
 #include <sstream>
 #include <type_traits>
-#include <algorithm>
-#include <functional>
-#include <cctype>
 #include <vector>
 
 // Enable LLVM-aware pretty-printing in this integration.
@@ -27,13 +27,13 @@
 #ifdef ENABLE_REPR_LLVM
 #include <llvm/Support/raw_ostream.h>
 
-#include <llvm/IR/Function.h>
 #include <llvm/IR/BasicBlock.h>
-#include <llvm/IR/Value.h>
-#include <llvm/IR/Instruction.h>
-#include <llvm/IR/Instructions.h>
 #include <llvm/IR/DebugInfoMetadata.h>
 #include <llvm/IR/DebugLoc.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/Instruction.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/Value.h>
 #endif
 
 // forward declaration
@@ -169,7 +169,7 @@ inline void repr_debug_loc(std::ostream& out, const llvm::Value& val)
     using namespace llvm;
     debug_info dinfo;
 
-    if (auto bb_ptr = dyn_cast<BasicBlock>(&val)) {
+    if (const auto *bb_ptr = dyn_cast<BasicBlock>(&val)) {
         // find the first instruction with debug info
         for (auto& inst : *bb_ptr) {
             find_debug_info(inst, &dinfo);

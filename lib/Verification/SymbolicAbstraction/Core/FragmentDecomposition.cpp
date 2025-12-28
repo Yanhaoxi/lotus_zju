@@ -158,7 +158,7 @@ std::vector<Fragment::edge> find_retreating(llvm::Function* func)
 
     return result;
 }
-} // namespace unnamed
+} // namespace
 
 std::set<llvm::BasicBlock*>
 FragmentDecomposition::GetAbstractionPoints(llvm::Function* func,

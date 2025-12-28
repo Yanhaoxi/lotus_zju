@@ -1,11 +1,11 @@
 #pragma once
 
 #include "Verification/SymbolicAbstraction/Utils/Utils.h"
-#include "Verification/SymbolicAbstraction/Core/ResultStore.h"
 #include "Verification/SymbolicAbstraction/Core/AbstractValue.h"
-#include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
-#include "Verification/SymbolicAbstraction/Core/Expression.h"
 #include "Verification/SymbolicAbstraction/Core/DomainConstructor.h"
+#include "Verification/SymbolicAbstraction/Core/Expression.h"
+#include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
+#include "Verification/SymbolicAbstraction/Core/ResultStore.h"
 
 #include <map>
 #include <z3++.h>
@@ -43,14 +43,14 @@ class BitMask : public AbstractValue
             RepresentedValue right = RepresentedValue());
 
     static unique_ptr<AbstractValue>
-    NewSingle(Expression expr, const DomainConstructor::args& args)
+    NewSingle(const Expression& expr, const DomainConstructor::args& args)
     {
         return std::move(
             make_unique<BitMask>(*args.fctx, expr.asRepresentedValue()));
     }
 
     static unique_ptr<AbstractValue>
-    NewRelational(Expression left, Expression right,
+    NewRelational(const Expression& left, const Expression& right,
                   const DomainConstructor::args& args)
     {
         return std::move(make_unique<BitMask>(

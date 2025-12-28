@@ -4,17 +4,17 @@
  *        result database, and builds formulas/summaries for LLVM functions.
  */
 #include "Verification/SymbolicAbstraction/Core/ModuleContext.h"
-#include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
 #include "Verification/SymbolicAbstraction/Analyzers/Analyzer.h"
 #include "Verification/SymbolicAbstraction/Core/Fragment.h"
+#include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
 #include "Verification/SymbolicAbstraction/Core/ValueMapping.h"
 #include "Verification/SymbolicAbstraction/Core/repr.h"
 #include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
 
-#include <llvm/IR/Module.h>
-#include <llvm/IR/Function.h>
-#include <llvm/Analysis/TargetLibraryInfo.h>
 #include <llvm/ADT/Triple.h>
+#include <llvm/Analysis/TargetLibraryInfo.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/Module.h>
 
 namespace symbolic_abstraction
 {

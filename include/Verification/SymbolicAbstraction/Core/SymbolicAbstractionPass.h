@@ -8,8 +8,8 @@
 #include "Verification/SymbolicAbstraction/Domains/SimpleConstProp.h"
 #include "Verification/SymbolicAbstraction/Utils/Config.h"
 
-#include <llvm/Pass.h>
 #include <llvm/IR/CFG.h>
+#include <llvm/Pass.h>
 
 namespace symbolic_abstraction
 {

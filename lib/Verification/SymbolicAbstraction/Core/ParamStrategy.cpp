@@ -1,6 +1,6 @@
 #include "Verification/SymbolicAbstraction/Core/ParamStrategy.h"
-#include "Verification/SymbolicAbstraction/Core/FragmentDecomposition.h"
 #include "Verification/SymbolicAbstraction/Core/Fragment.h"
+#include "Verification/SymbolicAbstraction/Core/FragmentDecomposition.h"
 #include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
 
 namespace symbolic_abstraction

@@ -26,10 +26,10 @@
 
 #include "Verification/SymbolicAbstraction/Utils/Utils.h"
 #include "Verification/SymbolicAbstraction/Core/AbstractValue.h"
+#include "Verification/SymbolicAbstraction/Core/DomainConstructor.h"
 #include "Verification/SymbolicAbstraction/Core/Fragment.h"
 #include "Verification/SymbolicAbstraction/Core/FragmentDecomposition.h"
 #include "Verification/SymbolicAbstraction/Core/ValueMapping.h"
-#include "Verification/SymbolicAbstraction/Core/DomainConstructor.h"
 
 #include <map>
 

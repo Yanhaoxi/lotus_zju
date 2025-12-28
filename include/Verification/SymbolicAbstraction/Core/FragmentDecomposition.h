@@ -8,9 +8,9 @@
 #include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
 #include "Verification/SymbolicAbstraction/Core/Fragment.h"
 
-#include <vector>
-#include <set>
 #include <iostream>
+#include <set>
+#include <vector>
 
 namespace symbolic_abstraction
 {

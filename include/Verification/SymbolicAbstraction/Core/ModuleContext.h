@@ -6,12 +6,12 @@
 #pragma once
 
 #include "Verification/SymbolicAbstraction/Utils/Utils.h"
-#include "Verification/SymbolicAbstraction/Utils/Config.h"
 #include "Verification/SymbolicAbstraction/Core/ResultStore.h"
+#include "Verification/SymbolicAbstraction/Utils/Config.h"
 
+#include <llvm/Analysis/TargetLibraryInfo.h>
 #include <set>
 #include <z3++.h>
-#include <llvm/Analysis/TargetLibraryInfo.h>
 
 namespace llvm
 {

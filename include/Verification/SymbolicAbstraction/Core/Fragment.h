@@ -3,14 +3,14 @@
 #include "Verification/SymbolicAbstraction/Utils/Utils.h"
 #include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
 
-#include <llvm/IR/Instructions.h>
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Function.h>
+#include <llvm/IR/Instructions.h>
 #include <z3++.h>
 
 #include <iostream>
-#include <unordered_set>
 #include <set>
+#include <unordered_set>
 
 namespace symbolic_abstraction
 {

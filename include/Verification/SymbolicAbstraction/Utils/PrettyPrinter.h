@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Verification/SymbolicAbstraction/Utils/Utils.h"
+#include <map>
 #include <sstream>
 #include <type_traits>
-#include <map>
 
 namespace z3
 {

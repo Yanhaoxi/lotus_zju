@@ -2,8 +2,8 @@
 
 #include "Verification/SymbolicAbstraction/Utils/Utils.h"
 #include "Verification/SymbolicAbstraction/Core/AbstractValue.h"
-#include "Verification/SymbolicAbstraction/Core/Expression.h"
 #include "Verification/SymbolicAbstraction/Core/DomainConstructor.h"
+#include "Verification/SymbolicAbstraction/Core/Expression.h"
 
 namespace symbolic_abstraction
 {

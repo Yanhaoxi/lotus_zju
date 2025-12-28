@@ -5,14 +5,14 @@
 
 #pragma once
 
-#include <memory>
-#include <map>
 #include <iostream>
+#include <map>
+#include <memory>
 #include <vector>
 
-#include <z3++.h>
-#include <llvm/IR/Value.h>
 #include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Value.h>
+#include <z3++.h>
 
 #include "Verification/SymbolicAbstraction/Utils/Utils.h"
 #include "Verification/SymbolicAbstraction/Core/ConcreteState.h"
@@ -206,4 +206,4 @@ class AbstractValue
 
     virtual ~AbstractValue() {}
 };
-}
+} // namespace symbolic_abstraction

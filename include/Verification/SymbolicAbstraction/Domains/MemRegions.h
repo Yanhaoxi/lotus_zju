@@ -1,14 +1,14 @@
 #pragma once
 
 #include "Verification/SymbolicAbstraction/Core/AbstractValue.h"
-#include "Verification/SymbolicAbstraction/Core/MemoryModel.h"
-#include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
-#include "Verification/SymbolicAbstraction/Utils/Utils.h"
-#include "Verification/SymbolicAbstraction/Domains/Combinators.h"
-#include "Verification/SymbolicAbstraction/Domains/Boolean.h"
-#include "Verification/SymbolicAbstraction/Domains/SimpleConstProp.h"
-#include "Verification/SymbolicAbstraction/Domains/Product.h"
 #include "Verification/SymbolicAbstraction/Core/Expression.h"
+#include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
+#include "Verification/SymbolicAbstraction/Core/MemoryModel.h"
+#include "Verification/SymbolicAbstraction/Domains/Boolean.h"
+#include "Verification/SymbolicAbstraction/Domains/Combinators.h"
+#include "Verification/SymbolicAbstraction/Domains/Product.h"
+#include "Verification/SymbolicAbstraction/Domains/SimpleConstProp.h"
+#include "Verification/SymbolicAbstraction/Utils/Utils.h"
 
 namespace symbolic_abstraction
 {
@@ -185,7 +185,7 @@ class VariableRegion : public BooleanValue
 
   public:
     VariableRegion(const FunctionContext& fctx, RepresentedValue ptr,
-                   Expression expr, Expression factor);
+                   const Expression& expr, const Expression& factor);
 
     virtual void prettyPrint(PrettyPrinter& out) const override;
 
@@ -298,7 +298,7 @@ class RestrictedVarRegion : public Cut<RestrictedVarRegion, VariableRegion>
 
   public:
     RestrictedVarRegion(const FunctionContext& fctx, RepresentedValue ptr,
-                        Expression expr, Expression factor)
+                        const Expression& expr, const Expression& factor)
         : Cut<RestrictedVarRegion, VariableRegion>(
               make_unique<VariableRegion>(fctx, ptr, expr, factor)),
           Fctx_(fctx), Ptr_(ptr), Expr_(expr), Fact_(factor)

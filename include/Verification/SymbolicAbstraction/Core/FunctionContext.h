@@ -11,9 +11,9 @@
 
 #include <z3++.h>
 
-#include <llvm/IR/Function.h>
 #include <llvm/ADT/iterator_range.h>
 #include <llvm/IR/Dominators.h>
+#include <llvm/IR/Function.h>
 
 namespace symbolic_abstraction
 {

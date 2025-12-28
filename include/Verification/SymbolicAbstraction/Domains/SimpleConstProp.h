@@ -1,14 +1,14 @@
 #pragma once
 
-#include <iostream>
 #include "Verification/SymbolicAbstraction/Core/repr.h"
+#include <iostream>
 
-#include "Verification/SymbolicAbstraction/Utils/Utils.h"
-#include "Verification/SymbolicAbstraction/Core/ResultStore.h"
 #include "Verification/SymbolicAbstraction/Core/AbstractValue.h"
-#include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
-#include "Verification/SymbolicAbstraction/Core/Expression.h"
 #include "Verification/SymbolicAbstraction/Core/DomainConstructor.h"
+#include "Verification/SymbolicAbstraction/Core/Expression.h"
+#include "Verification/SymbolicAbstraction/Core/ResultStore.h"
+#include "Verification/SymbolicAbstraction/Utils/Utils.h"
+#include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
 
 #include <memory>
 
@@ -36,7 +36,7 @@ class SimpleConstProp : public AbstractValue
         resetToBottom();
     }
 
-    static unique_ptr<AbstractValue> New(Expression expr,
+    static unique_ptr<AbstractValue> New(const Expression& expr,
                                          const DomainConstructor::args& args)
     {
         return std::move(make_unique<SimpleConstProp>(

@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Verification/SymbolicAbstraction/Utils/Utils.h"
+#include <llvm/ADT/StringRef.h>
 #include <map>
 #include <string>
-#include <llvm/ADT/StringRef.h>
 
 namespace symbolic_abstraction
 {

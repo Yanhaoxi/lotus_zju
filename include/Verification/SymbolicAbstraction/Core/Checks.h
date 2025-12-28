@@ -5,7 +5,7 @@
 
 namespace symbolic_abstraction {
 class Analyzer;
-}
+} // namespace symbolic_abstraction
 
 // Runs the assertion violation check on the given function using the
 // provided analyzer state. Prints results to llvm::outs().

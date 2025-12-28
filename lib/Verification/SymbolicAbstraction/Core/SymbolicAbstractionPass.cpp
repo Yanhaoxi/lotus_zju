@@ -6,8 +6,8 @@
 
 #include "Verification/SymbolicAbstraction/Core/SymbolicAbstractionPass.h"
 
-#include "Verification/SymbolicAbstraction/Utils/Utils.h"
 #include "Verification/SymbolicAbstraction/Core/repr.h"
+#include "Verification/SymbolicAbstraction/Utils/Utils.h"
 
 #include "Verification/SymbolicAbstraction/Analyzers/Analyzer.h"
 #include "Verification/SymbolicAbstraction/Core/DomainConstructor.h"
@@ -25,12 +25,12 @@
 #include <deque>
 #include <iostream>
 
-#include <llvm/Pass.h>
 #include <llvm/ADT/Statistic.h>
 #include <llvm/IR/CFG.h>
+#include <llvm/IR/Dominators.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/ValueSymbolTable.h>
-#include <llvm/IR/Dominators.h>
+#include <llvm/Pass.h>
 #include <llvm/Transforms/Utils/BasicBlockUtils.h>
 
 using namespace llvm;
@@ -130,7 +130,7 @@ template <typename T> bool containsDomain(const symbolic_abstraction::AbstractVa
     }
     return res;
 }
-} // namespace unnamed
+} // namespace
 
 char SymbolicAbstractionPass::ID;
 

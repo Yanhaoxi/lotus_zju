@@ -5,7 +5,7 @@
  */
 #include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
 
-#include "Verification/SymbolicAbstraction/Core/AbstractValue.h"
+//#include "Verification/SymbolicAbstraction/Core/AbstractValue.h"
 #include "Verification/SymbolicAbstraction/Core/DomainConstructor.h"
 #include "Verification/SymbolicAbstraction/Core/FloatingPointModel.h"
 #include "Verification/SymbolicAbstraction/Core/Fragment.h"

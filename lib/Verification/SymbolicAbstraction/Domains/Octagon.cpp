@@ -4,12 +4,12 @@
 #include "Verification/SymbolicAbstraction/Core/DomainConstructor.h"
 #include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
 #include "Verification/SymbolicAbstraction/Core/ParamStrategy.h"
-#include "Verification/SymbolicAbstraction/Domains/Product.h"
+//#include "Verification/SymbolicAbstraction/Domains/Product.h"
 #include "Verification/SymbolicAbstraction/Utils/PrettyPrinter.h"
-#include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
+//#include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
 
-#include <z3++.h>
 #include <algorithm>
+#include <z3++.h>
 
 using namespace symbolic_abstraction;
 using namespace symbolic_abstraction::domains;

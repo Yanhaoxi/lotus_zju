@@ -275,7 +275,7 @@ unique_ptr<AbstractValue> ForValuePairsRestricted(const FunctionContext& fctx,
             if ((seen.find({current, vars_avail[i]}) != seen.end()) ||
                 (seen.find({vars_avail[i], current}) != seen.end()))
                 continue; // avoid duplicate absvals with swapped args
-            if (auto avail_inst = llvm::dyn_cast_or_null<llvm::Instruction>(
+            if (auto *avail_inst = llvm::dyn_cast_or_null<llvm::Instruction>(
                     (llvm::Value*)vars_avail[i])) {
 
                 if ((avail_inst->getParent() == bb) &&
@@ -298,7 +298,7 @@ unique_ptr<AbstractValue> ForValuePairsRestricted(const FunctionContext& fctx,
         if (llvm::isa<llvm::PHINode>(instr))
             continue; // PHINode Operands are handled in the predecessors
         for (unsigned int i = 0; i < instr.getNumOperands(); i++) {
-            auto current = instr.getOperand(i);
+            auto *current = instr.getOperand(i);
             addToResult(current);
         }
         defined_before.insert(&instr);
@@ -310,7 +310,7 @@ unique_ptr<AbstractValue> ForValuePairsRestricted(const FunctionContext& fctx,
             if (!llvm::isa<llvm::PHINode>(instr))
                 break;
             auto& phi = llvm::cast<llvm::PHINode>(instr);
-            auto current = phi.getIncomingValueForBlock(bb);
+            auto *current = phi.getIncomingValueForBlock(bb);
             addToResult(current);
         }
     }

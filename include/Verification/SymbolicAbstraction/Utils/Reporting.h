@@ -5,11 +5,11 @@
 
 namespace llvm {
 class Function;
-}
+} // namespace llvm
 
 namespace symbolic_abstraction {
 class Analyzer;
-}
+} // namespace symbolic_abstraction
 
 // Print a concise, uniform "Effective configuration" section.
 void printEffectiveConfiguration(

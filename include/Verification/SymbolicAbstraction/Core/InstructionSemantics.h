@@ -6,12 +6,11 @@
  */
 
 #include "Verification/SymbolicAbstraction/Utils/Utils.h"
-#include <map>
 #include <set>
 
-#include <z3++.h>
 #include <llvm/IR/InstVisitor.h>
 #include <llvm/IR/Instructions.h>
+#include <z3++.h>
 
 namespace symbolic_abstraction
 {

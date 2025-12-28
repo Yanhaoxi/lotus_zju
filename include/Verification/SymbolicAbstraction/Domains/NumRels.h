@@ -2,9 +2,9 @@
 
 #include "Verification/SymbolicAbstraction/Utils/Utils.h"
 #include "Verification/SymbolicAbstraction/Core/AbstractValue.h"
-#include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
-#include "Verification/SymbolicAbstraction/Core/Expression.h"
 #include "Verification/SymbolicAbstraction/Core/DomainConstructor.h"
+#include "Verification/SymbolicAbstraction/Core/Expression.h"
+#include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
 
 #include <memory>
 
@@ -31,7 +31,7 @@ class NumRels : public AbstractValue
     uint8_t Rel_;
 
   public:
-    NumRels(const FunctionContext& fctx, Expression left, Expression right,
+    NumRels(const FunctionContext& fctx, const Expression& left, const Expression& right,
             bool is_signed = false)
         : FunctionContext_(fctx), Left_(left), Right_(right),
           IsSigned_(is_signed), Rel_(BOTTOM)
@@ -39,21 +39,21 @@ class NumRels : public AbstractValue
     }
 
     static unique_ptr<AbstractValue>
-    NewSigned(Expression left, Expression right,
+    NewSigned(const Expression& left, const Expression& right,
               const DomainConstructor::args& args)
     {
         return std::move(make_unique<NumRels>(*args.fctx, left, right, true));
     }
 
     static unique_ptr<AbstractValue>
-    NewUnsigned(Expression left, Expression right,
+    NewUnsigned(const Expression& left, const Expression& right,
                 const DomainConstructor::args& args)
     {
         return std::move(make_unique<NumRels>(*args.fctx, left, right, false));
     }
 
     static unique_ptr<AbstractValue>
-    NewZero(Expression expr, const DomainConstructor::args& args)
+    NewZero(const Expression& expr, const DomainConstructor::args& args)
     {
         ConcreteState::Value zero(*args.fctx, 0, expr.bits(*args.fctx));
         return std::move(make_unique<NumRels>(*args.fctx, expr, zero, true));

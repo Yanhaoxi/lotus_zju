@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
-#include "Verification/SymbolicAbstraction/Core/ValueMapping.h"
 #include "Verification/SymbolicAbstraction/Core/RepresentedValue.h"
 #include "Verification/SymbolicAbstraction/Core/ResultStore.h"
+#include "Verification/SymbolicAbstraction/Core/ValueMapping.h"
 
 #include <iostream>
 #include <z3++.h>

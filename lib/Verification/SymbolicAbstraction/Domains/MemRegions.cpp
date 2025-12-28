@@ -6,7 +6,7 @@
 #include "Verification/SymbolicAbstraction/Core/Expression.h"
 #include "Verification/SymbolicAbstraction/Core/MemoryModel.h"
 #include "Verification/SymbolicAbstraction/Core/ParamStrategy.h"
-#include "Verification/SymbolicAbstraction/Domains/Combinators.h"
+//#include "Verification/SymbolicAbstraction/Domains/Combinators.h"
 #include "Verification/SymbolicAbstraction/Utils/Utils.h"
 
 #include <llvm/IR/BasicBlock.h>
@@ -216,8 +216,8 @@ void ConstantRegion::prettyPrint(PrettyPrinter& out) const
 }
 
 VariableRegion::VariableRegion(const FunctionContext& fctx,
-                               RepresentedValue ptr, Expression expr,
-                               Expression factor)
+                               RepresentedValue ptr, const Expression& expr,
+                               const Expression& factor)
     : BooleanValue(fctx), Ptr_(ptr), Expr_(expr), Fact_(factor)
 {
     MM_ = dynamic_cast<const memory::BlockModel*>(&fctx.getMemoryModel());

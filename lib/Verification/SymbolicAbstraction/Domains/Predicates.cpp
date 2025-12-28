@@ -1,11 +1,11 @@
 #include "Verification/SymbolicAbstraction/Domains/Predicates.h"
 
-#include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
 #include "Verification/SymbolicAbstraction/Core/DomainConstructor.h"
-#include "Verification/SymbolicAbstraction/Core/ParamStrategy.h"
-#include "Verification/SymbolicAbstraction/Core/FloatingPointModel.h"
 #include "Verification/SymbolicAbstraction/Core/Expression.h"
-#include "Verification/SymbolicAbstraction/Core/repr.h"
+//#include "Verification/SymbolicAbstraction/Core/FloatingPointModel.h"
+//#include "Verification/SymbolicAbstraction/Core/ParamStrategy.h"
+//#include "Verification/SymbolicAbstraction/Core/repr.h"
+//#include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
 
 using namespace symbolic_abstraction;
 using namespace domains;
@@ -13,15 +13,15 @@ using namespace domains;
 namespace // anonymous
 {
 Predicates::pred_t equality_pred = (Predicates::pred_t)(
-    [](Expression left, Expression right) { return left.equals(right); });
+    [](const Expression& left, const Expression& right) { return left.equals(right); });
 
-unique_ptr<AbstractValue> NewEquality(Expression left, Expression right,
+unique_ptr<AbstractValue> NewEquality(const Expression& left, const Expression& right,
                                       const DomainConstructor::args& args)
 {
     return make_unique<PredicatesWrapper<&equality_pred>>(*args.fctx, left,
                                                           right);
 }
-} // anonymous
+} // namespace
 
 bool Predicates::joinWith(const AbstractValue& av_other)
 {

@@ -1,13 +1,14 @@
 #include "Verification/SymbolicAbstraction/Core/DomainConstructor.h"
 
 #include "Verification/SymbolicAbstraction/Core/AbstractValue.h"
-#include "Verification/SymbolicAbstraction/Core/ResultStore.h"
-#include "Verification/SymbolicAbstraction/Utils/Config.h"
 #include "Verification/SymbolicAbstraction/Core/ParamStrategy.h"
+//#include "Verification/SymbolicAbstraction/Core/ResultStore.h"
 #include "Verification/SymbolicAbstraction/Domains/Product.h"
+#include "Verification/SymbolicAbstraction/Utils/Config.h"
 
 #include <map>
 #include <string>
+#include <utility>
 
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/ADT/StringRef.h>
@@ -298,7 +299,7 @@ DomainConstructor::product(std::vector<DomainConstructor> doms)
 DomainConstructor::DomainConstructor(std::string name, std::string desc,
                                      alt_ffunc_0 factory_func)
     : DomainConstructor(
-          name, desc, 0, [factory_func](const DomainConstructor::args& args) {
+          std::move(name), std::move(desc), 0, [factory_func](const DomainConstructor::args& args) {
               return factory_func(*args.fctx, args.location, args.is_after_bb);
           })
 {
@@ -306,7 +307,7 @@ DomainConstructor::DomainConstructor(std::string name, std::string desc,
 
 DomainConstructor::DomainConstructor(std::string name, std::string desc,
                                      alt_ffunc_1 factory_func)
-    : DomainConstructor(name, desc, 1,
+    : DomainConstructor(std::move(name), std::move(desc), 1,
                         [factory_func](const DomainConstructor::args& args) {
                             return factory_func(args.parameters[0], args);
                         })
@@ -316,7 +317,7 @@ DomainConstructor::DomainConstructor(std::string name, std::string desc,
 DomainConstructor::DomainConstructor(std::string name, std::string desc,
                                      alt_ffunc_2 factory_func)
     : DomainConstructor(
-          name, desc, 2, [factory_func](const DomainConstructor::args& args) {
+          std::move(name), std::move(desc), 2, [factory_func](const DomainConstructor::args& args) {
               return factory_func(args.parameters[0], args.parameters[1], args);
           })
 {

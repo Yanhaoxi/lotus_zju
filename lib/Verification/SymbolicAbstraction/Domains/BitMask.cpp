@@ -2,13 +2,13 @@
 
 #include "Verification/SymbolicAbstraction/Core/DomainConstructor.h"
 #include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
-#include "Verification/SymbolicAbstraction/Core/ParamStrategy.h"
-#include "Verification/SymbolicAbstraction/Core/repr.h"
-#include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
+//#include "Verification/SymbolicAbstraction/Core/ParamStrategy.h"
+//#include "Verification/SymbolicAbstraction/Core/repr.h"
+//#include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
 
 using namespace domains;
 using namespace symbolic_abstraction;
-using std::unique_ptr;
+//using std::unique_ptr;
 
 namespace // anonymous
 {
@@ -24,7 +24,7 @@ static uint64_t allOnes(unsigned bw)
     else
         return (((uint64_t)1) << bw) - 1;
 }
-}
+} // namespace
 
 void BitMask::assertValid() const
 {
@@ -51,7 +51,7 @@ BitMask::BitMask(const FunctionContext& fctx, RepresentedValue left,
     Ones_ = 1;
 
     if (left->getType()->isIntegerTy()) {
-        Bitwidth_ = left->getType()->getIntegerBitWidth();
+        Bitwidth_ = static_cast<int>(left->getType()->getIntegerBitWidth());
     } else if (left->getType()->isPointerTy()) {
         Bitwidth_ = fctx.getPointerSize();
     } else {
