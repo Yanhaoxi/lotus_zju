@@ -1,4 +1,5 @@
 rebuild.sh
+.csv
 fuzz/*.c
 fuzz/*.ll 
 fuzz/*.bc
