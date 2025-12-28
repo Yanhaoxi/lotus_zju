@@ -1,8 +1,8 @@
 #include "Analysis/GVFA/GVFAEngine.h"
 #include "Analysis/GVFA/GVFAUtils.h"
 #include <llvm/IR/Argument.h>
-#include <llvm/IR/Instructions.h>
 #include <llvm/IR/InstIterator.h>
+#include <llvm/IR/Instructions.h>
 
 using namespace llvm;
 using namespace gvfa;

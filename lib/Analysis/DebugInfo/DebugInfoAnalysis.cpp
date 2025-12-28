@@ -3,25 +3,25 @@
 
 #include "Analysis/DebugInfo/DebugInfoAnalysis.h"
 #include "Utils/LLVM/Demangle.h"
+#include <llvm/ADT/SmallString.h>
+#include <llvm/ADT/StringRef.h>
+#include <llvm/IR/Argument.h>
 #include <llvm/IR/DebugInfo.h>
 #include <llvm/IR/DebugInfoMetadata.h>
-#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Function.h>
-#include <llvm/IR/IntrinsicInst.h>
-#include <llvm/IR/Argument.h>
 #include <llvm/IR/GlobalVariable.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/IntrinsicInst.h>
 #include <llvm/IR/Metadata.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Operator.h>
-#include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/Casting.h>
-#include <llvm/Support/Path.h>
 #include <llvm/Support/FileSystem.h>
-#include <llvm/ADT/SmallString.h>
-#include <llvm/ADT/StringRef.h>
+#include <llvm/Support/Path.h>
+#include <llvm/Support/raw_ostream.h>
 #include <fstream>
-#include <unistd.h>
 #include <limits>
+#include <unistd.h>
 
 using namespace llvm;
 

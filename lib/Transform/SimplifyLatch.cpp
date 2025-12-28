@@ -2,12 +2,12 @@
 // SimplifyLatch pass simplifies loop latches by making them unconditional.
 // This can help with loop analysis by ensuring latch blocks have predictable control flow.
 
+#include "Transform/SimplifyLatch.h"
 #include <llvm/Analysis/LoopInfo.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/Support/Debug.h>
-#include "Transform/SimplifyLatch.h"
 
 #define DEBUG_TYPE "simplify-latch"
 

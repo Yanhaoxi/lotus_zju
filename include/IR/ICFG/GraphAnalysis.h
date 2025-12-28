@@ -12,7 +12,8 @@
  
 #include "IR/ICFG/ICFG.h"
 
-typedef std::pair<llvm::BasicBlock*, llvm::BasicBlock*> BBEdgePair;
+// typedef std::pair<llvm::BasicBlock*, llvm::BasicBlock*> BBEdgePair;
+using BBEdgePair = std::pair<llvm::BasicBlock*, llvm::BasicBlock*>;
  
 /// @brief Finds all intraprocedural back edges in a function.
 /// @param func Function to analyze.

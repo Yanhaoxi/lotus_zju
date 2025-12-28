@@ -2,8 +2,8 @@
 // This file adds Clearblue-style bug reporting to BugReportMgr
 
 #include "Checker/KINT/MKintPass.h"
-#include "Checker/KINT/Options.h"
 #include "Checker/KINT/Log.h"
+#include "Checker/KINT/Options.h"
 
 namespace kint {
 

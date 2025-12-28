@@ -1,17 +1,17 @@
 #include "Checker/KINT/RangeAnalysis.h"
 #include "Checker/KINT/KINTTaintAnalysis.h"
-#include "Checker/KINT/Options.h"
 #include "Checker/KINT/Log.h"
+#include "Checker/KINT/Options.h"
 
 #include "Utils/General/range.h"
 
-#include <llvm/IR/Instructions.h>
-#include <llvm/IR/Constants.h>
-#include <llvm/IR/GlobalVariable.h>
-#include <llvm/IR/GetElementPtrTypeIterator.h>
-#include <llvm/Support/raw_ostream.h>
 #include <llvm/IR/CFG.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/GetElementPtrTypeIterator.h>
+#include <llvm/IR/GlobalVariable.h>
+#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Module.h>
+#include <llvm/Support/raw_ostream.h>
 #include <deque>
 
 using namespace llvm;

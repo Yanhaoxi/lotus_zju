@@ -1,16 +1,16 @@
 //
 // Created by peiming on 11/7/19.
 //
-#include <Alias/AserPTA/PointerAnalysis/Models/MemoryModel/FieldSensitive/Layout/ArrayLayout.h>
-#include <llvm/IR/Instructions.h>
-#include <llvm/IR/InstrTypes.h>
+#include <llvm/ADT/SmallPtrSet.h>
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/GetElementPtrTypeIterator.h>
 #include <llvm/IR/GlobalAlias.h>
-#include <llvm/IR/Operator.h>
-#include <llvm/ADT/SmallPtrSet.h>
-#include <llvm/IR/Intrinsics.h>
+#include <llvm/IR/InstrTypes.h>
+#include <llvm/IR/Instructions.h>
 #include <llvm/IR/IntrinsicInst.h>
+#include <llvm/IR/Intrinsics.h>
+#include <llvm/IR/Operator.h>
+#include <Alias/AserPTA/PointerAnalysis/Models/MemoryModel/FieldSensitive/Layout/ArrayLayout.h>
 
 #include "Alias/AserPTA/PointerAnalysis/Models/MemoryModel/FieldInsensitive/FICanonicalizer.h"
 #include "Alias/AserPTA/PointerAnalysis/Models/MemoryModel/FieldSensitive/FSCanonicalizer.h"

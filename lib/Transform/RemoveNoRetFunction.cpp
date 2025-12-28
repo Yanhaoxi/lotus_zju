@@ -2,11 +2,11 @@
 // RemoveNoRetFunction pass removes function bodies that are marked as never returning.
 // This simplifies analysis by eliminating functions that cannot return normally.
 
+#include "Transform/RemoveNoRetFunction.h"
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/Support/Debug.h>
-#include "Transform/RemoveNoRetFunction.h"
 
 #define DEBUG_TYPE "remove-noret-function"
 

@@ -131,4 +131,4 @@ void ExternalModRefTablePrinter::printTable(const ExternalModRefTable& table)
 	os << "--------- End of Table ---------\n\n";
 }
 
-}
+} // namespace annotation

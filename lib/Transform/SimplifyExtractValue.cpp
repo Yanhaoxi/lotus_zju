@@ -16,17 +16,12 @@
 
 #include "Transform/SimplifyExtractValue.h"
 
-#include "llvm/Transforms/Utils/Cloning.h"
-#include "llvm/ADT/Statistic.h"
 #include "llvm/ADT/ArrayRef.h"
-#include "llvm/Support/FormattedStream.h"
-#include "llvm/IR/PatternMatch.h"
+#include "llvm/ADT/Statistic.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DerivedTypes.h"
+#include "llvm/Transforms/Utils/Cloning.h"
 
-#include <set>
-#include <map>
-#include <vector>
 
 using namespace llvm;
 

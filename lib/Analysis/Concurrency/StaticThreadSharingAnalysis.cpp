@@ -2,10 +2,10 @@
 Scalable thread sharing analysis, ICSE 16. Jeff Huang
 */
 #include "Analysis/Concurrency/StaticThreadSharingAnalysis.h"
-#include "Analysis/Concurrency/ThreadAPI.h"
 #include "Alias/seadsa/DsaAnalysis.hh"
-#include "Alias/seadsa/Graph.hh"
 #include "Alias/seadsa/Global.hh"
+#include "Alias/seadsa/Graph.hh"
+#include "Analysis/Concurrency/ThreadAPI.h"
 #include "llvm/Analysis/CallGraph.h"
 #include "llvm/IR/InstIterator.h"
 #include "llvm/Support/Debug.h"

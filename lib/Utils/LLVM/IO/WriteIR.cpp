@@ -53,5 +53,5 @@ void writeModuleToFile(const Module& module, const char* fileName, bool isText)
 		writeModuleToBitCode(module, fileName);
 }
 
-}
-}
+} // namespace io
+} // namespace util

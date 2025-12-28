@@ -3,8 +3,8 @@
  * Author: rainoftime
 */
 #include "Analysis/Concurrency/BVClock.h"
-#include "Utils/LLVM/Log.h"
 #include "Analysis/Concurrency/FBVClock.h"
+#include "Utils/LLVM/Log.h"
 
 #include <algorithm>
 #include <string>

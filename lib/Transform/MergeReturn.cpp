@@ -3,11 +3,11 @@
 // into a single unified return block. This simplifies control flow analysis
 // by ensuring each function has at most one exit point.
 
+#include "Transform/MergeReturn.h"
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/Support/Debug.h>
-#include "Transform/MergeReturn.h"
 
 #define DEBUG_TYPE "merge-return"
 

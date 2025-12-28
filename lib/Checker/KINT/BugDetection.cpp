@@ -1,12 +1,12 @@
 #include "Checker/KINT/BugDetection.h"
-#include "Checker/KINT/RangeAnalysis.h"
-#include "Checker/KINT/Options.h"
 #include "Checker/KINT/Log.h"
+#include "Checker/KINT/Options.h"
+#include "Checker/KINT/RangeAnalysis.h"
 #include "Checker/Report/SARIF.h"
 #include "Utils/General/range.h"
 
-#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Constants.h>
+#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Metadata.h>
 #include <llvm/IR/Operator.h>
 

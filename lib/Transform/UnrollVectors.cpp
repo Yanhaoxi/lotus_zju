@@ -7,15 +7,15 @@
 // does leave them unused whenever possible, so that `--dce` can eliminate
 // them.
 #include "Transform/UnrollVectors.h"
+#include "llvm/Analysis/PostDominators.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Dominators.h"
-#include "llvm/Analysis/PostDominators.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
-#include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/Alignment.h"
+#include "llvm/Support/raw_ostream.h"
 
 using namespace llvm;
 

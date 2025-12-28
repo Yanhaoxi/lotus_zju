@@ -5,11 +5,11 @@
  */
 
 
+#include "Analysis/NullPointer/ContextSensitiveLocalNullCheckAnalysis.h"
+#include <llvm/IR/InstIterator.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/IntrinsicInst.h>
 #include <llvm/Support/Debug.h>
-#include <llvm/IR/InstIterator.h>
-#include "Analysis/NullPointer/ContextSensitiveLocalNullCheckAnalysis.h"
 //#include "Analysis/NullPointer/AliasAnalysisAdapter.h"
 #include "Analysis/NullPointer/API.h"
 

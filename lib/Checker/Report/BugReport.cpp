@@ -1,13 +1,13 @@
 // Author: rainoftime
 #include "Checker/Report/BugReport.h"
 #include "Analysis/DebugInfo/DebugInfoAnalysis.h"
-#include <llvm/IR/DebugLoc.h>
 #include <llvm/IR/DebugInfoMetadata.h>
+#include <llvm/IR/DebugLoc.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/IntrinsicInst.h>
-#include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/MemoryBuffer.h>
+#include <llvm/Support/raw_ostream.h>
 
 using namespace llvm;
 

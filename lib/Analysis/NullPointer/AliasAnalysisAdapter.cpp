@@ -6,10 +6,10 @@
 
 #include "Analysis/NullPointer/AliasAnalysisAdapter.h"
 #include "Alias/DyckAA/DyckAliasAnalysis.h"
-#include <llvm/IR/Value.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
+#include <llvm/IR/Value.h>
 #include <llvm/Support/CommandLine.h>
 
 using namespace llvm;

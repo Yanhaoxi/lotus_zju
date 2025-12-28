@@ -2,10 +2,10 @@
 // This is useful for simplifying analysis by eliminating complex constant expressions
 // that may be difficult to handle in downstream passes.
 
+#include "Transform/LowerConstantExpr.h"
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Verifier.h>
-#include "Transform/LowerConstantExpr.h"
 
 #include <map>
 

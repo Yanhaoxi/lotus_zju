@@ -5,12 +5,12 @@
  */
 
 
-#include <llvm/IR/Module.h>
-#include <llvm/Support/CommandLine.h>
 #include "Analysis/NullPointer/ContextSensitiveLocalNullCheckAnalysis.h"
 #include "Analysis/NullPointer/ContextSensitiveNullCheckAnalysis.h"
 #include "Analysis/NullPointer/ContextSensitiveNullFlowAnalysis.h"
 #include "Utils/LLVM/RecursiveTimer.h"
+#include <llvm/IR/Module.h>
+#include <llvm/Support/CommandLine.h>
 
 using namespace llvm;
 

@@ -4,8 +4,8 @@
 #include "Alias/AserPTA/PointerAnalysis/Models/DefaultHeapModel.h"
 #include "Alias/AserPTA/Util/Util.h"
 
-#include <Alias/AserPTA/PointerAnalysis/Program/CallSite.h>
 #include <llvm/IR/Instructions.h>
+#include <Alias/AserPTA/PointerAnalysis/Program/CallSite.h>
 
 using namespace llvm;
 using namespace aser;
@@ -20,7 +20,7 @@ static Type *getNextBitCastDestType(const Instruction *allocSite) {
         nextInst = invoke->getNormalDest()->getFirstNonPHIOrDbgOrLifetime();
     }
 
-    if (nextInst && isa<BitCastInst>(nextInst)) {
+    if (isa_and_nonnull<BitCastInst>(nextInst)) {
         Type *destTy = cast<BitCastInst>(nextInst)->getDestTy()->getPointerElementType();
         if (destTy->isSized()) {
             // only when the dest type is sized

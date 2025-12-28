@@ -7,19 +7,19 @@
  */
 
 #include <llvm/IR/Argument.h>
-#include <llvm/IR/Instructions.h>
 #include <llvm/IR/InstIterator.h>
+#include <llvm/IR/Instructions.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/Debug.h>
 #include <unordered_map>
 
 
 #include "Analysis/GVFA/GlobalValueFlowAnalysis.h"
-#include "Analysis/GVFA/GVFAUtils.h"
 #include "Analysis/GVFA/FastGVFAEngine.h"
+#include "Analysis/GVFA/GVFAUtils.h"
 #include "Analysis/GVFA/PreciseGVFAEngine.h"
-#include "Utils/LLVM/RecursiveTimer.h"
 #include "Checker/GVFA/GVFAVulnerabilityChecker.h"
+#include "Utils/LLVM/RecursiveTimer.h"
 
 using namespace llvm;
 using namespace gvfa;

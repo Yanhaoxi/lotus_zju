@@ -2,11 +2,11 @@
 // This transformation can help with analysis passes that have difficulty
 // handling conditional expressions.
 
+#include "Transform/LowerSelect.h"
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/Support/Debug.h>
-#include "Transform/LowerSelect.h"
 
 #define DEBUG_TYPE "lower-select"
 

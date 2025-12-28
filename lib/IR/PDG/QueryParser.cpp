@@ -1,7 +1,7 @@
 #include "IR/PDG/QueryParser.h"
 #include "IR/PDG/QueryLanguage.h"
-#include <iostream>
 #include <cctype>
+#include <iostream>
 
 namespace pdg {
 

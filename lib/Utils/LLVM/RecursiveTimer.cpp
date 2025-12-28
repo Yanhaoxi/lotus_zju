@@ -30,7 +30,7 @@ RecursiveTimer::~RecursiveTimer() {
       std::chrono::duration_cast<std::chrono::milliseconds>(End - Begin)
           .count();
   auto Time = Milli > 1000 ? Milli / 1000 : Milli;
-  auto Unit = Milli > 1000 ? "s" : "ms";
+  const auto *Unit = Milli > 1000 ? "s" : "ms";
   outs() << Tab(--DepthOfTimeRecorder) << Prefix << " takes " << Time << Unit
          << "!\n";
 }

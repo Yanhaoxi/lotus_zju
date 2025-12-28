@@ -5,8 +5,8 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/ErrorHandling.h>
-#include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/SourceMgr.h>
+#include <llvm/Support/raw_ostream.h>
 
 using namespace llvm;
 
@@ -55,5 +55,5 @@ std::unique_ptr<Module> parseAssembly(const char *assembly)
 	return module;
 }
 
-}
-}
+} // namespace io
+} // namespace util

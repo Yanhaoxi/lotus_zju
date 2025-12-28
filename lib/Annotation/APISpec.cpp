@@ -27,7 +27,7 @@ static inline bool isCommentOrBlank(const std::string &line) {
   }
   return true;
 }
-}
+} // namespace
 
 // Converts a string token to a SpecOpKind enum value.
 static SpecOpKind toOpKind(const std::string &tok) {

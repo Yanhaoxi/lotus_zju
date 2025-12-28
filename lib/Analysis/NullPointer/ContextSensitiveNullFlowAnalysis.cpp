@@ -5,16 +5,16 @@
  */
 
 
+#include "Alias/DyckAA/DyckValueFlowAnalysis.h"
+#include "Alias/DyckAA/DyckAliasAnalysis.h"
+#include "Analysis/NullPointer/API.h"
+#include "Analysis/NullPointer/AliasAnalysisAdapter.h"
+#include "Analysis/NullPointer/ContextSensitiveNullFlowAnalysis.h"
+#include "Utils/LLVM/RecursiveTimer.h"
 #include <llvm/IR/InstIterator.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/Debug.h>
 #include <llvm/Support/raw_ostream.h>
-#include "Alias/DyckAA/DyckValueFlowAnalysis.h"
-#include "Alias/DyckAA/DyckAliasAnalysis.h"
-#include "Analysis/NullPointer/ContextSensitiveNullFlowAnalysis.h"
-#include "Analysis/NullPointer/AliasAnalysisAdapter.h"
-#include "Analysis/NullPointer/API.h"
-#include "Utils/LLVM/RecursiveTimer.h"
 
 using namespace llvm;
 

@@ -16,12 +16,12 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <llvm/IR/InstIterator.h>
 #include "Alias/DyckAA/DyckAliasAnalysis.h"
 #include "Alias/DyckAA/DyckValueFlowAnalysis.h"
-#include "Analysis/NullPointer/NullFlowAnalysis.h"
 #include "Analysis/NullPointer/API.h"
+#include "Analysis/NullPointer/NullFlowAnalysis.h"
 #include "Utils/LLVM/RecursiveTimer.h"
+#include <llvm/IR/InstIterator.h>
 
 static cl::opt<int> IncrementalLimits("nfa-limit", cl::init(10), cl::Hidden,
                                       cl::desc("Determine how many non-null edges we consider a round."));

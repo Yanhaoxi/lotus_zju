@@ -16,6 +16,8 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "Analysis/NullPointer/LocalNullCheckAnalysis.h"
+#include "Analysis/NullPointer/API.h"
 #include <llvm/IR/CFG.h>
 #include <llvm/IR/Dominators.h>
 #include <llvm/IR/Function.h>
@@ -23,8 +25,6 @@
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Intrinsics.h>
 #include <llvm/IR/Type.h>
-#include "Analysis/NullPointer/LocalNullCheckAnalysis.h"
-#include "Analysis/NullPointer/API.h"
 
 LocalNullCheckAnalysis::LocalNullCheckAnalysis(NullFlowAnalysis *NFA, Function *F) : F(F), NEA(F), NFA(NFA), DT(*F) {
     // init nca

@@ -16,13 +16,13 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <llvm/IR/Module.h>
-#include <llvm/Support/raw_ostream.h>
 #include "Analysis/NullPointer/LocalNullCheckAnalysis.h"
 #include "Analysis/NullPointer/NullCheckAnalysis.h"
 #include "Analysis/NullPointer/NullFlowAnalysis.h"
 #include "Utils/LLVM/RecursiveTimer.h"
 #include "Utils/LLVM/ThreadPool.h"
+#include <llvm/IR/Module.h>
+#include <llvm/Support/raw_ostream.h>
 
 using namespace llvm;
 

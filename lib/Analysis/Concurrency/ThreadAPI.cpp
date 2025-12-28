@@ -3,19 +3,19 @@
  * Author: rainoftime
 */
 #include "Analysis/Concurrency/ThreadAPI.h"
-#include "Analysis/Concurrency/LanguageModel/OpenMP.h"
 #include "Analysis/Concurrency/LanguageModel/Cpp11.h"
+#include "Analysis/Concurrency/LanguageModel/OpenMP.h"
 #include <llvm/ADT/StringMap.h> // for StringMap
 #include <llvm/IR/Function.h>
-#include <llvm/IR/Instructions.h>
 #include <llvm/IR/InstIterator.h>
+#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Module.h>
 
+#include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <fstream>
-#include <sstream>
 #include <set>
+#include <sstream>
 #include <stdio.h>
 
 using namespace std;

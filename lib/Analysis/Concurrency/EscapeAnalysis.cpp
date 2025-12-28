@@ -4,8 +4,8 @@
 */
 #include "Analysis/Concurrency/EscapeAnalysis.h"
 #include "Analysis/Concurrency/ThreadAPI.h"
-#include <llvm/IR/Instructions.h>
 #include <llvm/IR/InstIterator.h>
+#include <llvm/IR/Instructions.h>
 #include <llvm/Support/raw_ostream.h>
 
 using namespace llvm;

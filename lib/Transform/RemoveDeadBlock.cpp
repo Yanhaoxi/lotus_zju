@@ -3,12 +3,12 @@
 // (except for the entry block). This is a more aggressive dead code elimination
 // than the standard SimplifyCFG pass.
 
+#include "Transform/RemoveDeadBlock.h"
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/Support/Debug.h>
 #include <llvm/Transforms/Utils/BasicBlockUtils.h>
-#include "Transform/RemoveDeadBlock.h"
 
 #define DEBUG_TYPE "remove-dead-block"
 

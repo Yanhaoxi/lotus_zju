@@ -3,14 +3,14 @@
  * Author: rainoftime
 */
 #include "Checker/GVFA/UseOfUninitializedVariableChecker.h"
-#include "Checker/Report/BugReportMgr.h"
-#include "Checker/Report/BugReport.h"
-#include "Checker/Report/BugTypes.h"
 #include "Analysis/GVFA/GlobalValueFlowAnalysis.h"
 #include "Checker/GVFA/CheckerUtils.h"
+#include "Checker/Report/BugReport.h"
+#include "Checker/Report/BugReportMgr.h"
+#include "Checker/Report/BugTypes.h"
 
-#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Constants.h>
+#include <llvm/IR/Instructions.h>
 #include <llvm/Support/raw_ostream.h>
 
 using namespace llvm;

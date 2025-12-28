@@ -3,17 +3,17 @@
  * Author: rainoftime
 */
 #include "Checker/GVFA/NullPointerChecker.h"
-#include "Checker/Report/BugReportMgr.h"
-#include "Checker/Report/BugReport.h"
-#include "Checker/Report/BugTypes.h"
 #include "Analysis/GVFA/GlobalValueFlowAnalysis.h"
-#include "Analysis/NullPointer/NullCheckAnalysis.h"
 #include "Analysis/NullPointer/ContextSensitiveNullCheckAnalysis.h"
 #include "Analysis/NullPointer/ContextSensitiveNullFlowAnalysis.h"
+#include "Analysis/NullPointer/NullCheckAnalysis.h"
 #include "Checker/GVFA/CheckerUtils.h"
+#include "Checker/Report/BugReport.h"
+#include "Checker/Report/BugReportMgr.h"
+#include "Checker/Report/BugTypes.h"
 
-#include <llvm/IR/Instructions.h>
 #include <llvm/IR/InstIterator.h>
+#include <llvm/IR/Instructions.h>
 #include <llvm/Support/raw_ostream.h>
 
 using namespace llvm;

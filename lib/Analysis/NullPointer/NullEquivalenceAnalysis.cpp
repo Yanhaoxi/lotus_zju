@@ -16,8 +16,8 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <llvm/IR/Instructions.h>
 #include "Analysis/NullPointer/NullEquivalenceAnalysis.h"
+#include <llvm/IR/Instructions.h>
 
 NullEquivalenceAnalysis::NullEquivalenceAnalysis(Function *F) {
     // init
