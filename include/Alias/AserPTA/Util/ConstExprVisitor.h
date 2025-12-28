@@ -16,7 +16,7 @@ namespace aser {
 template <typename SC, typename RetVal = void>
 struct ConstExprVisitor {
     RetVal visit(const llvm::Constant *C) {
-        if (auto CE = llvm::dyn_cast<llvm::ConstantExpr>(C)) {
+        if (const auto *CE = llvm::dyn_cast<llvm::ConstantExpr>(C)) {
             switch (CE->getOpcode()) {
                 case llvm::Instruction::GetElementPtr:
                     return ((SC *)this)->visitGEP(llvm::dyn_cast<llvm::GEPOperator>(CE));

@@ -32,8 +32,8 @@
  // 'std::string', 'std::unordered_set', and 'std::unordered_map' for
  // 'anatree<...>' template parameters
  #include<string>
- #include<unordered_set>
  #include<unordered_map>
+ #include<unordered_set>
  
 #include<iterator>
 #include<type_traits>

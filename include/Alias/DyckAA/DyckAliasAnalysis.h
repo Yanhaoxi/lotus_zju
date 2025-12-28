@@ -19,18 +19,18 @@
 #ifndef ALIAS_DYCKAA_DYCKALIASANALYSIS_H
 #define ALIAS_DYCKAA_DYCKALIASANALYSIS_H
 
-#include <llvm/Pass.h>
+#include "Alias/DyckAA/DyckCallGraph.h"
+#include "Alias/DyckAA/DyckGraph.h"
+#include "Alias/DyckAA/DyckGraphEdgeLabel.h"
 #include <llvm/ADT/SmallPtrSet.h>
 #include <llvm/ADT/SmallVector.h>
-#include <llvm/Support/ErrorHandling.h>
 #include <llvm/IR/GetElementPtrTypeIterator.h>
-#include <llvm/Support/raw_ostream.h>
+#include <llvm/IR/InlineAsm.h>
+#include <llvm/Pass.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/Debug.h>
-#include <llvm/IR/InlineAsm.h>
-#include "Alias/DyckAA/DyckCallGraph.h"
-#include "Alias/DyckAA/DyckGraphEdgeLabel.h"
-#include "Alias/DyckAA/DyckGraph.h"
+#include <llvm/Support/ErrorHandling.h>
+#include <llvm/Support/raw_ostream.h>
 
 using namespace llvm;
 

@@ -19,9 +19,9 @@
 #include <string>
 #include <vector>
 
-#include <llvm/IR/Value.h>
-#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Argument.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/Value.h>
 #include <llvm/Support/Casting.h>
 #include <llvm/Support/raw_ostream.h>
 

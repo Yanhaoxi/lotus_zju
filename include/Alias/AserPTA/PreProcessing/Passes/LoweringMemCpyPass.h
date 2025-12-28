@@ -5,14 +5,14 @@
 #ifndef ASER_PTA_LOWERINGMEMCPYPASS_H
 #define ASER_PTA_LOWERINGMEMCPYPASS_H
 
-#include <llvm/Pass.h>
 #include <llvm/IR/IRBuilder.h>
+#include <llvm/Pass.h>
 
 namespace llvm {
 
 template <typename T, unsigned N> class SmallVector;
 class NoFolder;
-}
+} // namespace llvm
 
 namespace aser {
 
@@ -29,6 +29,6 @@ public:
     bool runOnModule(llvm::Module &) override;
 };
 
-}
+} // namespace aser
 
 #endif  // ASER_PTA_LOWERINGMEMCPYPASS_H

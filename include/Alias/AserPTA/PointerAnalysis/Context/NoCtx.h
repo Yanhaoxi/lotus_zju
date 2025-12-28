@@ -4,13 +4,13 @@
 #ifndef ASER_PTA_NOCTX_H
 #define ASER_PTA_NOCTX_H
 
-#include <string>
 #include "Alias/AserPTA/PointerAnalysis/Context/CtxTrait.h"
+#include <string>
 
 // forward declaration
 namespace llvm {
 class Instruction;
-}
+} // namespace llvm
 
 namespace aser {
 

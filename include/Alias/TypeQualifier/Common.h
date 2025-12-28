@@ -1,8 +1,8 @@
 
 #ifndef UBIANALYSIS_COMMON_H
 #define UBIANALYSIS_COMMON_H
-#include <llvm/Support/raw_ostream.h>
 #include "Alias/TypeQualifier/FunctionSummary.h"
+#include <llvm/Support/raw_ostream.h>
 
 
 /*#define HT_LOG(lv, stmt)							\

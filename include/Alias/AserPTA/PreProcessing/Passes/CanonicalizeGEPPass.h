@@ -38,6 +38,6 @@ public:
     bool runOnFunction(llvm::Function &F) override;
 };
 
-}
+} // namespace aser
 
 #endif  // ASER_PTA_CANONICALIZEGEPPASS_H

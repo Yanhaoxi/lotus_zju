@@ -48,5 +48,5 @@ InfixOstreamIterator<T, OStreamType> infix_ostream_iterator(OStreamType& s, cons
 	return InfixOstreamIterator<T, OStreamType>(s, d);
 }
 
-}
-}
+} // namespace io
+} // namespace util

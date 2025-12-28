@@ -1,8 +1,8 @@
 
 #ifndef UBIANALYSIS_CONFIG_H
 #define UBIANALYSIS_CONFIG_H
-#include <stack>
 #include "Alias/TypeQualifier/Common.h"
+#include <stack>
 #define _ID 1
 #define _UD 0
 // Setup functions for heap allocations.

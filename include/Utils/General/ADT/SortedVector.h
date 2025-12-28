@@ -315,4 +315,4 @@ bool operator>=(const SortedVector<T, C, A>& lhs, const SortedVector<T, C, A>& r
 	return !(lhs < rhs);
 }
 
-}
+} // namespace util

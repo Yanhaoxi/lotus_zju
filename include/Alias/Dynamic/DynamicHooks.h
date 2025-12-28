@@ -4,7 +4,7 @@ namespace llvm {
 class Function;
 class Module;
 class Type;
-}
+} // namespace llvm
 
 namespace dynamic {
 

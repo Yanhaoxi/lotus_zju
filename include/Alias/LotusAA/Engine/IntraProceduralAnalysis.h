@@ -13,8 +13,8 @@
 
 #pragma once
 
-#include <llvm/IR/Value.h>
 #include <llvm/IR/Function.h>
+#include <llvm/IR/Value.h>
 #include <map>
 #include <set>
 #include <unordered_map>

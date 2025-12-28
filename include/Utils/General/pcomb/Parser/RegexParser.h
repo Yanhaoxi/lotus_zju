@@ -28,7 +28,7 @@ public:
 		auto ret = ResultType(input);
 
 		auto res = std::cmatch();
-		auto rawStr = input.getRawBuffer();
+		const auto *rawStr = input.getRawBuffer();
 		if (std::regex_search(rawStr, res, regex, std::regex_constants::match_continuous))
 		{
 			auto matchLen = res.length(0);
@@ -44,6 +44,6 @@ inline RegexParser regex(const llvm::StringRef& s)
 	return RegexParser(s);
 }
 
-}
+} // namespace pcomb
 
 #endif

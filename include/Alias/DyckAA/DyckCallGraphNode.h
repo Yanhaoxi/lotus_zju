@@ -19,21 +19,21 @@
 #ifndef DYCKAA_DYCKCALLGRAPHNODE_H
 #define DYCKAA_DYCKCALLGRAPHNODE_H
 
-#include <llvm/Analysis/AliasAnalysis.h>
-#include <llvm/Analysis/Passes.h>
-#include <llvm/Pass.h>
-#include <llvm/Analysis/CaptureTracking.h>
-#include <llvm/Analysis/MemoryBuiltins.h>
-#include <llvm/Analysis/InstructionSimplify.h>
-#include <llvm/Analysis/ValueTracking.h>
 #include <llvm/ADT/SmallPtrSet.h>
 #include <llvm/ADT/SmallVector.h>
-#include <llvm/Support/ErrorHandling.h>
+#include <llvm/Analysis/AliasAnalysis.h>
+#include <llvm/Analysis/CaptureTracking.h>
+#include <llvm/Analysis/InstructionSimplify.h>
+#include <llvm/Analysis/MemoryBuiltins.h>
+#include <llvm/Analysis/Passes.h>
+#include <llvm/Analysis/ValueTracking.h>
 #include <llvm/IR/GetElementPtrTypeIterator.h>
+#include <llvm/Pass.h>
+#include <llvm/Support/ErrorHandling.h>
 #include <llvm/Support/raw_ostream.h>
 
-#include <set>
 #include <map>
+#include <set>
 
 #include "Utils/General/ADT/MapIterators.h"
 

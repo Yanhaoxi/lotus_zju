@@ -43,8 +43,8 @@
 #define CPLUSPLUS
 #endif
 
-#include <stdio.h>
 #include <iostream>
+#include <stdio.h>
 
 /*=== Defined operators for apply calls ================================*/
 

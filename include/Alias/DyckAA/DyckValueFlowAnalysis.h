@@ -19,11 +19,11 @@
 #ifndef ALIAS_DYCKAA_DYCKVALUEFLOWANALYSIS_H
 #define ALIAS_DYCKAA_DYCKVALUEFLOWANALYSIS_H
 
+#include "Alias/DyckAA/DyckVFG.h"
 #include <llvm/Pass.h>
-#include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/Debug.h>
-#include "Alias/DyckAA/DyckVFG.h"
+#include <llvm/Support/raw_ostream.h>
 
 using namespace llvm;
 

@@ -19,12 +19,12 @@
 #ifndef DYCKAA_DYCKMODREFANALYSIS_H
 #define DYCKAA_DYCKMODREFANALYSIS_H
 
+#include "Alias/DyckAA/DyckGraphNode.h"
 #include <llvm/Pass.h>
-#include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/Debug.h>
+#include <llvm/Support/raw_ostream.h>
 #include <set>
-#include "Alias/DyckAA/DyckGraphNode.h"
 
 using namespace llvm;
 

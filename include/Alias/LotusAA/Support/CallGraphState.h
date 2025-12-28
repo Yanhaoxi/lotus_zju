@@ -11,8 +11,8 @@
 #include <set>
 #include <vector>
 
-#include <llvm/IR/Function.h>
 #include "Alias/LotusAA/MemoryModel/Types.h"
+#include <llvm/IR/Function.h>
 
 namespace llvm {
 

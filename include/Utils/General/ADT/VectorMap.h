@@ -345,4 +345,4 @@ bool operator>=(const VectorMap<T, C, A>& lhs, const VectorMap<T, C, A>& rhs)
 	return !(lhs < rhs);
 }
 
-}
+} // namespace util

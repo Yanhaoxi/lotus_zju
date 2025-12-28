@@ -10,15 +10,15 @@
 //
 //===----------------------------------------------------------------------===//
 #include "llvm/Pass.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/IR/Dominators.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/Statistic.h"
 #include "llvm/IR/CFG.h"
+#include "llvm/IR/Dominators.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/Transforms/Utils/Local.h"
-#include <set>
-#include <deque>
 #include <algorithm>
+#include <deque>
+#include <set>
 
 namespace llvm {
 

@@ -1,13 +1,13 @@
 #pragma once
 
- #include <llvm/Support/FileSystem.h>
- #include <llvm/Support/raw_ostream.h>
- #include <llvm/IR/Instructions.h>
- #include <llvm/IR/Function.h>
  #include <llvm/IR/CFG.h>
+ #include <llvm/IR/Function.h>
  #include <llvm/IR/InstIterator.h>
+ #include <llvm/IR/Instructions.h>
  #include <llvm/IR/Operator.h>
+ #include <llvm/Support/FileSystem.h>
  #include <llvm/Support/Program.h>
+ #include <llvm/Support/raw_ostream.h>
  #include <algorithm>
  #include <cstddef>
  #include <iterator>

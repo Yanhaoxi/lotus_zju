@@ -37,6 +37,6 @@ inline StringParser str(const llvm::StringRef& s)
 	return StringParser(s);
 }
 
-}
+} // namespace pcomb
 
 #endif

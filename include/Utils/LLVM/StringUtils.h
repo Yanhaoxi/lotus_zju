@@ -1,9 +1,9 @@
 #ifndef UTILS_STRINGUTILS_H
 #define UTILS_STRINGUTILS_H
 
-#include <cstdio>
 #include <llvm/ADT/StringRef.h>
 #include <llvm/Support/raw_ostream.h>
+#include <cstdio>
 #include <memory>
 #include <string>
 

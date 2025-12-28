@@ -28,6 +28,6 @@ public:
     void populateFunctionPassManager(llvm::legacy::FunctionPassManager &FPM);
 };
 
-}
+} // namespace aser
 
 #endif  // ASER_PTA_PREPROCPASSMANAGERBUILDER_H

@@ -19,13 +19,13 @@
 #ifndef ALIAS_DyckAA_DYCKVFG_H
 #define ALIAS_DyckAA_DYCKVFG_H
 
+#include "Analysis/CFG/CFGReachability.h"
+#include "Utils/General/ADT/MapIterators.h"
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
 #include <map>
 #include <set>
 #include <unordered_map>
-#include "Analysis/CFG/CFGReachability.h"
-#include "Utils/General/ADT/MapIterators.h"
 
 using namespace llvm;
 

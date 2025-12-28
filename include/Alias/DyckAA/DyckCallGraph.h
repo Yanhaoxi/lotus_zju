@@ -34,10 +34,10 @@
 #include <llvm/Support/ErrorHandling.h>
 #include <llvm/Support/raw_ostream.h>
 
-#include <set>
-#include <map>
-#include <vector>
 #include <cstdio>
+#include <map>
+#include <set>
+#include <vector>
 
 #include "Alias/DyckAA/DyckCallGraphNode.h"
 #include "Utils/General/ADT/MapIterators.h"
@@ -142,6 +142,6 @@ namespace llvm {
 
         static nodes_iterator nodes_end(const DyckCallGraph *CG) { return CG->nodes_end(); }
     };
-} // end of DyckCG's traits
+} // namespace llvm
 
 #endif // DYCKAA_DYCKCALLGRAPH_H

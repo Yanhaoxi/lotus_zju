@@ -17,6 +17,6 @@ public:
     bool runOnModule(llvm::Module &M) override;
 };
 
-}
+} // namespace aser
 
 #endif  // ASER_PTA_INSERTGLOBALCTORCALLPASS_H

@@ -16,8 +16,8 @@
 #include <set>
 #include <vector>
 
-#include <llvm/IR/Dominators.h>
 #include <llvm/IR/DataLayout.h>
+#include <llvm/IR/Dominators.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
 

@@ -34,6 +34,6 @@ public:
 	}
 };
 
-}
+} // namespace pcomb
 
 #endif

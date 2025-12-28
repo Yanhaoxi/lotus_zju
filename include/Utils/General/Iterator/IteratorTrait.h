@@ -20,4 +20,4 @@ public:
   static constexpr bool value = decltype(test<T>(nullptr))::value;
 };
 
-}
+} // namespace util

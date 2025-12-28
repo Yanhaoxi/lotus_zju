@@ -40,6 +40,6 @@ auto rule(ParserA&& p, Converter&& c)
 	return ParserAdapter<Converter, ParserType>(std::forward<ParserA>(p), std::forward<Converter>(c));
 }
 
-}
+} // namespace pcomb
 
 #endif

@@ -6,7 +6,7 @@ namespace llvm
 	class Module;
 	class StringRef;
 	class Value;
-}
+} // namespace llvm
 
 namespace dynamic
 {

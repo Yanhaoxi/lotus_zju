@@ -19,8 +19,8 @@
 #ifndef SUPPORT_RECURSIVETIMER_H
 #define SUPPORT_RECURSIVETIMER_H
 
-#include <llvm/Support/raw_os_ostream.h>
 #include <llvm/Pass.h>
+#include <llvm/Support/raw_os_ostream.h>
 
 #include <chrono>
 #include <string>

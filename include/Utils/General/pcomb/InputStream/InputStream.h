@@ -55,6 +55,6 @@ public:
 	size_t getColumnNumber() const { return pos.col; }
 };
 
-}
+} // namespace pcomb
 
 #endif

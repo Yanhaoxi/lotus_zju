@@ -9,15 +9,15 @@
 #define ASER_PTA_PTADRIVER_H
 
 #include <llvm/ADT/Statistic.h>
-#include <llvm/IR/Module.h>
 #include <llvm/IR/LegacyPassManager.h>
+#include <llvm/IR/Module.h>
 #include <llvm/Pass.h>
 
 #include "Alias/AserPTA/PointerAnalysis/PointerAnalysisPass.h"
 #include "Alias/AserPTA/PreProcessing/Passes/CanonicalizeGEPPass.h"
 #include "Alias/AserPTA/PreProcessing/Passes/LoweringMemCpyPass.h"
-#include "Alias/AserPTA/PreProcessing/Passes/RemoveExceptionHandlerPass.h"
 #include "Alias/AserPTA/PreProcessing/Passes/RemoveASMInstPass.h"
+#include "Alias/AserPTA/PreProcessing/Passes/RemoveExceptionHandlerPass.h"
 #include "Alias/AserPTA/PreProcessing/Passes/StandardHeapAPIRewritePass.h"
 
 namespace aser {

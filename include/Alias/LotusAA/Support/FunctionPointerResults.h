@@ -10,9 +10,9 @@
 #include <map>
 #include <set>
 
+#include "Alias/LotusAA/MemoryModel/Types.h"
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Value.h>
-#include "Alias/LotusAA/MemoryModel/Types.h"
 
 namespace llvm {
 

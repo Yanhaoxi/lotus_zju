@@ -84,6 +84,6 @@ inline PredicateCharParser<detail::CharRangePredicate> range(char l, char h)
 	return PredicateCharParser<detail::CharRangePredicate>(detail::CharRangePredicate(l, h));
 }
 
-}
+} // namespace pcomb
 
 #endif

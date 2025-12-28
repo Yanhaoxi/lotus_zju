@@ -7,9 +7,9 @@
 #pragma once
 
 #include <cassert>
-#include <vector>
-#include <set>
 #include <map>
+#include <set>
+#include <vector>
 
 // This should really be broken down into TreeOfSets on top of which
 // SetOfSets and MapOfSets are easily implemeted. It should also be

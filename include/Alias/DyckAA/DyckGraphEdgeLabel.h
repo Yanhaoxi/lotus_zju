@@ -19,8 +19,8 @@
 #ifndef DYCKAA_DYCKGRAPHEDGELABEL_H
 #define DYCKAA_DYCKGRAPHEDGELABEL_H
 
-#include <string>
 #include <map>
+#include <string>
 
 class DyckGraphEdgeLabel {
 public:

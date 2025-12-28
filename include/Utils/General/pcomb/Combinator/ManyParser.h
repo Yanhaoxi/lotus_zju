@@ -53,6 +53,6 @@ auto many(ParserA&& p0, unsigned minOccurrence = 0)
 	return ManyParser<ParserType>(std::forward<ParserA>(p0), minOccurrence);
 }
 
-}
+} // namespace pcomb
 
 #endif

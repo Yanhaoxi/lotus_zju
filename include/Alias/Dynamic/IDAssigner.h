@@ -8,7 +8,7 @@ namespace llvm {
 class Module;
 class Value;
 class User;
-}
+} // namespace llvm
 
 namespace dynamic {
 

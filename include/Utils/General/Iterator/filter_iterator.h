@@ -127,6 +127,6 @@ private:
 	std::function<bool (reference)> predicate;
 };
 
-}
+} // namespace retdec
 
 #endif

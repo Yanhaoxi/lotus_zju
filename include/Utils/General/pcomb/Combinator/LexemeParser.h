@@ -43,6 +43,6 @@ auto bigstr(ParserA&& p)
 	return lexeme(p, '\0');
 }
 
-}
+} // namespace pcomb
 
 #endif

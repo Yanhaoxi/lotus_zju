@@ -46,4 +46,4 @@ auto deref_const_iterator(Iterator&& itr)
 	return DereferenceConstIterator<IteratorType>(std::forward<Iterator>(itr));
 }
 
-}
+} // namespace util

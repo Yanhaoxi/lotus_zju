@@ -1,8 +1,8 @@
 #ifndef SUPPORT_DEMANGLE_H
 #define SUPPORT_DEMANGLE_H
 
-#include <string>
 #include <llvm/Demangle/Demangle.h>
+#include <string>
 
 namespace DemangleUtils {
 

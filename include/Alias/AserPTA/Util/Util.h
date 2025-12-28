@@ -4,16 +4,16 @@
 #ifndef ASER_PTA_UTIL_H
 #define ASER_PTA_UTIL_H
 
+#include <llvm/ADT/STLExtras.h>
 #include <llvm/ADT/iterator.h>
-#include <llvm/IR/Instructions.h>
 #include <llvm/IR/InstrTypes.h>
+#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Operator.h>
+#include <llvm/IR/Type.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/ToolOutputFile.h>
-#include <llvm/ADT/STLExtras.h>
-#include <llvm/IR/Type.h>
 
 #include <queue>
 

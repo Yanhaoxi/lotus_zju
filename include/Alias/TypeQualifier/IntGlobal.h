@@ -1,24 +1,24 @@
 #ifndef _INT_GLOBAL_H
 #define _INT_GLOBAL_H
 
-#include <llvm/IR/DebugInfo.h>
-#include <llvm/IR/Module.h>
-#include <llvm/IR/Instructions.h>
+#include "llvm/Support/CommandLine.h"
 #include <llvm/ADT/DenseMap.h>
 #include <llvm/ADT/SmallPtrSet.h>
 #include <llvm/ADT/StringExtras.h>
 #include <llvm/IR/ConstantRange.h>
+#include <llvm/IR/DebugInfo.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/Module.h>
 #include <llvm/Support/Path.h>
 #include <llvm/Support/raw_ostream.h>
-#include "llvm/Support/CommandLine.h"
-#include <map>
-#include <unordered_map>
-#include <set>
-#include <unordered_set>
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <map>
+#include <set>
 #include <sstream>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "Alias/TypeQualifier/TaintSignature.h"
 #include "Alias/TypeQualifier/Common.h"

@@ -72,4 +72,4 @@ struct EnumClassHasher
 	}
 };
 
-}
+} // namespace util

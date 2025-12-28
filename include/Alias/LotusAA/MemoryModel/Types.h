@@ -7,12 +7,12 @@
 
 #pragma once
 
-#include <cstdint>
-#include <vector>
-#include <map>
-#include <llvm/IR/Value.h>
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Function.h>
+#include <llvm/IR/Value.h>
+#include <cstdint>
+#include <map>
+#include <vector>
 
 namespace llvm {
 

@@ -5,8 +5,8 @@
 #ifndef ASER_PTA_IRPREPROCESSOR_H
 #define ASER_PTA_IRPREPROCESSOR_H
 
-#include <llvm/IR/Module.h>
 #include <llvm/IR/LegacyPassManager.h>
+#include <llvm/IR/Module.h>
 
 
 namespace aser {
@@ -19,6 +19,6 @@ public:
     void runOnModule(llvm::Module &M);
 };
 
-}
+} // namespace aser
 
 #endif  // ASER_PTA_IRPREPROCESSOR_H

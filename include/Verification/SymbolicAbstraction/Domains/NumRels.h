@@ -6,7 +6,6 @@
 #include "Verification/SymbolicAbstraction/Core/Expression.h"
 #include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
 
-#include <memory>
 
 #include <llvm/IR/Value.h>
 

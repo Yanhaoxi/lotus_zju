@@ -41,7 +41,7 @@ public:
 	using type = std::tuple<OutputType>;
 };
 
-}
+} // namespace detail
 
 // The SeqParser combinator applies multiple parsers (p0, p1, p2, ...) consequtively. If p0 succeeds, it parse the rest of the input string with (p1, p2, ...). If one of the parsers fails, the entire combinator fails. Otherwise, return the result in a tuple
 template <typename ...Parsers>
@@ -103,6 +103,6 @@ SeqParser<Parsers...> seq(Parsers&&... parsers)
 	return SeqParser<Parsers...>(std::forward<Parsers>(parsers)...);
 }
 
-}
+} // namespace pcomb
 
 #endif

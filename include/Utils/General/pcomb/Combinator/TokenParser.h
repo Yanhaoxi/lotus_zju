@@ -61,6 +61,6 @@ auto token(ParserA&& p, const llvm::StringRef& w = " \t\n\v\f\r")
 	return TokenParser<ParserType>(std::forward<ParserA>(p), w);
 }
 
-}
+} // namespace pcomb
 
 #endif

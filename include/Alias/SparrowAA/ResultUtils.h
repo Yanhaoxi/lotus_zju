@@ -6,7 +6,7 @@
 namespace llvm {
 class Value;
 class Module;
-}
+} // namespace llvm
 
 class Andersen;
 class AndersenAAResult;

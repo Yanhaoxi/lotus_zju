@@ -8,13 +8,13 @@
 
 #pragma once
 
+#include <algorithm>
+#include <array>
+#include <functional>
 #include <mutex>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <array>
-#include <algorithm>
-#include <functional>
 
 namespace lotus {
 

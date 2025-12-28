@@ -34,7 +34,7 @@ public:
 	using type = typename ParserType::OutputType;
 };
 
-}
+} // namespace detail
 
 // The AltParser combinator applies multiple parser (p0, p1, p2, ...) in turn. If p0 succeeds, it returns what p0 returns; otherwise, it tries p1 and return what p1 returns if it succeeds; otherwise, try p2, and so on
 template <typename ...Parsers>
@@ -84,6 +84,6 @@ AltParser<Parsers...> alt(Parsers&&... parsers)
 	return AltParser<Parsers...>(std::forward<Parsers>(parsers)...);
 }
 
-}
+} // namespace pcomb
 
 #endif

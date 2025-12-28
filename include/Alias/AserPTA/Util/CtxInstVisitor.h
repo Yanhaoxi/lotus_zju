@@ -8,9 +8,9 @@
 #define ASER_PTA_CTXINSTVISITOR_H
 
 #include "Alias/AserPTA/PointerAnalysis/Program/CtxFunction.h"
-#include <llvm/IR/Instructions.h>
-#include <llvm/IR/InstrTypes.h>
 #include "llvm/IR/Function.h"
+#include <llvm/IR/InstrTypes.h>
+#include <llvm/IR/Instructions.h>
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IntrinsicInst.h"
 #include "llvm/IR/Intrinsics.h"

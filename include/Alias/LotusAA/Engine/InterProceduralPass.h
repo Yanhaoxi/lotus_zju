@@ -12,16 +12,16 @@
 
 #pragma once
 
-#include <llvm/Pass.h>
-#include <llvm/IR/Module.h>
 #include <llvm/IR/Dominators.h>
+#include <llvm/IR/Module.h>
+#include <llvm/Pass.h>
 #include <map>
-#include <set>
 #include <mutex>
+#include <set>
 
 #include "Alias/LotusAA/MemoryModel/Types.h"
-#include "Alias/LotusAA/Support/Compat.h"
 #include "Alias/LotusAA/Support/CallGraphState.h"
+#include "Alias/LotusAA/Support/Compat.h"
 #include "Alias/LotusAA/Support/FunctionPointerResults.h"
 #include "Alias/Spec/AliasSpecManager.h"
 

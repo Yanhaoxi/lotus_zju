@@ -15,9 +15,9 @@
 #define LLVM_ANALYSIS_CFLMODULEALIASANALYSIS_H
 
 #include "llvm/Analysis/AliasAnalysis.h"
-#include "llvm/IR/Module.h"
 #include "Alias/CFLAA/CFLGraph.h"
 #include "Alias/CFLAA/StratifiedSets.h"
+#include "llvm/IR/Module.h"
 
 namespace llvm {
 namespace cflaa {

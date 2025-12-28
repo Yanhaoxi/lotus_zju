@@ -29,26 +29,26 @@
 #define LLVM_TRANSFORMS_RANGEANALYSIS_RANGEANALYSIS_H_
 
 #include "llvm/IR/Function.h"
-#include "llvm/Pass.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/IR/Instructions.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/ConstantRange.h"
-#include "llvm/IR/InstIterator.h"
 #include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/Statistic.h"
+#include "llvm/ADT/StringMap.h"
+#include "llvm/IR/ConstantRange.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/InstIterator.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/Module.h"
+#include "llvm/Pass.h"
 #include "llvm/Support/Debug.h"
-#include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/FileSystem.h"
+#include "llvm/Support/raw_ostream.h"
 #include <chrono>
 
-#include <deque>
-#include <stack>
-#include <sstream>
 #include <algorithm>
+#include <deque>
 #include <set>
+#include <sstream>
+#include <stack>
 
 using namespace llvm;
 

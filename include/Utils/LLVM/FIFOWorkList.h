@@ -50,5 +50,5 @@ public:
 	bool empty() const { return list.empty(); }
 };
 
-}
+} // namespace util
 

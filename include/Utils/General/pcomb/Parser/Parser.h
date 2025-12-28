@@ -21,6 +21,6 @@ public:
 	virtual ResultType parse(const InputStream& input) const = 0;
 };
 
-}
+} // namespace pcomb
 
 #endif

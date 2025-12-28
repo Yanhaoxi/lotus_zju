@@ -8,4 +8,4 @@ namespace util
 template <typename T>
 using VectorSet = SortedVector<T>;
 
-}
+} // namespace util

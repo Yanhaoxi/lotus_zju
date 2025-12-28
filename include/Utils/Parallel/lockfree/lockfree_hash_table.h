@@ -4,8 +4,8 @@
 #define MAX_BUF 256
 
 //#include "Utils/General/lockfree/hash_table.h"
-#include <vector>
 #include <array>
+#include <vector>
 
 struct Hash_entry {
   int key;

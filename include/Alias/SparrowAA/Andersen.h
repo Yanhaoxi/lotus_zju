@@ -59,8 +59,8 @@
 #include <llvm/IR/InstrTypes.h>  // For CallBase
 
 #include <functional>
-#include <string>
 #include <map>
+#include <string>
 #include <vector>
 
 struct ContextPolicy {

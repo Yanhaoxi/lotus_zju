@@ -61,5 +61,5 @@ class BooleanValue : public AbstractValue
     virtual bool isBottom() const override { return Val_ == BOTTOM; }
     virtual void resetToBottom() override { Val_ = BOTTOM; }
 };
-}
-}
+} // namespace domains
+} // namespace symbolic_abstraction

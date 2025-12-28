@@ -22,8 +22,8 @@
 #include "Utils/General/json11.hpp"
 #include <cassert>
 #include <cmath>
-#include <cstdlib>
 #include <cstdio>
+#include <cstdlib>
 #include <limits>
 
 namespace json11 {
@@ -726,7 +726,7 @@ struct JsonParser final {
         return fail("expected value, got " + esc(ch));
     }
 };
-}//namespace {
+} // namespace
 
 Json Json::parse(const string &in, string &err, JsonParse strategy) {
     JsonParser parser { in, 0, err, false, strategy };
