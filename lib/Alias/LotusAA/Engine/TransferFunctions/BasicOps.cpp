@@ -2,8 +2,8 @@
 /// @brief Transfer functions for basic pointer value sources in LotusAA
 ///
 /// This file implements transfer functions for **base-case pointer sources** -
-/// values that originate from allocation sites, function boundaries, or constants.
-/// These are the leaf nodes in the pointer value flow graph.
+/// values that originate from allocation sites, function boundaries, or
+/// constants. These are the leaf nodes in the pointer value flow graph.
 ///
 /// **Pointer Source Categories:**
 ///
@@ -54,21 +54,23 @@ PTResult *IntraLotusAA::processAlloca(AllocaInst *alloca) {
 
 /// Processes a function argument - symbolic input from caller.
 ///
-/// Arguments are typically **symbolic objects** representing unknown caller values.
-/// Exception: Pseudo-arguments (from inter-procedural analysis) are CONCRETE.
+/// Arguments are typically **symbolic objects** representing unknown caller
+/// values. Exception: Pseudo-arguments (from inter-procedural analysis) are
+/// CONCRETE.
 ///
 /// @param arg The function argument
 /// @return PTResult* Points-to set for the argument
 ///
 /// **Object Kind Decision:**
-/// - CONCRETE: if `func_pseudo_ret_cache.count(arg)` (output from inlined callee)
+/// - CONCRETE: if `func_pseudo_ret_cache.count(arg)` (output from inlined
+/// callee)
 /// - SYMBOLIC: otherwise (real argument from caller)
 ///
 /// @see func_pseudo_ret_cache for pseudo-argument tracking
 PTResult *IntraLotusAA::processArg(Argument *arg) {
-  MemObject::ObjKind kind = func_pseudo_ret_cache.count(arg) 
-                             ? MemObject::CONCRETE 
-                             : MemObject::SYMBOLIC;
+  MemObject::ObjKind kind = func_pseudo_ret_cache.count(arg)
+                                ? MemObject::CONCRETE
+                                : MemObject::SYMBOLIC;
   return addPointsTo(arg, newObject(arg, kind), 0);
 }
 
@@ -87,7 +89,8 @@ PTResult *IntraLotusAA::processGlobal(GlobalValue *global) {
 
 /// Processes a null pointer constant.
 ///
-/// All null pointers share the singleton `NullPTS` result pointing to `NullObj`.
+/// All null pointers share the singleton `NullPTS` result pointing to
+/// `NullObj`.
 ///
 /// @param null_ptr The null pointer constant
 /// @return PTResult* Shared NullPTS (points to MemObject::NullObj)
@@ -128,8 +131,8 @@ PTResult *IntraLotusAA::processNonPointer(Value *non_pointer_val) {
 /// @param unknown_val The unhandled value
 /// @return PTResult* Conservative result {UnknownObj}
 ///
-/// **Soundness:** Unknown → may alias anything (conservative over-approximation)
+/// **Soundness:** Unknown → may alias anything (conservative
+/// over-approximation)
 PTResult *IntraLotusAA::processUnknown(Value *unknown_val) {
   return addPointsTo(unknown_val, MemObject::UnknownObj, 0);
 }
-

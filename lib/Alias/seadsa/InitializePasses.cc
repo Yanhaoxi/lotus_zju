@@ -1,7 +1,7 @@
 #include "Alias/seadsa/InitializePasses.hh"
 
-#include "llvm/PassRegistry.h"
 #include "llvm/InitializePasses.h"
+#include "llvm/PassRegistry.h"
 
 namespace seadsa {
 

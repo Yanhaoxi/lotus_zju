@@ -45,7 +45,7 @@ using namespace std;
 void IntraLotusAA::getReturnInst() {
   Function *F = analyzed_func;
   assert(F && "NULL base function");
-  
+
   for (BasicBlock &bb : *F) {
     if (ReturnInst *ret = dyn_cast<ReturnInst>(bb.getTerminator())) {
       ret_insts[ret] = true;
@@ -58,9 +58,7 @@ int IntraLotusAA::getSequenceNum(Value *val) {
   return (it == value_seq.end()) ? VALUE_SEQ_UNDEF : it->second;
 }
 
-int IntraLotusAA::getInlineApDepth() {
-  return inline_ap_depth;
-}
+int IntraLotusAA::getInlineApDepth() { return inline_ap_depth; }
 
 PTGraph *IntraLotusAA::getPtGraph(Function *F) {
   return lotus_aa->getPtGraph(F);
@@ -90,13 +88,13 @@ void IntraLotusAA::clearMemObjectResult() {
     if (it.second != NullPTS)
       delete it.second;
   }
-  
+
   lotus_clear_hash(&pt_results);
-  
+
   for (auto &obj : mem_objs) {
     obj.first->clear();
   }
-  
+
   lotus_clear_hash(&load_category);
   lotus_clear_hash(&value_seq);
 }
@@ -118,19 +116,17 @@ int IntraLotusAA::getArgLevel(AccessPath &path) {
   int result = 1;
   Value *parent_ptr = path.getParentPtr();
   AccessPath parent_path = path;
-  
+
   while (parent_ptr && isPseudoInput(parent_ptr)) {
     result++;
     parent_path = inputs[parent_ptr];
     parent_ptr = parent_path.getParentPtr();
   }
-  
+
   return result;
 }
 
-bool IntraLotusAA::isPseudoInput(Value *val) {
-  return inputs.count(val) > 0;
-}
+bool IntraLotusAA::isPseudoInput(Value *val) { return inputs.count(val) > 0; }
 
 bool IntraLotusAA::isPseudoInterface(Value *target) {
   if (Argument *arg = dyn_cast<Argument>(target)) {
@@ -140,10 +136,10 @@ bool IntraLotusAA::isPseudoInterface(Value *target) {
   return false;
 }
 
-void IntraLotusAA::getFullAccessPath(Value *target_val, 
-                                        std::vector<std::pair<Value*, int64_t>> &result) {
+void IntraLotusAA::getFullAccessPath(
+    Value *target_val, std::vector<std::pair<Value *, int64_t>> &result) {
   result.clear();
-  
+
   if (inputs.count(target_val)) {
     AccessPath ap = inputs[target_val];
     getFullAccessPath(ap, result);
@@ -152,20 +148,20 @@ void IntraLotusAA::getFullAccessPath(Value *target_val,
   }
 }
 
-void IntraLotusAA::getFullAccessPath(AccessPath &ap,
-                                        std::vector<std::pair<Value*, int64_t>> &result) {
+void IntraLotusAA::getFullAccessPath(
+    AccessPath &ap, std::vector<std::pair<Value *, int64_t>> &result) {
   result.clear();
   AccessPath curr_ap = ap;
-  
+
   while (true) {
     Value *base_ptr = curr_ap.getParentPtr();
     int64_t offset = curr_ap.getOffset();
     result.push_back({base_ptr, offset});
-    
+
     if (inputs.count(base_ptr)) {
       curr_ap = inputs[base_ptr];
     } else if (isa<GlobalValue>(base_ptr)) {
-      return;  // Reached base
+      return; // Reached base
     } else if (escape_ret_path.count(base_ptr)) {
       auto &ret_path = escape_ret_path[base_ptr];
       result.push_back({ret_path.first, ret_path.second});
@@ -189,12 +185,12 @@ void IntraLotusAA::getFullAccessPath(AccessPath &ap,
   }
 }
 
-void IntraLotusAA::getFullOutputAccessPath(int output_index,
-                                               std::vector<std::pair<Value*, int64_t>> &result) {
+void IntraLotusAA::getFullOutputAccessPath(
+    int output_index, std::vector<std::pair<Value *, int64_t>> &result) {
   result.clear();
-  
+
   if (output_index <= 0 || (unsigned)output_index >= outputs.size()) {
-    return;  // Invalid index or common return
+    return; // Invalid index or common return
   }
 
   OutputItem *output = outputs[output_index];
@@ -203,14 +199,14 @@ void IntraLotusAA::getFullOutputAccessPath(int output_index,
 }
 
 // Get caller object mapping
-void IntraLotusAA::getCallerObj(Value *call, Function *callee,
-                                SymbolicMemObject *calleeObj,
-                                std::vector<std::pair<MemObject *, int64_t>> &result) {
+void IntraLotusAA::getCallerObj(
+    Value *call, Function *callee, SymbolicMemObject *calleeObj,
+    std::vector<std::pair<MemObject *, int64_t>> &result) {
   Value *calleeArg = calleeObj->getAllocSite();
-  
+
   if (!func_arg.count(call) || !func_arg[call].count(callee))
     return;
-    
+
   mem_value_t &arg_result = func_arg[call][callee][calleeArg];
 
   for (auto &item : arg_result) {
@@ -224,10 +220,10 @@ void IntraLotusAA::getCallerObj(Value *call, Function *callee,
     PTResult *pts = findPTResult(parent_value);
     if (!pts)
       continue;
-      
+
     PTResultIterator ptr_iter(pts, this);
 
-    for (auto* loc : ptr_iter) {
+    for (auto *loc : ptr_iter) {
       MemObject *obj = loc->getObj();
       if (!obj->isValid())
         continue;
@@ -259,7 +255,7 @@ bool IntraLotusAA::isSameInterface(IntraLotusAA *to_compare) {
     return false;
   if (outputs.size() != to_compare->outputs.size())
     return false;
-  
+
   // TODO: Could do deeper comparison
   return false;
 }
@@ -268,4 +264,3 @@ bool IntraLotusAA::isPure() {
   // Pure if no side-effect outputs and no escaped objects
   return outputs.size() <= 1 && escape_objs.empty();
 }
-

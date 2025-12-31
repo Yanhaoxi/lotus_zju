@@ -56,6 +56,7 @@
 /// @see PTGraph for object ownership and creation
 
 #include "Alias/LotusAA/MemoryModel/MemObject.h"
+
 #include "Alias/LotusAA/Engine/InterProceduralPass.h"
 #include "Alias/LotusAA/MemoryModel/PointsToGraph.h"
 #include "Alias/LotusAA/Support/Config.h"
@@ -83,8 +84,7 @@ LLVMValueIndex *LLVMValueIndex::Instance = nullptr;
 MemObject::MemObject(Value *alloc_site, PTGraph *pt_graph, ObjKind obj_kind)
     : alloc_site(alloc_site), pt_graph(pt_graph), obj_kind(obj_kind),
       pt_index(pt_graph ? pt_graph->pt_index : -1),
-      obj_index(pt_graph ? pt_graph->obj_index++ : -1),
-      loc_index(0) {}
+      obj_index(pt_graph ? pt_graph->obj_index++ : -1), loc_index(0) {}
 
 MemObject::~MemObject() {
   for (auto &it : locators) {
@@ -99,7 +99,7 @@ void MemObject::dump() {
     alloc_site->print(outs());
     outs() << "\n";
   }
-  for (auto& loc_pair : locators) {
+  for (auto &loc_pair : locators) {
     outs() << "  Offset " << loc_pair.first << ":\n";
     loc_pair.second->dump();
   }
@@ -122,8 +122,8 @@ std::string MemObject::getName() {
     if (alloc_site->hasName())
       ss << alloc_site->getName();
     else
-      ss << "obj_" << (void*)alloc_site;
-      
+      ss << "obj_" << (void *)alloc_site;
+
     if (isa<AllocaInst>(alloc_site))
       ss << "(alloca)";
     else if (isa<CallBase>(alloc_site))
@@ -159,11 +159,11 @@ ObjectLocator *MemObject::findLocator(int64_t offset, bool is_create) {
 bool MemObject::isReallyAllocated() {
   if (!alloc_site)
     return false;
-    
+
   // Stack allocation
   if (isa<AllocaInst>(alloc_site))
     return true;
-    
+
   // Heap allocation (check via spec manager if available)
   if (CallBase *call = dyn_cast<CallBase>(alloc_site)) {
     if (Function *F = call->getCalledFunction()) {
@@ -171,15 +171,15 @@ bool MemObject::isReallyAllocated() {
       if (pt_graph && pt_graph->lotus_aa) {
         return pt_graph->lotus_aa->getSpecManager().isAllocator(F);
       }
-      
+
       // Fallback: simple name-based heuristic (if no PTGraph/LotusAA available)
       StringRef name = F->getName();
-      if (name.contains("malloc") || name.contains("alloc") ||
-          name == "new" || name == "calloc" || name == "realloc")
+      if (name.contains("malloc") || name.contains("alloc") || name == "new" ||
+          name == "calloc" || name == "realloc")
         return true;
     }
   }
-  
+
   return false;
 }
 
@@ -195,20 +195,20 @@ SymbolicMemObject::~SymbolicMemObject() {
 std::string SymbolicMemObject::getName() {
   std::string name;
   raw_string_ostream ss(name);
-  
+
   int id = getPTG()->getObjectID(this);
   ss << "Sym_" << id;
-  
+
   if (alloc_site && !isa<Argument>(alloc_site)) {
     ss << ": " << MemObject::getName();
   }
-  
+
   ss.flush();
   return name;
 }
 
 Argument *SymbolicMemObject::findCreatePseudoArg(ObjectLocator *locator,
-                                                    Type *arg_type) {
+                                                 Type *arg_type) {
   auto it = pseudo_args.find(locator);
   if (it != pseudo_args.end())
     return it->second;
@@ -220,8 +220,9 @@ Argument *SymbolicMemObject::findCreatePseudoArg(ObjectLocator *locator,
     if (!arg_type->isFirstClassType() && !arg_type->isVoidTy()) {
       actual_type = arg_type->getPointerTo();
     }
-    
-    // LLVM doesn't allow naming void-typed values, so use empty name for void types
+
+    // LLVM doesn't allow naming void-typed values, so use empty name for void
+    // types
     std::string name;
     if (!actual_type->isVoidTy()) {
       raw_string_ostream ss(name);
@@ -236,4 +237,3 @@ Argument *SymbolicMemObject::findCreatePseudoArg(ObjectLocator *locator,
 
   return nullptr;
 }
-

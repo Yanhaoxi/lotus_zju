@@ -2,8 +2,8 @@
 /// @brief Main driver for intra-procedural pointer analysis in LotusAA
 ///
 /// This file contains the **analysis orchestration** logic that coordinates all
-/// transfer functions to perform flow-sensitive, field-sensitive pointer analysis
-/// within a single function.
+/// transfer functions to perform flow-sensitive, field-sensitive pointer
+/// analysis within a single function.
 ///
 /// **Architecture:**
 /// ```
@@ -17,7 +17,8 @@
 /// ```
 ///
 /// **Transfer Function Organization** (in TransferFunctions/ subdirectory):
-/// - `PointerInstructions.cpp`: Load, Store, PHI, Select, GEP, Casts, processBasePointer
+/// - `PointerInstructions.cpp`: Load, Store, PHI, Select, GEP, Casts,
+/// processBasePointer
 /// - `BasicOps.cpp`: Alloca, Arguments, Globals, Constants
 /// - `CallHandling.cpp`: Function calls and summary application
 /// - `CallGraphSolver.cpp`: Indirect call resolution
@@ -30,13 +31,15 @@
 /// 4. **Call Graph Construction**: Resolve indirect calls (if enabled)
 ///
 /// **Configuration Options:**
-/// - `lotus_restrict_inline_depth`: Max inter-procedural inlining depth (default: 2)
+/// - `lotus_restrict_inline_depth`: Max inter-procedural inlining depth
+/// (default: 2)
 /// - `lotus_restrict_cg_size`: Max indirect call targets (default: 5)
 /// - `lotus_restrict_inline_size`: Max summary size (default: 100)
 /// - `lotus_restrict_ap_level`: Max access path depth (default: 2)
 ///
 /// @see IntraProceduralAnalysis.h for class declaration and data structures
-/// @see TransferFunctions/ subdirectory for individual transfer function implementations
+/// @see TransferFunctions/ subdirectory for individual transfer function
+/// implementations
 
 #include "Alias/LotusAA/Engine/IntraProceduralAnalysis.h"
 
@@ -64,8 +67,8 @@ static cl::opt<int> lotus_restrict_inline_depth_cl(
 
 static cl::opt<int> lotus_restrict_cg_size_cl(
     "lotus-restrict-cg-size",
-    cl::desc("Maximum indirect call targets to process"),
-    cl::init(5), cl::Hidden);
+    cl::desc("Maximum indirect call targets to process"), cl::init(5),
+    cl::Hidden);
 
 void IntraLotusAAConfig::setParam() {
   if (lotus_restrict_inline_depth_cl.getNumOccurrences() > 0)
@@ -82,9 +85,9 @@ IntraLotusAA::IntraLotusAA(Function *F, LotusAA *lotus_aa)
       is_PTA_computed(false), is_CG_computed(false),
       is_considered_as_library(false), is_timeout_found(false),
       inline_ap_depth(0) {
-  
+
   getReturnInst();
-  
+
   // Topological sort of BBs (simple RPO)
   for (BasicBlock &BB : *F) {
     topBBs.push_back(&BB);
@@ -154,7 +157,7 @@ void IntraLotusAA::computePTA() {
 
       case Instruction::BitCast:
       case Instruction::GetElementPtr:
-          processBasePointer(&inst);
+        processBasePointer(&inst);
         break;
       }
     }
@@ -171,14 +174,15 @@ void IntraLotusAA::computePTA() {
 }
 
 void IntraLotusAA::show() {
-  outs() << "\n========== LotusAA Results: " << analyzed_func->getName() << " ==========\n";
-  
+  outs() << "\n========== LotusAA Results: " << analyzed_func->getName()
+         << " ==========\n";
+
   // Show points-to sets
   for (auto &it : pt_results) {
     Value *ptr = it.first;
     if (!ptr)
       continue;
-      
+
     PTResult *res = it.second;
     PTResultIterator iter(res, this);
 
@@ -190,6 +194,6 @@ void IntraLotusAA::show() {
     outs() << " -> " << iter.size() << " locations\n";
     outs() << iter << "\n";
   }
-  
+
   outs() << "==============================================\n\n";
 }

@@ -25,7 +25,7 @@ static llvm::cl::list<std::string>
 
 namespace {
 bool isNotStored(Value *V);
-}
+} // namespace
 
 void AllocWrapInfo::getAnalysisUsage(AnalysisUsage &AU) const {
   AU.addRequired<TargetLibraryInfoWrapperPass>();

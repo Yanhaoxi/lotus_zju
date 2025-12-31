@@ -1,9 +1,10 @@
 /// @file SummaryBuilder.cpp
-/// @brief Function summary construction for context-sensitive inter-procedural analysis
+/// @brief Function summary construction for context-sensitive inter-procedural
+/// analysis
 ///
-/// This file implements the **function summary generation** phase of LotusAA. After
-/// intra-procedural pointer analysis completes, these algorithms extract a compact
-/// summary describing the function's behavior for use at call sites.
+/// This file implements the **function summary generation** phase of LotusAA.
+/// After intra-procedural pointer analysis completes, these algorithms extract
+/// a compact summary describing the function's behavior for use at call sites.
 ///
 /// **Function Summary Components:**
 ///
@@ -56,15 +57,17 @@ using namespace std;
 
 void IntraLotusAA::collectEscapedObjects(
     map<MemObject *, MemObject *, mem_obj_cmp> &real_to_pseudo_map,
-    map<MemObject *, set<MemObject *, mem_obj_cmp>, mem_obj_cmp> &pseudo_to_real_map) {
+    map<MemObject *, set<MemObject *, mem_obj_cmp>, mem_obj_cmp>
+        &pseudo_to_real_map) {
 
   // Caches for single-pointed object detection
-  map<ObjectLocator *, set<MemObject *, mem_obj_cmp>, obj_loc_cmp> single_pointed_objects;
+  map<ObjectLocator *, set<MemObject *, mem_obj_cmp>, obj_loc_cmp>
+      single_pointed_objects;
   map<MemObject *, ObjectLocator *, mem_obj_cmp> obj_pointers;
 
   // Worklist of reachable objects
   std::vector<MemObject *> reachable_worklist;
-  
+
   // Add symbolic objects (arguments/globals) to worklist
   for (auto &obj_pair : mem_objs) {
     MemObject *obj = obj_pair.first;
@@ -83,24 +86,24 @@ void IntraLotusAA::collectEscapedObjects(
 
       PTResult *pt_result = processBasePointer(ret_val);
       PTResultIterator ptr_iter(pt_result, this);
-      
-      for (auto* loc : ptr_iter) {
+
+      for (auto *loc : ptr_iter) {
         MemObject *obj = loc->getObj();
         int64_t offset = loc->getOffset();
-        
+
         if (escape_objs.count(obj) == 0 &&
-            obj->getKind() == MemObject::CONCRETE &&
-            !obj->isNull() && !obj->isUnknown()) {
-          
+            obj->getKind() == MemObject::CONCRETE && !obj->isNull() &&
+            !obj->isUnknown()) {
+
           escape_objs.insert(obj);
-          
+
           Value *obj_source = obj->getAllocSite();
           if (obj_source) {
             escape_ret_path[obj_source] = {ret_val, offset};
           }
 
           reachable_worklist.push_back(obj);
-          
+
           if (offset == 0) {
             single_pointed_objects[nullptr].insert(obj);
             obj_pointers[obj] = nullptr;
@@ -120,7 +123,7 @@ void IntraLotusAA::collectEscapedObjects(
     MemObject *cur_obj = reachable_worklist.back();
     Value *cur_obj_source = cur_obj->getAllocSite();
     reachable_worklist.pop_back();
-    
+
     for (auto &ptr_offset_pair : cur_obj->getUpdatedOffset()) {
       int64_t ptr_offset = ptr_offset_pair.first;
 
@@ -130,9 +133,9 @@ void IntraLotusAA::collectEscapedObjects(
         ObjectLocator *locator = cur_obj->findLocator(ptr_offset, true);
         locator->getValues(ret, res, nullptr);
       }
-      
+
       refineResult(res);
-      
+
       for (auto &item : res) {
         Value *val = item.val;
         PTResult *pt_result = findPTResult(val, false);
@@ -140,37 +143,40 @@ void IntraLotusAA::collectEscapedObjects(
           continue;
 
         PTResultIterator ptr_iter(pt_result, this);
-        for (auto* loc : ptr_iter) {
+        for (auto *loc : ptr_iter) {
           MemObject *obj = loc->getObj();
           int64_t offset = loc->getOffset();
-          
+
           // Handle globals separately
           if (isa_and_nonnull<GlobalValue>(obj->getAllocSite())) {
             if (!escape_objs.count(obj)) {
               escape_objs.insert(obj);
-              
+
               Value *obj_source = obj->getAllocSite();
               if (obj_source) {
-                escape_obj_path[obj_source] = {AccessPath(cur_obj_source, ptr_offset), offset};
+                escape_obj_path[obj_source] = {
+                    AccessPath(cur_obj_source, ptr_offset), offset};
               }
-              
+
               reachable_worklist.push_back(obj);
             }
           } else if (escape_objs.count(obj) == 0 &&
-                     obj->getKind() == MemObject::CONCRETE &&
-                     !obj->isNull() && !obj->isUnknown()) {
-            
+                     obj->getKind() == MemObject::CONCRETE && !obj->isNull() &&
+                     !obj->isUnknown()) {
+
             escape_objs.insert(obj);
-            
+
             Value *obj_source = obj->getAllocSite();
             if (obj_source) {
-              escape_obj_path[obj_source] = {AccessPath(cur_obj_source, ptr_offset), offset};
+              escape_obj_path[obj_source] = {
+                  AccessPath(cur_obj_source, ptr_offset), offset};
             }
 
             reachable_worklist.push_back(obj);
-            
+
             if (offset == 0) {
-              single_pointed_objects[cur_obj->findLocator(ptr_offset, true)].insert(obj);
+              single_pointed_objects[cur_obj->findLocator(ptr_offset, true)]
+                  .insert(obj);
               obj_pointers[obj] = cur_obj->findLocator(ptr_offset, true);
             }
           } else if (escape_objs.count(obj) && obj_pointers.count(obj)) {
@@ -188,7 +194,7 @@ void IntraLotusAA::collectEscapedObjects(
   for (auto &loc_objs_pair : single_pointed_objects) {
     ObjectLocator *locator = loc_objs_pair.first;
     set<MemObject *, mem_obj_cmp> &tmp_esc_objs = loc_objs_pair.second;
-    
+
     if (tmp_esc_objs.size() >= 2) {
       // Redundant objects - merge them
       for (MemObject *tmp_esc_obj : tmp_esc_objs) {
@@ -201,7 +207,7 @@ void IntraLotusAA::collectEscapedObjects(
       }
     }
   }
-  
+
   for (ObjectLocator *non_redundant : non_redundant_locators) {
     single_pointed_objects.erase(non_redundant);
   }
@@ -219,7 +225,7 @@ void IntraLotusAA::collectEscapedObjects(
       pseudo_to_real_map[pseudo_obj].insert(obj);
       real_to_pseudo_map[obj] = pseudo_obj;
     }
-    
+
     escape_objs.insert(pseudo_obj);
   }
 
@@ -234,7 +240,7 @@ void IntraLotusAA::collectOutputs() {
   OutputItem *ret_item = new OutputItem;
   Function *parent_func = analyzed_func;
   ret_item->setType(parent_func->getReturnType());
-  
+
   if (!ret_insts.empty() && !parent_func->getReturnType()->isVoidTy()) {
     for (auto &ret_pair : ret_insts) {
       ReturnInst *ret = ret_pair.first;
@@ -247,7 +253,7 @@ void IntraLotusAA::collectOutputs() {
   outputs.push_back(ret_item);
 
   if (ret_insts.empty())
-    return;  // Function doesn't return
+    return; // Function doesn't return
 
   // Collect escaped objects
   collectEscapedObjects(real_to_pseudo_map, pseudo_to_real_map);
@@ -261,7 +267,7 @@ void IntraLotusAA::collectOutputs() {
 
     for (MemObject *merge_obj : objs_to_merge) {
       map<int64_t, Type *> &updated_offset = merge_obj->getUpdatedOffset();
-      
+
       for (auto &offset_item : updated_offset) {
         int64_t offset = offset_item.first;
         Type *type = offset_item.second;
@@ -276,7 +282,7 @@ void IntraLotusAA::collectOutputs() {
             if (func_level != ObjectLocator::FUNC_LEVEL_UNDEFINED)
               output_item->func_level = func_level;
           }
-          
+
           for (auto &ret_pair : ret_insts) {
             ReturnInst *ret = ret_pair.first;
             mem_value_t &res = output_item->getVal()[ret];
@@ -306,17 +312,17 @@ void IntraLotusAA::collectOutputs() {
   // Collect updated fields from symbolic/escaped objects
   for (auto &obj_pair : mem_objs) {
     MemObject *obj = obj_pair.first;
-    
+
     if ((obj->getKind() == MemObject::SYMBOLIC || escape_objs.count(obj)) &&
         obj->getAllocSite() && !obj->getAllocSite()->getType()->isVoidTy()) {
-      
+
       map<int64_t, Type *> &updated_offset = obj->getUpdatedOffset();
-      
+
       for (auto &offset_item : updated_offset) {
         int64_t offset = offset_item.first;
         Type *type = offset_item.second;
         Type *normalized_type = normalizeType(type);
-        
+
         OutputItem *output_item = new OutputItem;
         ObjectLocator *locator = obj->findLocator(offset, true);
         int func_level = locator->getStoreFunctionLevel();
@@ -339,20 +345,21 @@ void IntraLotusAA::collectOutputs() {
 
   // Record point-to changes for outputs
   for (auto &output_item : outputs) {
-    map<ReturnInst *, mem_value_t, llvm_cmp> &mem_value_map = output_item->getVal();
-    
+    map<ReturnInst *, mem_value_t, llvm_cmp> &mem_value_map =
+        output_item->getVal();
+
     for (auto &mem_value_element : mem_value_map) {
       mem_value_t &mem_value = mem_value_element.second;
-      
+
       for (mem_value_item_t &value_item : mem_value) {
         Value *val = value_item.val;
-        
+
         if (val != LocValue::FREE_VARIABLE) {
           PTResult *pt_result = findPTResult(val, false);
           if (pt_result) {
             PTResultIterator iter(pt_result, this);
-            
-            for (auto* loc : iter) {
+
+            for (auto *loc : iter) {
               int64_t offset = loc->getOffset();
               MemObject *point_to_obj = loc->getObj();
 
@@ -377,17 +384,18 @@ void IntraLotusAA::collectInputs() {
   // Collect pseudo-arguments from symbolic objects
   for (auto &obj_pair : mem_objs) {
     MemObject *obj = obj_pair.first;
-    
+
     if (obj->getKind() == MemObject::SYMBOLIC) {
       SymbolicMemObject *sobj = cast<SymbolicMemObject>(obj);
-      
+
       for (auto &pseudo_pair : sobj->getPseudoArgs()) {
         ObjectLocator *locator = pseudo_pair.first;
         Argument *arg = pseudo_pair.second;
-        
-        AccessPath info(locator->getObj()->getAllocSite(), locator->getOffset());
+
+        AccessPath info(locator->getObj()->getAllocSite(),
+                        locator->getOffset());
         assert(!isPseudoInput(arg) && "Multiple uses for same pseudo_arg");
-        
+
         inputs[arg] = info;
         inputs_func_level[arg] = locator->getLoadFunctionLevel();
       }
@@ -399,22 +407,22 @@ void IntraLotusAA::collectInputs() {
     for (size_t i = 0; i < outputs.size(); i++) {
       OutputItem *output = outputs[i];
       Value *parent_ptr = output->getSymbolicInfo().getParentPtr();
-      
+
       if (!parent_ptr)
         continue;
       if (isa<GlobalValue>(parent_ptr))
         continue;
-        
+
       bool found = false;
-      
+
       // Check if in escaped objects
-      for (auto* obj : escape_objs) {
+      for (auto *obj : escape_objs) {
         if (obj->getAllocSite() == parent_ptr) {
           found = true;
           break;
         }
       }
-      
+
       if (!found) {
         // Check if real argument
         for (Argument &arg : analyzed_func->args()) {
@@ -436,8 +444,10 @@ void IntraLotusAA::finalizeInterface() {
   int lotus_restrict_ap_level_adjust = 0;
 
   if (IntraLotusAAConfig::lotus_restrict_inline_size < 0) {
-    lotus_restrict_ap_level_adjust = IntraLotusAAConfig::lotus_restrict_ap_level;
-  } else if ((int)escape_objs.size() >= IntraLotusAAConfig::lotus_restrict_inline_size) {
+    lotus_restrict_ap_level_adjust =
+        IntraLotusAAConfig::lotus_restrict_ap_level;
+  } else if ((int)escape_objs.size() >=
+             IntraLotusAAConfig::lotus_restrict_inline_size) {
     lotus_restrict_ap_level_adjust = 0;
   } else {
     // Self-adjusting heuristic based on interface size
@@ -449,9 +459,10 @@ void IntraLotusAA::finalizeInterface() {
     int next_cache_start = 0;
 
     for (lotus_restrict_ap_level_adjust = 0;
-         lotus_restrict_ap_level_adjust <= IntraLotusAAConfig::lotus_restrict_ap_level;
+         lotus_restrict_ap_level_adjust <=
+         IntraLotusAAConfig::lotus_restrict_ap_level;
          lotus_restrict_ap_level_adjust++) {
-      
+
       if (lotus_restrict_ap_level_adjust == next_cache_start) {
         // Build cache for next batch
         for (int idx = 0; idx < CACHE_SIZE; idx++) {
@@ -463,7 +474,8 @@ void IntraLotusAA::finalizeInterface() {
           OutputItem *output_item = outputs[idx];
           AccessPath &path = output_item->getSymbolicInfo();
           int level = getArgLevel(path);
-          if (level >= next_cache_start && level < next_cache_start + CACHE_SIZE) {
+          if (level >= next_cache_start &&
+              level < next_cache_start + CACHE_SIZE) {
             cache_output[level - next_cache_start]++;
           }
         }
@@ -471,7 +483,8 @@ void IntraLotusAA::finalizeInterface() {
         for (auto &input_item : inputs) {
           AccessPath &path = input_item.second;
           int level = getArgLevel(path);
-          if (level >= next_cache_start && level < next_cache_start + CACHE_SIZE) {
+          if (level >= next_cache_start &&
+              level < next_cache_start + CACHE_SIZE) {
             cache_input[level - next_cache_start]++;
           }
         }
@@ -479,7 +492,8 @@ void IntraLotusAA::finalizeInterface() {
         next_cache_start += CACHE_SIZE;
       }
 
-      int cache_idx = lotus_restrict_ap_level_adjust - (next_cache_start - CACHE_SIZE);
+      int cache_idx =
+          lotus_restrict_ap_level_adjust - (next_cache_start - CACHE_SIZE);
       input_sum += cache_input[cache_idx];
       output_sum += cache_output[cache_idx];
 
@@ -491,7 +505,8 @@ void IntraLotusAA::finalizeInterface() {
       if (cache_input[cache_idx] == 0 && cache_output[cache_idx] == 0 &&
           lotus_restrict_ap_level_adjust != 0) {
         // Fully inline - no more interfaces at this depth
-        lotus_restrict_ap_level_adjust = LotusConfig::MAXIMAL_SUMMARY_AP_DEPTH + 1;
+        lotus_restrict_ap_level_adjust =
+            LotusConfig::MAXIMAL_SUMMARY_AP_DEPTH + 1;
         break;
       }
     }
@@ -501,7 +516,7 @@ void IntraLotusAA::finalizeInterface() {
 
   // Filter outputs by AP level and function level
   std::vector<OutputItem *> new_outputs;
-  new_outputs.push_back(outputs[0]);  // Always keep return value
+  new_outputs.push_back(outputs[0]); // Always keep return value
 
   for (size_t idx = 1; idx < outputs.size(); idx++) {
     OutputItem *output_item = outputs[idx];
@@ -509,7 +524,8 @@ void IntraLotusAA::finalizeInterface() {
     int level = getArgLevel(path);
     int func_level = output_item->getFuncLevel();
 
-    if ((level <= lotus_restrict_ap_level_adjust || lotus_restrict_ap_level_adjust < 0) &&
+    if ((level <= lotus_restrict_ap_level_adjust ||
+         lotus_restrict_ap_level_adjust < 0) &&
         (func_level < IntraLotusAAConfig::lotus_restrict_inline_depth ||
          IntraLotusAAConfig::lotus_restrict_inline_depth < 0)) {
       new_outputs.push_back(output_item);
@@ -529,13 +545,14 @@ void IntraLotusAA::finalizeInterface() {
     int level = getArgLevel(path);
     int func_level = inputs_func_level[arg];
 
-    if (!((level <= lotus_restrict_ap_level_adjust || lotus_restrict_ap_level_adjust < 0) &&
+    if (!((level <= lotus_restrict_ap_level_adjust ||
+           lotus_restrict_ap_level_adjust < 0) &&
           (func_level < IntraLotusAAConfig::lotus_restrict_inline_depth ||
            IntraLotusAAConfig::lotus_restrict_inline_depth < 0))) {
       to_remove.push_back(arg);
     }
   }
-  
+
   for (Value *arg : to_remove) {
     inputs.erase(arg);
   }
@@ -546,11 +563,11 @@ void IntraLotusAA::finalizeInterface() {
 
     // Filter point-to information
     vector<AccessPath> filtered_pts;
-    
+
     for (auto &point_to_item : point_to) {
       AccessPath &ap = point_to_item;
       Value *parent_val = ap.getParentPtr();
-      
+
       if (!parent_val || isa<GlobalValue>(parent_val) ||
           inputs.count(parent_val) || escape_source.count(parent_val)) {
         filtered_pts.push_back(ap);
@@ -567,4 +584,3 @@ void IntraLotusAA::finalizeInterface() {
   // Record inline depth
   inline_ap_depth = lotus_restrict_ap_level_adjust;
 }
-

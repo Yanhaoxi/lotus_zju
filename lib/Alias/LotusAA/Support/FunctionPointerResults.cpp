@@ -28,7 +28,8 @@
 
 using namespace llvm;
 
-CallTargetSet *FunctionPointerResults::getTargets(Function *caller, Value *callsite) {
+CallTargetSet *FunctionPointerResults::getTargets(Function *caller,
+                                                  Value *callsite) {
   auto callerIt = results_.find(caller);
   if (callerIt == results_.end())
     return nullptr;
@@ -40,7 +41,8 @@ CallTargetSet *FunctionPointerResults::getTargets(Function *caller, Value *calls
   return &callsiteIt->second;
 }
 
-const CallTargetSet *FunctionPointerResults::getTargets(Function *caller, Value *callsite) const {
+const CallTargetSet *FunctionPointerResults::getTargets(Function *caller,
+                                                        Value *callsite) const {
   auto callerIt = results_.find(caller);
   if (callerIt == results_.end())
     return nullptr;
@@ -52,13 +54,14 @@ const CallTargetSet *FunctionPointerResults::getTargets(Function *caller, Value 
   return &callsiteIt->second;
 }
 
-void FunctionPointerResults::addTarget(Function *caller, Value *callsite, Function *target) {
+void FunctionPointerResults::addTarget(Function *caller, Value *callsite,
+                                       Function *target) {
   if (caller && callsite && target) {
     results_[caller][callsite].insert(target);
   }
 }
 
-void FunctionPointerResults::setTargets(Function *caller, Value *callsite, 
+void FunctionPointerResults::setTargets(Function *caller, Value *callsite,
                                         const CallTargetSet &targets) {
   if (caller && callsite) {
     results_[caller][callsite] = targets;
@@ -70,16 +73,17 @@ CallSiteTargetMap *FunctionPointerResults::getCallSites(Function *caller) {
   return (it != results_.end()) ? &it->second : nullptr;
 }
 
-const CallSiteTargetMap *FunctionPointerResults::getCallSites(Function *caller) const {
+const CallSiteTargetMap *
+FunctionPointerResults::getCallSites(Function *caller) const {
   auto it = results_.find(caller);
   return (it != results_.end()) ? &it->second : nullptr;
 }
 
-bool FunctionPointerResults::hasChanged(Function *caller,
-                                        const CallSiteTargetMap &newResults,
-                                        std::set<Function *> &outChangedCallers) const {
+bool FunctionPointerResults::hasChanged(
+    Function *caller, const CallSiteTargetMap &newResults,
+    std::set<Function *> &outChangedCallers) const {
   auto callerIt = results_.find(caller);
-  
+
   // No previous results means everything is new
   if (callerIt == results_.end()) {
     if (!newResults.empty()) {
@@ -90,12 +94,12 @@ bool FunctionPointerResults::hasChanged(Function *caller,
   }
 
   const CallSiteTargetMap &oldResults = callerIt->second;
-  
+
   // Check each call site in new results
   for (const auto &newCallsite : newResults) {
     Value *callsite = newCallsite.first;
     const CallTargetSet &newTargets = newCallsite.second;
-    
+
     auto oldCallsiteIt = oldResults.find(callsite);
     if (oldCallsiteIt == oldResults.end()) {
       // New call site
@@ -105,15 +109,15 @@ bool FunctionPointerResults::hasChanged(Function *caller,
       }
       continue;
     }
-    
+
     const CallTargetSet &oldTargets = oldCallsiteIt->second;
-    
+
     // Check if target sets differ
     if (oldTargets.size() != newTargets.size()) {
       outChangedCallers.insert(caller);
       return true;
     }
-    
+
     for (Function *newTarget : newTargets) {
       if (oldTargets.count(newTarget) == 0) {
         outChangedCallers.insert(caller);
@@ -121,7 +125,7 @@ bool FunctionPointerResults::hasChanged(Function *caller,
       }
     }
   }
-  
+
   // Check for removed call sites
   for (const auto &oldCallsite : oldResults) {
     if (newResults.find(oldCallsite.first) == newResults.end()) {
@@ -131,25 +135,23 @@ bool FunctionPointerResults::hasChanged(Function *caller,
       }
     }
   }
-  
+
   return false;
 }
 
-bool FunctionPointerResults::updateAndDetectChanges(Function *caller,
-                                                    const CallSiteTargetMap &newResults) {
+bool FunctionPointerResults::updateAndDetectChanges(
+    Function *caller, const CallSiteTargetMap &newResults) {
   std::set<Function *> changedCallers;
   bool changed = hasChanged(caller, newResults, changedCallers);
-  
+
   if (changed) {
     results_[caller] = newResults;
   }
-  
+
   return changed;
 }
 
-void FunctionPointerResults::clear() {
-  results_.clear();
-}
+void FunctionPointerResults::clear() { results_.clear(); }
 
 size_t FunctionPointerResults::getCallSiteCount() const {
   size_t count = 0;
@@ -158,4 +160,3 @@ size_t FunctionPointerResults::getCallSiteCount() const {
   }
   return count;
 }
-

@@ -1,8 +1,9 @@
 /// @file PointerInstructions.cpp
 /// @brief Transfer functions for pointer-related LLVM instructions in LotusAA
 ///
-/// This file implements the core transfer functions that process pointer-related
-/// instructions during flow-sensitive pointer analysis. It handles:
+/// This file implements the core transfer functions that process
+/// pointer-related instructions during flow-sensitive pointer analysis. It
+/// handles:
 ///
 /// **Memory Access Operations:**
 /// - Load instructions: Dereference pointers and track loaded values
@@ -78,14 +79,13 @@ void IntraLotusAA::processLoad(LoadInst *load_inst) {
     Value *fld_val = load_pair.val;
 
     if (fld_val == LocValue::FREE_VARIABLE ||
-        fld_val == LocValue::UNDEF_VALUE ||
-        fld_val == LocValue::SUMMARY_VALUE)
+        fld_val == LocValue::UNDEF_VALUE || fld_val == LocValue::SUMMARY_VALUE)
       continue;
 
     PTResult *fld_pts = processBasePointer(fld_val);
     load_pts->add_derived_target(fld_pts, 0);
   }
-  
+
   PTResultIterator iter(load_pts, this);
 }
 
@@ -122,7 +122,7 @@ void IntraLotusAA::processStore(StoreInst *store) {
 
   PTResultIterator iter(res, this);
 
-  for (auto* loc : iter) {
+  for (auto *loc : iter) {
     MemObject *obj = loc->getObj();
     if (obj->isNull() || obj->isUnknown())
       continue;
@@ -139,13 +139,16 @@ void IntraLotusAA::processStore(StoreInst *store) {
 // Control Flow Operations
 //===----------------------------------------------------------------------===//
 
-/// Processes a PHI node to merge pointer values from multiple control flow paths.
+/// Processes a PHI node to merge pointer values from multiple control flow
+/// paths.
 ///
-/// PHI nodes represent the confluence of values from different basic blocks. This
-/// function creates a points-to result that is the **union** of all incoming values.
+/// PHI nodes represent the confluence of values from different basic blocks.
+/// This function creates a points-to result that is the **union** of all
+/// incoming values.
 ///
 /// @param phi The PHI node to process
-/// @return PTResult* Points-to result representing the union of all incoming values
+/// @return PTResult* Points-to result representing the union of all incoming
+/// values
 ///
 /// **Algorithm:**
 /// ```
@@ -180,12 +183,14 @@ PTResult *IntraLotusAA::processPhi(PHINode *phi) {
 
 /// Processes a select instruction (ternary conditional operator).
 ///
-/// Select instructions conditionally choose between two values based on a boolean
-/// condition. Since we don't track conditions precisely, we conservatively take
-/// the union of both possible values.
+/// Select instructions conditionally choose between two values based on a
+/// boolean condition. Since we don't track conditions precisely, we
+/// conservatively take the union of both possible values.
 ///
-/// @param select The select instruction to process (e.g., `select i1 %cond, T* %true, T* %false`)
-/// @return PTResult* Points-to result unioning both branches, or nullptr if non-pointer
+/// @param select The select instruction to process (e.g., `select i1 %cond, T*
+/// %true, T* %false`)
+/// @return PTResult* Points-to result unioning both branches, or nullptr if
+/// non-pointer
 ///
 /// **Semantics:** `result = cond ? true_val : false_val`
 /// **Our approximation:** `result ⊇ {true_val, false_val}`
@@ -213,10 +218,11 @@ PTResult *IntraLotusAA::processSelect(SelectInst *select) {
 // Pointer Manipulation Operations
 //===----------------------------------------------------------------------===//
 
-/// Processes GetElementPtr (GEP) and bitcast operations for field-sensitive analysis.
+/// Processes GetElementPtr (GEP) and bitcast operations for field-sensitive
+/// analysis.
 ///
-/// This function handles pointer arithmetic and type casts, which are fundamental
-/// for tracking field-level precision in structures and arrays.
+/// This function handles pointer arithmetic and type casts, which are
+/// fundamental for tracking field-level precision in structures and arrays.
 ///
 /// @param ptr The GEP or bitcast instruction/operator to process
 /// @return PTResult* Points-to result derived from the base pointer
@@ -251,7 +257,7 @@ PTResult *IntraLotusAA::processGepBitcast(Value *ptr) {
   // not through offset arithmetic in points-to results
   if (GEPOperator *gep = dyn_cast<GEPOperator>(ptr)) {
     base_ptr = gep->getPointerOperand();
-    offset = 0;  // Field offsets handled by ObjectLocator
+    offset = 0; // Field offsets handled by ObjectLocator
   } else if (BitCastInst *bc = dyn_cast<BitCastInst>(ptr)) {
     base_ptr = bc->getOperand(0);
     offset = 0;
@@ -267,7 +273,8 @@ PTResult *IntraLotusAA::processGepBitcast(Value *ptr) {
   return ret;
 }
 
-/// Processes pointer cast instructions (inttoptr, ptrtoint, addrspacecast, etc.).
+/// Processes pointer cast instructions (inttoptr, ptrtoint, addrspacecast,
+/// etc.).
 ///
 /// @param cast The cast instruction to process
 /// @return PTResult* Points-to result derived from source operand (offset 0)
@@ -314,7 +321,8 @@ PTResult *IntraLotusAA::processCast(CastInst *cast) {
 /// already-processed values, critical for performance on large programs.
 ///
 /// **Design Pattern: Visitor Pattern**
-/// This function implements the visitor pattern, dispatching based on LLVM value type.
+/// This function implements the visitor pattern, dispatching based on LLVM
+/// value type.
 ///
 /// @note This function guarantees to return a valid PTResult* (never null)
 /// @see BasicOps.cpp for implementations of processArg, processGlobal, etc.
@@ -329,12 +337,13 @@ PTResult *IntraLotusAA::processBasePointer(Value *base_ptr) {
     res = processCast(cast);
   } else if (Argument *arg = dyn_cast<Argument>(base_ptr)) {
     res = processArg(arg);
-  } else if (ConstantPointerNull *cnull = dyn_cast<ConstantPointerNull>(base_ptr)) {
+  } else if (ConstantPointerNull *cnull =
+                 dyn_cast<ConstantPointerNull>(base_ptr)) {
     res = processNullptr(cnull);
   } else if (GlobalValue *gv = dyn_cast<GlobalValue>(base_ptr)) {
     res = processGlobal(gv);
   } else if (ConstantExpr *ce = dyn_cast<ConstantExpr>(base_ptr)) {
-    if (ce->getOpcode() == Instruction::BitCast || 
+    if (ce->getOpcode() == Instruction::BitCast ||
         ce->getOpcode() == Instruction::GetElementPtr)
       res = processGepBitcast(base_ptr);
   } else if (!base_ptr->getType()->isPointerTy()) {
@@ -346,4 +355,3 @@ PTResult *IntraLotusAA::processBasePointer(Value *base_ptr) {
 
   return res;
 }
-

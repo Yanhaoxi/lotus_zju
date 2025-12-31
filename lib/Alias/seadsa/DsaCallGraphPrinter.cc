@@ -2,12 +2,12 @@
 ** Print the sea-dsa call graph to dot format.
 *****/
 
-#include <llvm/Pass.h>
 #include <llvm/Analysis/CallGraph.h>
 #include <llvm/Analysis/CallPrinter.h>
 #include <llvm/Analysis/DOTGraphTraitsPass.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
+#include <llvm/Pass.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/GraphWriter.h> 
 
@@ -19,7 +19,7 @@ using namespace llvm;
 
 namespace seadsa {
 extern std::string DotOutputDir;
-}
+} // namespace seadsa
 
 namespace llvm {
 template <>
@@ -49,7 +49,7 @@ struct DOTGraphTraits<CallGraph *> : public DefaultDOTGraphTraits {
     return "external node";
   }
 };
-}
+} // namespace llvm
 
 namespace seadsa {
 

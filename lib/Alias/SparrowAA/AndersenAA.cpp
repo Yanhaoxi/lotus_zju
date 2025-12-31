@@ -1,8 +1,8 @@
-#include <llvm/IR/Module.h>
-#include <vector>
-
 #include "Alias/SparrowAA/AndersenAA.h"
 
+#include <vector>
+
+#include <llvm/IR/Module.h>
 
 using namespace llvm;
 

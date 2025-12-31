@@ -27,7 +27,7 @@ using namespace llvm;
 
 namespace seadsa {
 bool g_IsTypeAware;
-}
+} // namespace seadsa
 
 static llvm::cl::opt<bool, true> XTypeAware(
     "sea-dsa-type-aware", llvm::cl::desc("Enable SeaDsa type awareness"),

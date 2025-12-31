@@ -20,7 +20,7 @@ static llvm::cl::opt<bool> EnableOmnipotentChar(
 
 namespace seadsa {
 bool g_IsTypeAware;
-}
+} // namespace seadsa
 
 namespace {
 using SeenTypes = llvm::SmallDenseSet<llvm::Type *, 8>;

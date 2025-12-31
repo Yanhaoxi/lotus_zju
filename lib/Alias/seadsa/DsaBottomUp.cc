@@ -27,7 +27,7 @@ using namespace llvm;
 
 namespace seadsa {
 bool NoBUFlowSensitiveOpt;
-}
+} // namespace seadsa
 
 static llvm::cl::opt<bool, true> XNoBUFlowSensitiveOpt(
     "sea-dsa-no-bu-flow-sensitive-opt",

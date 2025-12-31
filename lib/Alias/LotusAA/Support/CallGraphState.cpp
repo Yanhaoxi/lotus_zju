@@ -1,8 +1,9 @@
 /// @file CallGraphState.cpp
 /// @brief Call graph management with back-edge detection for recursive calls
 ///
-/// Manages the **dynamic call graph** during on-the-fly call graph construction.
-/// Tracks caller-callee relationships and identifies recursive cycles (back-edges).
+/// Manages the **dynamic call graph** during on-the-fly call graph
+/// construction. Tracks caller-callee relationships and identifies recursive
+/// cycles (back-edges).
 ///
 /// **Data Structure:**
 /// ```
@@ -12,7 +13,8 @@
 /// ```
 ///
 /// **Back-Edge Detection:**
-/// Uses DFS to identify cycles in the call graph. Back-edges indicate recursion:
+/// Uses DFS to identify cycles in the call graph. Back-edges indicate
+/// recursion:
 /// ```
 /// detectBackEdges():
 ///   for each root in call graph:
@@ -75,10 +77,11 @@ void CallGraphState::markBackEdge(Function *caller, Function *callee) {
   backEdges_[caller].insert(callee);
 }
 
-void CallGraphState::initializeForFunctions(const std::vector<Function *> &functions) {
+void CallGraphState::initializeForFunctions(
+    const std::vector<Function *> &functions) {
   for (Function *F : functions) {
-    topDown_[F];   // Create empty entry
-    bottomUp_[F];  // Create empty entry
+    topDown_[F];  // Create empty entry
+    bottomUp_[F]; // Create empty entry
   }
 }
 
@@ -100,10 +103,9 @@ void CallGraphState::detectBackEdges(std::set<Function *> &changedFuncs) {
 
 void CallGraphState::detectBackEdgesRecursive(
     std::set<Function *, llvm_cmp> &notVisited,
-    std::set<Function *, llvm_cmp> &visiting,
-    Function *currentFunc,
+    std::set<Function *, llvm_cmp> &visiting, Function *currentFunc,
     std::set<Function *> &changedFuncs) {
-  
+
   notVisited.erase(currentFunc);
   visiting.insert(currentFunc);
 
@@ -123,4 +125,3 @@ void CallGraphState::detectBackEdgesRecursive(
 
   visiting.erase(currentFunc);
 }
-

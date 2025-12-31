@@ -2,8 +2,7 @@
 // This file defines an implementation of Andersen's interprocedural alias
 // analysis
 //
-// In pointer analysis terms, this is a subset-based, flow-insensitive,
-// field-sensitive algorithm.  Context sensitivity is configurable: the
+// In pointer analysis terms, this is a subset-based, flow-insensitive algorithm.  Context sensitivity is configurable: the
 // default is context-insensitive, but k-call-site (k-CFA) contexts can
 // be enabled at runtime.
 //

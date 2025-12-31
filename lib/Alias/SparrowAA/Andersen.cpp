@@ -1,9 +1,9 @@
 
-#include <llvm/ADT/DenseSet.h>
-#include <llvm/ADT/Statistic.h>
-#include <llvm/IR/Module.h>
-#include <llvm/Support/CommandLine.h>
-#include <llvm/Support/raw_ostream.h>
+#include "Alias/SparrowAA/Andersen.h"
+
+#include "Alias/AserPTA/PointerAnalysis/Context/CtxTrait.h"
+#include "Alias/AserPTA/PointerAnalysis/Context/NoCtx.h"
+#include "Alias/SparrowAA/Log.h"
 
 #include <algorithm>
 #include <array>
@@ -12,10 +12,11 @@
 #include <unordered_set>
 #include <utility>
 
-#include "Alias/SparrowAA/Andersen.h"
-#include "Alias/AserPTA/PointerAnalysis/Context/CtxTrait.h"
-#include "Alias/AserPTA/PointerAnalysis/Context/NoCtx.h"
-#include "Alias/SparrowAA/Log.h"
+#include <llvm/ADT/DenseSet.h>
+#include <llvm/ADT/Statistic.h>
+#include <llvm/IR/Module.h>
+#include <llvm/Support/CommandLine.h>
+#include <llvm/Support/raw_ostream.h>
 
 #define DEBUG_TYPE "andersen"
 
@@ -28,9 +29,11 @@ STATISTIC(NumCopyConstraints, "Number of copy constraints");
 STATISTIC(NumLoadConstraints, "Number of load constraints");
 STATISTIC(NumStoreConstraints, "Number of store constraints");
 
-// Define option category for Andersen analysis options (non-static so it can be used across files)
-cl::OptionCategory AndersenCategory("Andersen Analysis Options",
-                                    "Options for configuring Andersen pointer analysis");
+// Define option category for Andersen analysis options (non-static so it can be
+// used across files)
+cl::OptionCategory
+    AndersenCategory("Andersen Analysis Options",
+                     "Options for configuring Andersen pointer analysis");
 
 cl::opt<bool> DumpDebugInfo("dump-debug",
                             cl::desc("Dump debug info into stderr"),
@@ -47,8 +50,7 @@ cl::opt<bool> DumpConstraintInfo("dump-cons",
 cl::opt<unsigned>
     AndersenKContext("andersen-k-cs",
                      cl::desc("Context-sensitive Andersen k-callsite (0/1/2)"),
-                     cl::init(0),
-                     cl::cat(AndersenCategory));
+                     cl::init(0), cl::cat(AndersenCategory));
 cl::opt<bool> AndersenUseBDDPointsTo(
     "andersen-use-bdd-pts",
     cl::desc("Use BDD-backed points-to sets instead of SparseBitVector"),
@@ -60,8 +62,7 @@ namespace {
 // the buggy KCallSite equality from AserPTA while still honoring the
 // requested level of context sensitivity. Contexts are interned so that
 // pointer identity is stable and can be used directly as a map key.
-template <unsigned K>
-struct CallStringContext {
+template <unsigned K> struct CallStringContext {
   std::array<const llvm::Instruction *, K> sites{};
   uint8_t size = 0;
   bool isGlobal = false;
@@ -74,17 +75,16 @@ struct CallStringContext {
   }
 };
 
-template <unsigned K>
-struct CallStringContextHash {
+template <unsigned K> struct CallStringContextHash {
   size_t operator()(const CallStringContext<K> &ctx) const {
     auto begin = ctx.sites.begin();
-    return llvm::hash_combine(ctx.isGlobal, ctx.size,
-                              llvm::hash_combine_range(begin, begin + ctx.size));
+    return llvm::hash_combine(
+        ctx.isGlobal, ctx.size,
+        llvm::hash_combine_range(begin, begin + ctx.size));
   }
 };
 
-template <unsigned K>
-struct CallStringContextEq {
+template <unsigned K> struct CallStringContextEq {
   bool operator()(const CallStringContext<K> &lhs,
                   const CallStringContext<K> &rhs) const {
     return lhs.isGlobal == rhs.isGlobal && lhs.size == rhs.size &&
@@ -93,8 +93,7 @@ struct CallStringContextEq {
   }
 };
 
-template <unsigned K>
-class CallStringCtxManager {
+template <unsigned K> class CallStringCtxManager {
 public:
   using Context = CallStringContext<K>;
 
@@ -103,8 +102,7 @@ public:
   const Context *getInitialCtx() const { return initialCtx; }
   const Context *getGlobalCtx() const { return globalCtx; }
 
-  const Context *evolve(const Context *prev,
-                        const llvm::Instruction *I) {
+  const Context *evolve(const Context *prev, const llvm::Instruction *I) {
     Context next = *prev;
     next.isGlobal = false;
     if (I != nullptr) {
@@ -161,14 +159,12 @@ private:
   }
 };
 
-template <unsigned K>
-CallStringCtxManager<K> &getCallStringManager() {
+template <unsigned K> CallStringCtxManager<K> &getCallStringManager() {
   static CallStringCtxManager<K> manager;
   return manager;
 }
 
-template <unsigned K>
-ContextPolicy buildKCallStringPolicy(const char *name) {
+template <unsigned K> ContextPolicy buildKCallStringPolicy(const char *name) {
   ContextPolicy policy{};
   policy.initialCtx = +[]() -> ContextPolicy::Context {
     return static_cast<const void *>(getCallStringManager<K>().getInitialCtx());
@@ -178,17 +174,16 @@ ContextPolicy buildKCallStringPolicy(const char *name) {
   };
   policy.evolve = +[](ContextPolicy::Context prev,
                       const llvm::Instruction *I) -> ContextPolicy::Context {
-    return static_cast<const void *>(
-        getCallStringManager<K>().evolve(
-            static_cast<const typename CallStringCtxManager<K>::Context *>(prev),
-            I));
+    return static_cast<const void *>(getCallStringManager<K>().evolve(
+        static_cast<const typename CallStringCtxManager<K>::Context *>(prev),
+        I));
   };
   policy.toString = +[](ContextPolicy::Context ctx, bool detailed) {
     return getCallStringManager<K>().toString(
         static_cast<const typename CallStringCtxManager<K>::Context *>(ctx),
         detailed);
   };
-  policy.release = +[]() { 
+  policy.release = +[]() {
     // Don't reset the manager to avoid invalidating context pointers
     // that may have been captured by existing Andersen objects.
     // The pool will be cleaned up when the program exits.
@@ -202,19 +197,20 @@ template <typename Ctx>
 ContextPolicy buildCtxPolicy(unsigned k, const char *name) {
   (void)k;
   ContextPolicy policy{};
-  policy.initialCtx = +[]() -> ContextPolicy::Context { 
-    return static_cast<const void *>(aser::CtxTrait<Ctx>::getInitialCtx()); 
+  policy.initialCtx = +[]() -> ContextPolicy::Context {
+    return static_cast<const void *>(aser::CtxTrait<Ctx>::getInitialCtx());
   };
-  policy.globalCtx = +[]() -> ContextPolicy::Context { 
-    return static_cast<const void *>(aser::CtxTrait<Ctx>::getGlobalCtx()); 
+  policy.globalCtx = +[]() -> ContextPolicy::Context {
+    return static_cast<const void *>(aser::CtxTrait<Ctx>::getGlobalCtx());
   };
   policy.evolve = +[](ContextPolicy::Context prev,
-                     const llvm::Instruction *I) -> ContextPolicy::Context {
+                      const llvm::Instruction *I) -> ContextPolicy::Context {
     return static_cast<const void *>(
         aser::CtxTrait<Ctx>::contextEvolve(static_cast<const Ctx *>(prev), I));
   };
   policy.toString = +[](ContextPolicy::Context ctx, bool detailed) {
-    return aser::CtxTrait<Ctx>::toString(static_cast<const Ctx *>(ctx), detailed);
+    return aser::CtxTrait<Ctx>::toString(static_cast<const Ctx *>(ctx),
+                                         detailed);
   };
   policy.release = +[]() { aser::CtxTrait<Ctx>::release(); };
   policy.k = k;
@@ -240,8 +236,7 @@ ContextPolicy getSelectedAndersenContextPolicy() {
 }
 
 Andersen::Andersen(const Module &module, ContextPolicy policy)
-    : ctxPolicy(policy),
-      initialCtx(ctxPolicy.initialCtx()),
+    : ctxPolicy(policy), initialCtx(ctxPolicy.initialCtx()),
       globalCtx(ctxPolicy.globalCtx()) {
   static int objectCounter = 0;
   int myId = ++objectCounter;
@@ -350,13 +345,14 @@ bool Andersen::runOnModule(const Module &M) {
   LOG_INFO("Starting Andersen analysis on module: {}", M.getName().str());
   visitedFunctions.clear();
   collectConstraints(M);
-  
+
   // Update statistics after constraint collection
   size_t numConstraints = constraints.size();
   size_t numValueNodes = nodeFactory.getNumNodes();
   NumConstraints = numConstraints;
   NumValueNodes = numValueNodes;
-  LOG_INFO("Collected {} constraints and created {} value nodes", numConstraints, numValueNodes);
+  LOG_INFO("Collected {} constraints and created {} value nodes",
+           numConstraints, numValueNodes);
   for (const auto &c : constraints) {
     switch (c.getType()) {
     case AndersConstraint::ADDR_OF:

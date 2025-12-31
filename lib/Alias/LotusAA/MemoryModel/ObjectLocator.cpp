@@ -1,9 +1,11 @@
 /// @file ObjectLocator.cpp
-/// @brief Field-sensitive memory location tracking with flow-sensitive value storage
+/// @brief Field-sensitive memory location tracking with flow-sensitive value
+/// storage
 ///
-/// This file implements `ObjectLocator`, which tracks **values stored at specific
-/// memory locations** (object + offset) across program execution paths. This is the
-/// key component enabling **flow-sensitive** and **field-sensitive** analysis.
+/// This file implements `ObjectLocator`, which tracks **values stored at
+/// specific memory locations** (object + offset) across program execution
+/// paths. This is the key component enabling **flow-sensitive** and
+/// **field-sensitive** analysis.
 ///
 /// **Core Abstraction:**
 /// ```
@@ -87,26 +89,22 @@ using namespace std;
 static cl::opt<int> lotus_memory_max_bb_load(
     "lotus-restrict-memory-max-bb-load",
     cl::desc("Maximum values read from memory location per BB"),
-    cl::init(LotusConfig::MemoryLimits::DEFAULT_MAX_BB_LOAD), 
-    cl::Hidden);
+    cl::init(LotusConfig::MemoryLimits::DEFAULT_MAX_BB_LOAD), cl::Hidden);
 
 static cl::opt<int> lotus_memory_max_bb_depth(
     "lotus-restrict-memory-max-bb-depth",
     cl::desc("Maximum dominating basic blocks to track"),
-    cl::init(LotusConfig::MemoryLimits::DEFAULT_MAX_BB_DEPTH), 
-    cl::Hidden);
+    cl::init(LotusConfig::MemoryLimits::DEFAULT_MAX_BB_DEPTH), cl::Hidden);
 
 static cl::opt<int> lotus_memory_max_load(
     "lotus-restrict-memory-max-load",
     cl::desc("Maximum values read from memory location total"),
-    cl::init(LotusConfig::MemoryLimits::DEFAULT_MAX_LOAD), 
-    cl::Hidden);
+    cl::init(LotusConfig::MemoryLimits::DEFAULT_MAX_LOAD), cl::Hidden);
 
 static cl::opt<int> lotus_memory_store_depth(
     "lotus-restrict-memory-store-depth",
     cl::desc("Maximum BBs to track for store operations"),
-    cl::init(LotusConfig::MemoryLimits::DEFAULT_STORE_DEPTH), 
-    cl::Hidden);
+    cl::init(LotusConfig::MemoryLimits::DEFAULT_STORE_DEPTH), cl::Hidden);
 
 //===----------------------------------------------------------------------===//
 // LocValue Implementation
@@ -131,13 +129,13 @@ void LocValue::dump() {
     outs() << val->getName();
   else
     val->print(outs());
-    
+
   outs() << " @";
   if (pos_inst && pos_inst->getParent())
     outs() << pos_inst->getParent()->getName();
   else
     outs() << "entry";
-    
+
   outs() << (isStrongUpdate() ? " [STRONG]\n" : " [WEAK]\n");
 }
 
@@ -146,29 +144,24 @@ void LocValue::dump() {
 //===----------------------------------------------------------------------===//
 
 ObjectLocator::ObjectLocator(MemObject *obj, int64_t off)
-    : object(obj), offset(off),
-      load_level(FUNC_LEVEL_UNDEFINED),
-      store_level(FUNC_LEVEL_UNDEFINED),
-      obj_index(obj->obj_index),
+    : object(obj), offset(off), load_level(FUNC_LEVEL_UNDEFINED),
+      store_level(FUNC_LEVEL_UNDEFINED), obj_index(obj->obj_index),
       loc_index(obj->loc_index++) {}
 
 ObjectLocator::ObjectLocator(const ObjectLocator &locator)
     : object(locator.getObj()), offset(locator.getOffset()),
-      load_level(locator.load_level),
-      store_level(locator.store_level),
+      load_level(locator.load_level), store_level(locator.store_level),
       obj_index(locator.getObj()->obj_index),
       loc_index(locator.getObj()->loc_index++) {}
 
 ObjectLocator::~ObjectLocator() {
   for (auto &it : loc_values) {
-    for (auto* lv : it.second)
+    for (auto *lv : it.second)
       delete lv;
   }
 }
 
-PTGraph *ObjectLocator::getPTG() {
-  return object->getPTG();
-}
+PTGraph *ObjectLocator::getPTG() { return object->getPTG(); }
 
 ObjectLocator *ObjectLocator::offsetBy(int64_t extra_off) {
   return object->findLocator(offset + extra_off, true);
@@ -189,7 +182,7 @@ std::vector<LocValue *> *ObjectLocator::getValueList(BasicBlock *bb) {
 }
 
 LocValue *ObjectLocator::storeValue(Value *val, Instruction *source,
-                                     int function_level) {
+                                    int function_level) {
   if (object->isNull() || object->isUnknown())
     return nullptr;
 
@@ -205,9 +198,9 @@ LocValue *ObjectLocator::storeValue(Value *val, Instruction *source,
   LocValue::UpdateType update_type = LocValue::STRONG;
 
   BasicBlock *src_bb = source->getParent();
-  
+
   // Check if value already exists
-  for (auto* loc_val : loc_values[src_bb]) {
+  for (auto *loc_val : loc_values[src_bb]) {
     if (loc_val->getPos() == source && loc_val->getVal() == val) {
       loc_val->resetUpdateType(LocValue::STRONG);
       return loc_val;
@@ -222,28 +215,29 @@ LocValue *ObjectLocator::storeValue(Value *val, Instruction *source,
     Type *val_type = val->getType();
     object->getUpdatedOffset()[offset] = val_type;
     object->getStoredValues()[offset].insert(val);
-    
+
     if (val != LocValue::NO_VALUE && isa<PointerType>(val_type)) {
       object->getPointerOffset()[offset] = val_type;
     }
   }
-  
+
   return loc_val;
 }
 
 void ObjectLocator::placePhi(LocValue *loc_value, BasicBlock *bb_start) {
   PTGraph *pt_graph = getPTG();
   DominatorTree *dom_tree = pt_graph->getDomTree();
-  
+
   if (!dom_tree)
     return;
 
   // Use modern IDFCalculator (LLVM 14+) to compute iterated dominance frontier
-  // This replaces the old DominanceFrontierWrapperPass which was removed in LLVM 12+
+  // This replaces the old DominanceFrontierWrapperPass which was removed in
+  // LLVM 12+
   SmallVector<BasicBlock *, 32> Frontier;
   SmallPtrSet<BasicBlock *, 32> DefBlocks;
   DefBlocks.insert(bb_start);
-  
+
   ForwardIDFCalculator IDF(*dom_tree);
   IDF.setDefiningBlocks(DefBlocks);
   IDF.calculate(Frontier);
@@ -257,8 +251,8 @@ void ObjectLocator::placePhi(LocValue *loc_value, BasicBlock *bb_start) {
   // Place weak phi values in frontier BBs
   for (int i = 0; i < num_blocks; i++) {
     BasicBlock *processing_bb = Frontier[i];
-    LocValue *phi_lv = new LocValue(loc_value->getVal(), loc_value->getPos(),
-                                    LocValue::WEAK);
+    LocValue *phi_lv =
+        new LocValue(loc_value->getVal(), loc_value->getPos(), LocValue::WEAK);
     loc_values[processing_bb].push_back(phi_lv);
   }
 }
@@ -276,7 +270,7 @@ LocValue *ObjectLocator::getVersion(Instruction *pos_inst) {
 
     if (lv_list) {
       int end_pos = lv_list->size();
-      
+
       if (bb == startBB) {
         // Find last value before pos_inst
         auto it = bb->rbegin(), ie = bb->rend();
@@ -314,8 +308,8 @@ static Value *get_constant_from_aggregate(Constant *val, int64_t offset,
                                           const DataLayout *DL);
 
 Argument *ObjectLocator::getValues(Instruction *from_loc, mem_value_t &res,
-                                    Type *symbol_type, int function_level,
-                                    bool enable_strong_update) {
+                                   Type *symbol_type, int function_level,
+                                   bool enable_strong_update) {
   // Check for constant global initializer
   Value *alloc_site = object->getAllocSite();
   if (alloc_site) {
@@ -326,7 +320,7 @@ Argument *ObjectLocator::getValues(Instruction *from_loc, mem_value_t &res,
           res.push_back(mem_value_item_t(nullptr, constant_global));
           return nullptr;
         } else {
-          return nullptr;  // Constant with no initializer
+          return nullptr; // Constant with no initializer
         }
       }
     }
@@ -351,12 +345,14 @@ Argument *ObjectLocator::getValues(Instruction *from_loc, mem_value_t &res,
 
       // Apply heuristic limits when strong update enabled
       if (enable_strong_update) {
-        if (lotus_memory_max_bb_depth != -1 && bb_tracked > lotus_memory_max_bb_depth)
+        if (lotus_memory_max_bb_depth != -1 &&
+            bb_tracked > lotus_memory_max_bb_depth)
           return nullptr;
-          
-        if (lotus_memory_max_bb_load != -1 && end_pos > lotus_memory_max_bb_load)
+
+        if (lotus_memory_max_bb_load != -1 &&
+            end_pos > lotus_memory_max_bb_load)
           return nullptr;
-          
+
         if (lotus_memory_max_load != -1 && value_loaded > lotus_memory_max_load)
           return nullptr;
       }
@@ -409,7 +405,8 @@ Argument *ObjectLocator::getValues(Instruction *from_loc, mem_value_t &res,
     }
 
     // Move to immediate dominator.
-    // Note: unreachable blocks are not in the DT, and the entry block has no IDom.
+    // Note: unreachable blocks are not in the DT, and the entry block has no
+    // IDom.
     DomTreeNode *node = DT->getNode(bb);
     if (!node)
       break;
@@ -495,11 +492,11 @@ static Value *get_constant_from_aggregate(Constant *val, int64_t offset,
     int64_t cur_size = 0;
     int64_t last_size = 0;
     unsigned idx = 0;
-    
+
     for (idx = 0; idx < n_elem; idx++) {
       if (cur_size >= offset)
         break;
-      
+
       Type *t = st->getContainedType(idx);
       last_size = cur_size;
       cur_size += DL->getTypeSizeInBits(t);
@@ -555,4 +552,3 @@ raw_ostream &operator<<(raw_ostream &out, ObjectLocator &locator) {
 }
 
 } // namespace llvm
-

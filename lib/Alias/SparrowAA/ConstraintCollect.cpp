@@ -1,8 +1,12 @@
 /*
-* FIXME: It seems that the analysis does not use on-the-fly callgraph * construction, but uses a lightweight address-taken analysis to get * the callee list.
-* See the implementation of void Andersen::addConstraintForCall for details.
-*/
+ * FIXME: It seems that the analysis does not use on-the-fly callgraph *
+ * construction, but uses a lightweight address-taken analysis to get * the
+ * callee list. See the implementation of void Andersen::addConstraintForCall
+ * for details.
+ */
 
+#include "Alias/SparrowAA/Andersen.h"
+#include "Alias/SparrowAA/Log.h"
 
 #include <llvm/ADT/STLExtras.h>
 #include <llvm/ADT/Statistic.h>
@@ -13,10 +17,6 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/PatternMatch.h>
 #include <llvm/Support/raw_ostream.h>
-
-
-#include "Alias/SparrowAA/Andersen.h"
-#include "Alias/SparrowAA/Log.h"
 
 #define DEBUG_TYPE "andersen"
 
@@ -42,8 +42,9 @@ STATISTIC(NumPointerInstructions, "Number of pointer instructions processed");
 // constraint, and setting up the initial points-to graph.
 
 void Andersen::collectConstraints(const Module &M) {
-  LOG_INFO("collectConstraints: Starting, nodeFactory has {} nodes", nodeFactory.getNumNodes());
-  
+  LOG_INFO("collectConstraints: Starting, nodeFactory has {} nodes",
+           nodeFactory.getNumNodes());
+
   // First, the universal ptr points to universal obj, and the universal obj
   // points to itself
   constraints.emplace_back(AndersConstraint::ADDR_OF,
@@ -58,15 +59,17 @@ void Andersen::collectConstraints(const Module &M) {
                            nodeFactory.getNullPtrNode(),
                            nodeFactory.getNullObjectNode());
 
-  LOG_INFO("collectConstraints: Added {} initial constraints", constraints.size());
-  
+  LOG_INFO("collectConstraints: Added {} initial constraints",
+           constraints.size());
+
   // Next, add any constraints on global variables. Associate the address of the
   // global object as pointing to the memory for the global: &G = <G memory>
   // Use initialCtx for globals to ensure consistency with function analysis
   collectConstraintsForGlobals(M, initialCtx);
-  
-  LOG_INFO("collectConstraints: After globals, have {} constraints and {} nodes", 
-           constraints.size(), nodeFactory.getNumNodes());
+
+  LOG_INFO(
+      "collectConstraints: After globals, have {} constraints and {} nodes",
+      constraints.size(), nodeFactory.getNumNodes());
 
   // Process every defined function with the initial context; calls will spawn
   // more contexts as needed.
@@ -103,7 +106,7 @@ void Andersen::collectConstraintsForFunction(const Function *f,
   // may refer to the value node defined before it (e.g. phi nodes)
   for (const_inst_iterator itr = inst_begin(*f), ite = inst_end(*f); itr != ite;
        ++itr) {
-    const auto* inst = &*itr.getInstructionIterator();
+    const auto *inst = &*itr.getInstructionIterator();
     if (inst->getType()->isPointerTy()) {
       nodeFactory.createValueNode(inst, ctx);
       ++NumPointerInstructions;
@@ -113,7 +116,7 @@ void Andersen::collectConstraintsForFunction(const Function *f,
   // Now, collect constraint for each relevant instruction
   for (const_inst_iterator itr = inst_begin(*f), ite = inst_end(*f); itr != ite;
        ++itr) {
-    const auto* inst = &*itr.getInstructionIterator();
+    const auto *inst = &*itr.getInstructionIterator();
     collectConstraintsForInstruction(inst, ctx);
   }
 }
@@ -202,8 +205,8 @@ void Andersen::addGlobalInitializerConstraints(NodeIndex objNode,
            isa<ConstantStruct>(c));
 
     for (unsigned i = 0, e = c->getNumOperands(); i != e; ++i)
-      addGlobalInitializerConstraints(objNode,
-                                      cast<Constant>(c->getOperand(i)), ctx);
+      addGlobalInitializerConstraints(objNode, cast<Constant>(c->getOperand(i)),
+                                      ctx);
   }
 }
 
@@ -235,7 +238,8 @@ void Andersen::collectConstraintsForInstruction(const Instruction *inst,
           nodeFactory.getReturnNodeFor(inst->getParent()->getParent(), ctx);
       assert(retIndex != AndersNodeFactory::InvalidIndex &&
              "Failed to find return node");
-      NodeIndex valIndex = nodeFactory.getValueNodeFor(inst->getOperand(0), ctx);
+      NodeIndex valIndex =
+          nodeFactory.getValueNodeFor(inst->getOperand(0), ctx);
       assert(valIndex != AndersNodeFactory::InvalidIndex &&
              "Failed to find return value node");
       constraints.emplace_back(AndersConstraint::COPY, retIndex, valIndex);
@@ -256,10 +260,12 @@ void Andersen::collectConstraintsForInstruction(const Instruction *inst,
   }
   case Instruction::Store: {
     if (inst->getOperand(0)->getType()->isPointerTy()) {
-      NodeIndex srcIndex = nodeFactory.getValueNodeFor(inst->getOperand(0), ctx);
+      NodeIndex srcIndex =
+          nodeFactory.getValueNodeFor(inst->getOperand(0), ctx);
       assert(srcIndex != AndersNodeFactory::InvalidIndex &&
              "Failed to find store src node");
-      NodeIndex dstIndex = nodeFactory.getValueNodeFor(inst->getOperand(1), ctx);
+      NodeIndex dstIndex =
+          nodeFactory.getValueNodeFor(inst->getOperand(1), ctx);
       assert(dstIndex != AndersNodeFactory::InvalidIndex &&
              "Failed to find store dst node");
       constraints.emplace_back(AndersConstraint::STORE, dstIndex, srcIndex);
@@ -299,7 +305,8 @@ void Andersen::collectConstraintsForInstruction(const Instruction *inst,
   }
   case Instruction::BitCast: {
     if (inst->getType()->isPointerTy()) {
-      NodeIndex srcIndex = nodeFactory.getValueNodeFor(inst->getOperand(0), ctx);
+      NodeIndex srcIndex =
+          nodeFactory.getValueNodeFor(inst->getOperand(0), ctx);
       assert(srcIndex != AndersNodeFactory::InvalidIndex &&
              "Failed to find bitcast src node");
       NodeIndex dstIndex = nodeFactory.getValueNodeFor(inst, ctx);
@@ -351,10 +358,12 @@ void Andersen::collectConstraintsForInstruction(const Instruction *inst,
   }
   case Instruction::Select: {
     if (inst->getType()->isPointerTy()) {
-      NodeIndex srcIndex1 = nodeFactory.getValueNodeFor(inst->getOperand(1), ctx);
+      NodeIndex srcIndex1 =
+          nodeFactory.getValueNodeFor(inst->getOperand(1), ctx);
       assert(srcIndex1 != AndersNodeFactory::InvalidIndex &&
              "Failed to find select src node 1");
-      NodeIndex srcIndex2 = nodeFactory.getValueNodeFor(inst->getOperand(2), ctx);
+      NodeIndex srcIndex2 =
+          nodeFactory.getValueNodeFor(inst->getOperand(2), ctx);
       assert(srcIndex2 != AndersNodeFactory::InvalidIndex &&
              "Failed to find select src node 2");
       NodeIndex dstIndex = nodeFactory.getValueNodeFor(inst, ctx);
@@ -387,12 +396,14 @@ void Andersen::collectConstraintsForInstruction(const Instruction *inst,
       NodeIndex dstIndex = nodeFactory.getValueNodeFor(inst, ctx);
       assert(dstIndex != AndersNodeFactory::InvalidIndex &&
              "Failed to find extractvalue dst node");
-      
-      // Check if the aggregate operand is also tracked (it might be if it contains pointers)
+
+      // Check if the aggregate operand is also tracked (it might be if it
+      // contains pointers)
       Value *aggOperand = inst->getOperand(0);
       NodeIndex srcIndex = nodeFactory.getValueNodeFor(aggOperand, ctx);
       if (srcIndex != AndersNodeFactory::InvalidIndex) {
-        // Conservative: the extracted pointer inherits the points-to set of the aggregate
+        // Conservative: the extracted pointer inherits the points-to set of the
+        // aggregate
         constraints.emplace_back(AndersConstraint::COPY, dstIndex, srcIndex);
       } else {
         // The aggregate is not tracked (no pointers involved in its creation)
@@ -444,7 +455,8 @@ void Andersen::collectConstraintsForInstruction(const Instruction *inst,
 
     // Load-like effect: the result is the old value in memory.
     if (ar->getType()->isPointerTy()) {
-      NodeIndex ptrIndex = nodeFactory.getValueNodeFor(ar->getPointerOperand(), ctx);
+      NodeIndex ptrIndex =
+          nodeFactory.getValueNodeFor(ar->getPointerOperand(), ctx);
       if (ptrIndex != AndersNodeFactory::InvalidIndex) {
         NodeIndex resIndex = nodeFactory.getValueNodeFor(ar, ctx);
         assert(resIndex != AndersNodeFactory::InvalidIndex &&
@@ -535,8 +547,7 @@ void Andersen::addConstraintForCall(const llvm::CallBase *cs,
       }
     } else // Non-external function call
     {
-      AndersNodeFactory::CtxKey calleeCtx =
-          ctxPolicy.evolve(callerCtx, cs);
+      AndersNodeFactory::CtxKey calleeCtx = ctxPolicy.evolve(callerCtx, cs);
       collectConstraintsForFunction(f, calleeCtx);
 
       if (cs->getType()->isPointerTy()) {
@@ -554,7 +565,8 @@ void Andersen::addConstraintForCall(const llvm::CallBase *cs,
   } else // Indirect call
   {
     ++NumIndirectCalls;
-    // We do the simplest thing here: just assume the returned value can be anything :)
+    // We do the simplest thing here: just assume the returned value can be
+    // anything :)
     if (cs->getType()->isPointerTy()) {
       NodeIndex retIndex = nodeFactory.getValueNodeFor(cs, callerCtx);
       assert(retIndex != AndersNodeFactory::InvalidIndex &&
@@ -564,8 +576,11 @@ void Andersen::addConstraintForCall(const llvm::CallBase *cs,
     }
 
     // For argument constraints, first search through all addr-taken functions:
-    // any function that takes can take as many variables is a potential candidate
-    // FIXME: so, it seems that the analysis does not use on-the-fly callgraph construction, but uses a lightweight address-taken analysis to get the callee list
+    // any function that takes can take as many variables is a potential
+    // candidate
+    // FIXME: so, it seems that the analysis does not use on-the-fly callgraph
+    // construction, but uses a lightweight address-taken analysis to get the
+    // callee list
     const Module *M = cs->getFunction()->getParent();
     for (auto const &f : *M) {
       NodeIndex funPtrIndex = nodeFactory.getValueNodeFor(&f, callerCtx);
@@ -586,7 +601,8 @@ void Andersen::addConstraintForCall(const llvm::CallBase *cs,
           for (unsigned i = 0; i < cs->arg_size(); ++i) {
             Value *argVal = cs->getArgOperand(i);
             if (argVal->getType()->isPointerTy()) {
-              NodeIndex argIndex = nodeFactory.getValueNodeFor(argVal, callerCtx);
+              NodeIndex argIndex =
+                  nodeFactory.getValueNodeFor(argVal, callerCtx);
               assert(argIndex != AndersNodeFactory::InvalidIndex &&
                      "Failed to find arg node!");
               constraints.emplace_back(AndersConstraint::COPY, argIndex,
@@ -595,8 +611,7 @@ void Andersen::addConstraintForCall(const llvm::CallBase *cs,
           }
         }
       } else {
-        AndersNodeFactory::CtxKey calleeCtx =
-            ctxPolicy.evolve(callerCtx, cs);
+        AndersNodeFactory::CtxKey calleeCtx = ctxPolicy.evolve(callerCtx, cs);
         collectConstraintsForFunction(&f, calleeCtx);
         addArgumentConstraintForCall(cs, &f, callerCtx, calleeCtx);
       }
@@ -604,13 +619,12 @@ void Andersen::addConstraintForCall(const llvm::CallBase *cs,
   }
 }
 
-void Andersen::addArgumentConstraintForCall(const llvm::CallBase *cs,
-                                          const Function *f,
-                                          AndersNodeFactory::CtxKey callerCtx,
-                                          AndersNodeFactory::CtxKey calleeCtx) {
+void Andersen::addArgumentConstraintForCall(
+    const llvm::CallBase *cs, const Function *f,
+    AndersNodeFactory::CtxKey callerCtx, AndersNodeFactory::CtxKey calleeCtx) {
   Function::const_arg_iterator fItr = f->arg_begin();
   unsigned argIdx = 0;
-  
+
   while (fItr != f->arg_end() && argIdx < cs->arg_size()) {
     const Argument *formal = &*fItr;
     const Value *actual = cs->getArgOperand(argIdx);
@@ -652,5 +666,5 @@ void Andersen::addArgumentConstraintForCall(const llvm::CallBase *cs,
   }
 }
 
-// The implementation of addConstraintForExternalLibrary is in ExternalLibrary.cpp
-// so we remove the duplicate implementation here
+// The implementation of addConstraintForExternalLibrary is in
+// ExternalLibrary.cpp so we remove the duplicate implementation here

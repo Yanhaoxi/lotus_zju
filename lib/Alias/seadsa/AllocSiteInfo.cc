@@ -13,8 +13,8 @@
 #include <llvm/Support/raw_ostream.h>
 
 #include "Alias/seadsa/AllocSiteInfo.hh"
-#include "Alias/seadsa/InitializePasses.hh"
 #include "Alias/seadsa/AllocWrapInfo.hh"
+#include "Alias/seadsa/InitializePasses.hh"
 #include "Alias/seadsa/TypeUtils.hh"
 #include "Alias/seadsa/support/Debug.h"
 

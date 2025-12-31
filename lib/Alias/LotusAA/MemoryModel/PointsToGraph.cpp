@@ -1,8 +1,9 @@
 /// @file PointsToGraph.cpp
 /// @brief Points-to graph data structure and core operations
 ///
-/// This file implements `PTGraph` and `PTResult`, the foundational data structures
-/// for representing and querying **points-to relationships** in LotusAA.
+/// This file implements `PTGraph` and `PTResult`, the foundational data
+/// structures for representing and querying **points-to relationships** in
+/// LotusAA.
 ///
 /// **Core Data Structures:**
 ///
@@ -46,7 +47,8 @@
 ///
 /// **Configuration:**
 /// - `lotus_restrict_pts_count`: Max points-to set size (default: 100)
-/// - `lotus_restrict_obj_ap_depth`: Max access path depth for objects (default: 5)
+/// - `lotus_restrict_obj_ap_depth`: Max access path depth for objects (default:
+/// 5)
 ///
 /// **Special Values:**
 /// - `NullPTS`: Singleton for null pointer
@@ -59,13 +61,15 @@
 /// @see ObjectLocator for field-level tracking
 
 #include "Alias/LotusAA/MemoryModel/PointsToGraph.h"
+
 #include "Alias/LotusAA/Engine/InterProceduralPass.h"
 #include "Alias/LotusAA/Support/Config.h"
 
-#include <llvm/Analysis/DominanceFrontier.h>
-#include <llvm/Support/CommandLine.h>
 #include <set>
 #include <tuple>
+
+#include <llvm/Analysis/DominanceFrontier.h>
+#include <llvm/Support/CommandLine.h>
 
 using namespace llvm;
 using namespace std;
@@ -77,8 +81,8 @@ static cl::opt<int> lotus_restrict_pts_count(
 
 static cl::opt<int> lotus_restrict_obj_ap_depth(
     "lotus-restrict-obj-ap-depth",
-    cl::desc("Maximum AP-depth of objects considered for callees"),
-    cl::init(5), cl::Hidden);
+    cl::desc("Maximum AP-depth of objects considered for callees"), cl::init(5),
+    cl::Hidden);
 
 // Static members
 Type *PTGraph::DEFAULT_NON_POINTER_TYPE = nullptr;
@@ -92,12 +96,12 @@ PTResultIterator::PTResultIterator(PTResult *target, PTGraph *parent_graph)
     : parent_graph(parent_graph) {
   set<PTResult *> visited;
   visit(target, 0, visited);
-  
+
   // Optimize: cache results in target
   if (!target->is_optimized) {
     target->pt_list.clear();
     int count = 0;
-    for (auto* loc : res) {
+    for (auto *loc : res) {
       count++;
       if (lotus_restrict_pts_count != -1 && count > lotus_restrict_pts_count)
         break;
@@ -113,11 +117,11 @@ void PTResultIterator::visit(PTResult *target, int64_t off,
   // Don't crash in release builds; just treat them as empty.
   if (!target)
     return;
-  
+
   // Check for cycles - if already visited, skip
   if (visited.count(target))
     return;
-  
+
   visited.insert(target);
 
   // Direct targets
@@ -136,7 +140,7 @@ void PTResultIterator::visit(PTResult *target, int64_t off,
       continue;
     visit(item.src_pts, off + item.offset, visited);
   }
-  
+
   // Don't erase from visited - we want to prevent cycles
 }
 
@@ -153,9 +157,9 @@ raw_ostream &operator<<(raw_ostream &out, PTResultIterator &pt_it) {
 
 // PTGraph
 PTGraph::PTGraph(Function *F, LotusAA *lotus_aa)
-    : analyzed_func(F), lotus_aa(lotus_aa),
-      pt_index(0), obj_index(0), load_load_match_performed(false) {
-  
+    : analyzed_func(F), lotus_aa(lotus_aa), pt_index(0), obj_index(0),
+      load_load_match_performed(false) {
+
   // Get dominance information
   dom_tree = lotus_aa->getDomTree(F);
 
@@ -195,9 +199,9 @@ PTResult *PTGraph::findPTResult(Value *ptr, bool is_create) {
 }
 
 MemObject *PTGraph::newObject(Value *alloc_site, MemObject::ObjKind obj_type) {
-  MemObject *obj = (obj_type == MemObject::CONCRETE) 
-                    ? new MemObject(alloc_site, this, obj_type)
-                    : new SymbolicMemObject(alloc_site, this);
+  MemObject *obj = (obj_type == MemObject::CONCRETE)
+                       ? new MemObject(alloc_site, this, obj_type)
+                       : new SymbolicMemObject(alloc_site, this);
 
   if (isa_and_nonnull<GlobalValue>(alloc_site)) {
     global_objects.insert(obj);
@@ -208,14 +212,17 @@ MemObject *PTGraph::newObject(Value *alloc_site, MemObject::ObjKind obj_type) {
 }
 
 PTResult *PTGraph::addPointsTo(Value *ptr, MemObject *obj, int64_t offset) {
-  assert(pt_results.find(ptr) == pt_results.end() && "Re-assigning value (SSA violation)");
+  assert(pt_results.find(ptr) == pt_results.end() &&
+         "Re-assigning value (SSA violation)");
   PTResult *pts = findPTResult(ptr, true);
   pts->add_target(obj, offset);
   return pts;
 }
 
-PTResult *PTGraph::derivePtsFrom(Value *ptr, PTResult *other_pts, int64_t offset) {
-  assert(pt_results.find(ptr) == pt_results.end() && "Re-assigning value (SSA violation)");
+PTResult *PTGraph::derivePtsFrom(Value *ptr, PTResult *other_pts,
+                                 int64_t offset) {
+  assert(pt_results.find(ptr) == pt_results.end() &&
+         "Re-assigning value (SSA violation)");
   PTResult *pts = findPTResult(ptr, true);
   pts->add_derived_target(other_pts, offset);
   return pts;
@@ -228,7 +235,7 @@ PTResult *PTGraph::assignPts(Value *ptr, PTResult *pts) {
 
 Type *PTGraph::normalizeType(Type *type) {
   assert(type && "Normalizing NULL type");
-  return type;  // Use original type
+  return type; // Use original type
 }
 
 void PTGraph::refineResult(mem_value_t &to_refine) {
@@ -252,11 +259,11 @@ void PTGraph::trackPtrRightValue(Value *ptr, mem_value_t &res) {
 }
 
 void PTGraph::trackPtrRightValueImpl(Value *ptr, mem_value_t &res,
-                                      set<Value *, llvm_cmp> &visited) {
+                                     set<Value *, llvm_cmp> &visited) {
   // Cycle detection - prevent infinite recursion
   if (visited.count(ptr))
     return;
-  
+
   visited.insert(ptr);
 
   if (Argument *arg = dyn_cast<Argument>(ptr)) {
@@ -273,7 +280,7 @@ void PTGraph::trackPtrRightValueImpl(Value *ptr, mem_value_t &res,
     }
   } else if (SelectInst *sel = dyn_cast<SelectInst>(ptr)) {
     trackPtrRightValueImpl(sel->getTrueValue(), res, visited);
-    
+
     trackPtrRightValueImpl(sel->getFalseValue(), res, visited);
   } else if (CastInst *cast = dyn_cast<CastInst>(ptr)) {
     trackPtrRightValueImpl(cast->getOperand(0), res, visited);
@@ -284,20 +291,22 @@ void PTGraph::trackPtrRightValueImpl(Value *ptr, mem_value_t &res,
   refineResult(res);
 }
 
-void PTGraph::getLoadValues(Value *ptr, Instruction *from_loc,
-                               mem_value_t &res, int64_t offset) {
+void PTGraph::getLoadValues(Value *ptr, Instruction *from_loc, mem_value_t &res,
+                            int64_t offset) {
   loadPtrAt(ptr, from_loc, res, false, offset);
 }
 
-void PTGraph::loadPtrAt(Value *ptr, Instruction *from_loc, mem_value_t &result, bool create_symbol, int64_t query_offset) {
+void PTGraph::loadPtrAt(Value *ptr, Instruction *from_loc, mem_value_t &result,
+                        bool create_symbol, int64_t query_offset) {
   // Use visited set to prevent infinite recursion
   std::set<std::tuple<Value *, Instruction *, int64_t>> visited;
   loadPtrAtImpl(ptr, from_loc, result, create_symbol, query_offset, visited);
 }
 
-void PTGraph::loadPtrAtImpl(Value *ptr, Instruction *from_loc, mem_value_t &result,
-                          bool create_symbol, int64_t query_offset,
-                          std::set<std::tuple<Value *, Instruction *, int64_t>> &visited) {
+void PTGraph::loadPtrAtImpl(
+    Value *ptr, Instruction *from_loc, mem_value_t &result, bool create_symbol,
+    int64_t query_offset,
+    std::set<std::tuple<Value *, Instruction *, int64_t>> &visited) {
   // Defensive: callers should pass real IR values/locations, but fuzzing and
   // summary edges can route nullptrs here. Avoid null-deref inside type queries
   // and ObjectLocator::getValues() (which requires a non-null Instruction*).
@@ -336,7 +345,7 @@ void PTGraph::loadPtrAtImpl(Value *ptr, Instruction *from_loc, mem_value_t &resu
   for (auto *loc : iter) {
     int64_t offset = loc->getOffset();
     MemObject *obj = loc->getObj();
-    
+
     // Skip null and unknown objects
     if (obj->isNull() || obj->isUnknown())
       continue;
@@ -353,7 +362,8 @@ void PTGraph::loadPtrAtImpl(Value *ptr, Instruction *from_loc, mem_value_t &resu
                      ObjectLocator::FUNC_LEVEL_UNDEFINED, true);
     } else {
       // No program point: fall back to the coarse per-object stored-value cache
-      // at this offset. This is conservative and avoids requiring dominance info.
+      // at this offset. This is conservative and avoids requiring dominance
+      // info.
       const int64_t off_key = offset + query_offset;
       auto &stored = obj->getStoredValues();
       auto it = stored.find(off_key);
@@ -367,7 +377,7 @@ void PTGraph::loadPtrAtImpl(Value *ptr, Instruction *from_loc, mem_value_t &resu
       if (tmp_result.empty()) {
         tmp_result.push_back(mem_value_item_t(
             nullptr, obj->isReallyAllocated() ? LocValue::UNDEF_VALUE
-                                             : LocValue::FREE_VARIABLE));
+                                              : LocValue::FREE_VARIABLE));
       }
     }
 
@@ -413,7 +423,7 @@ void PTGraph::performLoadLoadMatch() {
       }
     }
   }
-  
+
   load_load_match_performed = true;
 }
 
@@ -425,15 +435,15 @@ PTGraph::getAllLoadWithSameValue(LoadInst *load_inst) {
 }
 
 bool PTGraph::isSameValue(LoadInst *l1, LoadInst *l2) {
-  if (!load_category.empty() && load_category.count(l1) && load_category.count(l2)) {
+  if (!load_category.empty() && load_category.count(l1) &&
+      load_category.count(l2)) {
     return load_category[l1] == load_category[l2];
   }
   return isSameValue(l1->getPointerOperand(), l1, l2->getPointerOperand(), l2);
 }
 
 bool PTGraph::isSameValue(Value *ptr1, Instruction *pos1, Value *ptr2,
-                            Instruction *pos2, int64_t offset1,
-                            int64_t offset2) {
+                          Instruction *pos2, int64_t offset1, int64_t offset2) {
   PTResult *ptr1_pts = findPTResult(ptr1);
   PTResult *ptr2_pts = findPTResult(ptr2);
 
@@ -448,16 +458,16 @@ bool PTGraph::isSameValue(Value *ptr1, Instruction *pos1, Value *ptr2,
 
   // Check if all locations match
   set<ObjectLocator *, obj_loc_cmp> locs1, locs2;
-  for (auto*  loc : iter1)
+  for (auto *loc : iter1)
     locs1.insert(loc->offsetBy(offset1));
-  for (auto* loc : iter2)
+  for (auto *loc : iter2)
     locs2.insert(loc->offsetBy(offset2));
 
   if (locs1 != locs2)
     return false;
 
   // Check if versions match
-  for (auto* loc : locs1) {
+  for (auto *loc : locs1) {
     MemObject *obj = loc->getObj();
     if (obj->isNull() || obj->isUnknown())
       continue;
@@ -482,8 +492,9 @@ int PTGraph::getObjectToCallApDepth(MemObject *obj, CallInst *call) {
 
   // Get or compute frontier
   set<MemObject *, mem_obj_cmp> &frontier = object_call_ap_depth_frontier[call];
-  map<MemObject *, int, mem_obj_cmp> &cache = object_call_arg_ap_depth_cache[call];
-  
+  map<MemObject *, int, mem_obj_cmp> &cache =
+      object_call_arg_ap_depth_cache[call];
+
   if (frontier.empty()) {
     // Initialize: add global objects
     for (MemObject *global_obj : global_objects) {
@@ -497,7 +508,7 @@ int PTGraph::getObjectToCallApDepth(MemObject *obj, CallInst *call) {
       PTResult *pts_result = findPTResult(arg, false);
       if (pts_result) {
         PTResultIterator result_iter(pts_result, this);
-        for (auto* pt_loc : result_iter) {
+        for (auto *pt_loc : result_iter) {
           MemObject *pt_obj = pt_loc->getObj();
           if (!cache.count(pt_obj)) {
             cache[pt_obj] = 1;
@@ -528,20 +539,20 @@ int PTGraph::getObjectToCallApDepth(MemObject *obj, CallInst *call) {
   while (frontier_depth < lotus_restrict_obj_ap_depth) {
     for (MemObject *frontier_obj : frontier) {
       map<int64_t, Type *> &updated_offsets = frontier_obj->getUpdatedOffset();
-      
+
       for (auto &offset_pair : updated_offsets) {
         int64_t offset = offset_pair.first;
         ObjectLocator *locator = frontier_obj->findLocator(offset, false);
         if (locator) {
           mem_value_t pt_values;
           locator->getValues(call, pt_values);
-          
+
           for (mem_value_item_t &value_item : pt_values) {
             Value *val = value_item.val;
             PTResult *pts_result = findPTResult(val, false);
             if (pts_result) {
               PTResultIterator result_iter(pts_result, this);
-              for (auto* pt_loc : result_iter) {
+              for (auto *pt_loc : result_iter) {
                 MemObject *pt_obj = pt_loc->getObj();
                 if (!cache.count(pt_obj)) {
                   cache[pt_obj] = frontier_depth + 1;
@@ -572,7 +583,4 @@ int PTGraph::getObjectToCallApDepth(MemObject *obj, CallInst *call) {
   return FUNC_OBJ_UNREACHABLE;
 }
 
-const DataLayout &PTGraph::getDL() {
-  return lotus_aa->getDataLayout();
-}
-
+const DataLayout &PTGraph::getDL() { return lotus_aa->getDataLayout(); }

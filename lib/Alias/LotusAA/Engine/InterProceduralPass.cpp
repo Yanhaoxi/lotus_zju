@@ -1,8 +1,11 @@
 /// @file InterProceduralPass.cpp
-/// @brief LLVM module pass implementing inter-procedural pointer analysis with call graph construction
+/// @brief LLVM module pass implementing inter-procedural pointer analysis with
+/// call graph construction
 ///
-/// This file implements `LotusAA`, the top-level LLVM ModulePass that orchestrates
-/// **whole-program pointer analysis** and **on-the-fly call graph construction**.
+/// This file implements `LotusAA`, the top-level LLVM ModulePass that
+/// orchestrates
+/// **whole-program pointer analysis** and **on-the-fly call graph
+/// construction**.
 ///
 /// **Pass Architecture:**
 /// ```
@@ -64,10 +67,13 @@
 /// @see FunctionPointerResults for storing resolved indirect calls
 
 #include "Alias/LotusAA/Engine/InterProceduralPass.h"
+
 #include "Alias/LotusAA/Engine/IntraProceduralAnalysis.h"
 #include "Alias/LotusAA/MemoryModel/MemObject.h"
 #include "Alias/LotusAA/MemoryModel/PointsToGraph.h"
 #include "Alias/LotusAA/Support/LotusConfig.h"
+
+#include <algorithm>
 
 #include <llvm/IR/Dominators.h>
 #include <llvm/IR/Instructions.h>
@@ -75,16 +81,13 @@
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/raw_ostream.h>
 
-#include <algorithm>
-
 using namespace llvm;
 using namespace std;
 
 // Command-line options
-static cl::opt<bool> lotus_cg(
-    "lotus-cg",
-    cl::desc("Use LotusAA to build call graph"),
-    cl::init(LotusConfig::DebugOptions::DEFAULT_ENABLE_CG));
+static cl::opt<bool>
+    lotus_cg("lotus-cg", cl::desc("Use LotusAA to build call graph"),
+             cl::init(LotusConfig::DebugOptions::DEFAULT_ENABLE_CG));
 
 static cl::opt<int> lotus_restrict_cg_iter(
     "lotus-restrict-cg-iter",
@@ -96,33 +99,32 @@ static cl::opt<bool> lotus_enable_global_heuristic(
     cl::desc("Enable heuristic for global pointer handling"),
     cl::init(LotusConfig::Heuristics::DEFAULT_ENABLE_GLOBAL_HEURISTIC));
 
-static cl::opt<bool> lotus_print_pts(
-    "lotus-print-pts",
-    cl::desc("Print LotusAA points-to results"),
-    cl::init(LotusConfig::DebugOptions::DEFAULT_PRINT_PTS));
+static cl::opt<bool>
+    lotus_print_pts("lotus-print-pts",
+                    cl::desc("Print LotusAA points-to results"),
+                    cl::init(LotusConfig::DebugOptions::DEFAULT_PRINT_PTS));
 
-static cl::opt<bool> lotus_print_cg(
-    "lotus-print-cg",
-    cl::desc("Print LotusAA call graph results"),
-    cl::init(LotusConfig::DebugOptions::DEFAULT_PRINT_CG));
+static cl::opt<bool>
+    lotus_print_cg("lotus-print-cg",
+                   cl::desc("Print LotusAA call graph results"),
+                   cl::init(LotusConfig::DebugOptions::DEFAULT_PRINT_CG));
 
 static cl::opt<unsigned> lotus_parallel_threads(
-    "lotus-aa-threads",
-    cl::desc("Number of threads for LotusAA (0 = auto)"),
-    cl::init(1));  // Default to single-threaded to avoid concurrency bugs
+    "lotus-aa-threads", cl::desc("Number of threads for LotusAA (0 = auto)"),
+    cl::init(1)); // Default to single-threaded to avoid concurrency bugs
 
 char LotusAA::ID = 0;
 static RegisterPass<LotusAA> X("lotus-aa",
-                                "LotusAA: Flow-sensitive alias analysis",
-                                false, /* CFG only */
-                                true   /* is analysis */);
+                               "LotusAA: Flow-sensitive alias analysis",
+                               false, /* CFG only */
+                               true /* is analysis */);
 
 LotusAA::LotusAA() : ModulePass(ID), DL(nullptr) {}
 
 LotusAA::~LotusAA() {
   delete MemObject::NullObj;
   delete MemObject::UnknownObj;
-  
+
   // Note: Don't delete Arguments - they're LLVM-managed
   // The sentinel values (FREE_VARIABLE, etc.) are Arguments but
   // we created them, so we shouldn't delete them either
@@ -149,7 +151,7 @@ bool LotusAA::runOnModule(Module &M) {
   DL = &M.getDataLayout();
 
   IntraLotusAAConfig::setParam();
-  
+
   // Initialize spec manager
   specManager_.initialize(M);
 
@@ -204,13 +206,14 @@ void LotusAA::computeGlobalHeuristic(Module &M) {
   }
 }
 
-void LotusAA::initFuncProcessingSeq(Module &M, std::vector<Function *> &func_seq) {
+void LotusAA::initFuncProcessingSeq(Module &M,
+                                    std::vector<Function *> &func_seq) {
   // Simple bottom-up ordering (reverse call graph)
   map<Function *, int> out_degrees;
-  
+
   // Clear and initialize call graph
   callGraphState_.clear();
-  
+
   std::vector<Function *> allFunctions;
   for (Function &F : M) {
     allFunctions.push_back(&F);
@@ -246,7 +249,7 @@ void LotusAA::initFuncProcessingSeq(Module &M, std::vector<Function *> &func_seq
   while (!worklist.empty()) {
     Function *F = worklist.back();
     worklist.pop_back();
-    
+
     if (F)
       func_seq.push_back(F);
 
@@ -274,7 +277,8 @@ void LotusAA::initCGBackedge() {
   }
 }
 
-void LotusAA::computePtsCgIteratively(Module &M, std::vector<Function *> &func_seq) {
+void LotusAA::computePtsCgIteratively(Module &M,
+                                      std::vector<Function *> &func_seq) {
   initCGBackedge();
 
   bool changed = true;
@@ -290,8 +294,8 @@ void LotusAA::computePtsCgIteratively(Module &M, std::vector<Function *> &func_s
   const unsigned poolMax = 1;
 
   while (changed && iteration < lotus_restrict_cg_iter) {
-    outs() << "[LotusAA] Iteration " << (iteration + 1)
-           << " using " << poolMax << " thread(s)\n";
+    outs() << "[LotusAA] Iteration " << (iteration + 1) << " using " << poolMax
+           << " thread(s)\n";
 
     initFuncProcessingSeq(M, func_seq);
     changed = false;
@@ -299,7 +303,7 @@ void LotusAA::computePtsCgIteratively(Module &M, std::vector<Function *> &func_s
     // Sequential analysis: process functions in bottom-up order
     for (Function *func : func_seq) {
       bool needsAnalysis = (iteration == 0) || changed_func.count(func);
-      
+
       if (!needsAnalysis)
         continue;
 
@@ -309,7 +313,7 @@ void LotusAA::computePtsCgIteratively(Module &M, std::vector<Function *> &func_s
       if (lotus_cg)
         new_result->computeCG();
 
-      bool interface_changed = 
+      bool interface_changed =
           old_result ? !old_result->isSameInterface(new_result) : true;
 
       // Update results
@@ -336,24 +340,25 @@ void LotusAA::computePtsCgIteratively(Module &M, std::vector<Function *> &func_s
       // These are functions whose callees had interface changes
       set<Function *> callersNeedingReanalysis = changed_func;
       changed_func.clear();
-      
+
       for (size_t i = func_seq.size() - 1; i >= 0; i--) {
         Function *func = func_seq[i];
         IntraLotusAA *func_result = getPtGraph(func);
-        
+
         if (!func_result)
           continue;
 
         // Get new call graph resolution results
         const auto &newCgResults = func_result->cg_resolve_result;
-        
+
         // Update function pointer results and detect changes
         for (const auto &callsiteResult : newCgResults) {
           Value *callsite = callsiteResult.first;
           const CallTargetSet &newTargets = callsiteResult.second;
-          
-          CallTargetSet *oldTargets = functionPointerResults_.getTargets(func, callsite);
-          
+
+          CallTargetSet *oldTargets =
+              functionPointerResults_.getTargets(func, callsite);
+
           // Check if changed
           bool targetsChanged = false;
           if (!oldTargets) {
@@ -378,7 +383,7 @@ void LotusAA::computePtsCgIteratively(Module &M, std::vector<Function *> &func_s
 
           // Update targets
           functionPointerResults_.setTargets(func, callsite, newTargets);
-          
+
           // Update call graph edges
           for (Function *target : newTargets) {
             callGraphState_.addEdge(func, target);
@@ -388,14 +393,15 @@ void LotusAA::computePtsCgIteratively(Module &M, std::vector<Function *> &func_s
 
       // Detect back edges in updated call graph
       callGraphState_.detectBackEdges(changed_func);
-      
+
       // Merge back callers that need reanalysis due to interface changes
-      changed_func.insert(callersNeedingReanalysis.begin(), callersNeedingReanalysis.end());
-      
+      changed_func.insert(callersNeedingReanalysis.begin(),
+                          callersNeedingReanalysis.end());
+
       if (!changed_func.empty())
         changed = true;
     } else {
-      break;  // No CG updates, single iteration
+      break; // No CG updates, single iteration
     }
 
     iteration++;
@@ -408,7 +414,7 @@ void LotusAA::finalizeCg(std::vector<Function *> &func_seq) {
   if (lotus_print_cg) {
     for (Function *func : func_seq) {
       IntraLotusAA *result = getPtGraph(func);
-      if (result) {     
+      if (result) {
         result->showFunctionPointers();
       }
     }
@@ -426,12 +432,13 @@ void LotusAA::finalizeCg(std::vector<Function *> &func_seq) {
 
 bool LotusAA::computePTA(Function *F) {
   assert(intraResults_.count(F));
-  // FIXME: it seems that we almost re-run the analysis in each round of the on-the-fly callgraph construction??
-  // Maybe this is due partly to the flow-sensitive nature of our analysis?
-  
+  // FIXME: it seems that we almost re-run the analysis in each round of the
+  // on-the-fly callgraph construction?? Maybe this is due partly to the
+  // flow-sensitive nature of our analysis?
+
   IntraLotusAA *old_result = intraResults_[F];
   IntraLotusAA *new_result = new IntraLotusAA(F, this);
-  
+
   new_result->computePTA();
 
   if (lotus_cg)
@@ -479,4 +486,3 @@ bool LotusAA::isBackEdge(Function *caller, Function *callee) {
 CallTargetSet *LotusAA::getCallees(Function *func, Value *callsite) {
   return functionPointerResults_.getTargets(func, callsite);
 }
-

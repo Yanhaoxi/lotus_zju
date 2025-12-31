@@ -12,8 +12,8 @@
 // DEBUG_TYPE intentionally not defined to avoid macro redefinition issues
 
 #include "Alias/SRAA/vSSA.h"
-#include "llvm/IR/Instructions.h"
 #include "llvm/IR/CFG.h"
+#include "llvm/IR/Instructions.h"
 #include "llvm/Support/Casting.h"
 
 using namespace llvm;

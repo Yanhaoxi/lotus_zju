@@ -1,14 +1,18 @@
 /// @file CallGraphSolver.cpp
-/// @brief Call graph construction and indirect call resolution using pointer analysis
+/// @brief Call graph construction and indirect call resolution using pointer
+/// analysis
 ///
-/// This file implements **context-sensitive call graph construction** for LotusAA,
-/// resolving indirect function calls (function pointers) using the results of
-/// pointer analysis.
+/// This file implements **context-sensitive call graph construction** for
+/// LotusAA, resolving indirect function calls (function pointers) using the
+/// results of pointer analysis.
 ///
 /// **Key Responsibilities:**
-/// 1. **Indirect Call Resolution**: Determine possible callee targets for function pointers
-/// 2. **Call Graph Summaries**: Build compact summaries of which functions may be called
-/// 3. **Inter-procedural Propagation**: Inline summary information through call chains
+/// 1. **Indirect Call Resolution**: Determine possible callee targets for
+/// function pointers
+/// 2. **Call Graph Summaries**: Build compact summaries of which functions may
+/// be called
+/// 3. **Inter-procedural Propagation**: Inline summary information through call
+/// chains
 /// 4. **Visualization**: Print resolved call graphs for debugging
 ///
 /// **Algorithm Overview:**
@@ -41,10 +45,10 @@
 using namespace llvm;
 using namespace std;
 
-static cl::opt<bool> lotus_print_cg_details(
-    "lotus-print-cg-details",
-    cl::desc("Print detailed CG resolution info"),
-    cl::init(false), cl::Hidden);
+static cl::opt<bool>
+    lotus_print_cg_details("lotus-print-cg-details",
+                           cl::desc("Print detailed CG resolution info"),
+                           cl::init(false), cl::Hidden);
 
 /// Resolves a value to the set of functions it may represent.
 ///
@@ -54,33 +58,36 @@ static cl::opt<bool> lotus_print_cg_details(
 /// - Functions returned from calls
 /// - Functions passed through arguments
 ///
-/// @param val The value to resolve (may be function, call result, argument, etc.)
+/// @param val The value to resolve (may be function, call result, argument,
+/// etc.)
 /// @param target Output set populated with resolved function targets
 ///
 /// **Resolution Cases:**
 /// 1. **Direct Function**: `val` is a Function* → add to target set
 /// 2. **Call Return**: `val` is CallBase → query callee's output summary
-/// 3. **Argument**: `val` is Argument → mark as needing inter-procedural resolution
+/// 3. **Argument**: `val` is Argument → mark as needing inter-procedural
+/// resolution
 ///
 /// **Inter-procedural Handling:**
-/// For arguments, adds to `input_cg_summary` so callers can provide concrete values.
+/// For arguments, adds to `input_cg_summary` so callers can provide concrete
+/// values.
 ///
 /// @see computeCG() for the main call graph computation algorithm
 /// @see trackPtrRightValue() for value tracking implementation
 void IntraLotusAA::resolveCallValue(Value *val, cg_result_t &target) {
   mem_value_t resolved_tmp;
   trackPtrRightValue(val, resolved_tmp);
-  
+
   for (auto &item : resolved_tmp) {
     Value *resolved_val = item.val;
-    
+
     if (Function *func = dyn_cast<Function>(resolved_val)) {
       // Direct function pointer
       target.insert(func);
     } else if (CallBase *call = dyn_cast<CallBase>(resolved_val)) {
       // Function returned from call
       Instruction *callsite_inst = call;
-      
+
       // Get the callee's return value functions
       if (Function *called_func = call->getCalledFunction()) {
         IntraLotusAA *callee_PTG = lotus_aa->getPtGraph(called_func);
@@ -147,12 +154,12 @@ void IntraLotusAA::computeCG() {
       if (CallBase *call = dyn_cast<CallBase>(&inst)) {
         // Process both direct and indirect calls
         Function *base_func = func;
-        auto* callees = lotus_aa->getCallees(base_func, call);
+        auto *callees = lotus_aa->getCallees(base_func, call);
 
         if (callees && IntraLotusAAConfig::lotus_restrict_inline_depth != 0) {
           // Inline input summaries from callees
           int callee_idx = 0;
-          for (auto* callee : *callees) {
+          for (auto *callee : *callees) {
             if (callee_idx >= IntraLotusAAConfig::lotus_restrict_cg_size)
               break;
 
@@ -171,12 +178,13 @@ void IntraLotusAA::computeCG() {
               func_arg_t *caller_args = &func_arg[call][callee];
 
               // Process input CG summaries
-              map<Argument *, map<cg_result_t *, bool>, llvm_cmp> &callee_input_cg_summary =
-                  callee_PTG->input_cg_summary;
+              map<Argument *, map<cg_result_t *, bool>, llvm_cmp>
+                  &callee_input_cg_summary = callee_PTG->input_cg_summary;
 
               for (auto &arg_summary_pair : callee_input_cg_summary) {
                 Argument *callee_arg = arg_summary_pair.first;
-                map<cg_result_t *, bool> &callee_arg_summary = arg_summary_pair.second;
+                map<cg_result_t *, bool> &callee_arg_summary =
+                    arg_summary_pair.second;
 
                 if (!caller_args->count(callee_arg))
                   continue;
@@ -185,7 +193,7 @@ void IntraLotusAA::computeCG() {
 
                 for (auto &callee_summary_item : callee_arg_summary) {
                   cg_result_t *inline_target = callee_summary_item.first;
-                  
+
                   for (auto &caller_arg_value : caller_arg_values) {
                     Value *caller_arg_value_val = caller_arg_value.val;
                     resolveCallValue(caller_arg_value_val, *inline_target);
@@ -208,12 +216,12 @@ void IntraLotusAA::computeCG() {
   if (IntraLotusAAConfig::lotus_restrict_inline_depth != 0) {
     size_t output_size = outputs.size();
     output_cg_summary.resize(output_size);
-    
+
     for (size_t idx = 0; idx < output_size; idx++) {
       OutputItem *output_item = outputs[idx];
       if (!output_item->getType()->isPointerTy())
         continue;
-      
+
       cg_result_t &target = output_cg_summary[idx];
 
       auto &src_value_all = output_item->getVal();
@@ -248,24 +256,25 @@ void IntraLotusAA::computeCG() {
 /// @see computeCG() for the resolution algorithm
 void IntraLotusAA::showFunctionPointers() {
   bool title_printed = false;
-  
+
   for (auto &cg_item : cg_resolve_result) {
     Value *call_site = cg_item.first;
     if (CallBase *call = dyn_cast<CallBase>(call_site)) {
       if (call->getCalledFunction())
-        continue;  // Skip direct calls
+        continue; // Skip direct calls
     }
 
     if (!title_printed) {
       outs() << "\n";
-      outs() << "========== Function Pointers: " << analyzed_func->getName() << " ==========\n";
+      outs() << "========== Function Pointers: " << analyzed_func->getName()
+             << " ==========\n";
       title_printed = true;
     }
 
     outs() << "  Call Site: ";
     call_site->print(outs());
     outs() << "\n";
-    
+
     cg_result_t &result = cg_item.second;
     for (Function *resolved_func : result) {
       outs() << "    -> " << resolved_func->getName() << "\n";
@@ -275,4 +284,3 @@ void IntraLotusAA::showFunctionPointers() {
   if (title_printed)
     outs() << "===============================================\n\n";
 }
-

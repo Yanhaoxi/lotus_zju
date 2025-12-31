@@ -18,7 +18,7 @@
 
 namespace seadsa {
 extern bool g_IsTypeAware;
-}
+} // namespace seadsa
 
 using namespace seadsa;
 using namespace llvm;
@@ -39,7 +39,7 @@ static llvm::cl::opt<seadsa::GlobalAnalysisKind> DsaGlobalAnalysis(
 
 namespace seadsa {
 bool PrintDsaStats;
-}
+} // namespace seadsa
 
 static llvm::cl::opt<bool, true>
     XDsaStats("sea-dsa-stats",
