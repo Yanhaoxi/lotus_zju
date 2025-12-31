@@ -1,12 +1,11 @@
 #pragma once
 
-#include "Verification/SymbolicAbstraction/Utils/Utils.h"
 #include "Verification/SymbolicAbstraction/Core/ResultStore.h"
+#include "Verification/SymbolicAbstraction/Utils/Utils.h"
 
 #include <llvm/IR/Function.h>
 
-namespace symbolic_abstraction
-{
+namespace symbolic_abstraction {
 class FunctionContext;
 
 /**
@@ -29,64 +28,58 @@ class FunctionContext;
  * An additional benefit is that this class supports serialization via Cereal
  * whereas `llvm::Value` by itself doesn't.
  */
-class RepresentedValue
-{
-    friend class FunctionContext;
+class RepresentedValue {
+  friend class FunctionContext;
 
-  private:
-    unsigned Id_;
-    llvm::Value* Value_;
+private:
+  unsigned Id_;
+  llvm::Value *Value_;
 
-    RepresentedValue(unsigned id, llvm::Value* value) : Id_(id), Value_(value)
-    {
-        assert(value != nullptr);
-    }
+  RepresentedValue(unsigned id, llvm::Value *value) : Id_(id), Value_(value) {
+    assert(value != nullptr);
+  }
 
-  public:
-    /**
-     * Creates a representation of a null pointer.
-     */
-    RepresentedValue() : Value_(nullptr) {}
+public:
+  /**
+   * Creates a representation of a null pointer.
+   */
+  RepresentedValue() : Value_(nullptr) {}
 
-    operator llvm::Value*() const { return Value_; }
-    llvm::Value* operator->() const { return Value_; }
+  operator llvm::Value *() const { return Value_; }
+  llvm::Value *operator->() const { return Value_; }
 
-    /**
-     * Returns the numerical id. `this` must not be null.
-     */
-    unsigned id() const
-    {
-        assert(Value_ != nullptr);
-        return Id_;
-    }
+  /**
+   * Returns the numerical id. `this` must not be null.
+   */
+  unsigned id() const {
+    assert(Value_ != nullptr);
+    return Id_;
+  }
 
-    RepresentedValue(const RepresentedValue&) = default;
-    RepresentedValue& operator=(const RepresentedValue&) = default;
+  RepresentedValue(const RepresentedValue &) = default;
+  RepresentedValue &operator=(const RepresentedValue &) = default;
 
-    friend bool operator<(const RepresentedValue& r1,
-                          const RepresentedValue& r2)
-    {
-        return r1.Id_ < r2.Id_;
-    };
+  friend bool operator<(const RepresentedValue &r1,
+                        const RepresentedValue &r2) {
+    return r1.Id_ < r2.Id_;
+  };
 
-    friend std::ostream& operator<<(std::ostream& out,
-                                    const RepresentedValue& value);
+  friend std::ostream &operator<<(std::ostream &out,
+                                  const RepresentedValue &value);
 
 #ifdef ENABLE_DYNAMIC
-    template <class Archive> void save(Archive& archive) const
-    {
-        ResultStore::ValueWrapper wrap(Value_);
-        archive(wrap);
-    }
+  template <class Archive> void save(Archive &archive) const {
+    ResultStore::ValueWrapper wrap(Value_);
+    archive(wrap);
+  }
 
-    template <class Archive> void load(Archive& archive)
-    {
-        ResultStore::ValueWrapper wrap;
-        archive(wrap);
-        auto& fctx = cereal::get_user_data<FunctionContext>(archive);
-        if (wrap != nullptr)
-            *this = *fctx.findRepresentedValue(wrap);
-    }
+  template <class Archive> void load(Archive &archive) {
+    ResultStore::ValueWrapper wrap;
+    archive(wrap);
+    auto &fctx = cereal::get_user_data<FunctionContext>(archive);
+    if (wrap != nullptr)
+      *this = *fctx.findRepresentedValue(wrap);
+  }
 #endif
 };
 } // namespace symbolic_abstraction

@@ -1,33 +1,34 @@
 // SymbolicAbstraction check helpers: assertion and memory-safety reporting
 #include "Verification/SymbolicAbstraction/Core/Checks.h"
+
 #include "Verification/SymbolicAbstraction/Analyzers/Analyzer.h"
 #include "Verification/SymbolicAbstraction/Core/repr.h"
 #include "Verification/SymbolicAbstraction/Domains/MemRegions.h"
 #include "Verification/SymbolicAbstraction/Utils/PrettyPrinter.h"
 
-#include <llvm/IR/Instructions.h>
-#include <llvm/Support/raw_ostream.h>
-
 #include <set>
 #include <vector>
+
+#include <llvm/IR/Instructions.h>
+#include <llvm/Support/raw_ostream.h>
 
 using namespace llvm;
 using namespace symbolic_abstraction;
 
-int runAssertionCheck(Analyzer* analyzer, Function* targetFunc) {
+int runAssertionCheck(Analyzer *analyzer, Function *targetFunc) {
   int numViolations = 0;
   int numAssertCalls = 0;
-  for (auto& bb : *targetFunc) {
-    for (auto& instr : bb) {
+  for (auto &bb : *targetFunc) {
+    for (auto &instr : bb) {
       if (llvm::isa<llvm::CallInst>(instr)) {
-        auto& call = llvm::cast<llvm::CallInst>(instr);
-        auto* calledFunc = call.getCalledFunction();
+        auto &call = llvm::cast<llvm::CallInst>(instr);
+        auto *calledFunc = call.getCalledFunction();
         if (calledFunc) {
           std::string funcName = calledFunc->getName().str();
           // Check for various assertion function names
-          if (funcName == "__assert_fail" || 
-              funcName == "__assert_rtn" ||
-              (funcName.find("assert") != std::string::npos && calledFunc->doesNotReturn())) {
+          if (funcName == "__assert_fail" || funcName == "__assert_rtn" ||
+              (funcName.find("assert") != std::string::npos &&
+               calledFunc->doesNotReturn())) {
             numAssertCalls++;
             if (!analyzer->at(&bb)->isBottom()) {
               numViolations++;
@@ -54,40 +55,42 @@ int runAssertionCheck(Analyzer* analyzer, Function* targetFunc) {
     if (numAssertCalls == 0) {
       outs() << "No assertion calls found in function.\n";
     } else {
-      outs() << "No violated assertions detected (all " << numAssertCalls 
+      outs() << "No violated assertions detected (all " << numAssertCalls
              << " assertion(s) appear safe).\n";
     }
   }
   return (numViolations < 128) ? numViolations : 1;
 }
 
-int runMemSafetyCheck(Analyzer* analyzer, Function* targetFunc) {
+int runMemSafetyCheck(Analyzer *analyzer, Function *targetFunc) {
   int numViolations = 0;
-  std::set<std::pair<const llvm::Value*, const llvm::BasicBlock*>> reported;
+  std::set<std::pair<const llvm::Value *, const llvm::BasicBlock *>> reported;
 
-  for (auto& bb : *targetFunc) {
+  for (auto &bb : *targetFunc) {
     bool containsMemOp = false;
-    for (auto& inst : bb) {
+    for (auto &inst : bb) {
       if (llvm::isa<llvm::StoreInst>(inst) || llvm::isa<llvm::LoadInst>(inst))
         containsMemOp = true;
     }
-    if (!containsMemOp) continue;
+    if (!containsMemOp)
+      continue;
 
-    std::vector<const AbstractValue*> vals;
+    std::vector<const AbstractValue *> vals;
     analyzer->after(&bb)->gatherFlattenedSubcomponents(&vals);
 
-    for (auto& instr : bb) {
-      llvm::Value* ptr = nullptr;
+    for (auto &instr : bb) {
+      llvm::Value *ptr = nullptr;
       if (auto *asStore = llvm::dyn_cast<llvm::StoreInst>(&instr))
         ptr = asStore->getPointerOperand();
       if (auto *asLoad = llvm::dyn_cast<llvm::LoadInst>(&instr))
         ptr = asLoad->getPointerOperand();
-      if (!ptr) continue;
+      if (!ptr)
+        continue;
 
       bool isValid = false;
       for (const auto *v : vals) {
-        if (const auto *asVr =
-                dynamic_cast<const symbolic_abstraction::domains::ValidRegion*>(v)) {
+        if (const auto *asVr = dynamic_cast<
+                const symbolic_abstraction::domains::ValidRegion *>(v)) {
           if (asVr->getRepresentedPointer() == ptr && asVr->isValid()) {
             isValid = true;
             break;
@@ -122,5 +125,3 @@ int runMemSafetyCheck(Analyzer* analyzer, Function* targetFunc) {
   }
   return (numViolations < 128) ? numViolations : 1;
 }
-
-

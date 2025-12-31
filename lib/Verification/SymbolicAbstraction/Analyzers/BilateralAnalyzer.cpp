@@ -7,12 +7,10 @@
     of Wisconsin, Madison.
  */
 #include "Verification/SymbolicAbstraction/Analyzers/Analyzer.h"
-
 #include "Verification/SymbolicAbstraction/Core/ValueMapping.h"
 #include "Verification/SymbolicAbstraction/Utils/Utils.h"
 
-namespace symbolic_abstraction
-{
+namespace symbolic_abstraction {
 /**
  * Bi-directional version of strongest consequence using widening and narrowing.
  *
@@ -23,56 +21,54 @@ namespace symbolic_abstraction
  * counterexample model. The process stops once the upper bound is below
  * the lower bound in the lattice ordering.
  */
-bool BilateralAnalyzer::strongestConsequence(AbstractValue* result,
+bool BilateralAnalyzer::strongestConsequence(AbstractValue *result,
                                              z3::expr phi,
-                                             const ValueMapping& vmap) const
-{
-    using std::unique_ptr;
-    bool changed = false;
-    z3::solver solver(phi.ctx());
-    solver.add(phi);
-    unsigned int loop_count = 0;
+                                             const ValueMapping &vmap) const {
+  using std::unique_ptr;
+  bool changed = false;
+  z3::solver solver(phi.ctx());
+  solver.add(phi);
+  unsigned int loop_count = 0;
 
-    auto lower = std::unique_ptr<AbstractValue>(result->clone());
+  auto lower = std::unique_ptr<AbstractValue>(result->clone());
 
-    result->havoc();
+  result->havoc();
 
-    // TODO resource management and timeouts
-    while (!((*result) <= (*lower))) {
-        vout << "*** lower ***\n" << *lower << "\n";
-        vout << "*** upper ***\n" << *result << "\n";
-        vout << "loop iteration: " << ++loop_count << "\n";
+  // TODO resource management and timeouts
+  while (!((*result) <= (*lower))) {
+    vout << "*** lower ***\n" << *lower << "\n";
+    vout << "*** upper ***\n" << *result << "\n";
+    vout << "loop iteration: " << ++loop_count << "\n";
 
-        auto p = std::unique_ptr<AbstractValue>(lower->clone());
-        p->abstractConsequence(*result);
+    auto p = std::unique_ptr<AbstractValue>(lower->clone());
+    p->abstractConsequence(*result);
 
-        solver.push();
-        solver.add(!p->toFormula(vmap, phi.ctx()));
+    solver.push();
+    solver.add(!p->toFormula(vmap, phi.ctx()));
 
-        auto z3_answer = checkWithStats(&solver);
-        assert(z3_answer != z3::unknown);
+    auto z3_answer = checkWithStats(&solver);
+    assert(z3_answer != z3::unknown);
 
-        if (z3_answer == z3::unsat) {
-            vout << "unsat\n"
-                 << "p {{{\n"
-                 << *p << "}}}\n";
-            result->meetWith(*p);
-        } else {
-            vout << "sat\n"
-                 << "model {{{\n"
-                 << solver.get_model() << "}}}\n";
+    if (z3_answer == z3::unsat) {
+      vout << "unsat\n"
+           << "p {{{\n"
+           << *p << "}}}\n";
+      result->meetWith(*p);
+    } else {
+      vout << "sat\n"
+           << "model {{{\n"
+           << solver.get_model() << "}}}\n";
 
-            auto cstate = ConcreteState(vmap, solver.get_model());
-            if (lower->updateWith(cstate))
-                changed = true;
-        }
-        solver.pop();
+      auto cstate = ConcreteState(vmap, solver.get_model());
+      if (lower->updateWith(cstate))
+        changed = true;
     }
+    solver.pop();
+  }
 
-    // FIXME changed should be checked differently when we work with
-    // overapproximations
-    return changed;
+  // FIXME changed should be checked differently when we work with
+  // overapproximations
+  return changed;
 }
 
 } // namespace symbolic_abstraction
-

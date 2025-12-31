@@ -1,23 +1,21 @@
 #pragma once
 
-#include "Verification/SymbolicAbstraction/Utils/Utils.h"
 #include "Verification/SymbolicAbstraction/Core/AbstractValue.h"
 #include "Verification/SymbolicAbstraction/Core/ConcreteState.h"
 #include "Verification/SymbolicAbstraction/Core/Expression.h"
 #include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
-
 #include "Verification/SymbolicAbstraction/Domains/Product.h"
+#include "Verification/SymbolicAbstraction/Utils/Utils.h"
+
 #include <memory>
 
 #include <llvm/IR/CFG.h>
 #include <llvm/IR/Value.h>
 
-namespace symbolic_abstraction
-{
+namespace symbolic_abstraction {
 class FunctionContext;
 
-namespace domains
-{
+namespace domains {
 using std::unique_ptr;
 
 /**
@@ -35,68 +33,62 @@ using std::unique_ptr;
  *  is false in every program run, `TOP` that both cases might occur and
  *  `BOTTOM` that none of them occur.
  */
-class Predicates : public AbstractValue
-{
-  public:
-    typedef std::function<Expression(Expression, Expression)> pred_t;
-    enum Value { BOTTOM, TRUE, FALSE, TOP };
+class Predicates : public AbstractValue {
+public:
+  typedef std::function<Expression(Expression, Expression)> pred_t;
+  enum Value { BOTTOM, TRUE, FALSE, TOP };
 
-  private:
-    const FunctionContext& FunctionContext_;
-    Expression Predicate_;
-    Value Val_ = BOTTOM;
+private:
+  const FunctionContext &FunctionContext_;
+  Expression Predicate_;
+  Value Val_ = BOTTOM;
 
-  public:
-    Predicates(const FunctionContext& fctx, const Expression& predicate)
-        : FunctionContext_(fctx), Predicate_(predicate)
-    {
-    }
+public:
+  Predicates(const FunctionContext &fctx, const Expression &predicate)
+      : FunctionContext_(fctx), Predicate_(predicate) {}
 
-    virtual bool joinWith(const AbstractValue& av_other) override;
+  virtual bool joinWith(const AbstractValue &av_other) override;
 
-    virtual bool meetWith(const AbstractValue& av_other) override;
+  virtual bool meetWith(const AbstractValue &av_other) override;
 
-    virtual bool updateWith(const ConcreteState& cstate) override;
+  virtual bool updateWith(const ConcreteState &cstate) override;
 
-    virtual z3::expr toFormula(const ValueMapping& vmap,
-                               z3::context& zctx) const override;
+  virtual z3::expr toFormula(const ValueMapping &vmap,
+                             z3::context &zctx) const override;
 
-    virtual void havoc() override { Val_ = TOP; }
+  virtual void havoc() override { Val_ = TOP; }
 
-    virtual AbstractValue* clone() const override
-    {
-        return new Predicates(*this);
-    }
+  virtual AbstractValue *clone() const override {
+    return new Predicates(*this);
+  }
 
-    virtual bool isTop() const override { return Val_ == TOP; }
-    virtual bool isBottom() const override { return Val_ == BOTTOM; }
+  virtual bool isTop() const override { return Val_ == TOP; }
+  virtual bool isBottom() const override { return Val_ == BOTTOM; }
 
-    virtual void prettyPrint(PrettyPrinter& out) const override;
+  virtual void prettyPrint(PrettyPrinter &out) const override;
 
-    virtual void resetToBottom() override { Val_ = BOTTOM; }
+  virtual void resetToBottom() override { Val_ = BOTTOM; }
 
-    virtual bool isJoinableWith(const AbstractValue& other) const override;
+  virtual bool isJoinableWith(const AbstractValue &other) const override;
 
-    Value getValue() const { return Val_; }
+  Value getValue() const { return Val_; }
 
 #ifdef ENABLE_DYNAMIC
-    template <class Archive> void save(Archive& archive) const
-    {
-        archive(Predicate_);
-        archive(Val_);
-    }
+  template <class Archive> void save(Archive &archive) const {
+    archive(Predicate_);
+    archive(Val_);
+  }
 
-    template <class Archive> void load(Archive& archive) {}
+  template <class Archive> void load(Archive &archive) {}
 
-    template <class Archive>
-    static void load_and_construct(Archive& archive,
-                                   cereal::construct<Predicates>& construct)
-    {
-        auto& fctx = cereal::get_user_data<FunctionContext>(archive);
-        auto predicate = Expression::LoadFrom(archive);
-        construct(fctx, predicate);
-        archive(construct->Val_);
-    }
+  template <class Archive>
+  static void load_and_construct(Archive &archive,
+                                 cereal::construct<Predicates> &construct) {
+    auto &fctx = cereal::get_user_data<FunctionContext>(archive);
+    auto predicate = Expression::LoadFrom(archive);
+    construct(fctx, predicate);
+    archive(construct->Val_);
+  }
 #endif
 };
 
@@ -106,16 +98,14 @@ class Predicates : public AbstractValue
  *  It uses the PRED function to construct an Expression containing its two
  *  arguments and uses it for a Predicates domain.
  */
-template <Predicates::pred_t* PRED> class PredicatesWrapper : public Predicates
-{
-  public:
-    PredicatesWrapper(const FunctionContext& fctx, Expression left,
-                      Expression right)
-        : Predicates(fctx, (*PRED)(left, right))
-    {
-    }
+template <Predicates::pred_t *PRED>
+class PredicatesWrapper : public Predicates {
+public:
+  PredicatesWrapper(const FunctionContext &fctx, Expression left,
+                    Expression right)
+      : Predicates(fctx, (*PRED)(left, right)) {}
 
-    virtual ~PredicatesWrapper() {}
+  virtual ~PredicatesWrapper() {}
 };
 
 } // namespace domains

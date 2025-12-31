@@ -4,8 +4,9 @@
 #include <memory>
 
 #ifndef NDEBUG
-#include <csignal>
 #include "Verification/SymbolicAbstraction/Core/repr.h"
+
+#include <csignal>
 #endif
 
 #ifdef DEBUG_TYPE
@@ -28,20 +29,18 @@
 #undef ENABLE_DYNAMIC
 
 // forward declarations for llvm classes
-namespace llvm
-{
-    class Value;
-    class Function;
-    class Module;
-    class Instruction;
+namespace llvm {
+class Value;
+class Function;
+class Module;
+class Instruction;
 } // namespace llvm
 
-namespace symbolic_abstraction
-{
-using std::unique_ptr;
-using std::shared_ptr;
-using std::make_unique;
+namespace symbolic_abstraction {
 using std::make_shared;
+using std::make_unique;
+using std::shared_ptr;
+using std::unique_ptr;
 
 using std::endl;
 
@@ -60,19 +59,15 @@ extern std::ostream vout;
 extern bool VerboseEnable;
 
 struct VOutBlock {
-    VOutBlock(const std::string& name) { vout << name << " {{{" << '\n'; }
+  VOutBlock(const std::string &name) { vout << name << " {{{" << '\n'; }
 
-    ~VOutBlock()
-    {
-        vout << '\n'
-             << "}}}" << '\n';
-    }
+  ~VOutBlock() { vout << '\n' << "}}}" << '\n'; }
 };
 
-[[noreturn]] void panic(const std::string& in);
+[[noreturn]] void panic(const std::string &in);
 
-std::string escapeJSON(const std::string&);
-std::string escapeHTML(const std::string&);
+std::string escapeJSON(const std::string &);
+std::string escapeHTML(const std::string &);
 
 /**
  * Retrieves source file path for a give LLVM function.
@@ -80,11 +75,11 @@ std::string escapeHTML(const std::string&);
  * Returns full path to an existing source file or an empty string if sources
  * cannot be found.
  */
-std::string getFunctionSourcePath(const llvm::Function*);
+std::string getFunctionSourcePath(const llvm::Function *);
 
 unique_ptr<llvm::Module> loadModule(std::string file_name);
 
-bool isInSSAForm(llvm::Function* function);
+bool isInSSAForm(llvm::Function *function);
 } // namespace symbolic_abstraction
 
 #undef DEBUG_TYPE

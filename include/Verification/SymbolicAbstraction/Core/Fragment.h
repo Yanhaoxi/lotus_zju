@@ -1,19 +1,18 @@
 #pragma once
 
-#include "Verification/SymbolicAbstraction/Utils/Utils.h"
 #include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
+#include "Verification/SymbolicAbstraction/Utils/Utils.h"
+
+#include <iostream>
+#include <set>
+#include <unordered_set>
 
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
 #include <z3++.h>
 
-#include <iostream>
-#include <set>
-#include <unordered_set>
-
-namespace symbolic_abstraction
-{
+namespace symbolic_abstraction {
 /**
  * A program fragment for which an abstract transformer can be computed.
  *
@@ -71,153 +70,146 @@ namespace symbolic_abstraction
 
 // TODO outdated comments
 
-class Fragment
-{
-  public:
-    typedef std::pair<llvm::BasicBlock*, llvm::BasicBlock*> edge;
+class Fragment {
+public:
+  typedef std::pair<llvm::BasicBlock *, llvm::BasicBlock *> edge;
 
-    // noncopyable but moveable
-    Fragment(const Fragment&) = delete;
-    Fragment& operator=(const Fragment&) = delete;
-    Fragment(Fragment&&) = default;
-    Fragment& operator=(Fragment&&) = delete;
+  // noncopyable but moveable
+  Fragment(const Fragment &) = delete;
+  Fragment &operator=(const Fragment &) = delete;
+  Fragment(Fragment &&) = default;
+  Fragment &operator=(Fragment &&) = delete;
 
-  private:
-    const FunctionContext& FunctionContext_;
-    std::set<edge> Edges_;
-    std::set<llvm::BasicBlock*> Locations_;
-    llvm::BasicBlock* Start_;
-    llvm::BasicBlock* End_;
-    bool IncludesEndBody_;
+private:
+  const FunctionContext &FunctionContext_;
+  std::set<edge> Edges_;
+  std::set<llvm::BasicBlock *> Locations_;
+  llvm::BasicBlock *Start_;
+  llvm::BasicBlock *End_;
+  bool IncludesEndBody_;
 
-    bool hasLoops();
+  bool hasLoops();
 
-  public:
-    /**
-     * The exit location of the CFG.
-     *
-     * Every block that has no outgoing edges is implicitly assumed to have
-     * and edge to this location.
-     */
-    static llvm::BasicBlock* EXIT;
+public:
+  /**
+   * The exit location of the CFG.
+   *
+   * Every block that has no outgoing edges is implicitly assumed to have
+   * and edge to this location.
+   */
+  static llvm::BasicBlock *EXIT;
 
-    template <typename T>
-    Fragment(const FunctionContext& fctx, llvm::BasicBlock* start,
-             llvm::BasicBlock* end, const T& edges,
-             bool includes_end_body = false)
-        : FunctionContext_(fctx), Edges_(edges.begin(), edges.end()),
-          Start_(start), End_(end), IncludesEndBody_(includes_end_body)
-    {
-        assert(start == end || !hasLoops());
+  template <typename T>
+  Fragment(const FunctionContext &fctx, llvm::BasicBlock *start,
+           llvm::BasicBlock *end, const T &edges,
+           bool includes_end_body = false)
+      : FunctionContext_(fctx), Edges_(edges.begin(), edges.end()),
+        Start_(start), End_(end), IncludesEndBody_(includes_end_body) {
+    assert(start == end || !hasLoops());
 
-        Locations_.insert(start);
-        Locations_.insert(end);
-        for (edge e : Edges_) {
-            Locations_.insert(e.first);
-            Locations_.insert(e.second);
-        }
+    Locations_.insert(start);
+    Locations_.insert(end);
+    for (edge e : Edges_) {
+      Locations_.insert(e.first);
+      Locations_.insert(e.second);
     }
+  }
 
-    llvm::BasicBlock* getStart() const { return Start_; }
-    llvm::BasicBlock* getEnd() const { return End_; }
+  llvm::BasicBlock *getStart() const { return Start_; }
+  llvm::BasicBlock *getEnd() const { return End_; }
 
-    /**
-     * The set of all edges in this Fragment.
-     */
-    const std::set<edge>& edges() const { return Edges_; }
+  /**
+   * The set of all edges in this Fragment.
+   */
+  const std::set<edge> &edges() const { return Edges_; }
 
-    /**
-     * Ranges over all the non-phi instructions of an edge.
-     *
-     * An edge e represents all non-phi instructions from e.first and all phi
-     * instructions from e.second. This returns the former.
-     */
-    llvm::iterator_range<llvm::BasicBlock::iterator>
-    edgeNonPhis(const edge& e) const
-    {
-        using namespace llvm;
-        assert(edges().find(e) != edges().end());
-        BasicBlock::iterator itr = e.first->begin();
+  /**
+   * Ranges over all the non-phi instructions of an edge.
+   *
+   * An edge e represents all non-phi instructions from e.first and all phi
+   * instructions from e.second. This returns the former.
+   */
+  llvm::iterator_range<llvm::BasicBlock::iterator>
+  edgeNonPhis(const edge &e) const {
+    using namespace llvm;
+    assert(edges().find(e) != edges().end());
+    BasicBlock::iterator itr = e.first->begin();
 
-        // Find first non-phi. There is always one since a terminator
-        // instruction is not a phi.
-        while (isa<PHINode>(*itr))
-            ++itr;
+    // Find first non-phi. There is always one since a terminator
+    // instruction is not a phi.
+    while (isa<PHINode>(*itr))
+      ++itr;
 
-        return iterator_range<BasicBlock::iterator>(itr, e.first->end());
+    return iterator_range<BasicBlock::iterator>(itr, e.first->end());
+  }
+
+  /**
+   * Ranges over all the phi nodes in an edge.
+   *
+   * An edge e represents all non-phi instructions from e.first and all phi
+   * instructions from e.second. This returns the latter.
+   */
+  llvm::iterator_range<llvm::BasicBlock::iterator>
+  edgePhis(const edge &e) const {
+    using namespace llvm;
+    assert(edges().find(e) != edges().end());
+
+    if (e.second == Fragment::EXIT) {
+      // no phis but we need to return something
+      BasicBlock::iterator end = e.first->begin();
+      return iterator_range<BasicBlock::iterator>(end, end);
+    } else {
+      BasicBlock::iterator end = e.second->begin();
+
+      // Find first non-phi. There is always one since a terminator
+      // instruction is not a phi.
+      while (isa<PHINode>(*end))
+        ++end;
+
+      return iterator_range<BasicBlock::iterator>(e.second->begin(), end);
     }
+  }
 
-    /**
-     * Ranges over all the phi nodes in an edge.
-     *
-     * An edge e represents all non-phi instructions from e.first and all phi
-     * instructions from e.second. This returns the latter.
-     */
-    llvm::iterator_range<llvm::BasicBlock::iterator>
-    edgePhis(const edge& e) const
-    {
-        using namespace llvm;
-        assert(edges().find(e) != edges().end());
+  friend std::ostream &operator<<(std::ostream &out, const Fragment &frag);
 
-        if (e.second == Fragment::EXIT) {
-            // no phis but we need to return something
-            BasicBlock::iterator end = e.first->begin();
-            return iterator_range<BasicBlock::iterator>(end, end);
-        } else {
-            BasicBlock::iterator end = e.second->begin();
+  const std::set<llvm::BasicBlock *> &locations() const { return Locations_; }
 
-            // Find first non-phi. There is always one since a terminator
-            // instruction is not a phi.
-            while (isa<PHINode>(*end))
-                ++end;
+  /**
+   * Find all edges in this fragment that start in the given location.
+   */
+  std::vector<edge> edgesFrom(llvm::BasicBlock *location) const;
 
-            return iterator_range<BasicBlock::iterator>(e.second->begin(), end);
-        }
-    }
+  /**
+   * Find all edges in this fragment that end in the given location.
+   */
+  std::vector<edge> edgesTo(llvm::BasicBlock *location) const;
 
-    friend std::ostream& operator<<(std::ostream& out, const Fragment& frag);
+  /**
+   * Checks wether the given Fragment is a predecessor of this fragment.
+   * We define a predecessor to be a Fragment where one of its ending nodes
+   * is contained in this Fragments start nodes
+   */
+  bool isPredecessor(const Fragment &frag) const;
 
-    const std::set<llvm::BasicBlock*>& locations() const { return Locations_; }
+  bool defines(llvm::Value *value) const;
 
-    /**
-     * Find all edges in this fragment that start in the given location.
-     */
-    std::vector<edge> edgesFrom(llvm::BasicBlock* location) const;
+  /**
+   * True if this fragment includes the non-phi instructions in the ending
+   * block. Otherwise, it's considered to end after all the phi instructions
+   * but before any non-phis.
+   */
+  bool includesEndBody() const { return IncludesEndBody_; }
 
-    /**
-     * Find all edges in this fragment that end in the given location.
-     */
-    std::vector<edge> edgesTo(llvm::BasicBlock* location) const;
+  /**
+   * Check whether an b is reachable from a while following only instructions
+   * in this fragment.
+   *
+   * The instruction a must be defined in this fragment. Note that if b is
+   * not a phi node but b->getParent() == this->getEnd() then this function
+   * may return true, even though defines(b) returns false.
+   */
+  bool reachable(llvm::Instruction *a, llvm::Instruction *b) const;
 
-    /**
-     * Checks wether the given Fragment is a predecessor of this fragment.
-     * We define a predecessor to be a Fragment where one of its ending nodes
-     * is contained in this Fragments start nodes
-     */
-    bool isPredecessor(const Fragment& frag) const;
-
-    bool defines(llvm::Value* value) const;
-
-    /**
-     * True if this fragment includes the non-phi instructions in the ending
-     * block. Otherwise, it's considered to end after all the phi instructions
-     * but before any non-phis.
-     */
-    bool includesEndBody() const { return IncludesEndBody_; }
-
-    /**
-     * Check whether an b is reachable from a while following only instructions
-     * in this fragment.
-     *
-     * The instruction a must be defined in this fragment. Note that if b is
-     * not a phi node but b->getParent() == this->getEnd() then this function
-     * may return true, even though defines(b) returns false.
-     */
-    bool reachable(llvm::Instruction* a, llvm::Instruction* b) const;
-
-    const FunctionContext& getFunctionContext() const
-    {
-        return FunctionContext_;
-    }
+  const FunctionContext &getFunctionContext() const { return FunctionContext_; }
 };
 } // namespace symbolic_abstraction
