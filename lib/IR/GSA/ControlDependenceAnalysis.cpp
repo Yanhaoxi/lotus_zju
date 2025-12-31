@@ -10,9 +10,6 @@
 //
 // ===----------------------------------------------------------------------===//
 
-
-#include "IR/GSA/GSA.h"
-
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/PostOrderIterator.h"
@@ -20,7 +17,9 @@
 #include "llvm/Analysis/PostDominators.h"
 #include "llvm/IR/CFG.h"
 #include "llvm/IR/Function.h"
-//#include "llvm/IR/Instructions.h"
+
+#include "IR/GSA/GSA.h"
+// #include "llvm/IR/Instructions.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -32,8 +31,7 @@ namespace gsa {
 
 namespace {
 
-class ControlDependenceAnalysisImpl
-    : public ControlDependenceAnalysis {
+class ControlDependenceAnalysisImpl : public ControlDependenceAnalysis {
   Function &m_function;
 
   // Maps basic blocks to ids in a reverse-topological linearization.
@@ -81,7 +79,8 @@ private:
 void ControlDependenceAnalysisImpl::calculate(PostDominatorTree &PDT) {
   // Compute control dependences using the classic post-dominance test:
   // A is control dependent on B if B has a successor S not post-dominated by B
-  // and A lies on the path from S up to but not including B in the postdom tree.
+  // and A lies on the path from S up to but not including B in the postdom
+  // tree.
   DenseMap<const BasicBlock *, DenseSet<const BasicBlock *>>
       dependentOn; // reverse mapping for deduplication.
 
@@ -140,8 +139,7 @@ void ControlDependenceAnalysisImpl::initReach() {
   }
 
   // Cache predecessors to avoid linear walks over terminators.
-  std::vector<DenseSet<BasicBlock *>> inverseSuccessors(
-      m_BBToIdx.size());
+  std::vector<DenseSet<BasicBlock *>> inverseSuccessors(m_BBToIdx.size());
 
   for (auto &BB : m_function)
     for (auto *succ : successors(&BB)) {
@@ -173,8 +171,7 @@ char ControlDependenceAnalysisPass::ID = 0;
 ControlDependenceAnalysisPass::ControlDependenceAnalysisPass()
     : ModulePass(ID) {}
 
-void ControlDependenceAnalysisPass::getAnalysisUsage(
-    AnalysisUsage &AU) const {
+void ControlDependenceAnalysisPass::getAnalysisUsage(AnalysisUsage &AU) const {
   AU.addRequired<PostDominatorTreeWrapperPass>();
   AU.setPreservesAll();
 }
@@ -222,4 +219,3 @@ llvm::ModulePass *createControlDependenceAnalysisPass() {
 
 static llvm::RegisterPass<gsa::ControlDependenceAnalysisPass>
     GsaCD("gsa-cd-analysis", "Compute Control Dependence", true, true);
-

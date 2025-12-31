@@ -2,41 +2,43 @@
  * @file SMTLIB2Solver.cpp
  * @brief Implementation of the SMT-LIB2 interface for external SMT solvers
  *
- * This file implements support for interacting with external SMT solvers through
- * the standard SMT-LIB2 format. It provides:
+ * This file implements support for interacting with external SMT solvers
+ * through the standard SMT-LIB2 format. It provides:
  * - Process-based communication with external solvers
  * - Parsing of SMT-LIB2 responses (especially model values)
  * - Support for timeouts and resource limits
  * - Simple API for satisfiability checking and model extraction
  *
- * Unlike the Z3-based solvers, this implementation relies on the textual SMT-LIB2
- * format and can work with any compliant SMT solver (Z3, CVC4, Boolector, etc.)
- * that supports the standard.
+ * Unlike the Z3-based solvers, this implementation relies on the textual
+ * SMT-LIB2 format and can work with any compliant SMT solver (Z3, CVC4,
+ * Boolector, etc.) that supports the standard.
  */
 
 #define DEBUG_TYPE "canary"
 
+#include "Solvers/SMT/SMTLIB2Solver.h"
+
 #include "llvm/ADT/APInt.h"
+#include "llvm/ADT/Optional.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/Optional.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/Program.h"
 #include "llvm/Support/raw_ostream.h"
-#include "Solvers/SMT/SMTLIB2Solver.h"
+
 #include <fcntl.h>
 // #include <stdio.h>
+#include <system_error>
+
 #include <sys/resource.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <system_error>
 
 using namespace llvm;
-
 
 STATISTIC(Errors, "Number of SMT solver errors");
 STATISTIC(Sats, "Number of satisfiable SMT queries");
@@ -44,7 +46,6 @@ STATISTIC(Timeouts, "Number of SMT solver timeouts");
 STATISTIC(Unsats, "Number of unsatisfiable SMT queries");
 
 SMTLIBSolver::~SMTLIBSolver() {}
-
 
 // Bare bones SMT-LIB parser; enough to parse a get-value response.
 struct SMTLIBParser {
@@ -138,7 +139,7 @@ struct SMTLIBParser {
 
     unsigned Width = WidthChar - '0';
     while (Begin != End && *Begin >= '0' && *Begin <= '9')
-      Width = Width*10 + (*Begin++ - '0');
+      Width = Width * 10 + (*Begin++ - '0');
 
     if (!consumeExpected(')', ErrStr))
       return APInt();
@@ -150,13 +151,13 @@ struct SMTLIBParser {
     ErrStr.clear();
     const char *NumBegin = Begin;
     while (Begin != End && ((*Begin >= '0' && *Begin <= '9') ||
-           (*Begin >= 'a' && *Begin <= 'f') ||
-           (*Begin >= 'A' && *Begin <= 'F')))
+                            (*Begin >= 'a' && *Begin <= 'f') ||
+                            (*Begin >= 'A' && *Begin <= 'F')))
       ++Begin;
     const char *NumEnd = Begin;
     unsigned Width = NumEnd - NumBegin;
 
-    return APInt(Width*4, StringRef(NumBegin, Width), 16);
+    return APInt(Width * 4, StringRef(NumBegin, Width), 16);
   }
 
   APInt parseModel(std::string &ErrStr) {
@@ -219,9 +220,7 @@ public:
     ArgPtrs.push_back(0);
   }
 
-  std::string getName() const override {
-    return Name;
-  }
+  std::string getName() const override { return Name; }
 
   std::error_code isSatisfiable(StringRef Query, bool &Result,
                                 unsigned NumModels, std::vector<APInt> *Models,
@@ -240,9 +239,8 @@ public:
 
     int OutputFD;
     SmallString<64> OutputPath;
-    if (std::error_code EC =
-            sys::fs::createTemporaryFile("output", "out", OutputFD,
-                                         OutputPath)) {
+    if (std::error_code EC = sys::fs::createTemporaryFile(
+            "output", "out", OutputFD, OutputPath)) {
       ++Errors;
       return EC;
     }
@@ -302,7 +300,6 @@ public:
     }
     }
   }
-
 };
 
 SolverProgram makeExternalSolverProgram(StringRef Path) {
@@ -318,30 +315,36 @@ SolverProgram makeExternalSolverProgram(StringRef Path) {
   };
 }
 
-SolverProgram makeInternalSolverProgram(int MainPtr(int argc,
-                                                            char **argv)) {
+SolverProgram makeInternalSolverProgram(int MainPtr(int argc, char **argv)) {
   return [MainPtr](const std::vector<std::string> &Args, StringRef RedirectIn,
                    StringRef RedirectOut, StringRef RedirectErr,
                    unsigned Timeout) {
     int pid = fork();
     if (pid == 0) {
       int InFD = open(RedirectIn.str().c_str(), O_RDONLY);
-      if (InFD == -1) _exit(1);
+      if (InFD == -1)
+        _exit(1);
       int OutFD = open(RedirectOut.str().c_str(), O_WRONLY);
-      if (OutFD == -1) _exit(1);
+      if (OutFD == -1)
+        _exit(1);
       int ErrFD = open(RedirectErr.str().c_str(), O_WRONLY);
-      if (ErrFD == -1) _exit(1);
+      if (ErrFD == -1)
+        _exit(1);
 
       close(STDIN_FILENO);
       close(STDOUT_FILENO);
       close(STDERR_FILENO);
 
-      if (dup2(InFD, STDIN_FILENO) == -1) _exit(1);
-      if (dup2(OutFD, STDOUT_FILENO) == -1) _exit(1);
-      if (dup2(ErrFD, STDERR_FILENO) == -1) _exit(1);
+      if (dup2(InFD, STDIN_FILENO) == -1)
+        _exit(1);
+      if (dup2(OutFD, STDOUT_FILENO) == -1)
+        _exit(1);
+      if (dup2(ErrFD, STDERR_FILENO) == -1)
+        _exit(1);
 
       rlimit rlim;
-      if (getrlimit(RLIMIT_NOFILE, &rlim) == -1) _exit(1);
+      if (getrlimit(RLIMIT_NOFILE, &rlim) == -1)
+        _exit(1);
 
       for (unsigned fd = 3; fd != rlim.rlim_cur; ++fd) {
         close(fd);
@@ -359,14 +362,14 @@ SolverProgram makeInternalSolverProgram(int MainPtr(int argc,
     } else {
       sys::ProcessInfo PI;
       PI.Pid = pid;
-      PI = sys::Wait(PI, Timeout, /*WaitUntilTerminates=*/false, /*ErrMsg=*/nullptr);
+      PI = sys::Wait(PI, Timeout, /*WaitUntilTerminates=*/false,
+                     /*ErrMsg=*/nullptr);
       return PI.ReturnCode;
     }
   };
 }
 
-std::unique_ptr<SMTLIBSolver> createZ3Solver(SolverProgram Prog,
-                                                     bool Keep) {
+std::unique_ptr<SMTLIBSolver> createZ3Solver(SolverProgram Prog, bool Keep) {
   return std::unique_ptr<SMTLIBSolver>(
       new ProcessSMTLIBSolver("Z3", Keep, Prog, {"-smt2", "-in"}));
 }

@@ -17,10 +17,14 @@ At a glance:
   dominance, and structural reasoning. See :doc:`cfg`.
 - **Concurrency** (``lib/Analysis/Concurrency``): Thread-aware analyses for
   multi-threaded code (MHP, lock sets, thread modeling). See :doc:`concurrency`.
+- **Crypto** (``lib/Analysis/Crypto``): Constant-time programming analysis for
+  cryptographic code. See :doc:`crypto`.
 - **GVFA** (``lib/Analysis/GVFA``): Global value-flow engine for interprocedural
   data-flow reasoning. See :doc:`gvfa`.
 - **NullPointer** (``lib/Analysis/NullPointer``): A family of nullness and
   null-flow analyses. See :doc:`null_pointer`.
+- **Spectre** (``lib/Analysis/Spectre``): Cache speculation analysis for
+  detecting Spectre vulnerabilities. See :doc:`spectre`.
 
 
 Higher-level analyzers such as CLAM and SymbolicAbstraction build on these components;
@@ -32,5 +36,7 @@ details.
 
    cfg
    concurrency
+   crypto
    gvfa
    null_pointer
+   spectre

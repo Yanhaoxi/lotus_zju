@@ -1,24 +1,27 @@
 /**
  * @file SMTExpr.cpp
- * @brief Implementation of the SMTExpr and SMTExprVec classes for SMT expressions
- * 
- * This file implements SMTExpr and SMTExprVec, which represent expressions in the SMT
- * solving system. It provides:
+ * @brief Implementation of the SMTExpr and SMTExprVec classes for SMT
+ * expressions
+ *
+ * This file implements SMTExpr and SMTExprVec, which represent expressions in
+ * the SMT solving system. It provides:
  * - Expression creation and manipulation
  * - Overloaded operators for easy constraint building
- * - Expression simplification using various techniques (local, contextual, dillig)
+ * - Expression simplification using various techniques (local, contextual,
+ * dillig)
  * - Quantifier elimination and variable forgetting
  * - Interval abstraction for numeric expressions
  * - Basic operations for bitvector, boolean, array expressions
  * - Expression substitution
- * 
- * The SMTExpr class serves as the core representation for constraints that can be
- * added to an SMTSolver for satisfiability checking.
+ *
+ * The SMTExpr class serves as the core representation for constraints that can
+ * be added to an SMTSolver for satisfiability checking.
  */
 
 #include "Solvers/SMT/SMTExpr.h"
+
 #include "Solvers/SMT/SMTFactory.h"
-//#include <algorithm>
+// #include <algorithm>
 #include <functional>
 #include <set>
 #include <utility>
@@ -130,7 +133,7 @@ std::pair<bool, SMTExpr> SMTExpr::forgetVars(SMTExprVec &Vars,
   z3::context &Ctx = Expr.ctx();
   z3::tactic QE = z3::try_for(z3::tactic(Ctx, "qe2"), Timeout);
   z3::goal G(Ctx);
-  //G.add(z3::exists(*Vars.ExprVec, Expr));
+  // G.add(z3::exists(*Vars.ExprVec, Expr));
   try {
     z3::apply_result Rt = QE.apply(G);
     Ret.first = true;
@@ -496,7 +499,7 @@ SMTExpr SMTExpr::bool2bv1() {
     z3::expr const_bv1 =
         const_array(Expr.get_sort().array_domain(), ctx.bv_val(1, 1));
 
-    Z3_ast  mapargs[3] = {Expr, const_bv0, const_bv1};
+    Z3_ast mapargs[3] = {Expr, const_bv0, const_bv1};
 
     z3::expr bvret(ctx, Z3_mk_map(ctx, func, 3, mapargs));
     return SMTExpr(&getSMTFactory(), bvret);
@@ -1262,7 +1265,7 @@ SMTExprVec SMTExprVec::setDifference(const SMTExprVec &Vars) {
   return Ret;
 }
 
-std::ostream &operator<<(std::ostream &Out, SMTExprVec& Vec) {
+std::ostream &operator<<(std::ostream &Out, SMTExprVec &Vec) {
   if (Vec.empty()) {
     Out << "(empty vector)";
     return Out;

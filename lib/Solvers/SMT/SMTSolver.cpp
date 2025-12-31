@@ -1,9 +1,10 @@
 /**
  * @file SMTSolver.cpp
- * @brief Implementation of the SMTSolver class that provides the core SMT solving interface
+ * @brief Implementation of the SMTSolver class that provides the core SMT
+ * solving interface
  *
- * This file implements SMTSolver, which serves as the main interface for interacting with
- * the underlying Z3 solver. The class supports:
+ * This file implements SMTSolver, which serves as the main interface for
+ * interacting with the underlying Z3 solver. The class supports:
  * - Adding and managing constraints
  * - Checking satisfiability with optional timeouts
  * - Fast approximation checking
@@ -11,21 +12,22 @@
  * - Model generation for satisfiable formulas
  * - Push/pop for managing solver scopes
  *
- * The implementation uses Z3 for the actual solving, but provides a clean abstraction
- * layer for the rest of the system.
+ * The implementation uses Z3 for the actual solving, but provides a clean
+ * abstraction layer for the rest of the system.
  */
 
-#include <llvm/Support/CommandLine.h>
+#include "Solvers/SMT/SMTSolver.h"
 
 #include "Solvers/SMT/SMTConfigure.h"
 #include "Solvers/SMT/SMTExpr.h"
 #include "Solvers/SMT/SMTFactory.h"
 #include "Solvers/SMT/SMTModel.h"
-#include "Solvers/SMT/SMTSolver.h"
 
 #include <fstream>
 #include <iostream>
 #include <map>
+
+#include <llvm/Support/CommandLine.h>
 #include <time.h>
 
 #define DEBUG_TYPE "solver"
@@ -57,7 +59,7 @@ static llvm::cl::opt<int> EnableLocalSimplify(
 
 // static llvm::cl::opt<int> EnableModelCache("enable-model-cache",
 //		llvm::cl::init(0), llvm::cl::desc("Enable satisfying model
-//cache"));
+// cache"));
 
 // only for debugging (single-thread)
 bool SMTSolvingTimeOut = false;
@@ -287,7 +289,7 @@ bool SMTSolver::overApproCheckMisc(
     // This is not a good idea..
     return false;
   }
-  
+
   return true;
 }
 

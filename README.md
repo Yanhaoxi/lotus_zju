@@ -43,7 +43,7 @@ command-line tools, and example usage for each component.
 
 ## Binary Tools
 
-For detailed documentation on using the binary tools, see [tools](https://zju-pl.github.io/lotus/tools.html).
+For detailed documentation on using the binary tools, see [tools](https://zju-pl.github.io/lotus/tools/index.html).
 
 ## Installation
 

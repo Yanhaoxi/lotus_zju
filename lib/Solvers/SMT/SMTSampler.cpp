@@ -2,11 +2,12 @@
  * @file SMTSampler.cpp
  * @brief Implementation of sampling techniques for SMT formulas
  *
- * This file implements two approaches for sampling satisfying models from SMT formulas:
- * 1. quick_sampler: A mutation-based approach that generates diverse models by flipping 
- *    variable assignments and exploring the solution space
- * 2. region_sampler: A bounds-based approach that samples models by determining variable 
- *    bounds and randomly selecting values within those bounds
+ * This file implements two approaches for sampling satisfying models from SMT
+ * formulas:
+ * 1. quick_sampler: A mutation-based approach that generates diverse models by
+ * flipping variable assignments and exploring the solution space
+ * 2. region_sampler: A bounds-based approach that samples models by determining
+ * variable bounds and randomly selecting values within those bounds
  *
  * These sampling techniques are useful for:
  * - Test case generation
@@ -14,7 +15,8 @@
  * - Finding diverse satisfying assignments
  * - Analyzing the sensitivity of formulas to variable changes
  *
- * The implementation focuses on efficiency and diversity of the generated models.
+ * The implementation focuses on efficiency and diversity of the generated
+ * models.
  */
 
 #include "Solvers/SMT/SMTSampler.h"
@@ -135,7 +137,7 @@ public:
     opt.add(formula);
   }
 
-  void sample(z3::model& m) {
+  void sample(z3::model &m) {
     std::unordered_set<std::string> initial_mutations;
     std::string m_string = model_string(m);
     std::cout << m_string << " STARTING\n";
@@ -188,7 +190,7 @@ public:
               output(candidate, it.second + 1);
             }
           }
-          for (auto& it : new_mutations) {
+          for (auto &it : new_mutations) {
             mutations[it.first] = it.second;
           }
         } else {
@@ -205,7 +207,7 @@ public:
     opt.pop();
   }
 
-  void output(std::string& sample, int nmut) {
+  void output(std::string &sample, int nmut) {
     samples += 1;
     results_file << nmut << ": " << sample << '\n';
   }
@@ -239,7 +241,7 @@ public:
     return result == z3::sat;
   }
 
-  std::string model_string(z3::model& model) {
+  std::string model_string(z3::model &model) {
     std::string s;
 
     for (int v : ind) {
@@ -291,7 +293,7 @@ struct region_sampler {
 
   std::vector<std::vector<int>> unique_models;
 
-  region_sampler(std::string& input, int max_samples, double max_time)
+  region_sampler(std::string &input, int max_samples, double max_time)
       : path(input), max_samples(max_samples), max_time(max_time),
         smt_formula(c), m_vars(c) {
     struct stat info;
@@ -425,7 +427,7 @@ struct region_sampler {
     //        clock_gettime(CLOCK_REALTIME, &start_time);
     //        srand(start_time.tv_sec);
     // parse_cnf();
-    for (auto& file : input_files) {
+    for (auto &file : input_files) {
       input_file = file;
       parse_smt();
       std::cout << "parse finished... \n";

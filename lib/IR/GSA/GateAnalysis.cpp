@@ -11,10 +11,10 @@
 // Author: rainoftime
 //===----------------------------------------------------------------------===//
 
-#include "IR/GSA/GSA.h"
-
 #include "llvm/ADT/DenseMap.h"
-//#include "llvm/ADT/DenseSet.h"
+
+#include "IR/GSA/GSA.h"
+// #include "llvm/ADT/DenseSet.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Analysis/PostDominators.h"
 #include "llvm/IR/CFG.h"
@@ -56,10 +56,10 @@ static cl::opt<bool> ThinnedGsa("gsa-thinned",
                                 cl::desc("Emit thin gamma nodes (TGSA)"),
                                 cl::init(true), cl::Hidden);
 
-static cl::opt<bool> GsaReplacePhis(
-    "gsa-replace-phis",
-    cl::desc("Replace PHI nodes with gamma nodes in the IR"), cl::init(true),
-    cl::Hidden);
+static cl::opt<bool>
+    GsaReplacePhis("gsa-replace-phis",
+                   cl::desc("Replace PHI nodes with gamma nodes in the IR"),
+                   cl::init(true), cl::Hidden);
 
 namespace {
 
@@ -173,12 +173,11 @@ GateAnalysisImpl::processIncomingValues(PHINode *PN, Instruction *insertionPt) {
           !dominatesForUse(BI->getCondition(), insertionPt, m_DT))
         continue;
 
-      Value *EdgePred =
-          BI->getSuccessor(0) == currentBB
-              ? BI->getCondition()
-              : m_IRB.CreateNot(
-                    BI->getCondition(),
-                    Twine("seahorn.gsa.edge.") + incomingBlock->getName());
+      Value *EdgePred = BI->getSuccessor(0) == currentBB
+                            ? BI->getCondition()
+                            : m_IRB.CreateNot(BI->getCondition(),
+                                              Twine("seahorn.gsa.edge.") +
+                                                  incomingBlock->getName());
 
       Value *Guarded = m_IRB.CreateSelect(
           EdgePred, incomingValue, Bottom,
@@ -197,22 +196,20 @@ GateAnalysisImpl::processIncomingValues(PHINode *PN, Instruction *insertionPt) {
       Value *AnyCase = m_IRB.getFalse();
 
       for (auto Case : SI->cases()) {
-        Value *Cmp = m_IRB.CreateICmpEQ(
-            SI->getCondition(), Case.getCaseValue(),
-            Twine("seahorn.gsa.case.") + incomingBlock->getName());
+        Value *Cmp = m_IRB.CreateICmpEQ(SI->getCondition(), Case.getCaseValue(),
+                                        Twine("seahorn.gsa.case.") +
+                                            incomingBlock->getName());
         AnyCase = m_IRB.CreateOr(AnyCase, Cmp);
         if (Case.getCaseSuccessor() == currentBB)
-          EdgePred =
-              m_IRB.CreateOr(EdgePred, Cmp,
-                             Twine("seahorn.gsa.edge.case.") +
-                                 incomingBlock->getName());
+          EdgePred = m_IRB.CreateOr(EdgePred, Cmp,
+                                    Twine("seahorn.gsa.edge.case.") +
+                                        incomingBlock->getName());
       }
 
       if (SI->getDefaultDest() == currentBB)
-        EdgePred =
-            m_IRB.CreateOr(EdgePred, m_IRB.CreateNot(AnyCase),
-                           Twine("seahorn.gsa.edge.default.") +
-                               incomingBlock->getName());
+        EdgePred = m_IRB.CreateOr(EdgePred, m_IRB.CreateNot(AnyCase),
+                                  Twine("seahorn.gsa.edge.default.") +
+                                      incomingBlock->getName());
 
       if (auto *ConstPred = dyn_cast<ConstantInt>(EdgePred))
         if (ConstPred->isZero())
@@ -326,9 +323,8 @@ void GateAnalysisImpl::processPhi(PHINode *PN, Instruction *insertionPt) {
       } else if (ThinnedGsa && (TrueVal == Bottom || FalseVal == Bottom)) {
         flowingValues[BB] = FalseVal == Bottom ? TrueVal : FalseVal;
       } else if (dominatesForUse(BI->getCondition(), insertionPt, m_DT)) {
-        Value *Ite =
-            m_IRB.CreateSelect(BI->getCondition(), TrueVal, FalseVal,
-                               {"seahorn.gsa.gamma.", BB->getName()});
+        Value *Ite = m_IRB.CreateSelect(BI->getCondition(), TrueVal, FalseVal,
+                                        {"seahorn.gsa.gamma.", BB->getName()});
         m_changed = true;
         flowingValues[BB] = Ite;
       } else {
@@ -353,32 +349,30 @@ void GateAnalysisImpl::processPhi(PHINode *PN, Instruction *insertionPt) {
       Value *CaseMatched = m_IRB.getFalse();
       Value *Accum = nullptr;
       for (auto Case : SI->cases()) {
-        Value *Cmp = m_IRB.CreateICmpEQ(
-            SI->getCondition(), Case.getCaseValue(),
-            Twine("seahorn.gsa.gamma.case.") + BB->getName());
+        Value *Cmp = m_IRB.CreateICmpEQ(SI->getCondition(), Case.getCaseValue(),
+                                        Twine("seahorn.gsa.gamma.case.") +
+                                            BB->getName());
         CaseMatched = m_IRB.CreateOr(CaseMatched, Cmp);
         BasicBlock *Succ = Case.getCaseSuccessor();
         Value *SuccVal = SuccToVal.lookup(Succ);
         if (!SuccVal || SuccVal == Bottom)
           continue;
         Value *Base = Accum ? Accum : Bottom;
-        Accum = m_IRB.CreateSelect(
-            Cmp, SuccVal, Base,
-            Twine("seahorn.gsa.gamma.") + BB->getName() + ".case");
+        Accum = m_IRB.CreateSelect(Cmp, SuccVal, Base,
+                                   Twine("seahorn.gsa.gamma.") + BB->getName() +
+                                       ".case");
         m_changed = true;
       }
 
       BasicBlock *DefaultDest = SI->getDefaultDest();
       Value *DefaultVal = SuccToVal.lookup(DefaultDest);
       if (DefaultVal && DefaultVal != Bottom) {
-        Value *DefaultTaken =
-            m_IRB.CreateNot(CaseMatched,
-                            Twine("seahorn.gsa.gamma.default.") +
-                                BB->getName());
+        Value *DefaultTaken = m_IRB.CreateNot(
+            CaseMatched, Twine("seahorn.gsa.gamma.default.") + BB->getName());
         Value *Base = Accum ? Accum : Bottom;
         Accum = m_IRB.CreateSelect(DefaultTaken, DefaultVal, Base,
-                                   Twine("seahorn.gsa.gamma.") +
-                                       BB->getName() + ".default");
+                                   Twine("seahorn.gsa.gamma.") + BB->getName() +
+                                       ".default");
         m_changed = true;
       }
 
@@ -488,4 +482,3 @@ llvm::ModulePass *createGateAnalysisPass() { return new GateAnalysisPass(); }
 
 static llvm::RegisterPass<gsa::GateAnalysisPass>
     GsaGA("gsa-gated-ssa", "Compute Gated SSA form", true, true);
-

@@ -1,10 +1,12 @@
 /**
  * @file CNF.cpp
- * @brief Implementation of CNF (Conjunctive Normal Form) representation and solver
+ * @brief Implementation of CNF (Conjunctive Normal Form) representation and
+ * solver
  *
- * This file implements functionality for parsing, representing and managing CNF formulas.
- * CNF is a fundamental format for Boolean formulas that allows efficient SAT solving,
- * which can be used as the backend for certain SMT operations.
+ * This file implements functionality for parsing, representing and managing CNF
+ * formulas. CNF is a fundamental format for Boolean formulas that allows
+ * efficient SAT solving, which can be used as the backend for certain SMT
+ * operations.
  *
  * The implementation provides:
  * - Parsing CNF formulas from DIMACS format files
@@ -22,9 +24,9 @@
  */
 
 #include "Solvers/SMT/CNF.h"
-//include <algorithm>
+// include <algorithm>
 #include <ctype.h>
-//#include <set>
+// #include <set>
 #include <stdio.h>
 #include <stdlib.h>
 
