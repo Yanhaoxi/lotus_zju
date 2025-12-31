@@ -2,7 +2,18 @@ CFL Tools
 =========
 
 This page documents the CFL-related tools under ``tools/cfl/``. For the
-underlying theory and components, see :doc:`../../analysis/cfl_reachability`.
+underlying theory and components, see :doc:`../../cfl/cfl_components`.
+
+Overview
+--------
+
+Context-Free Language (CFL) reachability extends graph reachability with
+context-free grammars for precise interprocedural analysis. CFL reachability
+enables analysis of complex program properties using grammar-based constraints.
+
+**Location**: ``tools/cfl/``
+
+**Tools**: Graspan (disk-based, parallel reachability), CSR (indexed CFL reachability)
 
 CSR: Context-Sensitive Reachability
 -----------------------------------

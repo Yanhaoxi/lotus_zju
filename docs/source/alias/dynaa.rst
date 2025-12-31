@@ -11,7 +11,7 @@ these logs against the results of a chosen static AA.
 
 * **Static side**: e.g., SparrowAA, AserPTA, LotusAA.
 * **Dynamic side**: runtime traces collected by DynAA
-* **Location**: ``lib/Alias/Dynamic`` and tools under ``tools/dynaa``
+* **Location**: ``tools/dynaa``
 
 Workflow
 ========
@@ -40,19 +40,26 @@ The typical workflow is:
 
    .. code-block:: bash
 
-      LOG_DIR=<log-dir> ./example.inst
+      LOG_DIR=logs/ ./example.inst
 
 5. **Check** the collected information against a static alias analysis:
 
    .. code-block:: bash
 
-      ./build/bin/dynaa-check example.bc <log-dir>/pts.log basic-aa
+      ./build/bin/dynaa-check example.bc logs/pts.log basic-aa
 
 To dump the binary log files to a readable format:
 
 .. code-block:: bash
 
    ./build/bin/dynaa-log-dump <log-dir>/pts.log
+
+Tools
+=====
+
+* ``dynaa-instrument``: Instrument code for runtime tracking
+* ``dynaa-check``: Validate static analysis against runtime
+* ``dynaa-log-dump``: Convert binary logs to readable format
 
 Features and Use Cases
 ======================

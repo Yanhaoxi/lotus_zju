@@ -13,6 +13,8 @@ alternative, CFL-based alias analysis for experimentation and compatibility.
 * **Origins**: Copied from LLVM 14.0.6 (removed in LLVM 15)
 * **Role**: Reference implementation and baseline CFL-style analysis
 
+**Note**: Copied from LLVM 14.0.6 (removed in LLVM 15).
+
 Characteristics
 ===============
 

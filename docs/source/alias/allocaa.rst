@@ -50,4 +50,6 @@ AllocAA is exposed through the generic AA wrapper and via dedicated tools.
 In most cases you do not run it directly; instead you enable it in the
 pass pipeline (e.g., through the Lotus AA driver or Clam configuration).
 
+AllocAA is integrated as LLVM ModulePass for basic alias queries.
+
 

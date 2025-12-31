@@ -10,9 +10,18 @@ UnderApproxAA is a **sound but incomplete** alias analysis that computes
 are **guaranteed** to point to the same memory; otherwise the result is
 unknown.
 
-* **Location**: ``lib/Alias/UnderApproxAA``
+* **Location**: ``include/Alias/UnderApproxAA/``
 * **Style**: Intra-procedural, under-approximate
 * **Goal**: Cheap, reliable must-alias facts for safety-critical reasoning
+
+Components
+==========
+
+* **Canonical** – Canonical form representations
+* **EquivDB** – Equivalence class database
+* **UnderApproxAA** – Core under-approximation algorithm
+
+**Features**: Conservative alias analysis for safety-critical applications.
 
 Algorithm
 =========

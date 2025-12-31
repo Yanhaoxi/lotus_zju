@@ -30,6 +30,11 @@ refined through the analysis pipeline.
 Usage
 =====
 
+.. code-block:: bash
+
+   ./build/bin/sea-dsa-dg --sea-dsa-dot example.bc
+   ./build/bin/seadsa-tool --sea-dsa-dot --outdir results/ example.bc
+
 sea-dsa-dg
 ----------
 
@@ -60,7 +65,6 @@ Key options:
 
 * ``--sea-dsa-dot`` – Generate DOT files visualizing memory graphs
 * ``--sea-dsa-callgraph-dot`` – Generate DOT files of the complete call graph
-  (currently disabled in this version)
 * ``--outdir <DIR>`` – Specify an output directory for generated files
 
 This tool provides advanced analysis capabilities for understanding memory usage

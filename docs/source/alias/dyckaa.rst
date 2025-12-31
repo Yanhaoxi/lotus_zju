@@ -28,6 +28,54 @@ Alias relationships correspond to balanced paths in this labeled graph. The
 Dyck-CFL reachability algorithm discovers such paths and **unifies**
 equivalent nodes into alias sets.
 
+Algorithm
+=========
+
+The analysis uses Dyck Context-Free Language (CFL) reachability to model pointer relationships:
+
+.. code-block:: text
+
+   LLVM IR
+      ↓
+   [Build Dyck Graph]
+      ├─ Nodes: Values (pointers, objects)
+      ├─ Edges with labels:
+      │  ├─ *(* : Dereference
+      │  ├─ *)* : Reference
+      │  ├─ *[field]* : Field access
+      │  └─ Assignment edges
+      ↓
+   [Dyck-CFL Reachability]
+      ├─ Find balanced paths
+      ├─ Unify equivalent nodes
+      └─ Build alias sets
+      ↓
+   [Applications]
+      ├─ Alias queries
+      ├─ Call graph construction
+      ├─ ModRef analysis
+      └─ Value flow analysis
+
+Dyck Language
+=============
+
+Balanced parentheses language that captures pointer semantics:
+
+- ``( ... )`` : Dereference operations must balance
+- ``[ ... ]`` : Field accesses must match
+- Paths between nodes indicate aliasing
+
+Example
+-------
+
+.. code-block:: c
+
+   int x;
+   int *p = &x;    // Edge: p -*)->* x
+   int **q = &p;   // Edge: q -*)->* p
+   int *r = *q;    // Path: r = *q, q points to p, so r = p
+                   // Dyck path: r -*(*-* q -*)->* p
+
 Capabilities
 ============
 
@@ -38,15 +86,20 @@ DyckAA provides:
 * **ModRef** information (modified/referenced memory).
 * **Value-flow graphs** (DyckVFG) for downstream analyses.
 
-Trade-offs
-==========
+Strengths
+=========
 
-* **Pros**:
-  - Very high precision for complex pointer patterns.
-  - Strong function-pointer resolution capabilities.
-* **Cons**:
-  - Higher time and memory cost than simpler analyses.
-  - Best suited to medium-sized programs or precision-critical components.
+- Highly precise through CFL reachability
+- Handles complex pointer patterns
+- Good for function pointer resolution
+- Builds precise call graphs
+
+Limitations
+===========
+
+- Computationally expensive
+- High memory usage for large programs
+- Context-insensitive (single analysis per function)
 
 Usage
 =====
@@ -90,5 +143,12 @@ Available Options
 
 Additional flags enable call graph export, function pointer statistics, and
 DOT visualizations of internal graphs.
+
+Advanced Features
+=================
+
+- **DyckVFG**: Value Flow Graph construction for tracking value propagation
+- **ModRef Analysis**: Modified/Referenced analysis for optimization
+- **Call Graph**: Precise indirect call resolution
 
 

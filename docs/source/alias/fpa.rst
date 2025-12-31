@@ -11,10 +11,10 @@ resolve indirect calls with different precision/performance trade-offs.
 * **Location**: ``lib/Alias/FPA``
 * **Focus**: Indirect call resolution and call-graph construction
 * **Algorithms**:
-  - **FLTA** – Flow-insensitive, type-based analysis
-  - **MLTA** – Multi-layer type analysis
-  - **MLTADF** – MLTA with additional data-flow reasoning
-  - **KELP** – Context-sensitive analysis (USENIX Security'24)
+  - **FLTA** (1) – Flow-insensitive, type-based analysis
+  - **MLTA** (2) – Multi-layer type analysis
+  - **MLTADF** (3) – Multi-layer type analysis with data flow
+  - **KELP** (4) – Context-sensitive analysis (USENIX Security'24)
 
 Workflow
 ========
@@ -34,10 +34,8 @@ The analyses are exposed through the ``fpa`` driver:
 
 .. code-block:: bash
 
-   ./build/bin/fpa -analysis-type=1 example.bc      # FLTA
-   ./build/bin/fpa -analysis-type=2 example.bc      # MLTA
-   ./build/bin/fpa -analysis-type=3 example.bc      # MLTADF
-   ./build/bin/fpa -analysis-type=4 example.bc      # KELP
+   ./build/bin/fpa -analysis-type=1 example.bc  # FLTA
+   ./build/bin/fpa -analysis-type=2 -max-type-layer=10 example.bc  # MLTA
 
 Key Options
 -----------

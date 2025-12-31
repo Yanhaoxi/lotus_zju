@@ -10,11 +10,16 @@ modular engine with **interprocedural**, **flow-sensitive**, and
 **field-sensitive** reasoning, designed to integrate tightly with other Lotus
 analyses.
 
-* **Location**: ``lib/Alias/LotusAA``
-* **Components**:
-  - ``Engine/`` – intra- and interprocedural drivers
-  - ``MemoryModel/`` – points-to graph and memory-object modeling
-  - ``Support/`` – configuration, statistics, utilities
+* **Location**: ``include/Alias/LotusAA/``
+
+Components
+==========
+
+* **Engine/** – Inter/intra-procedural analysis engines
+* **MemoryModel/** – Points-to graph and memory modeling
+* **Support/** – Configuration and utility functions
+
+**Features**: Modular design for extensible pointer analysis.
 
 Design
 ======

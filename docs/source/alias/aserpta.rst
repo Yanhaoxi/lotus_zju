@@ -22,6 +22,35 @@ Architecture
 
 The analysis pipeline is organized as:
 
+.. code-block:: text
+
+   LLVM IR
+      ↓
+   [Preprocessing]
+      ├─ Canonicalize GEP instructions
+      ├─ Lower memcpy operations
+      ├─ Normalize heap APIs
+      └─ Remove exception handlers
+      ↓
+   [Constraint Collection]
+      ├─ addr_of: p = &obj
+      ├─ copy: p = q
+      ├─ load: p = *q
+      ├─ store: *p = q
+      └─ offset: p = &obj->field
+      ↓
+   [Constraint Graph Construction]
+      ├─ Pointer nodes (CGPtrNode)
+      ├─ Object nodes (CGObjNode)
+      └─ Constraint edges
+      ↓
+   [Solving with Context]
+      ├─ Context evolution (NoCtx/KCallSite/KOrigin)
+      ├─ Propagation strategy
+      └─ SCC detection & collapsing
+      ↓
+   Points-to Sets (BitVector representation)
+
 1. **IR Preprocessing** (``PreProcessing/``)
    - Canonicalizes GEPs, lowers ``memcpy``, normalizes heap APIs.
    - Removes exception handlers and inserts synthetic initializers.
@@ -35,6 +64,21 @@ The analysis pipeline is organized as:
    - Context models: ``NoCtx``, ``KCallSite<K>``, ``KOrigin<K>``.
    - Solver choices: WavePropagation, DeepPropagation,
      PartialUpdateSolver.
+
+Constraint Types
+================
+
+1. **Address-of** (``p = &obj``): Pointer directly addresses object
+2. **Copy** (``p = q``): Pointer assignment
+3. **Load** (``p = *q``): Dereference and copy
+4. **Store** (``*p = q``): Store through pointer
+5. **Offset** (``p = &obj->field``): Field access via GEP
+
+Memory Models
+=============
+
+- **Field-Insensitive**: Treats objects as single entities (faster)
+- **Field-Sensitive**: Models individual fields (more precise)
 
 Analysis Modes and Options
 ===========================
@@ -51,8 +95,8 @@ Analysis Modes and Options
 * ``deep``: DeepPropagation with cycle detection
 
 **Key Options:**
-* ``-analysis-mode=<mode>`` – Analysis mode
-* ``-solver=<type>`` – Solver algorithm
+* ``-analysis-mode=<mode>`` – Analysis mode (ci, 1-cfa, 2-cfa, origin)
+* ``-solver=<type>`` – Solver algorithm (basic, wave, deep)
 * ``-field-sensitive`` – Use field-sensitive memory model (default: true)
 * ``-dump-stats`` – Print analysis statistics
 * ``-consgraph`` – Dump constraint graph to DOT file
@@ -64,6 +108,8 @@ Usage
 The standalone driver can be invoked as:
 
 .. code-block:: bash
+
+   ./build/bin/aser-aa -analysis-mode=1-cfa -solver=deep example.bc
 
    # Context-insensitive with wave propagation
    ./build/bin/aser-aa input.bc

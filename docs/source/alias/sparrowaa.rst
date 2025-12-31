@@ -5,17 +5,20 @@ Sparrow Pointer Analysis — Inclusion AA
 Overview
 ========
 
-The sparrow analysis implements a classic inclusion-based points-to
-analysis.
-- Flow-insensitive, context-insensitive (ci)
-- Flow-insensitive, context-sensitive (1-cfa, 2-cfa)
+SparrowAA is an inclusion-based points-to analysis.
 
 * **Location**: ``lib/Alias/SparrowAA``
-* **Algorithm**: Inclusion-based pointer analysis
+* **Algorithm**: Inclusion/subset-based pointer analysis with constraint graph construction and worklist-based solving.
 * **Typical Use**: Fast whole-program call-graph and mod/ref precomputation
 
-Constraint System
-=================
+Analysis Modes
+==============
+
+* Flow-insensitive, context-insensitive (CI)
+* Flow-insensitive, context-sensitive (1-CFA, 2-CFA)
+
+Constraint Types
+================
 
 The analysis builds a constraint graph over program pointers using standard
 pointer constraints:
@@ -40,8 +43,20 @@ The implementation supports several optional optimizations (see the README in
 * **HCD / LCD** – Hybrid and lazy cycle detection to identify strongly
   connected components and speed up convergence.
 
+**Optimizations** (optional, disabled by default):
+* **HVN / HU** – Hash-based value numbering and Heintze–Ullman style equivalence
+* **HCD / LCD** – Hybrid and lazy cycle detection for SCC identification
+
 All optimizations are disabled by default and can be enabled via
 tool-specific command-line flags.
+
+Features
+========
+
+* Inclusion-based algorithm
+* Fast analysis for large codebases
+* Supports multiple context sensitivities
+* Optional optimizations for improved performance
 
 Usage
 =====
