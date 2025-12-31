@@ -5,7 +5,7 @@ OWL – SMT/Model Checking Front-End
 configured SMT solver (Z3 in the default build).
 
 **Binary**: ``owl``  
-**Location**: ``tools/owl/owl.cpp``
+**Location**: ``tools/solver/owl.cpp``
 
 **Note**: This tool is optional and must be enabled with ``BUILD_OWL=ON`` during
 CMake configuration.

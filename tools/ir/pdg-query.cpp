@@ -13,12 +13,12 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IRReader/IRReader.h"
 #include "llvm/Support/CommandLine.h"
+#include "llvm/Support/InitLLVM.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/InitLLVM.h"
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <string>
 
 using namespace llvm;

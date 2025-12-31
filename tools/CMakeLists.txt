@@ -3,7 +3,7 @@ add_subdirectory(alias)
 add_subdirectory(checker)
 add_subdirectory(verifier)
 
-#add_subdirectory(pdg-query)  # not used for now
+#add_subdirectory(ir)  # not used for now
 #add_subdirectory(mcp)        # not used for now
 
 # not used for now
@@ -15,5 +15,5 @@ endif()
 # Optional SMT tools
 option(BUILD_OWL "Build Owl SMT solver" OFF)
 if(BUILD_OWL)
-    add_subdirectory(owl)
+    add_subdirectory(solver)
 endif()

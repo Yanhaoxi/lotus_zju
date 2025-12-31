@@ -4,16 +4,16 @@
 
 
 #include "Checker/GVFA/NullPointerChecker.h"
-#include "Checker/GVFA/UseAfterFreeChecker.h"
-#include "Checker/GVFA/UseOfUninitializedVariableChecker.h"
-#include "Checker/GVFA/FreeOfNonHeapMemoryChecker.h"
-#include "Checker/GVFA/InvalidUseOfStackAddressChecker.h"
-#include "Checker/Report/BugReportMgr.h"
-#include "Analysis/GVFA/GlobalValueFlowAnalysis.h"
-#include "Analysis/NullPointer/NullCheckAnalysis.h"
-#include "Analysis/NullPointer/ContextSensitiveNullCheckAnalysis.h"
 #include "Alias/DyckAA/DyckAliasAnalysis.h"
 #include "Alias/DyckAA/DyckModRefAnalysis.h"
+#include "Analysis/GVFA/GlobalValueFlowAnalysis.h"
+#include "Analysis/NullPointer/ContextSensitiveNullCheckAnalysis.h"
+#include "Analysis/NullPointer/NullCheckAnalysis.h"
+#include "Checker/GVFA/FreeOfNonHeapMemoryChecker.h"
+#include "Checker/GVFA/InvalidUseOfStackAddressChecker.h"
+#include "Checker/GVFA/UseAfterFreeChecker.h"
+#include "Checker/GVFA/UseOfUninitializedVariableChecker.h"
+#include "Checker/Report/BugReportMgr.h"
 
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IRReader/IRReader.h>

@@ -8,35 +8,35 @@
  *****************************************************************************/
 
 #include "Alias/DyckAA/DyckAliasAnalysis.h"
-#include "Alias/DyckAA/DyckCallGraph.h"
-#include "Alias/DyckAA/DyckCallGraphNode.h"
-#include "Alias/LotusAA/Engine/InterProceduralPass.h"
-#include "Alias/LotusAA/Support/FunctionPointerResults.h"
-#include "Alias/FPA/CallGraphPass.h"
-#include "Alias/FPA/FLTAPass.h"
-#include "Alias/FPA/MLTAPass.h"
-#include "Alias/FPA/MLTADFPass.h"
-#include "Alias/FPA/KELPPass.h"
-#include "Alias/FPA/Config.h"
-#include "Alias/FPA/Common.h"
-#include "Alias/AserPTA/Util/Log.h"
-#include "Alias/AserPTA/PointerAnalysis/PointerAnalysisPass.h"
-#include "Alias/AserPTA/PointerAnalysis/Context/NoCtx.h"
 #include "Alias/AserPTA/PointerAnalysis/Context/KCallSite.h"
+#include "Alias/AserPTA/PointerAnalysis/Context/NoCtx.h"
 #include "Alias/AserPTA/PointerAnalysis/Models/LanguageModel/DefaultLangModel/DefaultLangModel.h"
 #include "Alias/AserPTA/PointerAnalysis/Models/MemoryModel/FieldSensitive/FSMemModel.h"
+#include "Alias/AserPTA/PointerAnalysis/PointerAnalysisPass.h"
 #include "Alias/AserPTA/PointerAnalysis/Solver/WavePropagation.h"
 #include "Alias/AserPTA/PreProcessing/Passes/CanonicalizeGEPPass.h"
 #include "Alias/AserPTA/PreProcessing/Passes/LoweringMemCpyPass.h"
-#include "Alias/AserPTA/PreProcessing/Passes/RemoveExceptionHandlerPass.h"
 #include "Alias/AserPTA/PreProcessing/Passes/RemoveASMInstPass.h"
+#include "Alias/AserPTA/PreProcessing/Passes/RemoveExceptionHandlerPass.h"
 #include "Alias/AserPTA/PreProcessing/Passes/StandardHeapAPIRewritePass.h"
+#include "Alias/AserPTA/Util/Log.h"
+#include "Alias/DyckAA/DyckCallGraph.h"
+#include "Alias/DyckAA/DyckCallGraphNode.h"
+#include "Alias/FPA/CallGraphPass.h"
+#include "Alias/FPA/Common.h"
+#include "Alias/FPA/Config.h"
+#include "Alias/FPA/FLTAPass.h"
+#include "Alias/FPA/KELPPass.h"
+#include "Alias/FPA/MLTADFPass.h"
+#include "Alias/FPA/MLTAPass.h"
+#include "Alias/LotusAA/Engine/InterProceduralPass.h"
+#include "Alias/LotusAA/Support/FunctionPointerResults.h"
 
 #include "llvm/Analysis/CallGraph.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/InstrTypes.h"
-#include "llvm/IR/Module.h"
 #include "llvm/IR/LegacyPassManager.h"
+#include "llvm/IR/Module.h"
 #include "llvm/IRReader/IRReader.h"
 #include "llvm/InitializePasses.h"
 #include "llvm/PassRegistry.h"
@@ -47,11 +47,11 @@
 #include "llvm/Support/WithColor.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include <chrono>
+#include <map>
 #include <memory>
 #include <system_error>
-#include <map>
 #include <vector>
-#include <chrono>
 
 namespace cl = llvm::cl;
 

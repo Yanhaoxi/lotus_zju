@@ -10,12 +10,12 @@
 #include "llvm/Support/CommandLine.h"
 //#include "llvm/Support/FileSystem.h"
 //#include "llvm/Support/Path.h"
+#include "llvm/InitializePasses.h"
+#include "llvm/PassRegistry.h"
 #include "llvm/Support/PrettyStackTrace.h"
 #include "llvm/Support/Signals.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/PassRegistry.h"
-#include "llvm/InitializePasses.h"
 
 #include "Alias/seadsa/DsaAnalysis.hh"
 #include "Alias/seadsa/DsaPrinter.hh"
@@ -23,9 +23,9 @@
 #include "Alias/seadsa/InitializePasses.hh"
 
 // Add these includes for proper registration
-#include "Alias/seadsa/support/RemovePtrToInt.hh"
 #include "Alias/seadsa/AllocWrapInfo.hh"
 #include "Alias/seadsa/DsaLibFuncInfo.hh"
+#include "Alias/seadsa/support/RemovePtrToInt.hh"
 
 static llvm::cl::opt<std::string>
     InputFilename(llvm::cl::Positional,

@@ -8,20 +8,20 @@
 
 #include "Alias/LotusAA/Engine/InterProceduralPass.h"
 
-#include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Module.h>
 #include <llvm/IR/Dominators.h>
+#include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/LegacyPassManager.h>
+#include <llvm/IR/Module.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/InitializePasses.h>
 #include <llvm/PassRegistry.h>
-#include <llvm/Support/InitLLVM.h>
 #include <llvm/Support/CommandLine.h>
-#include <llvm/Support/Signals.h>
-#include <llvm/Support/ToolOutputFile.h>
-#include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/FileSystem.h>
+#include <llvm/Support/InitLLVM.h>
+#include <llvm/Support/Signals.h>
+#include <llvm/Support/SourceMgr.h>
+#include <llvm/Support/ToolOutputFile.h>
 #include <llvm/Support/raw_ostream.h>
 #include <memory>
 

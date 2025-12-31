@@ -4,10 +4,10 @@
  */
 
 #include "Solvers/SMT/SMTSolver.h"
-#include "Solvers/SMT/SMTFactory.h"
-#include "Solvers/SMT/SMTModel.h"
 #include "Solvers/SMT/CNF.h"
 #include "Solvers/SMT/SATSolver.h"
+#include "Solvers/SMT/SMTFactory.h"
+#include "Solvers/SMT/SMTModel.h"
 
 #include <iostream>
 //#include <memory>

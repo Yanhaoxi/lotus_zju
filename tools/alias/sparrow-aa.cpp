@@ -15,22 +15,22 @@
 #include "Alias/SparrowAA/Log.h"
 #include "Alias/SparrowAA/ResultUtils.h"
 
+#include <llvm/ADT/Statistic.h>
 #include <llvm/Analysis/MemoryLocation.h>
-#include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Module.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/IRReader/IRReader.h>
-#include <llvm/Support/InitLLVM.h>
 #include <llvm/Support/CommandLine.h>
+#include <llvm/Support/InitLLVM.h>
 #include <llvm/Support/Signals.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_ostream.h>
-#include <llvm/ADT/Statistic.h>
 
-#include <memory>
 #include <cstring>
+#include <memory>
 
 using namespace llvm;
 

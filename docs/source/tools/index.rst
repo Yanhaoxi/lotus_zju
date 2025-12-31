@@ -21,7 +21,7 @@ The documentation is organized to match the ``tools/`` directory structure:
    alias/index
    cfl/index
    checker/index
+   ir/index
    mcp/index
-   owl/index
-   pdg-query/index
+   solver/index
    verifier/index

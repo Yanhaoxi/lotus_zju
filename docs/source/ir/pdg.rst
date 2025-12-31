@@ -45,6 +45,6 @@ PDG is exposed as an LLVM ``ModulePass``. A typical usage pattern:
    // Use G->getNodes(), G->canReach(src, dst), etc.
 
 For interactive querying and slicing, see the :doc:`../pdg_query_language`
-and the ``pdg-query`` tool described in :doc:`../tools/analysis`.
+and the ``pdg-query`` tool described in :doc:`../tools/ir`.
 
 

@@ -4,7 +4,7 @@ PDG Query – Program Dependence Graph Queries
 Interactive and batch query engine for the Program Dependence Graph (PDG).
 
 **Binary**: ``pdg-query``  
-**Location**: ``tools/pdg-query/pdg-query.cpp``
+**Location**: ``tools/ir/pdg-query.cpp``
 
 **Usage**:
 

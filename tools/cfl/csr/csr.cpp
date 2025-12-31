@@ -2,14 +2,14 @@
 // Indexing Context-Sensitive Reachability Analysis
 //
 
+#include <chrono>
+#include <csignal>
 #include <cstddef>
-#include <iostream>
 #include <cstring>
 #include <ctime>
-#include <ratio>
-#include <chrono>
 #include <iomanip>
-#include <csignal>
+#include <iostream>
+#include <ratio>
 #include <unistd.h>
 
 #include "CFL/CSIndex/CSProgressBar.h"
@@ -17,8 +17,8 @@
 #include "CFL/CSIndex/Graph.h"
 #include "CFL/CSIndex/GraphUtil.h"
 #include "CFL/CSIndex/ParallelTabulation.h"
-#include "CFL/CSIndex/PathtreeQuery.h"
 #include "CFL/CSIndex/PathTree.h"
+#include "CFL/CSIndex/PathtreeQuery.h"
 #include "CFL/CSIndex/Query.h"
 #include "CFL/CSIndex/ReachBackbone.h"
 #include "CFL/CSIndex/Tabulation.h"

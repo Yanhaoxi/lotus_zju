@@ -9,8 +9,8 @@
 #include "Verification/clam/Support/Debug.hh"
 #include "Verification/clam/crab/read_json.hh"
 
-#include <crab/support/os.hpp>
 #include <crab/support/debug.hpp>
+#include <crab/support/os.hpp>
 
 /* abstract domains for semantic diff*/
 #include <crab/config.h>
