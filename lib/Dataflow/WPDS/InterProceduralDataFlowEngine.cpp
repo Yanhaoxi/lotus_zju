@@ -237,8 +237,13 @@ void InterProceduralDataFlowEngine::buildWPDS(
                             retFlow
                         );
 
-                        wpds.add_rule(controlState, calledExit,
-                                    controlState,
+                        // Return rule: pop returnKey from stack and push returnKey to continue at return site
+                        // The call rule pushed: calledEntry, returnKey (returnKey is on top)
+                        // At return from calledExit, we pop returnKey and push returnKey (identity)
+                        // to continue execution at the return site
+                        // Rule format: <p, y> -> <q, g1> where y is popped and g1 is pushed
+                        wpds.add_rule(controlState, calledExit, returnKey,
+                                    controlState, returnKey,
                                     retTrans);
                         
                         prevKey = returnKey;

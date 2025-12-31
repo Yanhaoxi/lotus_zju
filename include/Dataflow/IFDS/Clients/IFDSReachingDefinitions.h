@@ -9,8 +9,8 @@
 
 #include "Dataflow/IFDS/IFDSFramework.h"
 
-#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Constants.h>
+#include <llvm/IR/Instructions.h>
 #include <llvm/Support/raw_ostream.h>
 
 namespace ifds {
@@ -56,7 +56,7 @@ template<>
 struct hash<ifds::DefinitionFact> {
     size_t operator()(const ifds::DefinitionFact& fact) const;
 };
-}
+} // namespace std
 
 namespace ifds {
 

@@ -15,7 +15,7 @@ namespace llvm {
 class CallBase;
 class Value;
 class Instruction;
-}
+} // namespace llvm
 
 using namespace llvm;
 

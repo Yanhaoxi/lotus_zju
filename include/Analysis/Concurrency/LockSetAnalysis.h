@@ -43,11 +43,11 @@
 
 namespace lotus {
 class AliasAnalysisWrapper;
-}
+} // namespace lotus
 
 namespace llvm {
 class CallGraph;
-}
+} // namespace llvm
 
 namespace mhp {
 

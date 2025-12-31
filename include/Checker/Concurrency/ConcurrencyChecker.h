@@ -2,29 +2,29 @@
 #define CONCURRENCY_CHECKER_H
 
 #include "Analysis/Concurrency/MHPAnalysis.h"
-#include "Analysis/Concurrency/LockSetAnalysis.h"
 #include "Analysis/Concurrency/EscapeAnalysis.h"
+#include "Analysis/Concurrency/LockSetAnalysis.h"
+#include "Checker/Concurrency/AtomicityChecker.h"
 #include "Checker/Concurrency/ConcurrencyBugReport.h"
+#include "Checker/Concurrency/ConditionVariableChecker.h"
 #include "Checker/Concurrency/DataRaceChecker.h"
 #include "Checker/Concurrency/DeadlockChecker.h"
-#include "Checker/Concurrency/AtomicityChecker.h"
-#include "Checker/Concurrency/ConditionVariableChecker.h"
 #include "Checker/Concurrency/LockMismatchChecker.h"
 #include "Checker/Report/BugReport.h"
 #include "Checker/Report/BugReportMgr.h"
 
-#include <llvm/IR/Module.h>
-#include <llvm/IR/Instructions.h>
 #include <llvm/IR/InstIterator.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/Module.h>
 
+#include <memory>
+#include <string>
 #include <unordered_set>
 #include <vector>
-#include <string>
-#include <memory>
 
 namespace lotus {
 class AliasAnalysisWrapper;
-}
+} // namespace lotus
 
 namespace concurrency {
 

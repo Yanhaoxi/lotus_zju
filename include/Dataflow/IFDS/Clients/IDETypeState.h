@@ -2,15 +2,15 @@
 
 #include "Dataflow/IFDS/IFDSFramework.h"
 
-#include <llvm/IR/Instruction.h>
 #include <llvm/IR/Function.h>
+#include <llvm/IR/Instruction.h>
 #include <llvm/IR/Value.h>
+#include <functional>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <functional>
-#include <memory>
 
 namespace ifds {
 
@@ -71,7 +71,7 @@ struct hash<ifds::TypeStateValue> {
         return std::hash<int>{}(v.user_state());
     }
 };
-}
+} // namespace std
 
 namespace ifds {
 
@@ -299,6 +299,6 @@ namespace predefined {
     std::shared_ptr<TypeStateProperty> create_lock_property();
     std::shared_ptr<TypeStateProperty> create_memory_property();
     std::shared_ptr<TypeStateProperty> create_socket_property();
-}
+} // namespace predefined
 
 } // namespace ifds

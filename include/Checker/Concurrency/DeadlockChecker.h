@@ -2,16 +2,16 @@
 #define DEADLOCK_CHECKER_H
 
 #include "Checker/Concurrency/ConcurrencyBugReport.h"
-#include "Analysis/Concurrency/MHPAnalysis.h"
 #include "Analysis/Concurrency/LockSetAnalysis.h"
+#include "Analysis/Concurrency/MHPAnalysis.h"
 #include "Analysis/Concurrency/ThreadAPI.h"
 
-#include <llvm/IR/Module.h>
-#include <llvm/IR/Instructions.h>
 #include <llvm/IR/InstIterator.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/Module.h>
 
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace concurrency {
 

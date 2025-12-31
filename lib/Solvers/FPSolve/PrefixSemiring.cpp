@@ -1,8 +1,8 @@
 #include "Solvers/FPSolve/Semirings/PrefixSemiring.h"
 #include "Solvers/FPSolve/Utils/ProfilingMacros.h"
+#include <algorithm>
 #include <cassert>
 #include <sstream>
-#include <algorithm>
 
 namespace fpsolve {
 

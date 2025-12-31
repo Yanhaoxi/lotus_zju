@@ -2,13 +2,13 @@
 #define STATIC_THREAD_SHARING_ANALYSIS_H
 
 #include "llvm/Pass.h"
+#include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include <set>
 #include <map>
+#include <set>
 #include <unordered_map>
 #include <vector>
 
@@ -17,7 +17,7 @@ namespace seadsa {
   class Node;
   class Cell;
   class GlobalAnalysis;
-}
+} // namespace seadsa
 
 namespace lotus {
 

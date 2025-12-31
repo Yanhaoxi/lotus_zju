@@ -5,8 +5,8 @@
 #include "Solvers/FPSolve/Semirings/CommutativeRExp.h"
 #include "Solvers/FPSolve/Utils/ProfilingMacros.h"
 #include <cassert>
-#include <string>
 #include <iostream>
+#include <string>
 
 namespace fpsolve {
 

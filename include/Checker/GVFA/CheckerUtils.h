@@ -1,10 +1,10 @@
 #ifndef CHECKER_GVFA_CHECKERUTILS_H
 #define CHECKER_GVFA_CHECKERUTILS_H
 
+#include <llvm/ADT/StringRef.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Module.h>
-#include <llvm/ADT/StringRef.h>
 #include <functional>
 
 using namespace llvm;

@@ -11,7 +11,7 @@
 
 namespace llvm {
 class CallBase;
-}
+} // namespace llvm
 
 enum class TFGEdgeType {
   CALL,

@@ -9,7 +9,7 @@
 namespace llvm {
 class Function;
 class Instruction;
-}
+} // namespace llvm
 
 namespace mono {
 

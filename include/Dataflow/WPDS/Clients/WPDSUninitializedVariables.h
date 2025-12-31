@@ -12,14 +12,14 @@
 #define ANALYSIS_WPDS_UNINITIALIZED_VARIABLES_H_
 
 #include "Dataflow/Mono/DataFlowResult.h"
-#include <llvm/IR/Module.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/Module.h>
 #include <memory>
 
 namespace llvm {
     class Module;
     class Instruction;
-}
+} // namespace llvm
 
 /**
  * @brief Demo function showing how to use the uninitialized variables analysis

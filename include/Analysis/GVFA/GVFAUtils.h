@@ -5,8 +5,8 @@
 #include <unordered_set>
 #include <vector>
 
-#include <llvm/IR/Value.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/Value.h>
 
 #include "Alias/DyckAA/DyckVFG.h"
 
@@ -21,7 +21,7 @@ namespace std {
                    (std::hash<const Function *>()(p.second) << 1);
         }
     };
-}
+} // namespace std
 
 namespace GVFAUtils {
 

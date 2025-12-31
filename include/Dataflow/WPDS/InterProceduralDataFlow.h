@@ -3,14 +3,14 @@
 
 #include "Utils/LLVM/SystemHeaders.h"
 #include "Dataflow/Mono/DataFlow.h"
-#include "Solvers/WPDS/WPDS.h"
 #include "Solvers/WPDS/CA.h"
-#include "Solvers/WPDS/semiring.h"
+#include "Solvers/WPDS/WPDS.h"
 #include "Solvers/WPDS/key_source.h"
 #include "Solvers/WPDS/keys.h"
-#include <memory>
+#include "Solvers/WPDS/semiring.h"
 #include <functional>
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 

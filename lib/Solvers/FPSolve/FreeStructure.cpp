@@ -4,8 +4,8 @@
 
 #include "Solvers/FPSolve/DataStructs/FreeStructure.h"
 #include <functional>
-#include <sstream>
 #include <set>
+#include <sstream>
 
 namespace fpsolve {
 
@@ -59,11 +59,11 @@ public:
     result_ << Var::GetVar(e.GetVar()).string();
   }
 
-  void Visit(const Epsilon &e) override {
+  void Visit(const Epsilon & /*e*/) override {
     result_ << "1";
   }
 
-  void Visit(const Empty &e) override {
+  void Visit(const Empty & /*e*/) override {
     result_ << "0";
   }
 
@@ -149,36 +149,36 @@ NodePtr NodeFactory::NewElement(VarId var) {
 }
 
 void NodeFactory::PrintDot(std::ostream &out) {
-  out << "digraph FreeStructure {" << std::endl;
+  out << "digraph FreeStructure {" << '\n';
   
   std::set<NodePtr> visited;
   std::function<void(NodePtr)> traverse = [&](NodePtr node) {
     if (!node || visited.count(node)) return;
     visited.insert(node);
     
-    if (auto add = dynamic_cast<const Addition*>(node)) {
-      out << "  node" << node << " [label=\"+\"];" << std::endl;
-      out << "  node" << node << " -> node" << add->GetLhs() << ";" << std::endl;
-      out << "  node" << node << " -> node" << add->GetRhs() << ";" << std::endl;
+    if (const auto *add = dynamic_cast<const Addition*>(node)) {
+      out << "  node" << node << " [label=\"+\"];" << '\n';
+      out << "  node" << node << " -> node" << add->GetLhs() << ";" << '\n';
+      out << "  node" << node << " -> node" << add->GetRhs() << ";" << '\n';
       traverse(add->GetLhs());
       traverse(add->GetRhs());
-    } else if (auto mul = dynamic_cast<const Multiplication*>(node)) {
-      out << "  node" << node << " [label=\"*\"];" << std::endl;
-      out << "  node" << node << " -> node" << mul->GetLhs() << ";" << std::endl;
-      out << "  node" << node << " -> node" << mul->GetRhs() << ";" << std::endl;
+    } else if (const auto *mul = dynamic_cast<const Multiplication*>(node)) {
+      out << "  node" << node << " [label=\"*\"];" << '\n';
+      out << "  node" << node << " -> node" << mul->GetLhs() << ";" << '\n';
+      out << "  node" << node << " -> node" << mul->GetRhs() << ";" << '\n';
       traverse(mul->GetLhs());
       traverse(mul->GetRhs());
-    } else if (auto star = dynamic_cast<const Star*>(node)) {
-      out << "  node" << node << " [label=\"*\"];" << std::endl;
-      out << "  node" << node << " -> node" << star->GetNode() << ";" << std::endl;
+    } else if (const auto *star = dynamic_cast<const Star*>(node)) {
+      out << "  node" << node << " [label=\"*\"];" << '\n';
+      out << "  node" << node << " -> node" << star->GetNode() << ";" << '\n';
       traverse(star->GetNode());
-    } else if (auto elem = dynamic_cast<const Element*>(node)) {
+    } else if (const auto *elem = dynamic_cast<const Element*>(node)) {
       out << "  node" << node << " [label=\"" 
-          << Var::GetVar(elem->GetVar()).string() << "\"];" << std::endl;
+          << Var::GetVar(elem->GetVar()).string() << "\"];" << '\n';
     } else if (dynamic_cast<const Epsilon*>(node)) {
-      out << "  node" << node << " [label=\"1\"];" << std::endl;
+      out << "  node" << node << " [label=\"1\"];" << '\n';
     } else if (dynamic_cast<const Empty*>(node)) {
-      out << "  node" << node << " [label=\"0\"];" << std::endl;
+      out << "  node" << node << " [label=\"0\"];" << '\n';
     }
   };
   
@@ -187,7 +187,7 @@ void NodeFactory::PrintDot(std::ostream &out) {
   for (const auto &pair : multiplications_) traverse(pair.second);
   for (const auto &pair : stars_) traverse(pair.second);
   
-  out << "}" << std::endl;
+  out << "}" << '\n';
 }
 
 void NodeFactory::GC() {
@@ -196,11 +196,11 @@ void NodeFactory::GC() {
 }
 
 void NodeFactory::PrintStats(std::ostream &out) {
-  out << "FreeStructure Statistics:" << std::endl;
-  out << "  Additions: " << additions_.size() << std::endl;
-  out << "  Multiplications: " << multiplications_.size() << std::endl;
-  out << "  Stars: " << stars_.size() << std::endl;
-  out << "  Elements: " << elems_.size() << std::endl;
+  out << "FreeStructure Statistics:" << '\n';
+  out << "  Additions: " << additions_.size() << '\n';
+  out << "  Multiplications: " << multiplications_.size() << '\n';
+  out << "  Stars: " << stars_.size() << '\n';
+  out << "  Elements: " << elems_.size() << '\n';
 }
 
 } // namespace fpsolve

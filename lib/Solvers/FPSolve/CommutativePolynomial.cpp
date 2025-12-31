@@ -5,8 +5,8 @@
 #include "Solvers/FPSolve/Polynomials/CommutativePolynomial.h"
 #include "Solvers/FPSolve/Semirings/BoolSemiring.h"
 #include "Solvers/FPSolve/Semirings/FloatSemiring.h"
-#include "Solvers/FPSolve/Semirings/TropicalSemiring.h"
 #include "Solvers/FPSolve/Semirings/FreeSemiring.h"
+#include "Solvers/FPSolve/Semirings/TropicalSemiring.h"
 
 namespace fpsolve {
 

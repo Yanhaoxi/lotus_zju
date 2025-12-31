@@ -12,7 +12,7 @@
 namespace llvm {
   class AAResults;
   class MemorySSA;
-}
+} // namespace llvm
 
 namespace mono {
 

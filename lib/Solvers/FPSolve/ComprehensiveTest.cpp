@@ -4,13 +4,13 @@
  */
 
 #include "Solvers/FPSolve/FPSolve.h"
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 
 using namespace fpsolve;
 
 void test_bool_semiring() {
-  std::cout << "\n=== Boolean Semiring Test ===" << std::endl;
+  std::cout << "\n=== Boolean Semiring Test ===" << '\n';
   
   VarId X = Var::GetVarId("X");
   CommutativeMonomial m1({X, X});
@@ -28,11 +28,11 @@ void test_bool_semiring() {
       equations, 5, SolverFactory<BoolSemiring>::SolverType::NEWTON_CLDU
   );
   
-  std::cout << "X = " << result[X].string() << std::endl;
+  std::cout << "X = " << result[X].string() << '\n';
 }
 
 void test_float_semiring() {
-  std::cout << "\n=== Float Semiring Test ===" << std::endl;
+  std::cout << "\n=== Float Semiring Test ===" << '\n';
   
   VarId Y = Var::GetVarId("Y");
   CommutativeMonomial m_y({Y});
@@ -51,11 +51,11 @@ void test_float_semiring() {
   );
   
   std::cout << "Y = " << std::fixed << std::setprecision(6) 
-            << result[Y].getValue() << std::endl;
+            << result[Y].getValue() << '\n';
 }
 
 void test_tropical_semiring() {
-  std::cout << "\n=== Tropical Semiring Test (Shortest Path) ===" << std::endl;
+  std::cout << "\n=== Tropical Semiring Test (Shortest Path) ===" << '\n';
   
   VarId Z = Var::GetVarId("Z");
   CommutativeMonomial m_z({Z});
@@ -73,11 +73,11 @@ void test_tropical_semiring() {
       equations, 5, SolverFactory<TropicalSemiring>::SolverType::KLEENE
   );
   
-  std::cout << "Z = " << result[Z].string() << std::endl;
+  std::cout << "Z = " << result[Z].string() << '\n';
 }
 
 void test_viterbi_semiring() {
-  std::cout << "\n=== Viterbi Semiring Test ===" << std::endl;
+  std::cout << "\n=== Viterbi Semiring Test ===" << '\n';
   
   VarId V = Var::GetVarId("V");
   CommutativeMonomial m_v({V});
@@ -96,11 +96,11 @@ void test_viterbi_semiring() {
   );
   
   std::cout << "V = " << std::fixed << std::setprecision(6)
-            << result[V].getValue() << std::endl;
+            << result[V].getValue() << '\n';
 }
 
 void test_free_semiring() {
-  std::cout << "\n=== Free Semiring Test (Symbolic) ===" << std::endl;
+  std::cout << "\n=== Free Semiring Test (Symbolic) ===" << '\n';
   
   VarId a = Var::GetVarId("a");
   VarId b = Var::GetVarId("b");
@@ -110,7 +110,7 @@ void test_free_semiring() {
   
   FreeSemiring expr = fa * fb + fa.star();
   
-  std::cout << "Expression: " << expr.string() << std::endl;
+  std::cout << "Expression: " << expr.string() << '\n';
   
   // Evaluate with Boolean values
   ValuationMap<BoolSemiring> val_bool;
@@ -118,7 +118,7 @@ void test_free_semiring() {
   val_bool[b] = BoolSemiring(true);
   
   auto result_bool = expr.Eval(val_bool);
-  std::cout << "Evaluated (bool): " << result_bool.string() << std::endl;
+  std::cout << "Evaluated (bool): " << result_bool.string() << '\n';
   
   // Evaluate with Float values
   ValuationMap<FloatSemiring> val_float;
@@ -127,11 +127,11 @@ void test_free_semiring() {
   
   auto result_float = expr.Eval(val_float);
   std::cout << "Evaluated (float): " << std::fixed << std::setprecision(6) 
-            << result_float.getValue() << std::endl;
+            << result_float.getValue() << '\n';
 }
 
 void test_scc_decomposition() {
-  std::cout << "\n=== SCC Decomposition Test ===" << std::endl;
+  std::cout << "\n=== SCC Decomposition Test ===" << '\n';
   
   // Create mutually recursive equations
   VarId X = Var::GetVarId("X_scc");
@@ -158,19 +158,19 @@ void test_scc_decomposition() {
   equations.emplace_back(Y, poly_y);
   equations.emplace_back(Z, poly_z);
   
-  std::cout << "Solving with SCC decomposition..." << std::endl;
+  std::cout << "Solving with SCC decomposition..." << '\n';
   
   auto result = apply_solver_with_scc<NewtonCLDU, CommutativePolynomial>(
       equations, 10
   );
   
-  std::cout << "X = " << result[X].string() << std::endl;
-  std::cout << "Y = " << result[Y].string() << std::endl;
-  std::cout << "Z = " << result[Z].string() << std::endl;
+  std::cout << "X = " << result[X].string() << '\n';
+  std::cout << "Y = " << result[Y].string() << '\n';
+  std::cout << "Z = " << result[Z].string() << '\n';
 }
 
 void test_commutative_rexp() {
-  std::cout << "\n=== Commutative Regular Expression Test ===" << std::endl;
+  std::cout << "\n=== Commutative Regular Expression Test ===" << '\n';
   
   VarId a = Var::GetVarId("a_rexp");
   VarId b = Var::GetVarId("b_rexp");
@@ -180,14 +180,14 @@ void test_commutative_rexp() {
   
   CommutativeRExp expr = (ra * rb).star() + ra;
   
-  std::cout << "Regular Expression: " << expr.string() << std::endl;
+  std::cout << "Regular Expression: " << expr.string() << '\n';
 }
 
 int main() {
-  std::cout << "╔════════════════════════════════════════════════════════════╗" << std::endl;
-  std::cout << "║        FPSolve Comprehensive Test Suite                   ║" << std::endl;
-  std::cout << "║  Fixed-Point Solver for Omega-Continuous Semirings        ║" << std::endl;
-  std::cout << "╚════════════════════════════════════════════════════════════╝" << std::endl;
+  std::cout << "╔════════════════════════════════════════════════════════════╗" << '\n';
+  std::cout << "║        FPSolve Comprehensive Test Suite                   ║" << '\n';
+  std::cout << "║  Fixed-Point Solver for Omega-Continuous Semirings        ║" << '\n';
+  std::cout << "╚════════════════════════════════════════════════════════════╝" << '\n';
   
   test_bool_semiring();
   test_float_semiring();
@@ -197,9 +197,9 @@ int main() {
   test_commutative_rexp();
   test_scc_decomposition();
   
-  std::cout << "\n╔════════════════════════════════════════════════════════════╗" << std::endl;
-  std::cout << "║               All Tests Completed Successfully!           ║" << std::endl;
-  std::cout << "╚════════════════════════════════════════════════════════════╝" << std::endl;
+  std::cout << "\n╔════════════════════════════════════════════════════════════╗" << '\n';
+  std::cout << "║               All Tests Completed Successfully!           ║" << '\n';
+  std::cout << "╚════════════════════════════════════════════════════════════╝" << '\n';
   
   return 0;
 }

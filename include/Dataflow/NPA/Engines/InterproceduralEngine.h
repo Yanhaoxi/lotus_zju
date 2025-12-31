@@ -2,16 +2,16 @@
 #define NPA_INTERPROCEDURAL_ENGINE_H
 
 #include "Dataflow/NPA/NPA.h"
-#include <llvm/IR/Module.h>
+#include <llvm/IR/CFG.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
-#include <llvm/IR/CFG.h>
-#include <sstream>
+#include <llvm/IR/Module.h>
 #include <deque>
-#include <unordered_map>
 #include <map>
-#include <vector>
 #include <set>
+#include <sstream>
+#include <unordered_map>
+#include <vector>
 
 namespace npa {
 

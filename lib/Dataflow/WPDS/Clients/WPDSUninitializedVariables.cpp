@@ -5,11 +5,11 @@
  */
 
 #include "Dataflow/WPDS/InterProceduralDataFlow.h"
-#include "Dataflow/WPDS/Clients/WPDSUninitializedVariables.h"
 #include "Dataflow/Mono/DataFlowResult.h"
+#include "Dataflow/WPDS/Clients/WPDSUninitializedVariables.h"
 #include <llvm/IR/CFG.h>
-#include <llvm/IR/Module.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/Module.h>
 #include <llvm/Support/raw_ostream.h>
 
 using namespace llvm;
@@ -146,7 +146,7 @@ static void printValueSet(raw_ostream &OS, const std::set<Value *> &S) {
 void queryAnalysisResults(Module &module, const mono::DataFlowResult &result, Instruction *targetInst) {
     (void)module;
     if (!targetInst) return;
-    auto itF = targetInst->getFunction();
+    auto *itF = targetInst->getFunction();
     (void)itF;
     errs() << "[WPDS][Query] IN  = ";
     printValueSet(errs(), const_cast<mono::DataFlowResult&>(result).IN(targetInst));

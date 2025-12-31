@@ -8,15 +8,15 @@
 #ifndef NULLPOINTER_CONTEXTSENSITIVENULLFLOWANALYSIS_H
 #define NULLPOINTER_CONTEXTSENSITIVENULLFLOWANALYSIS_H
 
-#include <llvm/Pass.h>
 #include <llvm/IR/Function.h>
-#include <llvm/IR/Module.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/Module.h>
+#include <llvm/Pass.h>
 #include <llvm/Support/CommandLine.h>
 #include <set>
 //#include <map>
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 
 #include "Alias/DyckAA/DyckVFG.h"
 #include "Analysis/NullPointer/AliasAnalysisAdapter.h"
@@ -35,7 +35,7 @@ namespace std {
     struct hash<FunctionContextPair> {
         size_t operator()(const FunctionContextPair &FCP) const {
             size_t H = hash<Function *>()(FCP.first);
-            for (auto CI: FCP.second) {
+            for (auto *CI: FCP.second) {
                 H += hash<CallInst *>()(CI);
             }
             return H;
@@ -53,7 +53,7 @@ namespace std {
             return true;
         }
     };
-}
+} // namespace std
 
 // mapping from context to a set of nonnull args
 typedef std::unordered_map<FunctionContextPair, std::set<std::pair<CallInst *, unsigned>>> NewNonNullEdgesMap;

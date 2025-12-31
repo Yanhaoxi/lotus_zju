@@ -7,16 +7,16 @@
 #ifndef NULLPOINTER_ALIASANALYSISADAPTER_H
 #define NULLPOINTER_ALIASANALYSISADAPTER_H
 
-#include <llvm/IR/Value.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Module.h>
+#include <llvm/IR/Value.h>
 
 using namespace llvm;
 
 // Forward declarations
 namespace llvm {
 class Module;
-}
+} // namespace llvm
 
 // Forward declaration for DyckAliasAnalysis
 class DyckAliasAnalysis;

@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Dataflow/IFDS/IFDSFramework.h"
-#include <llvm/IR/Instruction.h>
-#include <llvm/IR/Constants.h>
-#include <llvm/IR/Operator.h>
 #include <llvm/ADT/Optional.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/Instruction.h>
+#include <llvm/IR/Operator.h>
 
 namespace ifds {
 

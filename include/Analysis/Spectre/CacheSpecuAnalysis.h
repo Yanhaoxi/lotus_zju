@@ -8,11 +8,11 @@
 #include "llvm/IR/CFG.h"
 #include "llvm/IR/Dominators.h"
 #include "llvm/IR/InstIterator.h"
+#include <llvm/IR/InstVisitor.h>
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Operator.h"
 #include "llvm/IR/Value.h"
 #include "llvm/IR/ValueMap.h"
-#include <llvm/IR/InstVisitor.h>
 #include <llvm/Pass.h>
 #include <map>
 #define CACHE_LINE_NUM 32

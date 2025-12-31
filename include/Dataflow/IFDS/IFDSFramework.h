@@ -6,31 +6,31 @@
 
 #pragma once
 
-#include <llvm/IR/BasicBlock.h>
-#include <llvm/IR/Function.h>
-#include <llvm/IR/Instruction.h>
-#include <llvm/IR/Module.h>
-#include <llvm/IR/Value.h>
-#include <llvm/IR/Instructions.h>
-#include <llvm/IR/Constants.h>
-#include <llvm/IR/CFG.h>
 #include <llvm/Analysis/AliasAnalysis.h>
 #include <llvm/Analysis/CallGraph.h>
+#include <llvm/IR/BasicBlock.h>
+#include <llvm/IR/CFG.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/Instruction.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/Value.h>
 
 #include "Alias/AliasAnalysisWrapper/AliasAnalysisWrapper.h"
 #include "Utils/General/ADT/ThreadSafe.h"
 
 #include <functional>
+#include <memory>
+#include <set>
+#include <thread>
 #include <unordered_map>
 #include <vector>
-#include <thread>
-#include <set>
-#include <memory>
 
 // Forward declaration
 namespace lotus {
 class AliasAnalysisWrapper;
-}
+} // namespace lotus
 
 namespace ifds {
 
@@ -300,7 +300,7 @@ struct hash<ifds::SummaryEdge<Fact>> {
         return ifds::SummaryEdgeHash<Fact>{}(edge);
     }
 };
-}
+} // namespace std
 
 // ============================================================================
 // Template Implementation (moved to .cpp for explicit instantiation)

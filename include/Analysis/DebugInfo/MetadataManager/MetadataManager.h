@@ -23,8 +23,8 @@
  #define NOELLE_SRC_CORE_METADATA_MANAGER_METADATAMANAGER_H_
  
  #include "Utils/LLVM/SystemHeaders.h"
- #include "Analysis/DebugInfo/MetadataManager/MetadataEntry.h"
  #include "Analysis/DebugInfo/MetadataManager/LoopStructure.h"
+ #include "Analysis/DebugInfo/MetadataManager/MetadataEntry.h"
  
  namespace noelle {
  
@@ -146,6 +146,6 @@
    std::map<GlobalVariable *, std::set<std::string>> globalMetadata;
  };
  
- } // namespace arcana::noelle
+ } // namespace noelle
  
  #endif // NOELLE_SRC_CORE_METADATA_MANAGER_METADATAMANAGER_H_

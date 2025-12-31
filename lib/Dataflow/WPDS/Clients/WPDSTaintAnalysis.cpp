@@ -5,11 +5,11 @@
  */
 
 #include "Dataflow/WPDS/Clients/WPDSTaintAnalysis.h"
-#include "Dataflow/WPDS/InterProceduralDataFlow.h"
 #include "Dataflow/Mono/DataFlowResult.h"
+#include "Dataflow/WPDS/InterProceduralDataFlow.h"
 #include <llvm/IR/Instructions.h>
-#include <llvm/IR/Module.h>
 #include <llvm/IR/IntrinsicInst.h>
+#include <llvm/IR/Module.h>
 #include <llvm/Support/raw_ostream.h>
 
 using namespace llvm;

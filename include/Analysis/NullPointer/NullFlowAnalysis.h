@@ -19,12 +19,12 @@
 #ifndef NULLPOINTER_NULLFLOWANALYSIS_H
 #define NULLPOINTER_NULLFLOWANALYSIS_H
 
-#include <llvm/Pass.h>
-#include <llvm/Support/raw_ostream.h>
-#include <llvm/Support/CommandLine.h>
-#include <llvm/Support/Debug.h>
 #include "Alias/DyckAA/DyckVFG.h"
 #include "Alias/DyckAA/DyckAliasAnalysis.h"
+#include <llvm/Pass.h>
+#include <llvm/Support/CommandLine.h>
+#include <llvm/Support/Debug.h>
+#include <llvm/Support/raw_ostream.h>
 
 using namespace llvm;
 

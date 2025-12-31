@@ -2,10 +2,10 @@
 #define ANALYSIS_GVFA_ENGINE_H
 
 #include "Analysis/GVFA/GlobalValueFlowAnalysis.h"
-#include <unordered_map>
-#include <vector>
 #include <queue>
 #include <set>
+#include <unordered_map>
+#include <vector>
 
 using namespace llvm;
 

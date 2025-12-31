@@ -7,16 +7,16 @@
 #define LLVM_ANALYSIS_MemUseDefANALYSIS_H
 
 #include "llvm/ADT/BreadthFirstIterator.h"
+#include "llvm/ADT/APFloat.h"
 #include "llvm/Analysis/MemorySSA.h"
 #include "llvm/Analysis/ScalarEvolutionExpressions.h"
 #include "llvm/IR/AbstractCallSite.h"
 #include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/IR/InstIterator.h"
 #include "llvm/IR/IntrinsicInst.h"
+#include "llvm/IR/Operator.h"
 #include "llvm/IR/PassManager.h"
 #include "llvm/Pass.h"
-#include "llvm/ADT/APFloat.h"
-#include "llvm/IR/Operator.h"
 
 #include <queue>
 #include <set>

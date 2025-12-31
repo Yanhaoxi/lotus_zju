@@ -111,6 +111,6 @@
    bool isContainedInstructionLoopInvariant(Instruction *inst) const;
  };
  
- } // namespace arcana::noelle
+ } // namespace noelle
  
  #endif // NOELLE_SRC_CORE_LOOP_STRUCTURE_LOOPSTRUCTURE_H_

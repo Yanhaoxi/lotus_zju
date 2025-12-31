@@ -6,8 +6,8 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Value.h>
 #include <llvm/Pass.h>
-#include <unordered_set>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace lotus {
 
