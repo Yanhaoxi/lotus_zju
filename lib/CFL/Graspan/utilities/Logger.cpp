@@ -1,6 +1,6 @@
 #include "CFL/Graspan/utilities/Logger.h"
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 
 using namespace std;

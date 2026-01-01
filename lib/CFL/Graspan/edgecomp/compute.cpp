@@ -29,16 +29,16 @@ void print_edges(vector<vector<int>> &edgeVecsToMerge, vector<vector<char>> &val
 {
 	for (int i = 0; i < edgeVecsToMerge.size(); i++)
 	{
-		if (edgeVecsToMerge[i].size() == 0) cout << "VEC" << i << ": empty..." << endl;
+		if (edgeVecsToMerge[i].size() == 0) cout << "VEC" << i << ": empty..." << '\n';
 		else {
 			cout << "VEC" << i << ": ";
 			for (int j = 0; j < edgeVecsToMerge[i].size(); j++)
 				cout << "(" << edgeVecsToMerge[i][j] << ", " << (short)valVecsToMerge[i][j] << ")  ";
 
-			cout << endl;
+			cout << '\n';
 		}
 	}
-	cout << endl;
+	cout << '\n';
 }
 
 

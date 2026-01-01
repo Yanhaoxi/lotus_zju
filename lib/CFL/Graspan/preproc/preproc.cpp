@@ -68,7 +68,7 @@ void Preproc::saveData(Context & context)
 	else {
 		assert(false, "cannot open graph_file");
 	}
-	cout << "count " << count << endl;
+	cout << "count " << count << '\n';
 	//add E-rules
 	for (i = 0; i < dataSize; i++) {
 		if (data[i].size() == 0 && dataCheck[i] == 0)
@@ -101,20 +101,20 @@ void Preproc::makeVIT(Context &context) {
 	for (i = 0; i < dataSize; i++)
 		count += data[i].size();
 
-	cout << "count =" << count << endl;
+	cout << "count =" << count << '\n';
 	//calculate mSize following the bytes.
 	mSize = numVertex * 8 + count * 5;
-	cout << "numVer =" << numVertex << endl;
+	cout << "numVer =" << numVertex << '\n';
 	vitSize = 0;
 	startS = -1;
 	size = context.getNumPartitions();
 
-	cout << "size =" << size << endl;
+	cout << "size =" << size << '\n';
 	if (mSize / (unsigned long long int)size > context.getMemBudget() / (unsigned long long int)4) {
 		size = mSize / (context.getMemBudget() / (unsigned long long int) 4);
 		size++;
 	}
-	cout << "size =" << size << endl;
+	cout << "size =" << size << '\n';
 
 	//mSize is limit size per parititons.
 	mSize /= (unsigned long long int)size;

@@ -72,7 +72,7 @@ void printGraphBlue(SummaryGraph &sGraph) {
       unsigned tonodeID = root(it->nodeID, sGraph);
       unsigned eid = it->edgeID;
       out << node2orig[i] << "->" << node2orig[tonodeID] << "[label=\"o"
-          << eid2orig[eid] << "\"]" << endl;
+          << eid2orig[eid] << "\"]" << '\n';
     }
   }
 }
@@ -108,7 +108,7 @@ void createNodeMergeMap(SummaryGraph &sGraph) {
     for (list<unsigned>::iterator lit = l->begin(); lit != l->end(); lit++) {
       out << node2orig[*lit] << " ";
     }
-    out << endl;
+    out << '\n';
   }
 }
 
@@ -136,7 +136,7 @@ exportMergeNodes(SummaryGraph &sGraph) {
          lit++) {
       out << *lit << " ";
     }
-    out << endl;
+    out << '\n';
   }
   return mergemap;
 }

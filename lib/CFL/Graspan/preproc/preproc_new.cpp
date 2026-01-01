@@ -403,7 +403,7 @@ void Preproc_new::mergePart(Context & context)
 	clock_t begin, end;
 
 	numVertex = 0;
-	cout << context.getNumPartitions() << endl;
+	cout << context.getNumPartitions() << '\n';
 	for (int i = 0; i < context.getNumPartitions(); i++) {
 		Vertex * vTemp = new Vertex[context.vit.getEnd(i) - context.vit.getStart(i) + 1];
 		vertices[i] = vTemp;
@@ -412,7 +412,7 @@ void Preproc_new::mergePart(Context & context)
 		begin = clock();
 		addErules(context, i);
 		end = clock();
-		cout << "SORTING PART " << i << " TIME: " << ((end - begin) / CLOCKS_PER_SEC) << std::endl;
+		cout << "SORTING PART " << i << " TIME: " << ((end - begin) / CLOCKS_PER_SEC) << '\n';
 		//check Duplicates
 		checkPart(context, i);
 		//save
@@ -422,8 +422,8 @@ void Preproc_new::mergePart(Context & context)
 		delete[] vTemp;
 	}
 	context.ddm.save_DDM(context.getGraphFile() + ".ddm");
-	cout << "NumVertex " << numVertex << endl;
-	cout << "NumEdges " << numEdges << endl;
+	cout << "NumVertex " << numVertex << '\n';
+	cout << "NumEdges " << numEdges << '\n';
 }
 
 /*void Preproc_new::mergePart(Context & context)	{

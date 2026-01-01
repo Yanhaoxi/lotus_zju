@@ -3,8 +3,8 @@
 //
 #include "llvm/Analysis/LoopPass.h"
 #include "llvm/Analysis/LoopInfo.h"
-#include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/IR/InstIterator.h"
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
 
 #include "Alias/FPA/CallGraphPass.h"
 

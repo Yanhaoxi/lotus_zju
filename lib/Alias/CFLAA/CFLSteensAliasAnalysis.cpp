@@ -51,8 +51,8 @@
 
 #include "Alias/CFLAA/AliasAnalysisSummary.h"
 #include "Alias/CFLAA/CFLGraph.h"
-#include "Alias/CFLAA/StratifiedSets.h"
 #include "Alias/CFLAA/CFLSteensAliasAnalysis.h"
+#include "Alias/CFLAA/StratifiedSets.h"
 
 // #include <algorithm>
 #include <cassert>

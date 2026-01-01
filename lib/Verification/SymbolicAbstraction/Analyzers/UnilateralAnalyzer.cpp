@@ -4,6 +4,8 @@
  solving. See Algorithm 6 in: Thakur, A. V. (2014, August). Symbolic
  Abstraction: Algorithms and Applications (Ph.D. dissertation). Computer
  Sciences Department, University of Wisconsin, Madison.
+
+ * Author: rainoftime
  */
 #include "Verification/SymbolicAbstraction/Analyzers/Analyzer.h"
 #include "Verification/SymbolicAbstraction/Core/ValueMapping.h"

@@ -15,7 +15,7 @@ string MinSet::toString()
 	for (vector<char>::iterator it = evals.begin(); it != evals.end(); it++)
 		output << (short)*it << ", ";
 
-	output << endl;
+	output << '\n';
 
 	return output.str();
 }

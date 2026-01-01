@@ -2,6 +2,8 @@
  * @file FragmentDecomposition.cpp
  * @brief Algorithms for selecting abstraction points and constructing acyclic
  *        `Fragment`s between them for use by the SymbolicAbstraction analyzer.
+
+ * Author: rainoftime
  */
 #include "Verification/SymbolicAbstraction/Core/FragmentDecomposition.h"
 

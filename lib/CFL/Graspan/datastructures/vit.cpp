@@ -62,7 +62,7 @@ string VIT::toString() {
   std::stringstream output;
   
   for (int i = 0; i < vit.size(); i++) {
-    output << i << " " <<  vit[i].first << " " <<  vit[i].second <<endl;
+    output << i << " " <<  vit[i].first << " " <<  vit[i].second <<'\n';
   }
   
   return output.str();

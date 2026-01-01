@@ -64,7 +64,7 @@ long run_computation(Context &context)
 	int roundNo = 0, numThreads = context.getNumThreads();
 	while (context.ddm.nextPartitionPair(p, q))
 	{
-		cout << "##### STARTING ROUND " << ++roundNo << " #####" << endl;
+		cout << "##### STARTING ROUND " << ++roundNo << " #####" << '\n';
 		newRoundEdges = 0; 
 		loadTimer.startTimer();
 		context.ddm.save_DDM(name.c_str());
@@ -73,7 +73,7 @@ long run_computation(Context &context)
 		for (it = parts.begin(); it != parts.end(); ) {
 			context.ddm.adjustRow((*(*it)).getID());	
 			if ((*(*it)).getID() != p && (*(*it)).getID() != q) {
-				cout << "PARTITION :" << (*(*it)).getID() << " IS SAVED" << endl;
+				cout << "PARTITION :" << (*(*it)).getID() << " IS SAVED" << '\n';
 				Partition::writeToFile(*(*it), false, context);
 				(*(*it)).clear();
 				delete[](*it);
@@ -108,15 +108,15 @@ long run_computation(Context &context)
 		//}
 		unsigned long long int sizeLim = (context.getMemBudget()/ (unsigned long long int)2 - (*pp).getNumVertices() * 423 - (*qp).getNumVertices() * 423 - (*pp).getNumEdges()*(unsigned long long int)(8) - (*qp).getNumEdges()*(unsigned long long int)(8)) / (unsigned long long int)(8);
 
-		cout << "MEMBUDGET =" << context.getMemBudget() << endl;
+		cout << "MEMBUDGET =" << context.getMemBudget() << '\n';
 		loadTimer.endTimer();
-		cout << "P =" << p << " Q =" << q << endl;
-		cout << qp->getNumVertices() << endl;
+		cout << "P =" << p << " Q =" << q << '\n';
+		cout << qp->getNumVertices() << '\n';
 		vector<Vertex> &part1 = (*pp).getData(), &part2 = (*qp).getData();
 		
-		cout << (*pp).getID() << endl;
-		cout << "OG NUM EDGES: " << ((*pp).getNumEdges() + (*qp).getNumEdges()) << endl;
-		cout << "NUM VERTECES: " << part1.size() + part2.size() << endl;
+		cout << (*pp).getID() << '\n';
+		cout << "OG NUM EDGES: " << ((*pp).getNumEdges() + (*qp).getNumEdges()) << '\n';
+		cout << "NUM VERTECES: " << part1.size() + part2.size() << '\n';
 
 		int setSize = part1.size() + part2.size();
 		ComputationSet *compsets = new ComputationSet[setSize];
@@ -125,16 +125,16 @@ long run_computation(Context &context)
 		LoadedVertexInterval intervals[2] = {LoadedVertexInterval{p}, LoadedVertexInterval{q}};
 		initLVIs(intervals, part1, part2);					// Initialize the Loaded Vertex Intervals
 		
-		cout << "== COMP START ==" << endl;
+		cout << "== COMP START ==" << '\n';
 		compTimer.startTimer();
 		computeEdges(compsets, setSize, intervals, context, sizeLim, ioServ);
 		newTotalEdges += newRoundEdges;
 		compTimer.endTimer();
-		cout << "== COMP END ==" << endl;
+		cout << "== COMP END ==" << '\n';
 
 		updatePartitions(compsets, *pp, *qp, part1, part2);	// store information to partitions
 
-		cout << "NEW NUM EDGES: " << ((*pp).getNumEdges() + (*qp).getNumEdges()) << endl;
+		cout << "NEW NUM EDGES: " << ((*pp).getNumEdges() + (*qp).getNumEdges()) << '\n';
 		assert((*pp).checkPart() && (*qp).checkPart(), "duplicate found");
 
 		//if (!p1.checkPart() || !p2.checkPart()) {
@@ -146,7 +146,7 @@ long run_computation(Context &context)
 		if (newTotalEdges > 0) {
 			Partition *p3 = new Partition[1];
 			Partition *p4 = new Partition[1];
-			cout << "== REPA START ==" << endl;
+			cout << "== REPA START ==" << '\n';
 			repartTimer.startTimer();
 			r.run(*pp, *qp, context, newIterEdges);
 			repartTimer.endTimer();
@@ -165,15 +165,15 @@ long run_computation(Context &context)
 			else
 				delete[] p4;
 
-			cout << "== REPA END ==" << endl;
+			cout << "== REPA END ==" << '\n';
 		}
 
 		if (newIterEdges <= 0) {
 			context.ddm.markTerminate(p, q, 0, 0);
 			context.ddm.adjustRow(p);
 			context.ddm.adjustRow(q);
-			cout << intervals[0].hasNewEdges() << endl;
-			cout << intervals[1].hasNewEdges() << endl;
+			cout << intervals[0].hasNewEdges() << '\n';
+			cout << intervals[1].hasNewEdges() << '\n';
 		}
 		else {
 			context.ddm.adjustRow(p);
@@ -182,11 +182,11 @@ long run_computation(Context &context)
 		str = std::to_string((long long)roundNo);
 		name = context.getGraphFile() + ".ddm." + str;
 
-		cout << "===== ROUND INFO =====" << endl;
-		cout << "NEW EDGES: " << newTotalEdges << endl;
-		cout << "LOAD TIME: " << loadTimer.hmsFormat() << endl;
-		cout << "COMP TIME: " << compTimer.hmsFormat() << endl;
-		cout << "REPA TIME: " << repartTimer.hmsFormat() << endl <<  endl << endl;
+		cout << "===== ROUND INFO =====" << '\n';
+		cout << "NEW EDGES: " << newTotalEdges << '\n';
+		cout << "LOAD TIME: " << loadTimer.hmsFormat() << '\n';
+		cout << "COMP TIME: " << compTimer.hmsFormat() << '\n';
+		cout << "REPA TIME: " << repartTimer.hmsFormat() << '\n' <<  '\n' << '\n';
 	}
 #ifdef DEBUG
 	cout << "P numEdges =" << (*pp).getNumEdges() << " P numVertices = " << (*pp).getNumVertices() << " Psize = " << (*pp).getData().size() << endl;
@@ -194,7 +194,7 @@ long run_computation(Context &context)
 #endif
 	//save rest of the files in the parts
 	for (it = parts.begin(); it != parts.end(); ) {
-		cout << "PARTITION :" << (*(*it)).getID() << " IS SAVED" << endl;
+		cout << "PARTITION :" << (*(*it)).getID() << " IS SAVED" << '\n';
 		context.ddm.adjustRow((*(*it)).getID());
 		Partition::writeToFile(*(*it), false, context);
 		(*(*it)).clear();
@@ -216,13 +216,13 @@ void computeEdges(ComputationSet compsets[], int setSize, LoadedVertexInterval i
 	Timer iterTimer;
 	iterNo = 0;
 
-	cout << "NEW EDGES LIMIT: " << sizeLim << endl;
+	cout << "NEW EDGES LIMIT: " << sizeLim << '\n';
 
 	int segsiz = setSize / 64 + 1;
 	int nSegs = setSize / segsiz + 1;
 	
 	do {
-		cout << "===== STARTING ITERATION " << ++iterNo << endl;
+		cout << "===== STARTING ITERATION " << ++iterNo << '\n';
 		iterTimer.startTimer();
 		computeOneIteration(compsets, setSize, segsiz, nSegs, intervals, context, ioServ);
 
@@ -239,10 +239,10 @@ void computeEdges(ComputationSet compsets[], int setSize, LoadedVertexInterval i
 		}
 		iterTimer.endTimer();
 
-		cout << "EDGES PER SECND: " << (double)newIterEdges / (double)(iterTimer.totalTime() / 1000) << endl;
-		cout << "EDGES THIS ITER: " << newIterEdges << endl;
-		cout << "NEW EDGES TOTAL: " << newRoundEdges << endl;
-		cout << "ITERATER  TIME   " << iterTimer.hmsFormat() << endl << endl;
+		cout << "EDGES PER SECND: " << (double)newIterEdges / (double)(iterTimer.totalTime() / 1000) << '\n';
+		cout << "EDGES THIS ITER: " << newIterEdges << '\n';
+		cout << "NEW EDGES TOTAL: " << newRoundEdges << '\n';
+		cout << "ITERATER  TIME   " << iterTimer.hmsFormat() << '\n' << '\n';
 
 		if (newRoundEdges > sizeLim || newRoundEdges + newIterEdges > sizeLim) break;	// if the num of new edges added this round exceeds the limit
 																						// found using the mem budget, end the round

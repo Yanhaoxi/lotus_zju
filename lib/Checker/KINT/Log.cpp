@@ -7,9 +7,9 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <mutex>
 #include <ostream>
 #include <string>
-#include <mutex>
 
 // Prompt and style constants
 constexpr const char* LOG_PROMPT = "[LOG]";

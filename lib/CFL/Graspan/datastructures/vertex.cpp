@@ -21,7 +21,7 @@ string Vertex::toString()
 {
 	std::stringstream output;
 
-	output << endl << id << " ->  ";
+	output << '\n' << id << " ->  ";
 	for (int i = 0; i < numOutEdges; i++)
 		output << "(" << outEdges[i] << ", " << (short)(outEdgeValues[i]) << ")  ";
 

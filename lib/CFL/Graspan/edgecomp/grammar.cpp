@@ -97,14 +97,14 @@ bool Grammar::print_all(){
 	
 	set<char>::iterator it_e; //for eRules
 	for(it_e=eRules.begin();it_e!=eRules.end();it_e++)
-		cout << (short)*it_e << endl;
+		cout << (short)*it_e << '\n';
 	
 	map<short, char>::iterator it;
 	for(it=rules.begin(); it!=rules.end(); it++){
 		if((*it).first <=256)
-			cout << ((*it).first) << "->" << (short)(*it).second << endl;
+			cout << ((*it).first) << "->" << (short)(*it).second << '\n';
 		else
-			cout << ((*it).first >> 8) << "," << (short)(char)(*it).first << "->" << (short)(*it).second << endl;
+			cout << ((*it).first >> 8) << "," << (short)(char)(*it).first << "->" << (short)(*it).second << '\n';
 	}
 	return true;
 }

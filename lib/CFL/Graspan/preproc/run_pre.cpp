@@ -1,7 +1,7 @@
 #include "CFL/Graspan/preproc/run_pre.h"
 
 int run_preprocessing(Context &context) {
-	cout << "##### PREPROCESSING START #####" << endl;
+	cout << "##### PREPROCESSING START #####" << '\n';
 
 	clock_t begin, end;
 	//new Preproc
@@ -19,7 +19,7 @@ int run_preprocessing(Context &context) {
 	//preN.test_saveData(context);
 	//preN.test_mergePart(context);
 	end = clock();
-	cout << "NEWPREPROC TIME: " << ((end - begin) / CLOCKS_PER_SEC) << std::endl;
+	cout << "NEWPREPROC TIME: " << ((end - begin) / CLOCKS_PER_SEC) << '\n';
 	return 0;
 	
 	begin = clock();
@@ -48,6 +48,6 @@ int run_preprocessing(Context &context) {
 	pre.makeDDM(context);
 	end = clock();
 	//cout << "makeBinaryPart time : " << ((end - begin) / CLOCKS_PER_SEC) << std::endl;
-	cout << "PREPROC TIME: " << ((end - begin) / CLOCKS_PER_SEC) << std::endl;
+	cout << "PREPROC TIME: " << ((end - begin) / CLOCKS_PER_SEC) << '\n';
 	return 0;
 }

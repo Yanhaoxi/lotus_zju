@@ -50,8 +50,8 @@
 #include <llvm/Support/raw_ostream.h>
 
 #include "Alias/CFLAA/AliasAnalysisSummary.h"
-#include "Alias/CFLAA/CFLGraph.h"
 #include "Alias/CFLAA/CFLAndersAliasAnalysis.h"
+#include "Alias/CFLAA/CFLGraph.h"
 
 #include <algorithm>
 #include <bitset>

@@ -10,4 +10,5 @@ This section covers the intermediate representations used in Lotus.
    pdg
    ssi
    gsa
+   memoryssa
 

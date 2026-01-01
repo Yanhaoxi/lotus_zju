@@ -33,11 +33,11 @@ bool Loader::loadPartition(partitionid_t id, Partition &p, bool readable, Contex
 
 				p_token = strtok_r(buf, "\n", &context);
 				if (p_token == NULL) {
-					cout << "NULL ptoken linecount value = " << linecounts << " : " << str << endl;
+					cout << "NULL ptoken linecount value = " << linecounts << " : " << str << '\n';
 					break;
 				}
 				if (!strcmp(p_token, "") || !strcmp(p_token, " ")) {//if (p_token == "" || p_token == " ")
-					cout << "linecount value = " << linecounts << " : " << str <<  endl;
+					cout << "linecount value = " << linecounts << " : " << str <<  '\n';
 					break;
 				}
 				
@@ -45,11 +45,11 @@ bool Loader::loadPartition(partitionid_t id, Partition &p, bool readable, Contex
 				
 				p_token = strtok_r(buf, "\t", &context);
 				if (p_token == NULL) {
-					cout << "2nd check NULL ptoken linecount value = " << linecounts << " : " << str << endl;
+					cout << "2nd check NULL ptoken linecount value = " << linecounts << " : " << str << '\n';
 					break;
 				}
 				if (!strcmp(p_token, "") || !strcmp(p_token, " ")) {//if (p_token == "" || p_token == " ")
-					cout << "2nd check linecount value = " << linecounts << " : " << str << endl;
+					cout << "2nd check linecount value = " << linecounts << " : " << str << '\n';
 					break;
 				}
 
@@ -57,11 +57,11 @@ bool Loader::loadPartition(partitionid_t id, Partition &p, bool readable, Contex
 
 				p_token = strtok_r(NULL, "\t", &context);
 				if (p_token == NULL) {
-					cout << "3rd check NULL ptoken linecount value = " << linecounts << " : " << str << endl;
+					cout << "3rd check NULL ptoken linecount value = " << linecounts << " : " << str << '\n';
 					break;
 				}
 				if (!strcmp(p_token, "") || !strcmp(p_token, " ")) {//if (p_token == "" || p_token == " ")
-					cout << "3rd check linecount value = " << linecounts << " : " << str << endl;
+					cout << "3rd check linecount value = " << linecounts << " : " << str << '\n';
 					break;
 				}
 				degree = atoi(p_token);

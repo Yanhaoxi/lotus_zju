@@ -13,7 +13,7 @@ string LoadedVertexInterval::toString()
 {
 	std::stringstream output;
 
-	output << endl << "(PartID: " << partitionID << ", VRange: " << firstVertex << " - " << lastVertex << ", IDRange: " << indexStart << " - " << indexEnd << ")";
+	output << '\n' << "(PartID: " << partitionID << ", VRange: " << firstVertex << " - " << lastVertex << ", IDRange: " << indexStart << " - " << indexEnd << ")";
 
 	return output.str();
 }

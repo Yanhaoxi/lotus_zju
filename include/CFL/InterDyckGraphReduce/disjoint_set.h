@@ -1,8 +1,8 @@
 #ifndef DISJOINT_SET_H
 #define DISJOINT_SET_H
 
-#include <vector>
 #include <iostream>
+#include <vector>
 using namespace std;
 
 class DisjointSet {
@@ -32,11 +32,11 @@ public:
     for (unsigned i = 0; i < arr.size(); i++) {
       std::cout << i << ", ";
     }
-    std::cout << endl;
+    std::cout << '\n';
     for (unsigned i = 0; i < arr.size(); i++) {
       std::cout << find(i) << ", ";
     }
-    std::cout << endl;
+    std::cout << '\n';
   }
 };
 

@@ -62,12 +62,12 @@ public:
 
   void printlist() {
 
-    cout << "==begin print list" << endl;
+    cout << "==begin print list" << '\n';
     for (typename list<T1>::iterator iter = dll.begin(); iter != dll.end();
          ++iter) {
       cout << *iter << endl;
     }
-    cout << "==end" << endl;
+    cout << "==end" << '\n';
   }
 
 private:

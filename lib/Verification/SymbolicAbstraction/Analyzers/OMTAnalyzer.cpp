@@ -1,3 +1,7 @@
+/*
+
+ * Author: rainoftime
+*/
 #include "Verification/SymbolicAbstraction/Analyzers/Analyzer.h"
 #include "Verification/SymbolicAbstraction/Core/ConcreteState.h"
 #include "Verification/SymbolicAbstraction/Core/ValueMapping.h"

@@ -83,7 +83,7 @@ bool DDM::load_DDM(string fname){
 	std::ifstream fin;
 	fin.open(fname);
 	if(!fin){
-		cout << "can't read file" << endl;
+		cout << "can't read file" << '\n';
 		return false;
 	}
 
@@ -108,25 +108,25 @@ bool DDM::save_DDM(string fname){
 	std::ofstream fout;
 	fout.open(fname); 
 	if(!fout){
-		cout << "can't make file" << endl;
+		cout << "can't make file" << '\n';
 		return false;
 	}
 
 	//store numPartition
-	fout << numPartition << endl;
+	fout << numPartition << '\n';
 	for(int i=0;i<numPartition;i++){
 		for(int j=0;j<numPartition;j++){
 		
 			fout << ddmMap[i][j] << " ";
 		}
-		fout << endl;
+		fout << '\n';
 	}
-	fout << endl;
+	fout << '\n';
 	for (int i = 0; i<numPartition; i++) {
 		for (int j = 0; j<numPartition; j++) {
 			fout << d_ddmMap[i][j] << " ";
 		}
-		fout << endl;
+		fout << '\n';
 	}
 	fout.close();
 
@@ -140,7 +140,7 @@ string DDM::toString() {
 	for (int i = 0; i < numPartition; ++i) {
 		for (int j = 0; j < numPartition; ++j) {
 			if (i != j)
-				output << "Partition p: " << i << "  Partition q: " << j << "  rate: " << ddmMap[i][j] << endl;
+				output << "Partition p: " << i << "  Partition q: " << j << "  rate: " << ddmMap[i][j] << '\n';
 		}
 	}
 	return output.str();

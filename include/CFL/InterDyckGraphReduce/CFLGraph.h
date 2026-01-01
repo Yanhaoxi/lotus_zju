@@ -59,7 +59,7 @@ struct Matrix1 {
 class CFLMatrix {
 public:
   CFLMatrix(unsigned a) : Size(a), SizeAfterDel(a) {
-    cout << "a" << a << endl;
+    cout << "a" << a << '\n';
     p = new Matrix[a * a];
   } // a*a}
   ~CFLMatrix() { delete[] p; }

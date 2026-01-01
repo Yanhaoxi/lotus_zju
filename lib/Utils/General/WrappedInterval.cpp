@@ -1,7 +1,7 @@
+#include "Utils/General/WrappedInterval.h"
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <inttypes.h>
-#include "Utils/General/WrappedInterval.h"
 
 #define DEBUG 0
 

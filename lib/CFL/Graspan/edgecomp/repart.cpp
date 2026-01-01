@@ -70,9 +70,9 @@ void Repart::run(Partition &p1, Partition &p2, Context &context, long newIterEdg
 	if (newIterEdges > 0) {
 		p2.calc_ddr(context);
 	}
-	cout << "exist = " <<  p1_2.getExist() << " " << p2_2.getExist() << endl;
+	cout << "exist = " <<  p1_2.getExist() << " " << p2_2.getExist() << '\n';
 	if (p1_2.getExist()) {
-		cout << "p1 =" << p1.getID() << " p12 =" << p1_2.getID() << endl;
+		cout << "p1 =" << p1.getID() << " p12 =" << p1_2.getID() << '\n';
 		//Partition::writeToFile(p1_2, false, context);
 		context.ddm.copy(p1.getID(), p1_2.getID());
 		p1_2.calc_ddr(context);
@@ -83,7 +83,7 @@ void Repart::run(Partition &p1, Partition &p2, Context &context, long newIterEdg
 		}
 	}
 	if (p2_2.getExist()) {
-		cout << "p2 =" << p2.getID() << " p12 =" << p2_2.getID() << endl;
+		cout << "p2 =" << p2.getID() << " p12 =" << p2_2.getID() << '\n';
 		//Partition::writeToFile(p2_2, false, context);
 		context.ddm.copy(p2.getID(), p2_2.getID());
 		p2_2.calc_ddr(context);

@@ -2,14 +2,14 @@
 // Created by prophe cheng on 2024/1/3.
 //
 
+#include "Alias/FPA/Common.h"
+#include "Alias/FPA/Config.h"
 #include <llvm/IR/InlineAsm.h>
 #include <llvm/IR/InstIterator.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Operator.h>
 #include <regex>
 #include <utility>
-#include "Alias/FPA/Common.h"
-#include "Alias/FPA/Config.h"
 
 // Map from struct elements to its name
 static map<string, set<StringRef>> elementsStructNameMap;

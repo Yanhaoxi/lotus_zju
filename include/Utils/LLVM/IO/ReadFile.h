@@ -1,7 +1,7 @@
 #pragma once
 
-#include <llvm/Support/MemoryBuffer.h>
 #include <llvm/Support/ErrorHandling.h>
+#include <llvm/Support/MemoryBuffer.h>
 
 #include <memory>
 
@@ -22,5 +22,5 @@ inline std::unique_ptr<llvm::MemoryBuffer> readFileIntoBuffer(const char* fileNa
 	return std::move(fileOrErr.get());
 }
 
-}
-}
+} // namespace io
+} // namespace util

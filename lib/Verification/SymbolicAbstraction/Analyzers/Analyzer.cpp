@@ -7,6 +7,8 @@
  * variants are implemented in separate files:
  * - UnilateralAnalyzer.cpp
  * - BilateralAnalyzer.cpp
+
+ * Author: rainoftime
  */
 #include "Verification/SymbolicAbstraction/Analyzers/Analyzer.h"
 

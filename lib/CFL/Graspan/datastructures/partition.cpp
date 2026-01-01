@@ -145,7 +145,7 @@ string Partition::toString()
 {
 	std::stringstream output;
 
-	output << endl << "Partition id : " << id << "  Vertices : " << numVertices << "  Edges : " << numEdges << endl;
+	output << '\n' << "Partition id : " << id << "  Vertices : " << numVertices << "  Edges : " << numEdges << '\n';
 
 	for (int i = 0; i < numVertices; i++)
 		output << data[i].toString();

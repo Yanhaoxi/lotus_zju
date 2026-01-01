@@ -5,8 +5,8 @@
 #include "llvm/IR/Operator.h"
 #include "llvm/IR/InstIterator.h"
 
-#include "Alias/FPA/MLTAPass.h"
 #include "Alias/FPA/Config.h"
+#include "Alias/FPA/MLTAPass.h"
 
 bool MLTAPass::doInitialization(Module* M) {
     OP<< "#" << MIdx <<" Initializing: "<<M->getName()<<"\n";
