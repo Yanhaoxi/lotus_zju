@@ -12,6 +12,6 @@
  * this base class to ensure consistent behavior and proper resource management.
  */
 
-#include "Solvers/SMT/SMTObject.h"
+#include "Solvers/SMT/LIBSMT/SMTObject.h"
 
 SMTObject::~SMTObject() {}

@@ -19,7 +19,7 @@
  * models.
  */
 
-#include "Solvers/SMT/SMTSampler.h"
+#include "Solvers/SMT/LIBSMT/SMTSampler.h"
 
 class quick_sampler {
   std::string input_file;

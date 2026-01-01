@@ -17,9 +17,8 @@
  * invalid when the factory is destroyed.
  */
 
-#include "Solvers/SMT/SMTFactory.h"
-
-#include "Solvers/SMT/SMTConfigure.h"
+#include "Solvers/SMT/LIBSMT/SMTFactory.h"
+#include "Solvers/SMT/LIBSMT/SMTConfigure.h"
 
 #define DEBUG_TYPE "smt-fctry"
 

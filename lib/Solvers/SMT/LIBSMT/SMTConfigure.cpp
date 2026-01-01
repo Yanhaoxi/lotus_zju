@@ -10,7 +10,7 @@
  * different components of the system.
  */
 
-#include "Solvers/SMT/SMTConfigure.h"
+#include "Solvers/SMT/LIBSMT/SMTConfigure.h"
 // #include "z3++.h"
 
 int SMTConfigure::Timeout;

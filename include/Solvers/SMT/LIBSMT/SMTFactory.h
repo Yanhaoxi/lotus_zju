@@ -6,8 +6,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "SMTExpr.h"
-#include "SMTSolver.h"
+#include "Solvers/SMT/LIBSMT/SMTExpr.h"
+#include "Solvers/SMT/LIBSMT/SMTSolver.h"
 #include "z3++.h"
 
 class SMTRenamingAdvisor {

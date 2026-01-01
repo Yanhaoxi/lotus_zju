@@ -3,11 +3,11 @@
  * Supports CNF and SMT-LIB2 format inputs
  */
 
-#include "Solvers/SMT/SMTSolver.h"
-#include "Solvers/SMT/CNF.h"
-#include "Solvers/SMT/SATSolver.h"
-#include "Solvers/SMT/SMTFactory.h"
-#include "Solvers/SMT/SMTModel.h"
+#include "Solvers/SMT/LIBSMT/SMTSolver.h"
+#include "Solvers/SMT/LIBSMT/CNF.h"
+#include "Solvers/SMT/LIBSMT/SATSolver.h"
+#include "Solvers/SMT/LIBSMT/SMTFactory.h"
+#include "Solvers/SMT/LIBSMT/SMTModel.h"
 
 #include <iostream>
 //#include <memory>

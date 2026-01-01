@@ -1,5 +1,5 @@
 
-#include "Solvers/SMT/Z3Expr.h"
+#include "Solvers/SMT/LIBSMT/Z3Expr.h"
 
 #include <sstream>
 

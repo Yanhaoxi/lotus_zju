@@ -16,7 +16,7 @@
 
 #define DEBUG_TYPE "canary"
 
-#include "Solvers/SMT/SMTLIB2Solver.h"
+#include "Solvers/SMT/LIBSMT/SMTLIB2Solver.h"
 
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/Optional.h"

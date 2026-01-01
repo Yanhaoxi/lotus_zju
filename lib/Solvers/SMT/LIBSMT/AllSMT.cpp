@@ -13,7 +13,7 @@
  * satisfying assignments or multiple distinct solutions to an SMT formula.
  */
 
-#include "Solvers/SMT/AllSMT.h"
+#include "Solvers/SMT/LIBSMT/AllSMT.h"
 
 #include "z3++.h"
 // #include "z3.h"

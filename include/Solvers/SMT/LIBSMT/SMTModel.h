@@ -2,8 +2,8 @@
 
 #include <string>
 
-#include "SMTExpr.h"
-#include "SMTObject.h"
+#include "Solvers/SMT/LIBSMT/SMTExpr.h"
+#include "Solvers/SMT/LIBSMT/SMTObject.h"
 #include "z3++.h"
 
 class SMTFactory;

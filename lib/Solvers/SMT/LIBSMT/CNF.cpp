@@ -23,7 +23,7 @@
  * Creation Date: 2017
  */
 
-#include "Solvers/SMT/CNF.h"
+#include "Solvers/SMT/LIBSMT/CNF.h"
 // include <algorithm>
 #include <ctype.h>
 // #include <set>

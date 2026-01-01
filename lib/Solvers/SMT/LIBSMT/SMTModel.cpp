@@ -15,9 +15,9 @@
  * constraints.
  */
 
-#include "Solvers/SMT/SMTModel.h"
+#include "Solvers/SMT/LIBSMT/SMTModel.h"
 
-#include "Solvers/SMT/SMTFactory.h"
+#include "Solvers/SMT/LIBSMT/SMTFactory.h"
 
 #include <sstream>
 #include <string>

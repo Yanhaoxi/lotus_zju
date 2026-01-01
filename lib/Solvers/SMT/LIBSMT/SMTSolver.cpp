@@ -16,12 +16,12 @@
  * abstraction layer for the rest of the system.
  */
 
-#include "Solvers/SMT/SMTSolver.h"
+#include "Solvers/SMT/LIBSMT/SMTSolver.h"
 
-#include "Solvers/SMT/SMTConfigure.h"
-#include "Solvers/SMT/SMTExpr.h"
-#include "Solvers/SMT/SMTFactory.h"
-#include "Solvers/SMT/SMTModel.h"
+#include "Solvers/SMT/LIBSMT/SMTConfigure.h"
+#include "Solvers/SMT/LIBSMT/SMTExpr.h"
+#include "Solvers/SMT/LIBSMT/SMTFactory.h"
+#include "Solvers/SMT/LIBSMT/SMTModel.h"
 
 #include <fstream>
 #include <iostream>

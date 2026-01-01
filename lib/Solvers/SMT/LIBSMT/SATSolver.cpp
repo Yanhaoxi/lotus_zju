@@ -21,7 +21,7 @@
  * Creation Date: 2017
  */
 
-#include "Solvers/SMT/SATSolver.h"
+#include "Solvers/SMT/LIBSMT/SATSolver.h"
 // #include "Utils/General/PdQsort.h"
 #include <algorithm>
 // #include <functional>

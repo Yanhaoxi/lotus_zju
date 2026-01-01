@@ -9,7 +9,7 @@
 
 #include <stdio.h>
 
-#include "CNF.h"
+#include "Solvers/SMT/LIBSMT/CNF.h"
 
 struct luby {             // restart scheduler as proposed in
   vector<unsigned> m_seq; // Optimal Speedup of Las Vegas Algorithms

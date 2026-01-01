@@ -21,7 +21,7 @@
 
 #include <z3++.h>
 
-#include "Z3Plus.h"
+#include "Solvers/SMT/LIBSMT/Z3Plus.h"
 
 using namespace std;
 using namespace z3;

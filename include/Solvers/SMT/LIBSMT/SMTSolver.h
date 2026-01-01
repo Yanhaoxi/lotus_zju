@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "SMTObject.h"
+#include "Solvers/SMT/LIBSMT/SMTObject.h"
 #include "z3++.h"
 
 class SMTFactory;

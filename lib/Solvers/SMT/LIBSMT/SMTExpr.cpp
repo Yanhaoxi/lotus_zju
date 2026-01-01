@@ -18,9 +18,9 @@
  * be added to an SMTSolver for satisfiability checking.
  */
 
-#include "Solvers/SMT/SMTExpr.h"
+#include "Solvers/SMT/LIBSMT/SMTExpr.h"
 
-#include "Solvers/SMT/SMTFactory.h"
+#include "Solvers/SMT/LIBSMT/SMTFactory.h"
 // #include <algorithm>
 #include <functional>
 #include <set>
