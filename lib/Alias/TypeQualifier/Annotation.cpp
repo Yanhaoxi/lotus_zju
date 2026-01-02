@@ -319,9 +319,9 @@ std::string getStructId(Value *PVal, User::op_iterator &IS,
       STy = ST;
       break;
     } else if (ArrayType *AT = dyn_cast<ArrayType>(PTy)) {
-      PTy = AT->getElementType();
+      PTy = AT->getPointerElementType();
     } else if (VectorType *VT = dyn_cast<VectorType>(PTy)) {
-      PTy = VT->getElementType();
+      PTy = VT->getPointerElementType();
     } else {
       break;
     }
@@ -437,7 +437,7 @@ std::string getAnonStructId(Value *V, Module *M, StringRef Prefix) {
 
 		Type *Ty = v->getType();
 		while (Ty->isPointerTy())
-			Ty = cast<PointerType>(Ty)->getElementType();
+			Ty = cast<PointerType>(Ty)->getPointerElementType();
 		if (StructType *STy = dyn_cast<StructType>(Ty)) {
 			if (!STy->getStructName().startswith("struct.anon")) {
 				return STy->getStructName();

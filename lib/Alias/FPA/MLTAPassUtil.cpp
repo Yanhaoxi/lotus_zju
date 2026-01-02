@@ -363,9 +363,9 @@ bool MLTAPass::getGEPLayerTypes(GEPOperator *GEP, list<typeidx_t> &TyList) {
         if (StructType *STy = dyn_cast<StructType>(ETy))
             SubTy = STy->getElementType(Idx);
         else if (ArrayType *ATy = dyn_cast<ArrayType>(ETy))
-            SubTy = ATy->getElementType();
+            SubTy = ATy->getPointerElementType();
         else if (VectorType *VTy = dyn_cast<VectorType>(ETy))
-            SubTy = VTy->getElementType();
+            SubTy = VTy->getPointerElementType();
         assert(SubTy);
         ETy = SubTy;
     }

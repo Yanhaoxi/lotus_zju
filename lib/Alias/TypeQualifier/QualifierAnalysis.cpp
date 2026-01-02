@@ -45,7 +45,7 @@ bool QualifierAnalysis::doInitialization(llvm::Module *M) {
             GEPI->getOperand(0)->getType()->getPointerElementType();
         // An array is considered a single variable of its type.
         while (const ArrayType *arrayType = dyn_cast<ArrayType>(type))
-          type = arrayType->getElementType();
+          type = arrayType->getPointerElementType();
         if (const StructType *structType = dyn_cast<StructType>(type)) {
           if (!structType->isOpaque() && !structType->isLiteral()) {
             int64_t offset = getGEPOffset(GEPI, DL);
@@ -509,7 +509,7 @@ PtsGraph FuncAnalysis::processInstruction(Instruction *I, PtsGraph &in) {
     const Type *type = srcType->getPointerElementType();
     // An array is considered a single variable of its type.
     while (const ArrayType *arrayType = dyn_cast<ArrayType>(type))
-      type = arrayType->getElementType();
+      type = arrayType->getPointerElementType();
 
     // sequential gep inst, function pci_msi_prepare, we treat it as one field
     bool innerele = false;
@@ -929,7 +929,7 @@ void FuncAnalysis::initSummary() {
       if (type->isPointerTy()) {
         eleType = type->getPointerElementType();
         while (const ArrayType *arrayType = dyn_cast<ArrayType>(eleType))
-          eleType = arrayType->getElementType();
+          eleType = arrayType->getPointerElementType();
         if (const StructType *structType = dyn_cast<StructType>(eleType)) {
           if (structType->isOpaque()) {
             objSize = 1;

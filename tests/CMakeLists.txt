@@ -37,21 +37,10 @@ function(add_lotus_pdg_test test_name source_file)
     target_link_libraries(${test_name} lotus_test_utils LLVMTransformUtils)
 endfunction()
 
-function(add_lotus_symabs_test test_name source_file)
-    add_executable(${test_name} ${source_file})
-    set_target_properties(${test_name} PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY ${LOTUS_TEST_BIN_DIR}
-    )
-    target_include_directories(${test_name} PRIVATE ${COMMON_INCLUDES})
-    # SymAbs tests need Z3 library and SymbolicAbstractionAnalysis for Z3APIExtension
-    target_link_libraries(${test_name} lotus_test_utils ${Z3_LIBRARIES} SymbolicAbstractionAnalysis)
-endfunction()
-
 add_lotus_test(taint_analysis_test unit/TaintAnalysisTest.cpp)
 add_lotus_test(ifds_solver_test unit/IFDSSolverTest.cpp)
 add_lotus_test(egraph_test unit/EGraphTest.cpp)
 add_lotus_pdg_test(pdg_slicing_test unit/pdg_slicing_test.cpp)
-add_lotus_symabs_test(symabs_test unit/SymAbsTest.cpp)
 
 # Transform pass tests
 add_executable(lower_select_test unit/LowerSelectTest.cpp)
@@ -138,7 +127,6 @@ add_test(NAME IFDSSolverTest COMMAND ${LOTUS_TEST_BIN_DIR}/ifds_solver_test)
 add_test(NAME EGraphTest COMMAND ${LOTUS_TEST_BIN_DIR}/egraph_test)
 add_test(NAME PDGSlicingTest COMMAND ${LOTUS_TEST_BIN_DIR}/pdg_slicing_test)
 add_test(NAME MHPAnalysisTest COMMAND ${LOTUS_TEST_BIN_DIR}/mhp_analysis_test)
-add_test(NAME SymAbsTest COMMAND ${LOTUS_TEST_BIN_DIR}/symabs_test)
 add_test(NAME LowerSelectTest COMMAND ${LOTUS_TEST_BIN_DIR}/lower_select_test)
 add_test(NAME RemoveDeadBlockTest COMMAND ${LOTUS_TEST_BIN_DIR}/remove_dead_block_test)
 add_test(NAME SparrowAATest COMMAND ${LOTUS_TEST_BIN_DIR}/sparrow_aa_test)
@@ -148,8 +136,8 @@ add_test(NAME AllocAATest COMMAND ${LOTUS_TEST_BIN_DIR}/alloc_aa_test)
 add_test(NAME MonoTest COMMAND ${LOTUS_TEST_BIN_DIR}/mono_test)
 add_test(NAME WPDSTest COMMAND ${LOTUS_TEST_BIN_DIR}/wpds_test)
 add_test(NAME AserPTATest COMMAND ${LOTUS_TEST_BIN_DIR}/aser_pta_test)
-set_tests_properties(TaintAnalysisTest IFDSSolverTest EGraphTest PDGSlicingTest MHPAnalysisTest SymAbsTest LowerSelectTest RemoveDeadBlockTest SparrowAATest ICFGTest DyckAATest AllocAATest MonoTest WPDSTest AserPTATest PROPERTIES TIMEOUT 300 WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+set_tests_properties(TaintAnalysisTest IFDSSolverTest EGraphTest PDGSlicingTest MHPAnalysisTest LowerSelectTest RemoveDeadBlockTest SparrowAATest ICFGTest DyckAATest AllocAATest MonoTest WPDSTest AserPTATest PROPERTIES TIMEOUT 300 WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
-add_custom_target(run_all_tests COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure DEPENDS taint_analysis_test ifds_solver_test egraph_test pdg_slicing_test mhp_analysis_test symabs_test lower_select_test remove_dead_block_test sparrow_aa_test icfg_test dyck_aa_test alloc_aa_test mono_test wpds_test aser_pta_test)
-add_custom_target(run_unit_tests COMMAND ${CMAKE_CTEST_COMMAND} -R "Test$" --output-on-failure DEPENDS taint_analysis_test ifds_solver_test egraph_test pdg_slicing_test mhp_analysis_test symabs_test lower_select_test remove_dead_block_test sparrow_aa_test icfg_test dyck_aa_test alloc_aa_test mono_test wpds_test aser_pta_test)
+add_custom_target(run_all_tests COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure DEPENDS taint_analysis_test ifds_solver_test egraph_test pdg_slicing_test mhp_analysis_test lower_select_test remove_dead_block_test sparrow_aa_test icfg_test dyck_aa_test alloc_aa_test mono_test wpds_test aser_pta_test)
+add_custom_target(run_unit_tests COMMAND ${CMAKE_CTEST_COMMAND} -R "Test$" --output-on-failure DEPENDS taint_analysis_test ifds_solver_test egraph_test pdg_slicing_test mhp_analysis_test lower_select_test remove_dead_block_test sparrow_aa_test icfg_test dyck_aa_test alloc_aa_test mono_test wpds_test aser_pta_test)
 

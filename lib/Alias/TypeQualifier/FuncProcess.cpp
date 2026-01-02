@@ -71,7 +71,7 @@ void FuncAnalysis::processInitFuncs(Instruction *I, llvm::Function *Callee,
   // look the real type for memset.
   const Type *type = dst->getType()->getPointerElementType();
   while (const ArrayType *arrayType = dyn_cast<ArrayType>(type))
-    type = arrayType->getElementType();
+    type = arrayType->getPointerElementType();
   // Now construct the pointer and memory object variable
   // It depends on whether the type of this variable is a struct or not
   if (const StructType *structType = dyn_cast<StructType>(type)) {
@@ -200,7 +200,7 @@ void FuncAnalysis::processCopyFuncs(Instruction *I, llvm::Function *Callee,
     const Type *type = I->getOperand(0)->getType()->getPointerElementType();
 
     while (const ArrayType *arrayType = dyn_cast<ArrayType>(type))
-      type = arrayType->getElementType();
+      type = arrayType->getPointerElementType();
     if (const StructType *structType = dyn_cast<StructType>(type)) {
       if (!structType->isOpaque()) {
         const StructInfo *stInfo =
@@ -292,7 +292,7 @@ void FuncAnalysis::processTransferFuncs(Instruction *I, llvm::Function *Callee,
 
   const Type *type = dst->getType()->getPointerElementType();
   while (const ArrayType *arrayType = dyn_cast<ArrayType>(type))
-    type = arrayType->getElementType();
+    type = arrayType->getPointerElementType();
 
   // 1. copy the data from src to dst
   if (out.at(srcIndex) != _ID || out.at(sizeIndex) != _ID) {

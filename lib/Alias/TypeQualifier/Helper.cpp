@@ -70,7 +70,7 @@ unsigned offsetToFieldNum(const Value *ptr, int64_t offset,
          "DataLayout is NULL when calling offsetToFieldNum!");
   if (offset < 0)
     return 0;
-  Type *trueElemType = cast<PointerType>(ptr->getType())->getElementType();
+  Type *trueElemType = cast<PointerType>(ptr->getType())->getPointerElementType();
   unsigned ret = 0;
   if (trueElemType->isStructTy()) {
     StructType *stType = cast<StructType>(trueElemType);
@@ -84,7 +84,7 @@ unsigned offsetToFieldNum(const Value *ptr, int64_t offset,
   while (offset > 0) {
     // Collapse array type
     while (const ArrayType *arrayType = dyn_cast<ArrayType>(trueElemType))
-      trueElemType = arrayType->getElementType();
+      trueElemType = arrayType->getPointerElementType();
 
     if (trueElemType->isStructTy()) {
       StructType *stType = cast<StructType>(trueElemType);
