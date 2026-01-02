@@ -2,9 +2,9 @@
 
 #include "z3++.h"
 
+#include <map>
 #include <string>
 #include <vector>
-#include <map>
 
 class SMTLibOptimizer {
 public:

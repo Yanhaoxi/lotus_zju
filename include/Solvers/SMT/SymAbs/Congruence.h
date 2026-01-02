@@ -6,9 +6,9 @@
  */
 
 #include "Solvers/SMT/SymAbs/Config.h"
-#include <z3++.h>
-#include <cstdint>
 #include <llvm/ADT/Optional.h>
+#include <cstdint>
+#include <z3++.h>
 
 namespace SymAbs {
 
