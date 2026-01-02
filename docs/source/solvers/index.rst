@@ -8,6 +8,5 @@ SMT-based model checking components used throughout Lotus.
    :maxdepth: 2
 
    cudd
-   fpsolve
    smt
    wpds

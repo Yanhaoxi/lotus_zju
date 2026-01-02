@@ -116,13 +116,6 @@ set_target_properties(wpds_test PROPERTIES
 target_include_directories(wpds_test PRIVATE ${COMMON_INCLUDES})
 target_link_libraries(wpds_test lotus_test_utils WPDSDataFlow)
 
-# FPSolve tests
-add_executable(fpsolve_test unit/FPSolveTest.cpp)
-set_target_properties(fpsolve_test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${LOTUS_TEST_BIN_DIR}
-)
-target_include_directories(fpsolve_test PRIVATE ${COMMON_INCLUDES})
-target_link_libraries(fpsolve_test GTest::gtest GTest::gtest_main FPSolve)
 # MHP test needs additional LLVM analysis libraries
 add_executable(mhp_analysis_test unit/MHPAnalysisTest.cpp)
 set_target_properties(mhp_analysis_test PROPERTIES
@@ -145,7 +138,6 @@ add_test(NAME IFDSSolverTest COMMAND ${LOTUS_TEST_BIN_DIR}/ifds_solver_test)
 add_test(NAME EGraphTest COMMAND ${LOTUS_TEST_BIN_DIR}/egraph_test)
 add_test(NAME PDGSlicingTest COMMAND ${LOTUS_TEST_BIN_DIR}/pdg_slicing_test)
 add_test(NAME MHPAnalysisTest COMMAND ${LOTUS_TEST_BIN_DIR}/mhp_analysis_test)
-add_test(NAME FPSolveTest COMMAND ${LOTUS_TEST_BIN_DIR}/fpsolve_test)
 add_test(NAME SymAbsTest COMMAND ${LOTUS_TEST_BIN_DIR}/symabs_test)
 add_test(NAME LowerSelectTest COMMAND ${LOTUS_TEST_BIN_DIR}/lower_select_test)
 add_test(NAME RemoveDeadBlockTest COMMAND ${LOTUS_TEST_BIN_DIR}/remove_dead_block_test)
@@ -156,8 +148,8 @@ add_test(NAME AllocAATest COMMAND ${LOTUS_TEST_BIN_DIR}/alloc_aa_test)
 add_test(NAME MonoTest COMMAND ${LOTUS_TEST_BIN_DIR}/mono_test)
 add_test(NAME WPDSTest COMMAND ${LOTUS_TEST_BIN_DIR}/wpds_test)
 add_test(NAME AserPTATest COMMAND ${LOTUS_TEST_BIN_DIR}/aser_pta_test)
-set_tests_properties(TaintAnalysisTest IFDSSolverTest EGraphTest PDGSlicingTest MHPAnalysisTest FPSolveTest SymAbsTest LowerSelectTest RemoveDeadBlockTest SparrowAATest ICFGTest DyckAATest AllocAATest MonoTest WPDSTest AserPTATest PROPERTIES TIMEOUT 300 WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+set_tests_properties(TaintAnalysisTest IFDSSolverTest EGraphTest PDGSlicingTest MHPAnalysisTest SymAbsTest LowerSelectTest RemoveDeadBlockTest SparrowAATest ICFGTest DyckAATest AllocAATest MonoTest WPDSTest AserPTATest PROPERTIES TIMEOUT 300 WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
-add_custom_target(run_all_tests COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure DEPENDS taint_analysis_test ifds_solver_test egraph_test pdg_slicing_test mhp_analysis_test fpsolve_test symabs_test lower_select_test remove_dead_block_test sparrow_aa_test icfg_test dyck_aa_test alloc_aa_test mono_test wpds_test aser_pta_test)
-add_custom_target(run_unit_tests COMMAND ${CMAKE_CTEST_COMMAND} -R "Test$" --output-on-failure DEPENDS taint_analysis_test ifds_solver_test egraph_test pdg_slicing_test mhp_analysis_test fpsolve_test symabs_test lower_select_test remove_dead_block_test sparrow_aa_test icfg_test dyck_aa_test alloc_aa_test mono_test wpds_test aser_pta_test)
+add_custom_target(run_all_tests COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure DEPENDS taint_analysis_test ifds_solver_test egraph_test pdg_slicing_test mhp_analysis_test symabs_test lower_select_test remove_dead_block_test sparrow_aa_test icfg_test dyck_aa_test alloc_aa_test mono_test wpds_test aser_pta_test)
+add_custom_target(run_unit_tests COMMAND ${CMAKE_CTEST_COMMAND} -R "Test$" --output-on-failure DEPENDS taint_analysis_test ifds_solver_test egraph_test pdg_slicing_test mhp_analysis_test symabs_test lower_select_test remove_dead_block_test sparrow_aa_test icfg_test dyck_aa_test alloc_aa_test mono_test wpds_test aser_pta_test)
 
