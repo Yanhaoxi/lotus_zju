@@ -469,8 +469,6 @@ Speeding Up Analysis
 
 .. code-block:: bash
 
-   # Graspan CFL
-   ./bin/graspan -threads=8 input.bc
 
 Reducing Memory Usage
 ~~~~~~~~~~~~~~~~~~~~~

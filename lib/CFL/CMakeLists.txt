@@ -1,4 +1,3 @@
 add_subdirectory(CSIndex)
-add_subdirectory(Graspan)
 add_subdirectory(MutualRefinement)
 add_subdirectory(InterDyckGraphReduce)

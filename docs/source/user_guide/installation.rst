@@ -35,7 +35,6 @@ Configuration Options
 * ``-DENABLE_SANITY_CHECKS=ON``: Enable sea-dsa sanity checks
 * ``-DENABLE_CLAM=ON``: Build CLAM abstract interpretation tools
 * ``-DBUILD_HORN_ICE=OFF``: Build ICE learning tools for CHC (default: OFF)
-* ``-DBUILD_GRASPAN=OFF``: Build Graspan CFL-reachability solver (default: OFF)
 * ``-DBUILD_DYNAA=OFF``: Build dynamic alias analysis tools (default: OFF)
 * ``-DBUILD_OWL=OFF``: Build OWL SMT solver (default: OFF)
 

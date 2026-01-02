@@ -17,24 +17,6 @@ Context-sensitive indexing for CFL reachability.
 * Reachability query optimization
 * Memory-efficient representations
 
-Graspan
--------
-
-Graph analysis framework with parallel processing capabilities.
-
-**Location**: ``lib/CFL/Graspan/``
-
-**Features**:
-* **Parallel graph processing** – Multi-threaded analysis
-* **Large-scale graphs** – Scalable to millions of nodes
-* **CFL algorithms** – Context-free language reachability
-
-**Usage**:
-.. code-block:: cpp
-
-   #include <CFL/Graspan/Graspan.h>
-   Graspan analyzer(graph);
-   auto results = analyzer.analyze();
 
 InterDyckGraphReduce
 -------------------

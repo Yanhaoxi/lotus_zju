@@ -103,7 +103,6 @@ Core Components
    
    Context-Free Language reachability engines:
    
-   - **Graspan**: disk-based, parallel CFL reachability
    - **CSR**: graph indexing for CFL Reachability
 
 Analysis Flow
@@ -334,8 +333,6 @@ Scalability Strategies
 1. **Context Pruning**: Limit context depth (K in K-CFA)
 2. **SCC Collapsing**: Merge strongly connected components
 3. **Lazy Evaluation**: Compute results on demand
-4. **Incremental Analysis**: Reuse results across runs
-5. **Parallel Processing**: Some analyses support parallelization (Graspan)
 
 
 Extension Points

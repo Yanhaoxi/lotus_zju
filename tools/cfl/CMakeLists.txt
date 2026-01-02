@@ -6,9 +6,4 @@ if(BUILD_CSR)
     add_subdirectory(csr)
 endif()
 
-option(BUILD_GRASPAN "Build graspan" OFF)
-if(BUILD_GRASPAN)
-    add_subdirectory(graspan)
-endif()
-
 
