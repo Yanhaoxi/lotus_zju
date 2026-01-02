@@ -5,12 +5,12 @@
 #ifndef FPSOLVE_UNIQUE_VECTOR_MAP_H
 #define FPSOLVE_UNIQUE_VECTOR_MAP_H
 
+#include <algorithm>
+#include <cassert>
 #include <initializer_list>
 #include <memory>
 #include <unordered_map>
 #include <vector>
-#include <algorithm>
-#include <cassert>
 
 #include <boost/intrusive_ptr.hpp>
 

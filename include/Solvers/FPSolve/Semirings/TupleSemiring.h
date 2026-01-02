@@ -1,13 +1,13 @@
 #ifndef FPSOLVE_TUPLE_SEMIRING_H
 #define FPSOLVE_TUPLE_SEMIRING_H
 
-#include <string>
-#include <tuple>
-#include <memory>
-#include <cassert>
-#include <sstream>
 #include "Solvers/FPSolve/Semirings/Semiring.h"
 #include "Solvers/FPSolve/Utils/ProfilingMacros.h"
+#include <cassert>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <tuple>
 
 namespace fpsolve {
 

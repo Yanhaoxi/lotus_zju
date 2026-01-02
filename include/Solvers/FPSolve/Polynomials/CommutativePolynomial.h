@@ -10,9 +10,9 @@
 #include "Solvers/FPSolve/Polynomials/CommutativeMonomial.h"
 #include "Solvers/FPSolve/Semirings/Semiring.h"
 #include <map>
-#include <vector>
-#include <string>
 #include <sstream>
+#include <string>
+#include <vector>
 
 namespace fpsolve {
 

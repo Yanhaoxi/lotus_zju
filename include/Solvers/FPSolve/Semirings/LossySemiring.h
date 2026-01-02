@@ -1,13 +1,13 @@
 #ifndef FPSOLVE_LOSSY_SEMIRING_H
 #define FPSOLVE_LOSSY_SEMIRING_H
 
-#include <string>
 #include <memory>
+#include <string>
 #include <unordered_map>
 
 #include "Solvers/FPSolve/DataStructs/Hash.h"
-#include "Solvers/FPSolve/DataStructs/Matrix.h"
 #include "Solvers/FPSolve/DataStructs/FreeStructure.h"
+#include "Solvers/FPSolve/DataStructs/Matrix.h"
 #include "Solvers/FPSolve/Semirings/Semiring.h"
 
 namespace fpsolve {

@@ -7,10 +7,10 @@
 
 #include "Solvers/FPSolve/DataStructs/Var.h"
 #include "Solvers/FPSolve/DataStructs/VarDegreeMap.h"
-#include <map>
 #include <initializer_list>
-#include <string>
+#include <map>
 #include <sstream>
+#include <string>
 
 namespace fpsolve {
 

@@ -13,7 +13,7 @@
 using namespace fpsolve;
 
 int main() {
-  std::cout << "=== FPSolve Example: Binary Trees ===" << std::endl;
+  std::cout << "=== FPSolve Example: Binary Trees ===" << '\n';
 
   // Create variables
   VarId X = Var::GetVarId("X");
@@ -36,30 +36,30 @@ int main() {
   Equations<BoolSemiring> equations;
   equations.emplace_back(X, poly);
 
-  std::cout << "Equation: X = " << poly.string() << std::endl;
+  std::cout << "Equation: X = " << poly.string() << '\n';
 
   // Solve with Newton method
-  std::cout << "\n--- Solving with Newton (LDU) ---" << std::endl;
+  std::cout << "\n--- Solving with Newton (LDU) ---" << '\n';
   auto newton_result = SolverFactory<BoolSemiring>::solve(
       equations, 
       10,
       SolverFactory<BoolSemiring>::SolverType::NEWTON_CLDU
   );
 
-  std::cout << "Newton result: X = " << newton_result[X].string() << std::endl;
+  std::cout << "Newton result: X = " << newton_result[X].string() << '\n';
 
   // Solve with Kleene iteration for comparison
-  std::cout << "\n--- Solving with Kleene Iteration ---" << std::endl;
+  std::cout << "\n--- Solving with Kleene Iteration ---" << '\n';
   auto kleene_result = SolverFactory<BoolSemiring>::solve(
       equations,
       10,
       SolverFactory<BoolSemiring>::SolverType::KLEENE
   );
 
-  std::cout << "Kleene result: X = " << kleene_result[X].string() << std::endl;
+  std::cout << "Kleene result: X = " << kleene_result[X].string() << '\n';
 
   // Example with Tropical semiring (shortest path)
-  std::cout << "\n\n=== FPSolve Example: Shortest Path (Tropical) ===" << std::endl;
+  std::cout << "\n\n=== FPSolve Example: Shortest Path (Tropical) ===" << '\n';
   
   VarId Y = Var::GetVarId("Y");
   
@@ -75,7 +75,7 @@ int main() {
   Equations<TropicalSemiring> tropical_eqns;
   tropical_eqns.emplace_back(Y, tropical_poly);
 
-  std::cout << "Equation: Y = " << tropical_poly.string() << std::endl;
+  std::cout << "Equation: Y = " << tropical_poly.string() << '\n';
 
   auto tropical_result = SolverFactory<TropicalSemiring>::solve(
       tropical_eqns,
@@ -83,9 +83,9 @@ int main() {
       SolverFactory<TropicalSemiring>::SolverType::NEWTON_CLDU
   );
 
-  std::cout << "Result: Y = " << tropical_result[Y].string() << std::endl;
+  std::cout << "Result: Y = " << tropical_result[Y].string() << '\n';
 
-  std::cout << "\n=== Examples Complete ===" << std::endl;
+  std::cout << "\n=== Examples Complete ===" << '\n';
 
   return 0;
 }

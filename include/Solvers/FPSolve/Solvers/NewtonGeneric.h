@@ -6,11 +6,11 @@
 #define FPSOLVE_NEWTON_GENERIC_H
 
 #include "Solvers/FPSolve/DataStructs/Var.h"
-#include "Solvers/FPSolve/DataStructs/Matrix.h"
 #include "Solvers/FPSolve/DataStructs/Equations.h"
+#include "Solvers/FPSolve/DataStructs/Matrix.h"
 #include "Solvers/FPSolve/Polynomials/CommutativePolynomial.h"
-#include <vector>
 #include <algorithm>
+#include <vector>
 
 namespace fpsolve {
 

@@ -8,10 +8,10 @@
 #ifndef FPSOLVE_LOSSY_NON_COMMUTATIVE_MONOMIAL_H
 #define FPSOLVE_LOSSY_NON_COMMUTATIVE_MONOMIAL_H
 
-#include <map>
-#include <set>
 #include <climits>
 #include <forward_list>
+#include <map>
+#include <set>
 
 
 #include "Solvers/FPSolve/DataStructs/Equations.h"

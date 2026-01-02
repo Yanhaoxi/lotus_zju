@@ -6,10 +6,10 @@
 #define FPSOLVE_SEMIRING_H
 
 #include <cstdint>
-#include <iosfwd>
-#include <string>
 #include <functional>
+#include <iosfwd>
 #include <iostream>
+#include <string>
 
 namespace fpsolve {
 

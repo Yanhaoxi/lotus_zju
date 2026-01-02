@@ -34,4 +34,4 @@ namespace STAUB
 
             bool CheckAssignment(model m);
     };
-}
+} // namespace STAUB

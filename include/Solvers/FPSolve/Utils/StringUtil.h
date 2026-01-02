@@ -5,13 +5,13 @@
 #ifndef FPSOLVE_STRING_UTIL_H
 #define FPSOLVE_STRING_UTIL_H
 
-#include <sstream>
-#include <iostream>
 #include <algorithm>
-#include <string>
-#include <unordered_map>
+#include <iostream>
 #include <map>
 #include <set>
+#include <sstream>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "Solvers/FPSolve/DataStructs/Var.h"
@@ -89,7 +89,7 @@ std::string result_string(const ValuationMap<SR> &result) {
 
 template <typename Container>
 void PrintEquations(const Container &equations) {
-  std::cout << "Equations:" << std::endl;
+  std::cout << "Equations:" << '\n';
   for (auto &eq : equations) {
     std::cout << "* " << eq.first << " → " << eq.second << std::endl;
   }

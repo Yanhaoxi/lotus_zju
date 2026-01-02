@@ -7,10 +7,10 @@
 
 #include "Solvers/FPSolve/DataStructs/Var.h"
 #include "Solvers/FPSolve/DataStructs/Equations.h"
-#include <vector>
-#include <unordered_map>
 #include <algorithm>
 #include <stack>
+#include <unordered_map>
+#include <vector>
 
 namespace fpsolve {
 

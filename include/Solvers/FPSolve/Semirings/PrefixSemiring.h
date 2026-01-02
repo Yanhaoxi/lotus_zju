@@ -1,11 +1,11 @@
 #ifndef FPSOLVE_PREFIX_SEMIRING_H
 #define FPSOLVE_PREFIX_SEMIRING_H
 
-#include <string>
-#include <vector>
-#include <set>
 #include "Solvers/FPSolve/Semirings/Semiring.h"
 #include "Solvers/FPSolve/DataStructs/Var.h"
+#include <set>
+#include <string>
+#include <vector>
 
 namespace fpsolve {
 

@@ -8,8 +8,8 @@
 #include "Solvers/FPSolve/Semirings/Semiring.h"
 #include "Solvers/FPSolve/DataStructs/FreeStructure.h"
 #include "Solvers/FPSolve/DataStructs/Var.h"
-#include <string>
 #include <memory>
+#include <string>
 
 namespace fpsolve {
 

@@ -10,9 +10,9 @@
 #include <unordered_map>
 
 #include "Solvers/FPSolve/DataStructs/Hash.h"
-#include "Solvers/FPSolve/DataStructs/VecSet.h"
 #include "Solvers/FPSolve/DataStructs/KeyWrapper.h"
 #include "Solvers/FPSolve/DataStructs/UniqueVectorMap.h"
+#include "Solvers/FPSolve/DataStructs/VecSet.h"
 
 namespace fpsolve {
 

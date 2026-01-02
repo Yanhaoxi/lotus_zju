@@ -6,9 +6,9 @@
 #define FPSOLVE_FLOAT_SEMIRING_H
 
 #include "Solvers/FPSolve/Semirings/Semiring.h"
-#include <string>
 #include <cmath>
 #include <limits>
+#include <string>
 
 namespace fpsolve {
 

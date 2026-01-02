@@ -8,10 +8,10 @@
 #include <algorithm>
 #include <cassert>
 #include <initializer_list>
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
-#include <iostream>
 
 namespace fpsolve {
 
@@ -148,7 +148,7 @@ public:
       for (std::size_t c = 0; c < columns_; ++c) {
         ss << At(r, c) << " | ";
       }
-      ss << std::endl;
+      ss << '\n';
     }
     return ss.str();
   }

@@ -7,8 +7,8 @@
 
 #include "Solvers/FPSolve/DataStructs/Var.h"
 #include <iostream>
-#include <unordered_map>
 #include <memory>
+#include <unordered_map>
 #include <utility>
 
 namespace fpsolve {

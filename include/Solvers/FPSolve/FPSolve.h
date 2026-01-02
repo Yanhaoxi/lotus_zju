@@ -10,19 +10,19 @@
 
 // Core data structures
 #include "Solvers/FPSolve/DataStructs/Var.h"
-#include "Solvers/FPSolve/DataStructs/Matrix.h"
 #include "Solvers/FPSolve/DataStructs/Equations.h"
+#include "Solvers/FPSolve/DataStructs/Matrix.h"
 #include "Solvers/FPSolve/DataStructs/VarDegreeMap.h"
 
 // Semirings
-#include "Solvers/FPSolve/Semirings/Semiring.h"
 #include "Solvers/FPSolve/Semirings/BoolSemiring.h"
-#include "Solvers/FPSolve/Semirings/FloatSemiring.h"
-#include "Solvers/FPSolve/Semirings/TropicalSemiring.h"
-#include "Solvers/FPSolve/Semirings/FreeSemiring.h"
 #include "Solvers/FPSolve/Semirings/CommutativeRExp.h"
-#include "Solvers/FPSolve/Semirings/ViterbiSemiring.h"
+#include "Solvers/FPSolve/Semirings/FloatSemiring.h"
+#include "Solvers/FPSolve/Semirings/FreeSemiring.h"
 #include "Solvers/FPSolve/Semirings/MaxMinSemiring.h"
+#include "Solvers/FPSolve/Semirings/Semiring.h"
+#include "Solvers/FPSolve/Semirings/TropicalSemiring.h"
+#include "Solvers/FPSolve/Semirings/ViterbiSemiring.h"
 
 // Optional: LossyFiniteAutomaton (requires libfa)
 #ifdef HAVE_LIBFA
@@ -35,8 +35,8 @@
 #include "Solvers/FPSolve/Polynomials/NonCommutativePolynomial.h"
 
 // Solvers
-#include "Solvers/FPSolve/Solvers/NewtonGeneric.h"
 #include "Solvers/FPSolve/Solvers/KleeneSolver.h"
+#include "Solvers/FPSolve/Solvers/NewtonGeneric.h"
 #include "Solvers/FPSolve/Solvers/SolverUtils.h"
 
 // Parser

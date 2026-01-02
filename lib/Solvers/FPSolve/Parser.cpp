@@ -6,19 +6,19 @@
 
 #include <vector>
 
-#include <boost/spirit/include/qi.hpp>
-#include <boost/spirit/include/phoenix_operator.hpp>
-#include <boost/spirit/include/qi_parse.hpp>
-#include <boost/spirit/include/phoenix_function.hpp>
-#include <boost/spirit/include/phoenix_stl.hpp>
 #include <boost/fusion/include/std_pair.hpp>
+#include <boost/spirit/include/phoenix_function.hpp>
+#include <boost/spirit/include/phoenix_operator.hpp>
+#include <boost/spirit/include/phoenix_stl.hpp>
+#include <boost/spirit/include/qi.hpp>
+#include <boost/spirit/include/qi_parse.hpp>
 
 #include "Solvers/FPSolve/Parser/Parser.h"
-#include "Solvers/FPSolve/Semirings/CommutativeRExp.h"
-#include "Solvers/FPSolve/Semirings/FreeSemiring.h"
 #include "Solvers/FPSolve/DataStructs/Var.h"
 #include "Solvers/FPSolve/Polynomials/CommutativePolynomial.h"
 #include "Solvers/FPSolve/Polynomials/NonCommutativePolynomial.h"
+#include "Solvers/FPSolve/Semirings/CommutativeRExp.h"
+#include "Solvers/FPSolve/Semirings/FreeSemiring.h"
 
 namespace fpsolve {
 
@@ -232,7 +232,7 @@ std::vector<std::pair<VarId, NonCommutativePolynomial<SR>>> non_commutative_pars
 
         std::vector<std::pair<VarId, NonCommutativePolynomial<SR>>> result;
         if(!(qi::phrase_parse(iter, end, equation, qi::space, result) && iter == end))
-                std::cout << "bad input, failed at: " << std::string(iter, end) << std::endl;
+                std::cout << "bad input, failed at: " << std::string(iter, end) << '\n';
         return result;
 }
 
@@ -248,7 +248,7 @@ std::vector<std::pair<VarId, CommutativePolynomial<SR>>> commutative_parser(std:
 
 	std::vector<std::pair<VarId, CommutativePolynomial<SR>>> result;
 	if(!(qi::phrase_parse(iter, end, equation, qi::space, result) && iter == end))
-		std::cout << "bad input, failed at: " << std::string(iter, end) << std::endl;
+		std::cout << "bad input, failed at: " << std::string(iter, end) << '\n';
 
 	return result;
 }

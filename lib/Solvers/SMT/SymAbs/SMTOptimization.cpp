@@ -52,7 +52,7 @@ void optutil::get_k_models(z3::expr &exp, int k) {
   solver.set(p);
   solver.add(exp);
   while (solver.check() == z3::sat && k >= 1) {
-    std::cout << solver << std::endl;
+    std::cout << solver << '\n';
     z3::model m = solver.get_model();
     z3::expr_vector args(ctx);
     for (unsigned i = 0; i < m.size(); i++) {

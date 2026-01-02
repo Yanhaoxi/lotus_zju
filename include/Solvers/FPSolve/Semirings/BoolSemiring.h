@@ -6,8 +6,8 @@
 #define FPSOLVE_BOOL_SEMIRING_H
 
 #include "Solvers/FPSolve/Semirings/Semiring.h"
-#include <string>
 #include <memory>
+#include <string>
 
 namespace fpsolve {
 

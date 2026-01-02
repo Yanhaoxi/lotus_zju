@@ -7,22 +7,22 @@
 
 #include <algorithm>
 #include <cassert>
+#include <climits>
 #include <initializer_list>
 #include <list>
 #include <map>
-#include <string>
 #include <queue>
-#include <climits>
 #include <sstream>
+#include <string>
 
 #include "Solvers/FPSolve/Semirings/Semiring.h"
-#include "Solvers/FPSolve/Semirings/FreeSemiring.h"
 #include "Solvers/FPSolve/DataStructs/Matrix.h"
 #include "Solvers/FPSolve/DataStructs/Var.h"
 #include "Solvers/FPSolve/DataStructs/VarDegreeMap.h"
-#include "Solvers/FPSolve/Utils/StringUtil.h"
-#include "Solvers/FPSolve/Polynomials/NonCommutativeMonomial.h"
 #include "Solvers/FPSolve/Polynomials/CommutativePolynomial.h"
+#include "Solvers/FPSolve/Polynomials/NonCommutativeMonomial.h"
+#include "Solvers/FPSolve/Semirings/FreeSemiring.h"
+#include "Solvers/FPSolve/Utils/StringUtil.h"
 
 namespace fpsolve {
 

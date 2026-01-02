@@ -6,8 +6,8 @@
 
 #include "Solvers/FPSolve/DataStructs/SparseVec.h"
 #include "Solvers/FPSolve/DataStructs/UniqueSet.h"
-#include "Solvers/FPSolve/Utils/StringUtil.h"
 #include "Solvers/FPSolve/Semirings/SemilinearUtil.h"
+#include "Solvers/FPSolve/Utils/StringUtil.h"
 
 namespace fpsolve {
 

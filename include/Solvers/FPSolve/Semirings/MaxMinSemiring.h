@@ -7,8 +7,8 @@
 
 #include "Solvers/FPSolve/Semirings/Semiring.h"
 #include <algorithm>
-#include <string>
 #include <limits>
+#include <string>
 
 namespace fpsolve {
 

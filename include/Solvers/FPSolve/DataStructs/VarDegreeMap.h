@@ -6,8 +6,8 @@
 #define FPSOLVE_VAR_DEGREE_MAP_H
 
 #include "Solvers/FPSolve/DataStructs/Var.h"
-#include <map>
 #include <algorithm>
+#include <map>
 
 namespace fpsolve {
 

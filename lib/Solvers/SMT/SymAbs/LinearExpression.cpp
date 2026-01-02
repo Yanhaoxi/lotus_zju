@@ -38,10 +38,10 @@
 #include "Solvers/SMT/SymAbs/SymAbsUtils.h"
 #include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
 
+#include <llvm/ADT/Optional.h>
 #include <cassert>
 #include <z3++.h>
 #include <z3.h>
-#include <llvm/ADT/Optional.h>
 
 using namespace z3;
 

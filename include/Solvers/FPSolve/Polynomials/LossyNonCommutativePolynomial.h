@@ -19,16 +19,16 @@
 
 
 #include "Solvers/FPSolve/Polynomials/NonCommutativeMonomial.h"
-#include "Solvers/FPSolve/Polynomials/NonCommutativePolynomial.h"
 #include "Solvers/FPSolve/Polynomials/LossyNonCommutativeMonomial.h"
+#include "Solvers/FPSolve/Polynomials/NonCommutativePolynomial.h"
 
-#include "Solvers/FPSolve/Semirings/Semiring.h"
 #include "Solvers/FPSolve/Semirings/LossyFiniteAutomaton.h"
+#include "Solvers/FPSolve/Semirings/Semiring.h"
 
 #include "Solvers/FPSolve/DataStructs/Equations.h"
 
-#include "Solvers/FPSolve/Utils/StringUtil.h"
 #include "Solvers/FPSolve/Solvers/SolverUtils.h"
+#include "Solvers/FPSolve/Utils/StringUtil.h"
 
 class VarId;
 

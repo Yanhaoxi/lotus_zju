@@ -17,4 +17,6 @@ add_library(CanaryTransform STATIC
         SimplifyExtractValue.cpp
         SimplifyInsertValue.cpp
         CastElimPass.cpp
+        # ReplaceAsserts.cpp
+        # ReplaceUBSan.cpp
 )

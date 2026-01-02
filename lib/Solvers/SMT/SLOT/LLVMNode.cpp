@@ -245,12 +245,8 @@ namespace SLOT
         expr right(scx);
         expr temp(scx);
         expr_vector v(scx);
-        int bits;
         switch (id)
         {
-            case Intrinsic::is_fpclass:
-                bits = ((ConstantInt*)(AsInstruction()->getOperand(1)))->getSExtValue();
-                return LLVMIntrinsicCall::FPClassCheck(scx, Child(0)->ToSMT(), bits);
             /*case Intrinsic::round:
                 return z3::round_fpa_to_closest_integer(Child(0)->ToSMT());*/
             case Intrinsic::abs:

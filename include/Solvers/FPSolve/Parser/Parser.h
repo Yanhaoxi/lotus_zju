@@ -6,8 +6,8 @@
 #define FPSOLVE_PARSER_H
 
 #include <string>
-#include <vector>
 #include <utility>
+#include <vector>
 
 #include "Solvers/FPSolve/DataStructs/Var.h"
 #include "Solvers/FPSolve/DataStructs/Equations.h"

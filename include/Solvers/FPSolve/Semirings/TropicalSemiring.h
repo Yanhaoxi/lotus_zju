@@ -6,8 +6,8 @@
 #define FPSOLVE_TROPICAL_SEMIRING_H
 
 #include "Solvers/FPSolve/Semirings/Semiring.h"
-#include <string>
 #include <limits>
+#include <string>
 
 namespace fpsolve {
 

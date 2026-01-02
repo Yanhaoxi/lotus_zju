@@ -5,13 +5,13 @@
 #ifndef FPSOLVE_NON_COMMUTATIVE_MONOMIAL_H
 #define FPSOLVE_NON_COMMUTATIVE_MONOMIAL_H
 
+#include <cassert>
 #include <iosfwd>
 #include <map>
-#include <vector>
 #include <set>
-#include <unordered_map>
 #include <sstream>
-#include <cassert>
+#include <unordered_map>
+#include <vector>
 
 #include "Solvers/FPSolve/DataStructs/Var.h"
 #include "Solvers/FPSolve/DataStructs/VarDegreeMap.h"

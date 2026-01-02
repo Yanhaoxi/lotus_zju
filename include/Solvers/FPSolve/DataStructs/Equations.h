@@ -6,8 +6,8 @@
 #define FPSOLVE_EQUATIONS_H
 
 #include "Solvers/FPSolve/DataStructs/Var.h"
-#include <vector>
 #include <utility>
+#include <vector>
 
 namespace fpsolve {
 

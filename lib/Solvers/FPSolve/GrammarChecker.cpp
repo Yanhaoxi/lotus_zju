@@ -6,12 +6,12 @@
  */
 
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
+#include <numeric>
+#include <sstream>
 #include <string>
 #include <vector>
-#include <fstream>
-#include <sstream>
-#include <numeric>
 
 // Uncomment if boost::program_options is available
 // #include <boost/program_options.hpp>

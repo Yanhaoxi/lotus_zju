@@ -1,15 +1,15 @@
 #ifndef FPSOLVE_SEMILINEAR_SET_H
 #define FPSOLVE_SEMILINEAR_SET_H
 
+#include <boost/algorithm/string.hpp>
 #include <initializer_list>
 #include <set>
-#include <boost/algorithm/string.hpp>
 
 #include "Solvers/FPSolve/Semirings/LinearSet.h"
-#include "Solvers/FPSolve/Semirings/Semiring.h"
 #include "Solvers/FPSolve/DataStructs/SparseVec.h"
-#include "Solvers/FPSolve/Utils/StringUtil.h"
+#include "Solvers/FPSolve/Semirings/Semiring.h"
 #include "Solvers/FPSolve/Utils/ProfilingMacros.h"
+#include "Solvers/FPSolve/Utils/StringUtil.h"
 
 namespace fpsolve {
 
@@ -104,14 +104,14 @@ class SemilinearSet : public StarableSemiring< SemilinearSet<VarType, Value, Vec
           boost::split(var_val, s, boost::is_any_of(":"), boost::algorithm::token_compress_on);
 
           if(var_val.size() != 2) {
-            std::cerr << "Bad Input (semilinear set): \"" << str_val << "\"" << std::endl;
+            std::cerr << "Bad Input (semilinear set): \"" << str_val << "\"" << '\n';
           }
           else {
             std::istringstream i(var_val[1]);
             Counter c;
             if (!(i >> c))
             {
-              std::cerr << "ERROR: Bad string value (" << var_val[1] << ") for semilinear-set constructor (element count) --defaulting to 0!"<< std::endl;
+              std::cerr << "ERROR: Bad string value (" << var_val[1] << ") for semilinear-set constructor (element count) --defaulting to 0!"<< '\n';
               c = 0;
             }
             VarType v = Var::GetVarId(var_val[0]);
@@ -244,7 +244,7 @@ class SemilinearSet : public StarableSemiring< SemilinearSet<VarType, Value, Vec
 
     std::string string() const {
       std::stringstream sout;
-      sout << "{ " << std::endl
+      sout << "{ " << '\n'
            << ToStringSorted(set_, "\n")
            << "}" << std::endl;
       return std::move(sout.str());

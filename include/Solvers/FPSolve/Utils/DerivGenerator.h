@@ -5,10 +5,10 @@
 #ifndef FPSOLVE_DERIV_GENERATOR_H
 #define FPSOLVE_DERIV_GENERATOR_H
 
-#include <unordered_map>
-#include <cassert>
 #include "Solvers/FPSolve/DataStructs/Var.h"
 #include "Solvers/FPSolve/DataStructs/VarDegreeMap.h"
+#include <cassert>
+#include <unordered_map>
 
 namespace fpsolve {
 

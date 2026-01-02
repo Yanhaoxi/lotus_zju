@@ -6,12 +6,12 @@
 
 #include "Solvers/FPSolve/DataStructs/SparseVec.h"
 #include "Solvers/FPSolve/DataStructs/Equations.h"
-#include "Solvers/FPSolve/Utils/DebugOutput.h"
-#include "Solvers/FPSolve/Utils/StringUtil.h"
-#include "Solvers/FPSolve/Utils/ProfilingMacros.h"
-#include "Solvers/FPSolve/Semirings/SemilinearUtil.h"
 #include "Solvers/FPSolve/Semirings/LinearSet.h"
 #include "Solvers/FPSolve/Semirings/SemilinearSet.h"
+#include "Solvers/FPSolve/Semirings/SemilinearUtil.h"
+#include "Solvers/FPSolve/Utils/DebugOutput.h"
+#include "Solvers/FPSolve/Utils/ProfilingMacros.h"
+#include "Solvers/FPSolve/Utils/StringUtil.h"
 
 namespace fpsolve {
 

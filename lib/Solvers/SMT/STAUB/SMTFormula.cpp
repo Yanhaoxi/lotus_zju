@@ -271,4 +271,4 @@ namespace STAUB
         //std::cout << result.to_string() << "\n";
         //return result.is_true();
     }
-}
+} // namespace STAUB

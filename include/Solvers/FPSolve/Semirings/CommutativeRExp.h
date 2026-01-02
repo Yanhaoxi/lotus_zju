@@ -5,9 +5,9 @@
 #ifndef FPSOLVE_COMMUTATIVE_REXP_H
 #define FPSOLVE_COMMUTATIVE_REXP_H
 
+#include <memory>
 #include <set>
 #include <string>
-#include <memory>
 
 #include "Solvers/FPSolve/DataStructs/Var.h"
 #include "Solvers/FPSolve/Semirings/Semiring.h"

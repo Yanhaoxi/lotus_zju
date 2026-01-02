@@ -21,7 +21,6 @@ add_library(SymAbs STATIC
         SMTOptimization.cpp
 )
 
-target_link_libraries(SymAbs
-        CanarySMT
-        SymbolicAbstractionAnalysis
-)
+#target_link_libraries(SymAbs
+#        CanarySMT
+#)

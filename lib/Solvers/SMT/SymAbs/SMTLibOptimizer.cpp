@@ -31,8 +31,8 @@
 
 #include "Solvers/SMT/SymAbs/SMTLibOptimizer.h"
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 
 SMTLibOptimizer::SMTLibOptimizer(z3::context& context, const std::string& smt_formula,
