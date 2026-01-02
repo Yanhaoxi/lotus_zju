@@ -16,7 +16,7 @@
 #include "Verification/SymbolicAbstraction/Core/ValueMapping.h"
 // #include "Verification/SymbolicAbstraction/Core/repr.h"
 #include "Verification/SymbolicAbstraction/Utils/Config.h"
-// #include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
+#include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
 
 #include <algorithm>
 #include <queue>

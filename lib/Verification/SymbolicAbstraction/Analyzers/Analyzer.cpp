@@ -18,10 +18,10 @@
 #include "Verification/SymbolicAbstraction/Core/repr.h"
 #include "Verification/SymbolicAbstraction/Utils/Config.h"
 #include "Verification/SymbolicAbstraction/Utils/Utils.h"
+#include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
 
 #include <llvm/IR/CFG.h>
 #include <llvm/Support/Timer.h>
-// #include "Verification/SymbolicAbstraction/Utils/Z3APIExtension.h"
 
 namespace symbolic_abstraction {
 Analyzer::Analyzer(const FunctionContext &fctx, const FragmentDecomposition &fd,
