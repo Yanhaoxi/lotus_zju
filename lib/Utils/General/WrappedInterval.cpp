@@ -329,6 +329,6 @@ void wi_print(wrapped_interval_t* interval)
                 interval->size);
     else
         fprintf(stderr, "[ 0x%" PRIx64 ", 0x%" PRIx64 " ] U [ 0x%" PRIx64 ", 0x%" PRIx64 " ] (%u)\n", interval->min,
-                get_size_mask(interval->size), 0ULL, interval->max,
+                get_size_mask(interval->size), (uint64_t)0ULL, interval->max,
                 interval->size);
 }
