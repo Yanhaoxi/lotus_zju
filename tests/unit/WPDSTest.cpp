@@ -6,6 +6,8 @@
 #include "Dataflow/WPDS/InterProceduralDataFlow.h"
 
 #include <gtest/gtest.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/LLVMContext.h>
 
 using namespace wpds;
 
@@ -42,8 +44,13 @@ TEST_F(WPDSTest, DataFlowFacts) {
   EXPECT_EQ(empty.getFacts().size(), 0);
   
   // Test universe set
+  llvm::LLVMContext context;
+  auto* seed = llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 1);
+  DataFlowFacts seeded = DataFlowFacts::EmptySet();
+  seeded.addFact(seed);
   DataFlowFacts universe = DataFlowFacts::UniverseSet();
   EXPECT_FALSE(universe.isEmpty());
+  EXPECT_TRUE(universe.containsFact(seed));
   
   // Test union
   DataFlowFacts fact1 = DataFlowFacts::EmptySet();
@@ -97,4 +104,3 @@ int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
-

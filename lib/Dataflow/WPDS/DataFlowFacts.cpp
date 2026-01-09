@@ -14,6 +14,7 @@ DataFlowFacts::DataFlowFacts() = default;
 
 DataFlowFacts::DataFlowFacts(const std::set<Value*>& facts)
     : facts(facts) {
+    universe.insert(facts.begin(), facts.end());
 }
 
 DataFlowFacts::DataFlowFacts(const DataFlowFacts& other)

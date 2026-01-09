@@ -118,9 +118,8 @@ bool IFDSSolver<Problem>::propagate_path_edge(const PathEdgeType& edge) {
     // Add to worklist for processing
     m_worklist.push_back(edge);
 
-    // Update entry/exit facts (IFDS M_A[n])
-    m_entry_facts[edge.start_node].insert(edge.start_fact);
-    m_exit_facts[edge.target_node].insert(edge.target_fact);
+    // Track facts at instruction entry.
+    m_entry_facts[edge.target_node].insert(edge.target_fact);
     
     // Maintain path-edge index P[c] for retroactive summary application
     if (auto* call = llvm::dyn_cast<llvm::CallInst>(edge.target_node)) {
@@ -159,6 +158,12 @@ template<typename Problem>
 void IFDSSolver<Problem>::process_normal_edge(const PathEdgeType& current_edge,
                                               const llvm::Instruction* next) {
     FactSet new_facts = m_problem.normal_flow(current_edge.target_node, current_edge.target_fact);
+
+    // Record exit facts for the current instruction.
+    if (!new_facts.empty()) {
+        auto& exit_facts = m_exit_facts[current_edge.target_node];
+        exit_facts.insert(new_facts.begin(), new_facts.end());
+    }
 
     for (const auto& new_fact : new_facts) {
         propagate_path_edge(PathEdgeType(current_edge.start_node, current_edge.start_fact,
@@ -252,6 +257,12 @@ void IFDSSolver<Problem>::process_call_to_return_edge(const PathEdgeType& curren
     if (!return_site) return;
 
     FactSet ctr_facts = m_problem.call_to_return_flow(call, current_edge.target_fact);
+
+    // Record exit facts for the call instruction (call-to-return flow).
+    if (!ctr_facts.empty()) {
+        auto& exit_facts = m_exit_facts[call];
+        exit_facts.insert(ctr_facts.begin(), ctr_facts.end());
+    }
 
     for (const auto& ctr_fact : ctr_facts) {
         propagate_path_edge(PathEdgeType(current_edge.start_node, current_edge.start_fact,
@@ -470,4 +481,3 @@ const llvm::Function* IFDSSolver<Problem>::get_main_function(const llvm::Module&
 // ============================================================================
 
 } // namespace ifds
-

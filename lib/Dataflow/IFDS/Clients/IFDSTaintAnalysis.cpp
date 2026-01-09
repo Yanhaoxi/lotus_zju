@@ -196,6 +196,18 @@ TaintAnalysis::FactSet TaintAnalysis::normal_flow(const llvm::Instruction* stmt,
         
         propagate_fact();
         
+    } else if (auto* phi = llvm::dyn_cast<llvm::PHINode>(stmt)) {
+        if (fact.is_tainted_var()) {
+            for (unsigned i = 0; i < phi->getNumIncomingValues(); ++i) {
+                if (phi->getIncomingValue(i) == fact.get_value()) {
+                    result.insert(TaintFact::tainted_var(phi));
+                    break;
+                }
+            }
+        }
+
+        propagate_fact();
+        
     } else {
         propagate_fact();
     }
@@ -283,22 +295,35 @@ TaintAnalysis::FactSet TaintAnalysis::return_flow(const llvm::CallInst* call, co
 TaintAnalysis::FactSet TaintAnalysis::call_to_return_flow(const llvm::CallInst* call, const TaintFact& fact) {
     FactSet result;
 
+    const llvm::Function* callee = call->getCalledFunction();
+
+    // Handle sources independently of incoming facts.
+    if (is_source(call)) {
+        if (!call->getType()->isVoidTy()) {
+            result.insert(TaintFact::tainted_var(call));
+            if (call->getType()->isPointerTy()) {
+                result.insert(TaintFact::tainted_memory(call));
+            }
+        }
+    }
+
+    // Handle source function specs from config (may add additional facts).
+    if (callee) {
+        handle_source_function_specs(call, result);
+    }
+
     // Always propagate zero fact
     if (fact.is_zero()) {
         result.insert(fact);
         return result;
     }
 
-    const llvm::Function* callee = call->getCalledFunction();
     if (!callee) {
         if (!kills_fact(call, fact)) {
             result.insert(fact);
         }
         return result;
     }
-
-    // Handle source functions using config specifications
-    handle_source_function_specs(call, result);
 
     // Handle PIPE specifications for taint propagation
     handle_pipe_specifications(call, fact, result);
