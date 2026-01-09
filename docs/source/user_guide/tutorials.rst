@@ -2,6 +2,8 @@ Tutorials and Examples
 ======================
 
 This section provides hands-on tutorials for using Lotus to analyze real programs.
+For optimization passes that can reshape IR before analysis, see
+:doc:`../optimization/index` and the :doc:`../optimization/swprefetching` guide.
 
 Tutorial 1: Basic Alias Analysis
 ---------------------------------
@@ -829,4 +831,3 @@ Next Steps
 - Read :doc:`architecture` to understand the framework design
 - See :doc:`../developer/developer_guide` to extend Lotus with custom analyses
 - Check :doc:`../developer/api_reference` for programmatic usage
-

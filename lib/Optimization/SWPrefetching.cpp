@@ -33,9 +33,31 @@ using namespace sampleprof;
 // based prefetch distance computation.
 bool AutoFDOMapping;
 
+enum class PrefetchDistanceProvider {
+  Profile,
+  LBR,
+  LLM,
+  StaticAnalysis,
+};
+
+static cl::opt<PrefetchDistanceProvider> PrefetchDistanceProviderMode(
+    "prefetch-distance-provider",
+    cl::desc("Select prefetch distance provider"),
+    cl::values(
+        clEnumValN(PrefetchDistanceProvider::Profile, "profile",
+                   "Use sample profile hints (default)"),
+        clEnumValN(PrefetchDistanceProvider::LBR, "lbr",
+                   "Use user-provided LBR distances"),
+        clEnumValN(PrefetchDistanceProvider::LLM, "llm",
+                   "Use LLM-provided distances"),
+        clEnumValN(PrefetchDistanceProvider::StaticAnalysis, "static",
+                   "Use static-analysis distances (reserved)")),
+    cl::init(PrefetchDistanceProvider::Profile));
+
 static cl::opt<std::string> PrefetchFile("input-file", cl::desc("Specify input filename for mypass"), cl::value_desc("filename"));
 
 cl::list<std::string> LBR_dist("dist", cl::desc("Specify offset value from LBR"), cl::OneOrMore);
+cl::list<std::string> LLM_dist("llm-dist", cl::desc("Specify offset value from LLM"), cl::OneOrMore);
 
 // State caches for indirect/stride prefetch generation. They are populated
 // when we first see an indirect load and reused for related stride loads.
@@ -67,29 +89,34 @@ char SWPrefetchingLLVMPass::ID = 0;
 
 
 bool SWPrefetchingLLVMPass::doInitialization(Module &M) {
-  if (PrefetchFile.empty()){
-      errs()<<"PrefetchFile is Empty!\n";
-      return false;
-  }
-  
-  LLVMContext &Ctx = M.getContext();
-  ErrorOr<std::unique_ptr<SampleProfileReader>> ReaderOrErr = SampleProfileReader::create(PrefetchFile, Ctx);
-  if (std::error_code EC = ReaderOrErr.getError()) {
-    std::string Msg = "Could not open profile: " + EC.message();
-    Ctx.diagnose(DiagnosticInfoSampleProfile(PrefetchFile, Msg, DiagnosticSeverity::DS_Warning));
-    return false;
-  }
-
-  Reader = std::move(ReaderOrErr.get());
-  Reader->read();
-
-  for(auto &F : M) {
-    const llvm::sampleprof::FunctionSamples* SamplesReaded = Reader->getSamplesFor(F);
-    if(SamplesReaded){    
-      AutoFDOMapping=true;
+  if (PrefetchDistanceProviderMode == PrefetchDistanceProvider::Profile) {
+    if (PrefetchFile.empty()){
+        errs()<<"PrefetchFile is Empty!\n";
+        return false;
     }
+    
+    LLVMContext &Ctx = M.getContext();
+    ErrorOr<std::unique_ptr<SampleProfileReader>> ReaderOrErr = SampleProfileReader::create(PrefetchFile, Ctx);
+    if (std::error_code EC = ReaderOrErr.getError()) {
+      std::string Msg = "Could not open profile: " + EC.message();
+      Ctx.diagnose(DiagnosticInfoSampleProfile(PrefetchFile, Msg, DiagnosticSeverity::DS_Warning));
+      return false;
+    }
+
+    Reader = std::move(ReaderOrErr.get());
+    Reader->read();
+
+    for(auto &F : M) {
+      const llvm::sampleprof::FunctionSamples* SamplesReaded = Reader->getSamplesFor(F);
+      if(SamplesReaded){    
+        AutoFDOMapping=true;
+      }
+    }
+
+    return true;
   }
 
+  AutoFDOMapping = false;
   return true;
 }
 
@@ -1170,22 +1197,34 @@ bool SWPrefetchingLLVMPass::InjectPrefechesOnePhiPartOne(Instruction* I, LoopInf
 //  - discovers the dependence chain and controlling PHIs,
 //  - emits prefetches using either the multi-PHI (indirect) path or the
 //    simpler single-PHI path.
-// Falls back to user-provided LBR distances when no profile was loaded.
+// Falls back to user-provided LBR distances (or LLM distances) when selected.
 bool SWPrefetchingLLVMPass::runOnFunction(Function &F) {
   bool modified = false;
   LoopInfo &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
-  if(!Reader){ 
+  const bool wantProfile =
+      PrefetchDistanceProviderMode == PrefetchDistanceProvider::Profile;
+  const bool wantLBR =
+      PrefetchDistanceProviderMode == PrefetchDistanceProvider::LBR;
+  const bool wantLLM =
+      PrefetchDistanceProviderMode == PrefetchDistanceProvider::LLM;
+  const bool wantStatic =
+      PrefetchDistanceProviderMode == PrefetchDistanceProvider::StaticAnalysis;
+
+  if (wantProfile && !Reader){
     return false;
   }
   bool samplesExist =false;
-  const llvm::sampleprof::FunctionSamples* SamplesReaded = Reader->getSamplesFor(F);
-  if(SamplesReaded){    
-     samplesExist =true;
+  const llvm::sampleprof::FunctionSamples* SamplesReaded = nullptr;
+  if (Reader){
+    SamplesReaded = Reader->getSamplesFor(F);
+    if(SamplesReaded){    
+       samplesExist =true;
+    }
   }
   /*if(!SamplesReaded){   
       errs()<<F.getName() << "   no-sample!\n";
   }*/
-  if(samplesExist){
+  if(wantProfile && samplesExist){
     int64_t prefechDist;
     SmallVector<Instruction*,30> AllCurLoads;
     SmallVector<Instruction*,20> NeedToEliminateCurLoads;
@@ -1283,142 +1322,168 @@ bool SWPrefetchingLLVMPass::runOnFunction(Function &F) {
     }
    }
   }
-  if(!AutoFDOMapping){
-     SmallVector<Instruction*,10> AllLoadsDepToPhix;
-     int64_t pd;
-     for(auto &e : LBR_dist){
-       pd = std::stoull(e);
-     }   
-     std::vector<SmallVector<Instruction*,20>> AllDependentInstsx;
-     std::vector<SmallVector<Instruction*,10>> AllDependentPhisx;
-     SmallVector<Instruction*,10> StrideLoadsx;
-     SmallVector<Instruction*,10> StrideLoadsToKeepx;
-     SmallVector<Instruction*,10> IndirectLoadsx;
-     SmallVector<Instruction*,10> IndirectLoadsToKeepx;
-     SmallVector<Instruction*,10> LoadsToRemovex;
-     SmallVector<int,10> LoadsIndexx;
+  auto parseDistanceList = [&](const cl::list<std::string> &Distances,
+                               int64_t &Out) -> bool {
+    if (Distances.empty()) {
+      return false;
+    }
+    for (auto &e : Distances) {
+      Out = std::stoull(e);
+    }
+    return true;
+  };
 
-     std::vector<SmallVector<Instruction*,20>> AllDependentInstrsToIndirectLoadx;
-     std::vector<SmallVector<Instruction*,20>> AllDependentInstrsToStrideLoadx;
-     std::vector<SmallVector<Instruction*,10>> AllDependentPhisToStrideLoadx;
-     std::vector<SmallVector<Instruction*,10>> AllDependentPhisToIndirectLoadx;
+  auto runStaticDistancePrefetch = [&](int64_t pd) {
+    SmallVector<Instruction*,10> AllLoadsDepToPhix;
+    std::vector<SmallVector<Instruction*,20>> AllDependentInstsx;
+    std::vector<SmallVector<Instruction*,10>> AllDependentPhisx;
+    SmallVector<Instruction*,10> StrideLoadsx;
+    SmallVector<Instruction*,10> StrideLoadsToKeepx;
+    SmallVector<Instruction*,10> IndirectLoadsx;
+    SmallVector<Instruction*,10> IndirectLoadsToKeepx;
+    SmallVector<Instruction*,10> LoadsToRemovex;
+    SmallVector<int,10> LoadsIndexx;
 
+    std::vector<SmallVector<Instruction*,20>> AllDependentInstrsToIndirectLoadx;
+    std::vector<SmallVector<Instruction*,20>> AllDependentInstrsToStrideLoadx;
+    std::vector<SmallVector<Instruction*,10>> AllDependentPhisToStrideLoadx;
+    std::vector<SmallVector<Instruction*,10>> AllDependentPhisToIndirectLoadx;
 
-
-     for(auto &BB : F) {
-       bool isBBLoop = LI.getLoopFor(&BB);
-       for (auto &I : BB) {
+    for(auto &BB : F) {
+      bool isBBLoop = LI.getLoopFor(&BB);
+      for (auto &I : BB) {
         if(isBBLoop){
           if (LoadInst *curLoad = dyn_cast<LoadInst>(&I)){
-           Instruction * phi = nullptr;
-           SmallVector<Instruction*,10> DependentLoadsToCurLoadx;
-           SmallVector<Instruction*,20> DependentInstrsToCurLoadx;
-           SmallVector<Instruction*,10> DependentPhisx;
-           if(IsDep(curLoad,LI,phi,DependentLoadsToCurLoadx,DependentInstrsToCurLoadx,DependentPhisx)){ 
-            if(DependentLoadsToCurLoadx.size()>0){
-                 int indexOfDepLoad;
-                 bool DepPhiOfDepLoad=false;
-                 for(auto &s : DependentLoadsToCurLoadx){
-                    for (long unsigned int i=0; i<AllLoadsDepToPhix.size();i++){
-                      if(AllLoadsDepToPhix[i]==s){
-                        DepPhiOfDepLoad =true;
-                        indexOfDepLoad=i;
-                      }                                                                                                                                                  
+            Instruction * phi = nullptr;
+            SmallVector<Instruction*,10> DependentLoadsToCurLoadx;
+            SmallVector<Instruction*,20> DependentInstrsToCurLoadx;
+            SmallVector<Instruction*,10> DependentPhisx;
+            if(IsDep(curLoad,LI,phi,DependentLoadsToCurLoadx,DependentInstrsToCurLoadx,DependentPhisx)){
+              if(DependentLoadsToCurLoadx.size()>0){
+                int indexOfDepLoad;
+                bool DepPhiOfDepLoad=false;
+                for(auto &s : DependentLoadsToCurLoadx){
+                  for (long unsigned int i=0; i<AllLoadsDepToPhix.size();i++){
+                    if(AllLoadsDepToPhix[i]==s){
+                      DepPhiOfDepLoad =true;
+                      indexOfDepLoad=i;
                     }
-                    if(DepPhiOfDepLoad){
-                      bool foundall=false;
-                      for(auto &d : AllDependentInstsx[indexOfDepLoad]){
-                        for(auto &sd : DependentInstrsToCurLoadx){
-                          if(d==sd){
-                              foundall=true;
-                          }
-                        }
-                        if(!foundall){
-                          continue;
+                  }
+                  if(DepPhiOfDepLoad){
+                    bool foundall=false;
+                    for(auto &d : AllDependentInstsx[indexOfDepLoad]){
+                      for(auto &sd : DependentInstrsToCurLoadx){
+                        if(d==sd){
+                          foundall=true;
                         }
                       }
-                      if(foundall){
-                         SmallVector<Instruction*,20> DependentInstrsToIndirectLoadx;
-                         SmallVector<Instruction*,20> DependentInstrsToStrideLoadx;
-                         SmallVector<Instruction*,10> DependentPhistoIndirectLoadx;
-                         SmallVector<Instruction*,10> DependentPhistoStrideLoadx;
-                         
-                         IndirectLoadsx.push_back(curLoad);
-                         StrideLoadsx.push_back(s);
-                         for(auto &si : DependentInstrsToCurLoadx){
-                           DependentInstrsToIndirectLoadx.push_back(si);
-                         }
-                         for(auto &di : AllDependentInstsx[indexOfDepLoad]){
-                           DependentInstrsToStrideLoadx.push_back(di);
-                         }
-                         for(auto &si : DependentPhisx){
-                          DependentPhistoIndirectLoadx.push_back(si);
-                         }
-                         for(auto &di : AllDependentPhisx[indexOfDepLoad]){
-                          DependentPhistoStrideLoadx.push_back(di);
-                         }
-                         AllDependentInstrsToIndirectLoadx.push_back(DependentInstrsToIndirectLoadx);
-                         AllDependentInstrsToStrideLoadx.push_back(DependentInstrsToStrideLoadx);
-                         AllDependentPhisToIndirectLoadx.push_back(DependentPhistoIndirectLoadx);
-                         AllDependentPhisToStrideLoadx.push_back(DependentPhistoStrideLoadx);
-
+                      if(!foundall){
+                        continue;
                       }
-                      DepPhiOfDepLoad=false;
-                    }                                            
+                    }
+                    if(foundall){
+                      SmallVector<Instruction*,20> DependentInstrsToIndirectLoadx;
+                      SmallVector<Instruction*,20> DependentInstrsToStrideLoadx;
+                      SmallVector<Instruction*,10> DependentPhistoIndirectLoadx;
+                      SmallVector<Instruction*,10> DependentPhistoStrideLoadx;
 
-                 }
-            }//if(DependentLoadsToCurLoad.size()
-            AllLoadsDepToPhix.push_back(curLoad);
-            AllDependentInstsx.push_back(DependentInstrsToCurLoadx);
-            AllDependentPhisx.push_back(DependentPhisx);
-          }//if(IsCurLoadDependentToPhiNode
-        }//if load
-       }
+                      IndirectLoadsx.push_back(curLoad);
+                      StrideLoadsx.push_back(s);
+                      for(auto &si : DependentInstrsToCurLoadx){
+                        DependentInstrsToIndirectLoadx.push_back(si);
+                      }
+                      for(auto &di : AllDependentInstsx[indexOfDepLoad]){
+                        DependentInstrsToStrideLoadx.push_back(di);
+                      }
+                      for(auto &si : DependentPhisx){
+                        DependentPhistoIndirectLoadx.push_back(si);
+                      }
+                      for(auto &di : AllDependentPhisx[indexOfDepLoad]){
+                        DependentPhistoStrideLoadx.push_back(di);
+                      }
+                      AllDependentInstrsToIndirectLoadx.push_back(DependentInstrsToIndirectLoadx);
+                      AllDependentInstrsToStrideLoadx.push_back(DependentInstrsToStrideLoadx);
+                      AllDependentPhisToIndirectLoadx.push_back(DependentPhistoIndirectLoadx);
+                      AllDependentPhisToStrideLoadx.push_back(DependentPhistoStrideLoadx);
+
+                    }
+                    DepPhiOfDepLoad=false;
+                  }
+
+                }
+              }//if(DependentLoadsToCurLoad.size()
+              AllLoadsDepToPhix.push_back(curLoad);
+              AllDependentInstsx.push_back(DependentInstrsToCurLoadx);
+              AllDependentPhisx.push_back(DependentPhisx);
+            }//if(IsCurLoadDependentToPhiNode
+          }//if load
+        }
       }
     }//for(auto &BB : F)
 
     for(long unsigned int x =0; x< StrideLoadsx.size(); x++){
-      for(long unsigned int y =0; y< IndirectLoadsx.size(); y++){  
+      for(long unsigned int y =0; y< IndirectLoadsx.size(); y++){
         if(StrideLoadsx[x]==IndirectLoadsx[y]){
           if( AllDependentPhisToStrideLoadx[x]==AllDependentPhisToIndirectLoadx[y]){
-             LoadsToRemovex.push_back(StrideLoadsx[x]);
-         }
+            LoadsToRemovex.push_back(StrideLoadsx[x]);
+          }
         }
       }
     }
 
-   for(long unsigned int x =0; x< StrideLoadsx.size(); x++){
-    bool kept =false;
-    if(LoadsToRemovex.size()>0){
-    for(long unsigned int y =0; y< LoadsToRemovex.size(); y++){
-      if(StrideLoadsx[x]!=LoadsToRemovex[y] && IndirectLoadsx[x]!=LoadsToRemovex[y]){
-        kept=true;
+    for(long unsigned int x =0; x< StrideLoadsx.size(); x++){
+      bool kept =false;
+      if(LoadsToRemovex.size()>0){
+        for(long unsigned int y =0; y< LoadsToRemovex.size(); y++){
+          if(StrideLoadsx[x]!=LoadsToRemovex[y] && IndirectLoadsx[x]!=LoadsToRemovex[y]){
+            kept=true;
+          }
+        }
+        if(kept){
+          StrideLoadsToKeepx.push_back(StrideLoadsx[x]);
+          LoadsIndexx.push_back(x);
+          IndirectLoadsToKeepx.push_back(IndirectLoadsx[x]);
+        }
       }
-    }
-    if(kept){
+      else{
         StrideLoadsToKeepx.push_back(StrideLoadsx[x]);
         LoadsIndexx.push_back(x);
         IndirectLoadsToKeepx.push_back(IndirectLoadsx[x]);
+
+      }
     }
-    }
-    else{
-      StrideLoadsToKeepx.push_back(StrideLoadsx[x]);
-      LoadsIndexx.push_back(x);
-      IndirectLoadsToKeepx.push_back(IndirectLoadsx[x]);
+    for(long unsigned int x=0; x< IndirectLoadsToKeepx.size();x++){
+      if(InjectPrefechesOnePhiPartTwo(IndirectLoadsToKeepx[x],LI,AllDependentPhisToIndirectLoadx[LoadsIndexx[x]][0], AllDependentInstrsToIndirectLoadx[LoadsIndexx[x]],pd)){
+        modified=true;
+      }
+      if(InjectPrefechesOnePhiPartTwo(StrideLoadsToKeepx[x],LI,AllDependentPhisToStrideLoadx[LoadsIndexx[x]][0], AllDependentInstrsToStrideLoadx[LoadsIndexx[x]],pd*2)){
+        modified=true;
+
+      }
 
     }
+  };
+
+  if (wantProfile) {
+    if (!AutoFDOMapping) {
+      int64_t pd = 0;
+      if (parseDistanceList(LBR_dist, pd)) {
+        runStaticDistancePrefetch(pd);
+      }
+    }
+  } else if (wantLBR) {
+    int64_t pd = 0;
+    if (parseDistanceList(LBR_dist, pd)) {
+      runStaticDistancePrefetch(pd);
+    }
+  } else if (wantLLM) {
+    int64_t pd = 0;
+    if (parseDistanceList(LLM_dist, pd)) {
+      runStaticDistancePrefetch(pd);
+    }
+  } else if (wantStatic) {
+    // Reserved for static-analysis driven distances.
   }
-  for(long unsigned int x=0; x< IndirectLoadsToKeepx.size();x++){
-    if(InjectPrefechesOnePhiPartTwo(IndirectLoadsToKeepx[x],LI,AllDependentPhisToIndirectLoadx[LoadsIndexx[x]][0], AllDependentInstrsToIndirectLoadx[LoadsIndexx[x]],pd)){
-        modified=true;
-     }
-     if(InjectPrefechesOnePhiPartTwo(StrideLoadsToKeepx[x],LI,AllDependentPhisToStrideLoadx[LoadsIndexx[x]][0], AllDependentInstrsToStrideLoadx[LoadsIndexx[x]],pd*2)){                                                                                                        
-        modified=true;
-
-        }
-
-   }
-  }// if(!AutoFDOMapping)
   return modified;
 }//runOnFunction
 
