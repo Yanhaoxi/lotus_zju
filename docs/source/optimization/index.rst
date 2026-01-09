@@ -97,6 +97,27 @@ SWPrefetching (Software Prefetching)
 See :doc:`swprefetching` for details on the profile-guided software prefetching
 pass.
 
+MemorySSA Optimizations
+-----------------------
+
+Interprocedural optimizations that use MemorySSA instrumentation (ShadowMem):
+
+- ``IPDeadStoreElimination``: removes stores (and some global initializers) whose
+  shadow.mem def-use chains never reach a load. Traverses into callees/callers
+  via shadow.mem.arg.* and shadow.mem.in/out.
+- ``IPRedundantLoadElimination``: within a block, removes repeated loads when
+  the MemorySSA version (TLVar) and pointer operand are identical and no memory
+  side effects intervene.
+- ``IPStoreToLoadForwarding``: replaces loads with the unique reaching store
+  value by following MemorySSA def-use chains across calls/phis. Rewrites when
+  exactly one non-conflicting value is found.
+- ``IPStoreSinking``: sinks stores (and their shadow.mem.store) forward within a
+  block to just before the first observed use when instructions in between are
+  side-effect free.
+
+All implemented under ``lib/Optimization`` and default to singleton regions
+unless configured otherwise.
+
 Integration with Analysis
 -------------------------
 

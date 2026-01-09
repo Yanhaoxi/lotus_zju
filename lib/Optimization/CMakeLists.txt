@@ -3,5 +3,9 @@ add_library(CanaryOptimization STATIC
   ModuleOptimizer.cpp
   SWPrefetching.cpp
   LICM.cpp
+  IPRedundantLoadElimination.cpp
+  IPStoreToLoadForwarding.cpp
+  IPStoreSinking.cpp
+  IPDeadStoreElimination.cpp
 )
 target_link_libraries(CanaryOptimization CanaryLLVMUtils)

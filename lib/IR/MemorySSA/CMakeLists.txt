@@ -1,1 +1,3 @@
-add_library(CanaryMemorySSA STATIC MemorySSA.cpp IPDeadStoreElimination.cpp)
+add_library(CanaryMemorySSA STATIC
+  MemorySSA.cpp
+)

@@ -1,16 +1,29 @@
 /*
-   Inter-procedural Dead Store Elimination.
+   Inter-procedural Dead Store Elimination (IP-DSE) using ShadowMem/MemorySSA.
 
-   1. Run seadsa ShadowMem pass to instrument code with shadow.mem
-      instructions.
+   Intent:
+     Drop stores (and some global initializers) whose MemorySSA def-use chains
+     never reach a shadow.mem.load. Works across calls via shadow.mem.arg.*,
+     shadow.mem.in/out.
 
-   2. Follow inter-procedural def-use chains to check if a store has
-      no use. If yes, the store is dead and it can be safely
-      removed. We also identify useless global initializers.
-
-   3. Remove shadow.mem function calls.
-
-   (An example of using the MemorySSA in IR/MemorySSA/MemorySSA.cpp)
+   Pseudocode (high level):
+     worklist = { all shadow.mem.store, all global init markers }
+     mark all their concrete stores/inits as "removable by default"
+     while worklist not empty:
+       pop <shadowMemInst, origin, len>
+       if origin already proven needed: continue
+       if shadowMemInst has a shadow.mem.load user: mark origin keep; continue
+       if len == max_len: mark origin keep; continue
+       for each user U of shadowMemInst:
+         if U is PHI: enqueue(U, origin, len+1)
+         else if U is shadow.mem.arg.mod/ref_mod: jump into callee via
+             shadow.mem.in to corresponding formal and enqueue
+         else if U is shadow.mem.out: jump back to callers via arg.primed
+         else if U is shadow.mem.arg.ref: mark keep (read-only use)
+         else if U is another shadow.mem.store: skip (kills forwarding)
+         else: warn/ignore
+     erase stores still marked removable; tag useless global initializers
+     strip all shadow.mem calls
 */
 
 #include "llvm/IR/InstIterator.h"
