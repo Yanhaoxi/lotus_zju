@@ -17,6 +17,7 @@
 
 #include "llvm/IR/InstIterator.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/IntrinsicInst.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/CommandLine.h"
@@ -77,6 +78,17 @@ static void enqueueIfInstruction(std::queue<const Value *> &Q,
   }
 }
 
+static const Instruction *nextNonDebugInst(const Instruction *I) {
+  if (!I)
+    return nullptr;
+  auto It = std::next(I->getIterator());
+  auto End = I->getParent()->end();
+  while (It != End && isa<DbgInfoIntrinsic>(&*It)) {
+    ++It;
+  }
+  return (It == End) ? nullptr : &*It;
+}
+
 static void exploreFunIn(const CallBase *CB, const Function *F,
                          unsigned Idx, ForwardSearchState &State,
                          std::queue<const Value *> &Q) {
@@ -106,11 +118,11 @@ static bool findReachingStore(const Value *StartVal, const Function *CurF,
 
     if (const CallBase *CB = dyn_cast<CallBase>(V)) {
       if (isMemSSAStore(CB, OnlySingletonForward)) {
-        auto It = CB->getIterator();
-        ++It;
-        if (auto *SI = dyn_cast<StoreInst>(&*It)) {
-          const Value *StorePtr = SI->getPointerOperand()->stripPointerCasts();
-          State.merge(SI->getValueOperand(), StorePtr);
+        if (const Instruction *Next = nextNonDebugInst(CB)) {
+          if (const auto *SI = dyn_cast<StoreInst>(Next)) {
+            const Value *StorePtr = SI->getPointerOperand()->stripPointerCasts();
+            State.merge(SI->getValueOperand(), StorePtr);
+          }
         }
         continue;
       }
@@ -164,29 +176,31 @@ public:
     for (Function &F : M) {
       if (F.isDeclaration())
         continue;
-      for (Instruction &I : instructions(F)) {
-        CallBase *CB = dyn_cast<CallBase>(&I);
-        if (!CB || !isMemSSALoad(CB, OnlySingletonForward))
-          continue;
+      for (BasicBlock &BB : F) {
+        for (auto It = BB.begin(); It != BB.end();) {
+          Instruction *Inst = &*It++;
+          CallBase *CB = dyn_cast<CallBase>(Inst);
+          if (!CB || !isMemSSALoad(CB, OnlySingletonForward))
+            continue;
+          if (It == BB.end())
+            continue;
+          LoadInst *LI = dyn_cast<LoadInst>(&*It);
+          if (!LI)
+            continue;
 
-        auto NextIt = std::next(I.getIterator());
-        if (NextIt == I.getParent()->end())
-          continue;
-        LoadInst *LI = dyn_cast<LoadInst>(&*NextIt);
-        if (!LI)
-          continue;
+          const Value *Ptr = LI->getPointerOperand()->stripPointerCasts();
+          ForwardSearchState State(Ptr, LI->getType(), MMan);
+          if (!findReachingStore(CB->getArgOperand(1), LI->getFunction(), State))
+            continue;
 
-        const Value *Ptr = LI->getPointerOperand()->stripPointerCasts();
-        ForwardSearchState State(Ptr, LI->getType(), MMan);
-        if (!findReachingStore(CB->getArgOperand(1), LI->getFunction(), State))
-          continue;
-
-        LI->replaceAllUsesWith(const_cast<Value *>(State.ReachingStoreVal));
-        LI->eraseFromParent();
-        if (CB->use_empty()) {
-          CB->eraseFromParent();
+          LI->replaceAllUsesWith(const_cast<Value *>(State.ReachingStoreVal));
+          ++It; // Advance past the load before erasing it.
+          LI->eraseFromParent();
+          if (CB->use_empty()) {
+            CB->eraseFromParent();
+          }
+          NumForwarded++;
         }
-        NumForwarded++;
       }
     }
 

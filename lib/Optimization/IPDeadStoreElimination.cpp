@@ -28,6 +28,7 @@
 
 #include "llvm/IR/InstIterator.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/IntrinsicInst.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -184,15 +185,22 @@ public:
         if (isMemSSAStore(&I, OnlySingleton)) {
           auto it = I.getIterator();
           ++it;
+          auto end = I.getParent()->end();
+          while (it != end && isa<DbgInfoIntrinsic>(&*it)) {
+            ++it;
+          }
+          if (it == end) {
+            continue;
+          }
           if (StoreInst *SI = dyn_cast<StoreInst>(&*it)) {
             queue.push_back(QueueElem(&I, SI, 0));
             // All the store instructions will be removed unless the
             // opposite is proven.
             markToRemove(SI);
-          } else {
-            report_fatal_error(
-                "[IPDSE] after shadow.mem.store we expect a StoreInst");
           }
+          // If the shadow.mem.store is not immediately followed by a store,
+          // skip it rather than crashing. This keeps the pass conservative.
+          continue;
         }
       }
     }

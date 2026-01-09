@@ -56,8 +56,8 @@ static cl::opt<PrefetchDistanceProvider> PrefetchDistanceProviderMode(
 
 static cl::opt<std::string> PrefetchFile("input-file", cl::desc("Specify input filename for mypass"), cl::value_desc("filename"));
 
-cl::list<std::string> LBR_dist("dist", cl::desc("Specify offset value from LBR"), cl::OneOrMore);
-cl::list<std::string> LLM_dist("llm-dist", cl::desc("Specify offset value from LLM"), cl::OneOrMore);
+cl::list<std::string> LBR_dist("dist", cl::desc("Specify offset value from LBR"), cl::Hidden, cl::ZeroOrMore);
+cl::list<std::string> LLM_dist("llm-dist", cl::desc("Specify offset value from LLM"), cl::Hidden, cl::ZeroOrMore);
 
 // State caches for indirect/stride prefetch generation. They are populated
 // when we first see an indirect load and reused for related stride loads.
@@ -84,9 +84,10 @@ namespace llvm {
 
 char SWPrefetchingLLVMPass::ID = 0;
 
-
-
-
+void SWPrefetchingLLVMPass::getAnalysisUsage(AnalysisUsage &AU) const {
+  AU.addRequired<LoopInfoWrapperPass>();
+  AU.setPreservesCFG();
+}
 
 bool SWPrefetchingLLVMPass::doInitialization(Module &M) {
   if (PrefetchDistanceProviderMode == PrefetchDistanceProvider::Profile) {

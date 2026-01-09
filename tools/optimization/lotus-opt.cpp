@@ -18,11 +18,22 @@
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/ToolOutputFile.h>
 #include <llvm/Support/raw_ostream.h>
+#include <llvm/Analysis/CallGraph.h>
+#include <llvm/Transforms/IPO.h>
+
+#include "Alias/seadsa/InitializePasses.hh"
+#include "Alias/seadsa/DsaAnalysis.hh"
+#include "Alias/seadsa/AllocSiteInfo.hh"
+#include "Alias/seadsa/ShadowMem.hh"
+#include "Alias/seadsa/support/RemovePtrToInt.hh"
+#include "Alias/seadsa/AllocWrapInfo.hh"
+#include "Alias/seadsa/DsaLibFuncInfo.hh"
 
 #include <memory>
 #include <string>
 
 using namespace llvm;
+using namespace seadsa;
 
 namespace {
 
@@ -85,6 +96,20 @@ int main(int argc, char **argv) {
   initializeAnalysis(Registry);
   initializeTransformUtils(Registry);
   initializeIPO(Registry);
+  initializeCallGraphWrapperPassPass(Registry);
+  initializeGlobalsAAWrapperPassPass(Registry);
+  initializeTargetLibraryInfoWrapperPassPass(Registry);
+  initializeDominatorTreeWrapperPassPass(Registry);
+  initializeAssumptionCacheTrackerPass(Registry);
+  
+  // Initialize SeaDsa passes
+  initializeAnalysisPasses(Registry);
+  initializeRemovePtrToIntPass(Registry);
+  initializeAllocWrapInfoPass(Registry);
+  initializeDsaLibFuncInfoPass(Registry);
+  initializeAllocSiteInfoPass(Registry);
+  initializeDsaAnalysisPass(Registry);
+  initializeShadowMemPassPass(Registry);
 
   cl::ParseCommandLineOptions(
       argc, argv,
@@ -130,8 +155,31 @@ int main(int argc, char **argv) {
   legacy::PassManager PM;
   bool Ok = true;
 
+  // Check if any IP optimization that requires MemorySSA is enabled
+  bool needsMemorySSA =
+      EnableIPDSE || EnableIPRLE || EnableIPSink || EnableIPForward;
+
+  // Run aggressive inliner before ShadowMem to avoid breaking
+  // shadow.mem/store adjacency assumptions.
   if (EnableAInline)
     Ok &= addPassByName(PM, "ainline");
+
+  // Add prerequisite passes for MemorySSA-based optimizations
+  if (needsMemorySSA) {
+    // SeaDsa prerequisite passes - must be added in order
+    // These passes set up the analysis infrastructure needed by ShadowMem
+    PM.add(new RemovePtrToInt());
+    PM.add(new AllocWrapInfo());
+    PM.add(new DsaLibFuncInfo());
+    PM.add(new AllocSiteInfo());
+    PM.add(new DsaAnalysis());
+
+    // ShadowMem pass to instrument code with MemorySSA
+    // This pass requires all the above passes to have run first
+    PM.add(createShadowMemPass());
+  }
+
+  // Run MemorySSA-based IP optimizations
   if (EnableIPDSE)
     Ok &= addPassByName(PM, "ipdse");
   if (EnableIPRLE)
