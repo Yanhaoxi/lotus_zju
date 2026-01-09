@@ -5,16 +5,20 @@ llvm_map_components_to_libnames(LLVM_LINK_COMPONENTS
 )
 
 add_executable(lotus-opt lotus-opt.cpp)
+
+set(LOTUS_OPT_COMMON_LIBS
+  CanaryMemorySSA
+  CanaryLLVMUtils
+  SeaDsaAnalysis
+  ${LLVM_LINK_COMPONENTS}
+)
+
+target_link_libraries(lotus-opt PRIVATE ${LOTUS_OPT_COMMON_LIBS})
+
 if(APPLE)
   # On macOS, use -force_load to ensure all symbols are included
   target_link_options(lotus-opt PRIVATE
     -Wl,-force_load,$<TARGET_FILE:CanaryOptimization>
-  )
-  target_link_libraries(lotus-opt PRIVATE
-    CanaryMemorySSA
-    CanaryLLVMUtils
-    SeaDsaAnalysis
-    ${LLVM_LINK_COMPONENTS}
   )
 else()
   # On Linux, use --whole-archive
@@ -26,11 +30,5 @@ else()
   )
   target_link_options(lotus-opt PRIVATE
     -Wl,--no-whole-archive
-  )
-  target_link_libraries(lotus-opt PRIVATE
-    CanaryMemorySSA
-    CanaryLLVMUtils
-    SeaDsaAnalysis
-    ${LLVM_LINK_COMPONENTS}
   )
 endif()
