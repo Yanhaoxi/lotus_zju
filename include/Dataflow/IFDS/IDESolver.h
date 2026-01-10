@@ -20,6 +20,8 @@
 #include <llvm/Analysis/AliasAnalysis.h>
 #include <llvm/Analysis/CallGraph.h>
 
+#include "Dataflow/IFDS/IFDSFramework.h"
+
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
@@ -35,9 +37,12 @@ template<typename Problem>
 class IDESolver {
 public:
     using Fact = typename Problem::FactType;
+    using FactSet = typename Problem::FactSet;
     using Value = typename Problem::ValueType;
     using EdgeFunction = typename Problem::EdgeFunction;
     using EdgeFunctionPtr = std::shared_ptr<EdgeFunction>;
+    using PathEdgeType = PathEdge<Fact>;
+    using PathEdgeHashType = PathEdgeHash<Fact>;
 
     IDESolver(Problem& problem);
 
@@ -49,47 +54,36 @@ public:
                             std::unordered_map<Fact, Value>>& get_all_values() const;
 
 private:
-    // Summary edge structure for interprocedural reuse
-    struct Summary {
-        const llvm::CallInst* call;
-        Fact call_fact;
-        Fact return_fact;
-        EdgeFunctionPtr phi;  // Composed edge function through callee
-        
-        bool operator==(const Summary& other) const {
-            return call == other.call && 
-                   call_fact == other.call_fact && 
-                   return_fact == other.return_fact &&
-                   phi == other.phi;
-        }
-    };
-    
-    struct SummaryHash {
-        size_t operator()(const Summary& s) const {
-            size_t h1 = std::hash<const llvm::CallInst*>{}(s.call);
-            size_t h2 = std::hash<Fact>{}(s.call_fact);
-            size_t h3 = std::hash<Fact>{}(s.return_fact);
-            size_t h4 = std::hash<EdgeFunctionPtr>{}(s.phi);
-            return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3);
+    struct StartKey {
+        const llvm::Instruction* start_node;
+        Fact start_fact;
+
+        bool operator==(const StartKey& other) const {
+            return start_node == other.start_node && start_fact == other.start_fact;
         }
     };
 
-    // Path edge with associated edge function
-    struct PathEdge {
-        const llvm::Instruction* inst;
-        Fact fact;
-        EdgeFunctionPtr phi;  // Accumulated edge function to this point
-        
-        bool operator==(const PathEdge& other) const {
-            return inst == other.inst && fact == other.fact;
+    struct StartKeyHash {
+        size_t operator()(const StartKey& key) const {
+            size_t h1 = std::hash<const llvm::Instruction*>{}(key.start_node);
+            size_t h2 = std::hash<Fact>{}(key.start_fact);
+            return h1 ^ (h2 << 1);
         }
     };
-    
-    struct PathEdgeHash {
-        size_t operator()(const PathEdge& pe) const {
-            size_t h1 = std::hash<const llvm::Instruction*>{}(pe.inst);
-            size_t h2 = std::hash<Fact>{}(pe.fact);
-            return h1 ^ (h2 << 1);
+
+    struct IncomingEdge {
+        const llvm::CallInst* call;
+        Fact call_fact;
+        const llvm::Instruction* start_node;
+        Fact start_fact;
+        EdgeFunctionPtr caller_phi;
+
+        bool operator==(const IncomingEdge& other) const {
+            return call == other.call &&
+                   call_fact == other.call_fact &&
+                   start_node == other.start_node &&
+                   start_fact == other.start_fact &&
+                   caller_phi == other.caller_phi;
         }
     };
 
@@ -120,16 +114,24 @@ private:
     
     // Results: instruction -> fact -> value
     std::unordered_map<const llvm::Instruction*, std::unordered_map<Fact, Value>> m_values;
-    
-    // Summary edges indexed by call site
-    std::unordered_set<Summary, SummaryHash> m_summaries;
-    std::unordered_map<const llvm::CallInst*, std::vector<Summary>> m_summary_index;
-    
+
+    // Jump functions: path edge -> edge functions
+    std::unordered_map<PathEdgeType, std::vector<EdgeFunctionPtr>, PathEdgeHashType> m_jump_functions;
+
+    // Incoming call edges for each callee start fact
+    std::unordered_map<StartKey, std::vector<IncomingEdge>, StartKeyHash> m_incoming;
+
+    // End summaries per callee start fact: exit_fact -> edge functions
+    std::unordered_map<StartKey,
+                       std::unordered_map<Fact, std::vector<EdgeFunctionPtr>>,
+                       StartKeyHash>
+        m_end_summaries;
+
     // Composition memoization table
     std::unordered_map<ComposePair, EdgeFunctionPtr, ComposePairHash> m_compose_cache;
     
-    // Path edges at call sites (for summary application)
-    std::unordered_map<const llvm::CallInst*, std::unordered_set<PathEdge, PathEdgeHash>> m_path_edges_at_call;
+    // Worklist of path edges with edge functions
+    std::vector<std::pair<PathEdgeType, EdgeFunctionPtr>> m_worklist;
 };
 
 } // namespace ifds

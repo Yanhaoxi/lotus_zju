@@ -14,6 +14,7 @@ set(IFDS_CLIENT_SOURCES
   Clients/IFDSReachingDefinitions.cpp
   Clients/IDEConstantPropagation.cpp
   Clients/IDETypeState.cpp
+  Clients/IDEProtoAnalysis.cpp
 )
 
 set(IFDS_SOURCES ${IFDS_FRAMEWORK_SOURCES} ${IFDS_CLIENT_SOURCES})
@@ -24,4 +25,3 @@ add_library(IFDS STATIC ${IFDS_SOURCES})
 target_include_directories(IFDS PUBLIC ${CMAKE_SOURCE_DIR}/lib)
 
 target_link_libraries(IFDS Annotation CanarySupport)
-

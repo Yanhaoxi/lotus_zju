@@ -315,6 +315,9 @@ template<typename Problem>
 void ParallelIFDSSolver<Problem>::process_normal_edge(const PathEdgeType& current_edge,
                                                      const llvm::Instruction* next) {
     FactSet new_facts = m_problem.normal_flow(current_edge.target_node, current_edge.target_fact);
+    if (m_problem.auto_add_zero() && m_problem.is_zero_fact(current_edge.target_fact)) {
+        new_facts.insert(m_problem.zero_fact());
+    }
 
     std::vector<PathEdgeType> new_edges;
     for (const auto& new_fact : new_facts) {
@@ -343,10 +346,12 @@ void ParallelIFDSSolver<Problem>::process_call_edge(const PathEdgeType& current_
 
     // Apply call flow function
     FactSet call_facts = m_problem.call_flow(call, callee, current_edge.target_fact);
+    if (m_problem.auto_add_zero() && m_problem.is_zero_fact(current_edge.target_fact)) {
+        call_facts.insert(m_problem.zero_fact());
+    }
 
     for (const auto& call_fact : call_facts) {
-        new_edges.emplace_back(current_edge.start_node, current_edge.start_fact,
-                               callee_entry, call_fact);
+        new_edges.emplace_back(callee_entry, call_fact, callee_entry, call_fact);
     }
 
     add_edges_to_worklist(new_edges);
@@ -368,6 +373,9 @@ void ParallelIFDSSolver<Problem>::process_call_edge(const PathEdgeType& current_
                         // The 4th parameter must be summary.call_fact, not the incoming fact
                     FactSet return_facts = m_problem.return_flow(call, callee,
                                                                summary.return_fact, summary.call_fact);
+                    if (m_problem.auto_add_zero() && m_problem.is_zero_fact(summary.return_fact)) {
+                        return_facts.insert(m_problem.zero_fact());
+                    }
                         for (const auto& return_fact : return_facts) {
                         new_edges.emplace_back(current_edge.start_node, current_edge.start_fact,
                                                return_site, return_fact);
@@ -423,6 +431,9 @@ void ParallelIFDSSolver<Problem>::process_return_edge(const PathEdgeType& curren
                         
                         // Apply return flow: exit_fact is 'fact', call_fact is from path edge
                         FactSet return_facts = m_problem.return_flow(call, func, current_edge.target_fact, call_fact);
+                        if (m_problem.auto_add_zero() && m_problem.is_zero_fact(current_edge.target_fact)) {
+                            return_facts.insert(m_problem.zero_fact());
+                        }
                         for (const auto& return_fact : return_facts) {
                             // Create path edge from the start of the calling context
                             new_edges.emplace_back(path_edge.start_node, path_edge.start_fact,
@@ -447,6 +458,9 @@ void ParallelIFDSSolver<Problem>::process_call_to_return_edge(const PathEdgeType
     if (!return_site) return;
 
     FactSet ctr_facts = m_problem.call_to_return_flow(call, current_edge.target_fact);
+    if (m_problem.auto_add_zero() && m_problem.is_zero_fact(current_edge.target_fact)) {
+        ctr_facts.insert(m_problem.zero_fact());
+    }
 
     std::vector<PathEdgeType> new_edges;
     for (const auto& ctr_fact : ctr_facts) {
@@ -633,20 +647,39 @@ void ParallelIFDSSolver<Problem>::initialize_worklist(const llvm::Module& module
     m_summary_index.clear();
     m_path_edges_at.clear();
 
-    // Find main function or any entry function
-    const llvm::Function* main_func = get_main_function(module);
-    if (!main_func) {
-        for (const llvm::Function& func : module) {
-            if (!func.isDeclaration() && !func.empty()) {
-                main_func = &func;
-                break;
+    auto seeds = m_problem.initial_seeds(module);
+    if (seeds.empty()) {
+        const llvm::Function* main_func = get_main_function(module);
+        if (!main_func) {
+            for (const llvm::Function& func : module) {
+                if (!func.isDeclaration() && !func.empty()) {
+                    main_func = &func;
+                    break;
+                }
             }
+        }
+        if (main_func && !main_func->empty()) {
+            const llvm::Instruction* entry = &main_func->getEntryBlock().front();
+            seeds.add_seed(entry, m_problem.initial_facts(main_func));
         }
     }
 
-    if (main_func && !main_func->empty()) {
-        const llvm::Instruction* entry = &main_func->getEntryBlock().front();
-        for (const auto& fact : m_problem.initial_facts(main_func)) {
+    for (const auto& pair : seeds.get_seeds()) {
+        const llvm::Instruction* entry = pair.first;
+        FactSet facts = pair.second;
+        if (m_problem.auto_add_zero()) {
+            bool has_zero = false;
+            for (const auto& fact : facts) {
+                if (m_problem.is_zero_fact(fact)) {
+                    has_zero = true;
+                    break;
+                }
+            }
+            if (!has_zero) {
+                facts.insert(m_problem.zero_fact());
+            }
+        }
+        for (const auto& fact : facts) {
             propagate_path_edge(PathEdgeType(entry, fact, entry, fact));
         }
     }
@@ -762,4 +795,3 @@ const llvm::Function* ParallelIFDSSolver<Problem>::get_main_function(const llvm:
 // ============================================================================
 
 } // namespace ifds
-

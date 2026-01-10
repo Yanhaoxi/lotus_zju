@@ -5,6 +5,10 @@
 #include "Dataflow/IFDS/Clients/IDEConstantPropagation.h"
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Operator.h>
+#include <llvm/IR/IntrinsicInst.h>
+#include <llvm/Support/MathExtras.h>
+
+#include <limits>
 
 namespace ifds {
 
@@ -56,12 +60,35 @@ llvm::Optional<long long> IDEConstantPropagation::asConst(const llvm::Value* v) 
 }
 
 llvm::Optional<long long> IDEConstantPropagation::applyBinOp(unsigned opcode, long long a, long long b) {
+    long long res = 0;
     switch (opcode) {
-        case llvm::Instruction::Add: return a + b;
-        case llvm::Instruction::Sub: return a - b;
-        case llvm::Instruction::Mul: return a * b;
-        case llvm::Instruction::SDiv: return b != 0 ? llvm::Optional<long long>(a / b) : llvm::None;
-        case llvm::Instruction::SRem: return b != 0 ? llvm::Optional<long long>(a % b) : llvm::None;
+        case llvm::Instruction::Add:
+            if (llvm::AddOverflow(a, b, res)) return llvm::None;
+            return res;
+        case llvm::Instruction::Sub:
+            if (llvm::SubOverflow(a, b, res)) return llvm::None;
+            return res;
+        case llvm::Instruction::Mul:
+            if (llvm::MulOverflow(a, b, res)) return llvm::None;
+            return res;
+        case llvm::Instruction::SDiv:
+            if (b == 0) return llvm::None;
+            if (a == std::numeric_limits<long long>::min() && b == -1) return llvm::None;
+            return a / b;
+        case llvm::Instruction::UDiv:
+            if (b == 0) return llvm::None;
+            return static_cast<long long>(static_cast<unsigned long long>(a) /
+                                          static_cast<unsigned long long>(b));
+        case llvm::Instruction::SRem:
+            if (b == 0) return llvm::None;
+            return a % b;
+        case llvm::Instruction::URem:
+            if (b == 0) return llvm::None;
+            return static_cast<long long>(static_cast<unsigned long long>(a) %
+                                          static_cast<unsigned long long>(b));
+        case llvm::Instruction::And: return a & b;
+        case llvm::Instruction::Or: return a | b;
+        case llvm::Instruction::Xor: return a ^ b;
         default: return llvm::None;
     }
 }
@@ -70,8 +97,54 @@ IDEConstantPropagation::FactSet IDEConstantPropagation::normal_flow(const llvm::
     FactSet out;
     // propagate same fact by default
     if (fact) out.insert(fact);
+    if (!fact) {
+        out.insert(fact);
+    }
+
+    if (auto* allocaInst = llvm::dyn_cast<llvm::AllocaInst>(stmt)) {
+        const llvm::Type* allocated = allocaInst->getAllocatedType();
+        if (allocated && allocated->isIntegerTy()) {
+            out.insert(allocaInst);
+        }
+    }
+
+    if (auto* store = llvm::dyn_cast<llvm::StoreInst>(stmt)) {
+        const llvm::Value* valueOp = store->getValueOperand();
+        const llvm::Value* ptrOp = store->getPointerOperand();
+        if (fact == valueOp || !fact) {
+            out.insert(ptrOp);
+        }
+    }
+
+    if (auto* load = llvm::dyn_cast<llvm::LoadInst>(stmt)) {
+        const llvm::Value* ptrOp = load->getPointerOperand();
+        if (fact == ptrOp) {
+            out.insert(load);
+        }
+    }
+
+    if (auto* gep = llvm::dyn_cast<llvm::GetElementPtrInst>(stmt)) {
+        const llvm::Value* ptrOp = gep->getPointerOperand();
+        if (fact == ptrOp) {
+            out.insert(gep);
+        }
+    }
+
     if (const llvm::Value* def = getDefinedValue(stmt)) {
-        out.insert(def);
+        if (!fact || fact == def) {
+            out.insert(def);
+        } else if (auto* bin = llvm::dyn_cast<llvm::BinaryOperator>(stmt)) {
+            const llvm::Value* op0 = bin->getOperand(0);
+            const llvm::Value* op1 = bin->getOperand(1);
+            if (fact == op0 || fact == op1) {
+                out.insert(def);
+            }
+        } else {
+            const llvm::Value* from = nullptr;
+            if (isCopy(stmt, from) && fact == from) {
+                out.insert(def);
+            }
+        }
     }
     return out;
 }
@@ -85,6 +158,14 @@ IDEConstantPropagation::FactSet IDEConstantPropagation::call_flow(const llvm::Ca
             const auto* it = callee->arg_begin();
             std::advance(it, i);
             out.insert(&*it);
+        }
+        if (!fact) {
+            if (auto* ci = llvm::dyn_cast<llvm::ConstantInt>(call->getArgOperand(i))) {
+                (void)ci;
+                const auto* it = callee->arg_begin();
+                std::advance(it, i);
+                out.insert(&*it);
+            }
         }
     }
     return out;
@@ -115,17 +196,47 @@ IDEConstantPropagation::FactSet IDEConstantPropagation::call_to_return_flow(cons
 }
 
 IDEConstantPropagation::EdgeFunction IDEConstantPropagation::normal_edge_function(const llvm::Instruction* stmt, const Fact& src_fact, const Fact& tgt_fact) {
+    if (auto* allocaInst = llvm::dyn_cast<llvm::AllocaInst>(stmt)) {
+        if (tgt_fact == allocaInst && !src_fact) {
+            return [](const Value& /*v*/) { return LCPValue::top(); };
+        }
+    }
+
+    if (auto* store = llvm::dyn_cast<llvm::StoreInst>(stmt)) {
+        const llvm::Value* valueOp = store->getValueOperand();
+        const llvm::Value* ptrOp = store->getPointerOperand();
+        if (tgt_fact == ptrOp) {
+            if (!src_fact) {
+                if (auto c = asConst(valueOp); c.hasValue()) {
+                    long long k = c.getValue();
+                    return [k](const Value& /*v*/) { return Value::constant(k); };
+                }
+                return [](const Value& /*v*/) { return LCPValue::top(); };
+            }
+            if (src_fact == valueOp) {
+                return [](const Value& v) { return v; };
+            }
+            return [](const Value& /*v*/) { return LCPValue::bottom(); };
+        }
+    }
+
+    if (auto* load = llvm::dyn_cast<llvm::LoadInst>(stmt)) {
+        const llvm::Value* ptrOp = load->getPointerOperand();
+        if (tgt_fact == load && src_fact == ptrOp) {
+            return [](const Value& v) { return v; };
+        }
+    }
+
+    if (auto* gep = llvm::dyn_cast<llvm::GetElementPtrInst>(stmt)) {
+        const llvm::Value* ptrOp = gep->getPointerOperand();
+        if (tgt_fact == gep && src_fact == ptrOp) {
+            return [](const Value& v) { return v; };
+        }
+    }
+
     // If this instruction defines tgt_fact via constant or binop, compute value
     if (const llvm::Value* def = getDefinedValue(stmt)) {
         if (tgt_fact == def) {
-            // constant assignment
-            auto c = asConst(def);
-            if (c.hasValue()) {
-                long long k = c.getValue();
-                return [k](const Value& v) {
-                    (void)v; return Value::constant(k);
-                };
-            }
             // copy
             const llvm::Value* from = nullptr;
             if (isCopy(stmt, from) && from == src_fact) {
@@ -137,17 +248,31 @@ IDEConstantPropagation::EdgeFunction IDEConstantPropagation::normal_edge_functio
                 const llvm::Value* op1 = bin->getOperand(1);
                 unsigned opc = bin->getOpcode();
                 return [opc, op0, op1, src_fact](const Value& v) {
-                    // v carries the value for src_fact; only compute when both operands determined
-                    if (src_fact != op0 && src_fact != op1) return LCPValue::bottom();
                     auto c0 = asConst(op0);
                     auto c1 = asConst(op1);
+                    if (!src_fact && c0.hasValue() && c1.hasValue()) {
+                        auto r = applyBinOp(opc, c0.getValue(), c1.getValue());
+                        return r.hasValue() ? LCPValue::constant(r.getValue()) : LCPValue::top();
+                    }
+                    if (src_fact == op0 && c1.hasValue()) {
+                        if (v.kind == LCPValue::Const) {
+                            auto r = applyBinOp(opc, v.value, c1.getValue());
+                            return r.hasValue() ? LCPValue::constant(r.getValue()) : LCPValue::top();
+                        }
+                        return v;
+                    }
+                    if (src_fact == op1 && c0.hasValue()) {
+                        if (v.kind == LCPValue::Const) {
+                            auto r = applyBinOp(opc, c0.getValue(), v.value);
+                            return r.hasValue() ? LCPValue::constant(r.getValue()) : LCPValue::top();
+                        }
+                        return v;
+                    }
                     if (c0.hasValue() && c1.hasValue()) {
                         auto r = applyBinOp(opc, c0.getValue(), c1.getValue());
-                        if (r.hasValue()) return LCPValue::constant(r.getValue());
-                        return LCPValue::top();
+                        return r.hasValue() ? LCPValue::constant(r.getValue()) : LCPValue::top();
                     }
-                    // if one is variable, rely on composed flows to bring the other
-                    return v;
+                    return LCPValue::bottom();
                 };
             }
             // otherwise, unknown definition => top
@@ -159,8 +284,27 @@ IDEConstantPropagation::EdgeFunction IDEConstantPropagation::normal_edge_functio
 }
 
 IDEConstantPropagation::EdgeFunction IDEConstantPropagation::call_edge_function(const llvm::CallInst* call, const Fact& src_fact, const Fact& tgt_fact) {
-    // actual to formal: identity on carried constant
-    (void)call; (void)src_fact; (void)tgt_fact;
+    // actual to formal: identity on carried constant, constant propagation for literal args
+    const llvm::Function* callee = call->getCalledFunction();
+    if (callee) {
+        unsigned idx = 0;
+        for (const llvm::Argument& arg : callee->args()) {
+            if (&arg == tgt_fact && idx < call->arg_size()) {
+                const llvm::Value* actual = call->getArgOperand(idx);
+                if (!src_fact) {
+                    if (auto c = asConst(actual); c.hasValue()) {
+                        long long k = c.getValue();
+                        return [k](const Value& /*v*/) { return Value::constant(k); };
+                    }
+                }
+                if (src_fact == actual) {
+                    return [](const Value& v) { return v; };
+                }
+                return [](const Value& /*v*/) { return LCPValue::bottom(); };
+            }
+            ++idx;
+        }
+    }
     return [](const Value& v) { return v; };
 }
 
@@ -186,6 +330,97 @@ IDEConstantPropagation::EdgeFunction IDEConstantPropagation::call_to_return_edge
     }
     (void)src_fact; (void)tgt_fact;
     return [](const Value& v) { return v; };
+}
+
+IDEConstantPropagation::FactSet IDEConstantPropagation::summary_flow(const llvm::CallInst* call,
+                                                                     const llvm::Function* callee,
+                                                                     const Fact& fact) {
+    FactSet out;
+    if (!callee || !callee->isIntrinsic()) {
+        return out;
+    }
+    if (!call->getType()->isIntegerTy()) {
+        return out;
+    }
+    if (call->arg_size() != 2) {
+        return out;
+    }
+
+    const llvm::Value* op0 = call->getArgOperand(0);
+    const llvm::Value* op1 = call->getArgOperand(1);
+    if (!fact || fact == op0 || fact == op1) {
+        out.insert(static_cast<const llvm::Value*>(call));
+    }
+    return out;
+}
+
+IDEConstantPropagation::EdgeFunction
+IDEConstantPropagation::summary_edge_function(const llvm::CallInst* call,
+                                              const Fact& src_fact,
+                                              const Fact& tgt_fact) {
+    const llvm::Function* callee = call->getCalledFunction();
+    if (!callee || !callee->isIntrinsic()) {
+        return [](const Value& v) { return v; };
+    }
+    if (tgt_fact != static_cast<const llvm::Value*>(call)) {
+        return [](const Value& v) { return v; };
+    }
+
+    auto *intrinsic = llvm::dyn_cast<llvm::IntrinsicInst>(call);
+    if (!intrinsic || intrinsic->arg_size() != 2) {
+        return [](const Value& v) { return v; };
+    }
+
+    unsigned opc = 0;
+    switch (intrinsic->getIntrinsicID()) {
+        case llvm::Intrinsic::sadd_sat:
+        case llvm::Intrinsic::uadd_sat:
+            opc = llvm::Instruction::Add;
+            break;
+        case llvm::Intrinsic::ssub_sat:
+        case llvm::Intrinsic::usub_sat:
+            opc = llvm::Instruction::Sub;
+            break;
+        case llvm::Intrinsic::smul_fix:
+        case llvm::Intrinsic::smul_fix_sat:
+        case llvm::Intrinsic::umul_fix:
+        case llvm::Intrinsic::umul_fix_sat:
+            opc = llvm::Instruction::Mul;
+            break;
+        default:
+            return [](const Value& v) { return v; };
+    }
+
+    const llvm::Value* op0 = intrinsic->getArgOperand(0);
+    const llvm::Value* op1 = intrinsic->getArgOperand(1);
+
+    return [opc, op0, op1, src_fact](const Value& v) {
+        auto c0 = asConst(op0);
+        auto c1 = asConst(op1);
+        if (!src_fact && c0.hasValue() && c1.hasValue()) {
+            auto r = applyBinOp(opc, c0.getValue(), c1.getValue());
+            return r.hasValue() ? LCPValue::constant(r.getValue()) : LCPValue::top();
+        }
+        if (src_fact == op0 && c1.hasValue()) {
+            if (v.kind == LCPValue::Const) {
+                auto r = applyBinOp(opc, v.value, c1.getValue());
+                return r.hasValue() ? LCPValue::constant(r.getValue()) : LCPValue::top();
+            }
+            return v;
+        }
+        if (src_fact == op1 && c0.hasValue()) {
+            if (v.kind == LCPValue::Const) {
+                auto r = applyBinOp(opc, c0.getValue(), v.value);
+                return r.hasValue() ? LCPValue::constant(r.getValue()) : LCPValue::top();
+            }
+            return v;
+        }
+        if (c0.hasValue() && c1.hasValue()) {
+            auto r = applyBinOp(opc, c0.getValue(), c1.getValue());
+            return r.hasValue() ? LCPValue::constant(r.getValue()) : LCPValue::top();
+        }
+        return LCPValue::bottom();
+    };
 }
 
 } // namespace ifds

@@ -50,6 +50,8 @@ public:
     EdgeFunction call_edge_function(const llvm::CallInst* call, const Fact& src_fact, const Fact& tgt_fact) override;
     EdgeFunction return_edge_function(const llvm::CallInst* call, const Fact& exit_fact, const Fact& ret_fact) override;
     EdgeFunction call_to_return_edge_function(const llvm::CallInst* call, const Fact& src_fact, const Fact& tgt_fact) override;
+    FactSet summary_flow(const llvm::CallInst* call, const llvm::Function* callee, const Fact& fact) override;
+    EdgeFunction summary_edge_function(const llvm::CallInst* call, const Fact& src_fact, const Fact& tgt_fact) override;
 
 private:
     static bool definesValue(const llvm::Instruction* I);

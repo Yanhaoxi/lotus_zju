@@ -139,6 +139,30 @@ struct SummaryEdgeHash {
 };
 
 // ============================================================================
+// Initial Seeds Representation
+// ============================================================================
+
+template<typename Fact>
+struct InitialSeeds {
+    using FactSet = std::set<Fact>;
+    using SeedMap = std::unordered_map<const llvm::Instruction*, FactSet>;
+
+    void add_seed(const llvm::Instruction* inst, const Fact& fact) {
+        seeds[inst].insert(fact);
+    }
+
+    void add_seed(const llvm::Instruction* inst, const FactSet& facts) {
+        auto& set = seeds[inst];
+        set.insert(facts.begin(), facts.end());
+    }
+
+    const SeedMap& get_seeds() const { return seeds; }
+    bool empty() const { return seeds.empty(); }
+
+    SeedMap seeds;
+};
+
+// ============================================================================
 // IFDS Problem Interface
 // ============================================================================
 
@@ -147,6 +171,7 @@ class IFDSProblem {
 public:
     using FactType = Fact;
     using FactSet = std::set<Fact>;
+    using InitialSeeds = ifds::InitialSeeds<Fact>;
     
     virtual ~IFDSProblem() = default;
     
@@ -162,6 +187,13 @@ public:
     
     // Initial facts at program entry
     virtual FactSet initial_facts(const llvm::Function* main) = 0;
+
+    // Optional initial seeds override (multiple entry points)
+    virtual InitialSeeds initial_seeds(const llvm::Module& module);
+
+    // Zero-fact handling (auto-add and identity preservation)
+    virtual bool auto_add_zero() const { return true; }
+    virtual bool is_zero_fact(const Fact& fact) const { return fact == zero_fact(); }
     
     // Alias analysis integration
     virtual void set_alias_analysis(lotus::AliasAnalysisWrapper* aa);
@@ -186,6 +218,7 @@ class IDEProblem : public IFDSProblem<Fact> {
 public:
     using ValueType = Value;
     using EdgeFunction = std::function<Value(const Value&)>;
+    using FactSet = typename IFDSProblem<Fact>::FactSet;
     
     // Edge functions for IDE
     virtual EdgeFunction normal_edge_function(const llvm::Instruction* stmt, 
@@ -196,6 +229,17 @@ public:
                                              const Fact& exit_fact, const Fact& ret_fact) = 0;
     virtual EdgeFunction call_to_return_edge_function(const llvm::CallInst* call, 
                                                      const Fact& src_fact, const Fact& tgt_fact) = 0;
+    // Optional summary flow/edge functions (for special-cased callees)
+    virtual FactSet summary_flow(const llvm::CallInst* /*call*/,
+                                 const llvm::Function* /*callee*/,
+                                 const Fact& /*fact*/) {
+        return {};
+    }
+    virtual EdgeFunction summary_edge_function(const llvm::CallInst* /*call*/,
+                                               const Fact& /*src_fact*/,
+                                               const Fact& /*tgt_fact*/) {
+        return identity();
+    }
     
     // Value domain operations
     virtual Value top_value() const = 0;
@@ -331,6 +375,20 @@ template<typename Fact>
 inline bool IFDSProblem<Fact>::may_alias(const llvm::Value* v1, const llvm::Value* v2) const {
     if (!m_alias_analysis || !v1 || !v2) return false;
     return m_alias_analysis->mayAlias(v1, v2);
+}
+
+template<typename Fact>
+inline typename IFDSProblem<Fact>::InitialSeeds
+IFDSProblem<Fact>::initial_seeds(const llvm::Module& module) {
+    InitialSeeds seeds;
+    const llvm::Function* main_func = module.getFunction("main");
+    if (!main_func || main_func->empty()) {
+        return seeds;
+    }
+
+    const llvm::Instruction* entry = &main_func->getEntryBlock().front();
+    seeds.add_seed(entry, initial_facts(main_func));
+    return seeds;
 }
 
 } // namespace ifds

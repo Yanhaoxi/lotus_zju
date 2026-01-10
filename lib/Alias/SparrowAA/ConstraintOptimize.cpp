@@ -32,9 +32,11 @@ STATISTIC(NumStoreToStoreOptimized, "Number of stores optimized to copies");
 // Use extern to reference the category defined in Andersen.cpp
 extern cl::OptionCategory AndersenCategory;
 
+// HVN: Hash-based Value Numbering
 cl::opt<bool> EnableHVN("enable-hvn",
                         cl::desc("Enable the HVN constraint optimization"),
                         cl::cat(AndersenCategory));
+// HU: HVN with deReference and Union
 cl::opt<bool> EnableHU("enable-hu",
                        cl::desc("Enable the HU constraint optimization"),
                        cl::cat(AndersenCategory));
