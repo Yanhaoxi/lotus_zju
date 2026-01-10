@@ -25,16 +25,34 @@
 namespace SLOT
 {
     //Syntax sugar for extracting children
-    inline FloatingNode SMTNode::FloatingChild(expr cont) { return FloatingNode(lcx,lmodule,builder,variables,cont); }
-    inline FloatingNode SMTNode::FloatingChild(int index) { return FloatingNode(lcx,lmodule,builder,variables,contents.arg(index)); }
-    inline BitvectorNode SMTNode::BitvectorChild(expr cont) { return BitvectorNode(lcx,lmodule,builder,variables,cont); }
-    inline BitvectorNode SMTNode::BitvectorChild(int index) { return BitvectorNode(lcx,lmodule,builder,variables,contents.arg(index)); }
-    inline BooleanNode SMTNode::BooleanChild(expr cont) { return BooleanNode(lcx,lmodule,builder,variables,cont); }
-    inline BooleanNode SMTNode::BooleanChild(int index) { return BooleanNode(lcx,lmodule,builder,variables,contents.arg(index)); }
+    inline FloatingNode SMTNode::FloatingChild(expr cont) { return FloatingNode(lcx,lmodule,builder,variables,value_cache,cont); }
+    inline FloatingNode SMTNode::FloatingChild(int index) { return FloatingNode(lcx,lmodule,builder,variables,value_cache,contents.arg(index)); }
+    inline BitvectorNode SMTNode::BitvectorChild(expr cont) { return BitvectorNode(lcx,lmodule,builder,variables,value_cache,cont); }
+    inline BitvectorNode SMTNode::BitvectorChild(int index) { return BitvectorNode(lcx,lmodule,builder,variables,value_cache,contents.arg(index)); }
+    inline BooleanNode SMTNode::BooleanChild(expr cont) { return BooleanNode(lcx,lmodule,builder,variables,value_cache,cont); }
+    inline BooleanNode SMTNode::BooleanChild(int index) { return BooleanNode(lcx,lmodule,builder,variables,value_cache,contents.arg(index)); }
 
-    SMTNode::SMTNode(LLVMContext& t_lcx, Module* t_lmodule, IRBuilder<>& t_builder, const LLMAPPING& t_variables, expr t_contents) : lcx(t_lcx), lmodule(t_lmodule), builder(t_builder), variables(t_variables), contents(t_contents)
+    SMTNode::SMTNode(LLVMContext& t_lcx, Module* t_lmodule, IRBuilder<>& t_builder, const LLMAPPING& t_variables, SMTValueCache* t_value_cache, expr t_contents) : lcx(t_lcx), lmodule(t_lmodule), builder(t_builder), variables(t_variables), value_cache(t_value_cache), contents(t_contents)
     {
 
+    }
+
+    Value* SMTNode::ToLLVM()
+    {
+        // Reuse translations for shared SMT subtrees to avoid rebuilding IR.
+        if (value_cache)
+        {
+            unsigned key = contents.id();
+            auto it = value_cache->find(key);
+            if (it != value_cache->end())
+            {
+                return it->second;
+            }
+            Value* result = ToLLVMInternal();
+            (*value_cache)[key] = result;
+            return result;
+        }
+        return ToLLVMInternal();
     }
 
     //Returns LLVM rounding mode argument for constrained intrinsics
@@ -64,7 +82,7 @@ namespace SLOT
     //============================BooleanNode==================================
 
 
-    BooleanNode::BooleanNode(LLVMContext& t_lcx, Module* t_lmodule, IRBuilder<>& t_builder, const LLMAPPING& t_variables, expr t_contents) : SMTNode(t_lcx, t_lmodule, t_builder, t_variables, t_contents)
+    BooleanNode::BooleanNode(LLVMContext& t_lcx, Module* t_lmodule, IRBuilder<>& t_builder, const LLMAPPING& t_variables, SMTValueCache* t_value_cache, expr t_contents) : SMTNode(t_lcx, t_lmodule, t_builder, t_variables, t_value_cache, t_contents)
     {
         //Sanity check for translation from Z3 expressions
         assert(contents.is_bool());
@@ -73,7 +91,7 @@ namespace SLOT
     // Convert a boolean SMT subtree into LLVM. Variables map to LLVM arguments,
     // constants become `i1` literals, and expressions are lowered opcode by
     // opcode, matching Z3's boolean, bitvector, and floating-point comparisons.
-    Value* BooleanNode::ToLLVM()
+    Value* BooleanNode::ToLLVMInternal()
     {
         if (IsVariable())
         {
@@ -264,7 +282,7 @@ namespace SLOT
     }
 
 
-    BitvectorNode::BitvectorNode(LLVMContext& t_lcx, Module* t_lmodule, IRBuilder<>& t_builder, const LLMAPPING& t_variables, expr t_contents) : SMTNode(t_lcx, t_lmodule, t_builder, t_variables, t_contents)
+    BitvectorNode::BitvectorNode(LLVMContext& t_lcx, Module* t_lmodule, IRBuilder<>& t_builder, const LLMAPPING& t_variables, SMTValueCache* t_value_cache, expr t_contents) : SMTNode(t_lcx, t_lmodule, t_builder, t_variables, t_value_cache, t_contents)
     {
         //Sanity check for translation from Z3 expressions
         assert(contents.is_bv());
@@ -274,7 +292,7 @@ namespace SLOT
     // Z3's exact semantics for edge cases (e.g., division by zero, rotate
     // counts that exceed the width) by guarding with selects instead of
     // relying on LLVM's undefined behavior.
-    Value * BitvectorNode::ToLLVM()
+    Value * BitvectorNode::ToLLVMInternal()
     {
         if (IsVariable())
         {
@@ -291,7 +309,6 @@ namespace SLOT
         {
             Value * one = ConstantInt::get(IntegerType::get(lcx, Width()), 1);
             Value * mone = builder.CreateNeg(one); //ConstantInt::get(IntegerType::get(lcx, Width()), -1);
-            context c;
             Function * fun;
             std::vector<Value *> args;
             Value *temp, *u, *sel0, *sel1, *sel2;
@@ -478,7 +495,7 @@ namespace SLOT
 
                     args.push_back(temp);
                     args.push_back(temp);
-                    args.push_back(ConstantInt::get(ity, Z3_get_decl_int_parameter(c, contents.decl(),0)%Width()));
+                    args.push_back(ConstantInt::get(ity, Z3_get_decl_int_parameter(contents.ctx(), contents.decl(),0)%Width()));
 
                     fun = Intrinsic::getDeclaration(lmodule, Intrinsic::fshl, ity);
                     return builder.CreateCall(fun,args);
@@ -490,7 +507,7 @@ namespace SLOT
 
                     args.push_back(temp);
                     args.push_back(temp);
-                    args.push_back(ConstantInt::get(ity, Z3_get_decl_int_parameter(c, contents.decl(),0)%Width()));
+                    args.push_back(ConstantInt::get(ity, Z3_get_decl_int_parameter(contents.ctx(), contents.decl(),0)%Width()));
 
                     fun = Intrinsic::getDeclaration(lmodule, Intrinsic::fshr, ity);
                     return builder.CreateCall(fun,args);
@@ -576,7 +593,7 @@ namespace SLOT
         return builder.CreateOr(builder.CreateAnd(LLVMClassCheck(Z3_OP_FPA_IS_NAN), other.LLVMClassCheck(Z3_OP_FPA_IS_NAN)), builder.CreateICmpEQ(lb,rb));
     }
 
-    FloatingNode::FloatingNode(LLVMContext& t_lcx, Module* t_lmodule, IRBuilder<>& t_builder, const LLMAPPING& t_variables, expr t_contents) : SMTNode(t_lcx, t_lmodule, t_builder, t_variables, t_contents)
+    FloatingNode::FloatingNode(LLVMContext& t_lcx, Module* t_lmodule, IRBuilder<>& t_builder, const LLMAPPING& t_variables, SMTValueCache* t_value_cache, expr t_contents) : SMTNode(t_lcx, t_lmodule, t_builder, t_variables, t_value_cache, t_contents)
     {
 
         //Sanity check for translation from Z3 expressions
@@ -587,7 +604,7 @@ namespace SLOT
     // native instructions when the rounding mode is "nearest even"; otherwise
     // it uses constrained intrinsics so the rounding mode and exception
     // behavior stay explicit in the IR.
-    Value * FloatingNode::ToLLVM()
+    Value * FloatingNode::ToLLVMInternal()
     {
         if (IsVariable())
         {

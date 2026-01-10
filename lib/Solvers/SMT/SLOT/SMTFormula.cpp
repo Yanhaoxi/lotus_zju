@@ -99,13 +99,14 @@ namespace SLOT
 
         for (expr e : contents)
         {
-            assertions.push_back(BooleanNode(lcx, lmodule, builder, variables, e));
+            assertions.push_back(BooleanNode(lcx, lmodule, builder, variables, &value_cache, e));
         }
 
     }
 
     void SMTFormula::ToLLVM()
     {
+        value_cache.clear();
         BasicBlock* bb = BasicBlock::Create(lcx, "b", function);
         builder.SetInsertPoint(bb);
         

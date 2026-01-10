@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <map>
+#include <unordered_map>
 
 #include"z3++.h"
 
@@ -32,6 +33,8 @@ using namespace z3;
 
 namespace SLOT
 {
+  using SMTValueCache = std::unordered_map<unsigned, Value*>;
+
   class IntegerNode;
   class FloatingNode;
   class BitvectorNode;
@@ -46,6 +49,7 @@ namespace SLOT
       IRBuilder<>& builder;
       unsigned integer_width;
       const LLMAPPING& variables;
+      SMTValueCache* value_cache;
       expr contents;
       bool noOverflow = true;
 
@@ -69,9 +73,10 @@ namespace SLOT
       inline BooleanNode BooleanChild(expr cont);
       inline BooleanNode BooleanChild(int index);
 
-      SMTNode(LLVMContext& t_lcx, Module* t_lmodule, IRBuilder<>& t_builder, const LLMAPPING& t_variables, expr t_contents);
+      SMTNode(LLVMContext& t_lcx, Module* t_lmodule, IRBuilder<>& t_builder, const LLMAPPING& t_variables, SMTValueCache* t_value_cache, expr t_contents);
       virtual ~SMTNode() {}
-      virtual Value* ToLLVM() = 0;
+      Value* ToLLVM();
+      virtual Value* ToLLVMInternal() = 0;
   };
 
   //--------------------------------------------------------------------------------
@@ -93,8 +98,8 @@ namespace SLOT
       Value * LLVMNE(FloatingNode other);
 
 
-      Value* ToLLVM() override;
-      FloatingNode(LLVMContext& t_lcx, Module* t_lmodule, IRBuilder<>& t_builder, const LLMAPPING& t_variables, expr t_contents);
+      Value* ToLLVMInternal() override;
+      FloatingNode(LLVMContext& t_lcx, Module* t_lmodule, IRBuilder<>& t_builder, const LLMAPPING& t_variables, SMTValueCache* t_value_cache, expr t_contents);
   };
 
   //--------------------------------------------------------------------------------
@@ -113,8 +118,8 @@ namespace SLOT
 
       static Value* LlURem(IRBuilder<>& builder, Value * left, Value * right);
 
-      Value* ToLLVM() override;
-      BitvectorNode(LLVMContext& t_lcx, Module* t_lmodule, IRBuilder<>& t_builder, const LLMAPPING& t_variables, expr t_contents);
+      Value* ToLLVMInternal() override;
+      BitvectorNode(LLVMContext& t_lcx, Module* t_lmodule, IRBuilder<>& t_builder, const LLMAPPING& t_variables, SMTValueCache* t_value_cache, expr t_contents);
   };
 
 //--------------------------------------------------------------------------------
@@ -123,8 +128,8 @@ namespace SLOT
   {
     public:
 
-      Value* ToLLVM() override;
+      Value* ToLLVMInternal() override;
 
-      BooleanNode(LLVMContext& t_lcx, Module* t_lmodule, IRBuilder<>& t_builder, const LLMAPPING& t_variables, expr t_contents);
+      BooleanNode(LLVMContext& t_lcx, Module* t_lmodule, IRBuilder<>& t_builder, const LLMAPPING& t_variables, SMTValueCache* t_value_cache, expr t_contents);
   };
 }

@@ -20,6 +20,7 @@ namespace SLOT
             expr_vector contents;
             std::vector<BooleanNode> assertions;
             LLMAPPING variables;
+            SMTValueCache value_cache;
 
             SMTFormula(LLVMContext& t_lcx, Module* t_lmodule, IRBuilder<>& t_builder, std::string t_string, std::string t_func_name);
             void ToLLVM();
