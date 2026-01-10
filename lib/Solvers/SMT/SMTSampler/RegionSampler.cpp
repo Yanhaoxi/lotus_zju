@@ -11,6 +11,7 @@
 #include "Solvers/SMT/SMTSampler/SMTSampler.h"
 
 #include <fstream>
+#include <iostream>
 #include <random>
 #include <unordered_map>
 
@@ -22,6 +23,19 @@ using namespace std;
 using namespace z3;
 
 namespace {
+constexpr const char *kSamplerName = "RegionSampler";
+
+void log_info(const std::string &msg) {
+  std::cout << "[" << kSamplerName << "] " << msg << '\n';
+}
+
+void log_warn(const std::string &msg) {
+  std::cerr << "[" << kSamplerName << "] WARN: " << msg << '\n';
+}
+
+void log_error(const std::string &msg) {
+  std::cerr << "[" << kSamplerName << "] ERROR: " << msg << '\n';
+}
 
 struct VarInfo {
   z3::expr var;
@@ -90,8 +104,13 @@ struct region_sampler {
   }
 
   void parse_smt() {
-    expr_vector evec = c.parse_file(input_file.c_str());
-    smt_formula = mk_and(evec);
+    try {
+      expr_vector evec = c.parse_file(input_file.c_str());
+      smt_formula = mk_and(evec);
+    } catch (const z3::exception &e) {
+      log_error(std::string("Failed to parse SMT file: ") + e.msg());
+      smt_formula = z3::expr(c);
+    }
   }
 
   void collect_vars() {
@@ -203,23 +222,31 @@ struct region_sampler {
 
   void run() {
     parse_smt();
+    if (!smt_formula) {
+      log_error("No SMT formula loaded; aborting run");
+      return;
+    }
     collect_vars();
     if (vars.empty()) {
-      std::cout << "RegionSampler: no bit-vector variables\n";
+      log_warn("No bit-vector variables found");
       return;
     }
     if (!build_constraints()) {
-      std::cout << "RegionSampler: no abstraction constraints\n";
+      log_warn("No abstraction constraints built");
       return;
     }
 
     std::vector<int64_t> point;
     if (!initial_point(point)) {
-      std::cout << "RegionSampler: formula unsat or model extraction failed\n";
+      log_warn("Formula unsat or model extraction failed");
       return;
     }
 
     std::ofstream out(input_file + ".abs.samples");
+    if (!out.is_open()) {
+      log_error("Failed to open output file: " + input_file + ".abs.samples");
+      return;
+    }
     for (size_t i = 0; i < vars.size(); ++i) {
       if (i)
         out << " ";

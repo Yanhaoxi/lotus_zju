@@ -13,12 +13,37 @@
 #include <dirent.h>
 #include <fstream>
 #include <iostream>
+#include <random>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <vector>
 
 using namespace std;
 using namespace z3;
+
+namespace {
+constexpr const char *kSamplerName = "IntervalSampler";
+
+void log_info(const std::string &msg) {
+  std::cout << "[" << kSamplerName << "] " << msg << '\n';
+}
+
+void log_warn(const std::string &msg) {
+  std::cerr << "[" << kSamplerName << "] WARN: " << msg << '\n';
+}
+
+void log_error(const std::string &msg) {
+  std::cerr << "[" << kSamplerName << "] ERROR: " << msg << '\n';
+}
+
+std::string join_path(const std::string &dir, const std::string &name) {
+  if (dir.empty())
+    return name;
+  if (dir.back() == '/')
+    return dir + name;
+  return dir + "/" + name;
+}
+} // namespace
 
 struct interval_sampler {
   std::string path;
@@ -36,6 +61,8 @@ struct interval_sampler {
   int m_success = 0;
   int m_unique = 0;
   double m_sample_time = 0.0;
+  bool stop_requested = false;
+  std::string stop_reason;
 
   z3::context c;
   z3::expr smt_formula;
@@ -48,9 +75,14 @@ struct interval_sampler {
 
   std::vector<std::vector<int>> unique_models;
 
+  std::mt19937 rng;
+
   interval_sampler(std::string &input, int max_samples, double max_time)
       : path(input), max_samples(max_samples), max_time(max_time),
         smt_formula(c), m_vars(c) {
+    auto seed = static_cast<uint64_t>(
+        std::chrono::high_resolution_clock::now().time_since_epoch().count());
+    rng.seed(seed);
     struct stat info = {};
     if (stat(path.c_str(), &info) == 0) {
       if (info.st_mode & S_IFDIR) {
@@ -58,8 +90,11 @@ struct interval_sampler {
         struct dirent *dp;
         while ((dp = readdir(dirp)) != NULL) {
           std::string tmp(dp->d_name);
-          input_files.push_back(tmp);
+          if (tmp == "." || tmp == "..")
+            continue;
+          input_files.push_back(join_path(path, tmp));
         }
+        closedir(dirp);
       } else {
         input_files.push_back(input);
       }
@@ -70,8 +105,13 @@ struct interval_sampler {
   }
 
   void parse_smt() {
-    expr_vector evec = c.parse_file(input_file.c_str());
-    smt_formula = mk_and(evec);
+    try {
+      expr_vector evec = c.parse_file(input_file.c_str());
+      smt_formula = mk_and(evec);
+    } catch (const z3::exception &e) {
+      log_error(std::string("Failed to parse SMT file: ") + e.msg());
+      smt_formula = z3::expr(c);
+    }
   }
 
   void get_bounds() {
@@ -95,6 +135,9 @@ struct interval_sampler {
       handlers_min.push_back(opt_sol_min.minimize(m_vars[i]));
     }
     auto min_res = opt_sol_min.check();
+    if (min_res != sat) {
+      log_warn("Minimize check not sat; using defaults");
+    }
     for (unsigned i = 0; i < m_vars.size(); i++) {
       // std::cout << m_vars[i] <<": " << opt_sol_min.upper(handlers_min[i]) <<
       // "\n";
@@ -112,6 +155,9 @@ struct interval_sampler {
       handlers_max.push_back(opt_sol_max.maximize(m_vars[i]));
     }
     auto max_res = opt_sol_max.check();
+    if (max_res != sat) {
+      log_warn("Maximize check not sat; using defaults");
+    }
     for (unsigned i = 0; i < m_vars.size(); i++) {
       // std::cout << m_vars[i] <<": " << opt_sol_max.lower(handlers_max[i]) <<
       // "\n";
@@ -133,9 +179,13 @@ struct interval_sampler {
       if (should_fix[i]) {
         sample.push_back(lower_bounds[i]);
       } else {
-        int output =
-            lower_bounds[i] +
-            (rand() % static_cast<int>(upper_bounds[i] - lower_bounds[i] + 1));
+        int range = upper_bounds[i] - lower_bounds[i] + 1;
+        if (range <= 0) {
+          sample.push_back(lower_bounds[i]);
+          continue;
+        }
+        std::uniform_int_distribution<int> dist(0, range - 1);
+        int output = lower_bounds[i] + dist(rng);
         sample.push_back(output);
       }
     }
@@ -150,7 +200,7 @@ struct interval_sampler {
       rand_model.add_const_interp(decl, val_i);
     }
 
-    if (rand_model.eval(smt_formula).is_true()) {
+    if (rand_model.eval(smt_formula, true).is_true()) {
       if (unique_models.size() == 0) {
         unique_models.push_back(assignments);
         return true;
@@ -185,12 +235,23 @@ struct interval_sampler {
     //        srand(start_time.tv_sec);
     // parse_cnf();
     for (auto &file : input_files) {
+      reset_state();
+      lower_bounds.clear();
+      upper_bounds.clear();
+      should_fix.clear();
+      stop_requested = false;
+      stop_reason.clear();
       input_file = file;
       parse_smt();
-      std::cout << "parse finished... \n";
+      if (!smt_formula) {
+        log_error("Skipping file with parse failure: " + input_file);
+        continue;
+      }
+      log_info("Parsed SMT input: " + input_file);
 
+      m_vars = z3::expr_vector(c);
       get_expr_vars(smt_formula, m_vars);
-      std::cout << "get vars finished... start counting\n";
+      log_info("Collected variables; computing bounds");
 
       auto init = std::chrono::high_resolution_clock::now();
       //        struct timespec start;
@@ -203,7 +264,7 @@ struct interval_sampler {
           should_fix.push_back(false);
         }
       }
-      std::cout << "get bounds finished...\n";
+      log_info("Bounds computed; sampling models");
 
       auto finish = std::chrono::high_resolution_clock::now();
       //        struct timespec end;
@@ -217,6 +278,8 @@ struct interval_sampler {
       for (int i = 0; i < max_samples; i++) {
         if (i % 5000 == 0)
           print_stats();
+        if (stop_requested)
+          break;
         //            struct timespec samp;
         //            clock_gettime(CLOCK_REALTIME, &samp);
         auto iter_start = std::chrono::high_resolution_clock::now();
@@ -224,8 +287,9 @@ struct interval_sampler {
             std::chrono::duration<double, std::milli>(iter_start - init)
                 .count();
         if (elapsed >= max_time) {
-          std::cout << "Stopping: timeout\n";
-          this->finish();
+          log_warn("Stopping: timeout");
+          request_stop("timeout");
+          break;
         }
 
         std::vector<int> sample = sample_once();
@@ -236,18 +300,16 @@ struct interval_sampler {
         m_sample_time +=
             std::chrono::duration<double, std::milli>(finish - init).count();
       }
+      if (stop_requested) {
+        log_info("Stopped due to " + stop_reason);
+      }
+      print_stats();
     }
   }
 
-  double duration(struct timespec *a, struct timespec *b) {
-    return static_cast<double>(b->tv_sec - a->tv_sec) + 1.0e-9 * static_cast<double>(b->tv_nsec - a->tv_nsec);
-  }
-
-  void finish() {
-    std::cout << "-------Good Bye!-----\n";
-    print_stats();
-    // TODO: write results to some file
-    exit(0);
+  void request_stop(const std::string &reason) {
+    stop_requested = true;
+    stop_reason = reason;
   }
 
   void reset_state() {
@@ -264,17 +326,20 @@ struct interval_sampler {
     std::cout << "sample total time: " << m_sample_time << "\n";
     std::cout << "samples number: " << m_samples << "\n";
     std::cout << "samples success: " << m_success << "\n";
-    std::cout << "unique modesl: " << unique_models.size() << "\n";
+    std::cout << "unique models: " << unique_models.size() << "\n";
     std::cout << "------------------------------------------\n";
 
     std::ofstream of("res.log", std::ofstream::app);
+    if (!of.is_open()) {
+      log_warn("Failed to open res.log for append");
+      return;
+    }
     of << "solver time: " << solver_time << "\n";
     of << "sample total time: " << m_sample_time << "\n";
     of << "samples number: " << m_samples << "\n";
     of << "samples success: " << m_success << "\n";
-    of << "unique modesl: " << unique_models.size() << "\n";
+    of << "unique models: " << unique_models.size() << "\n";
     of << "------------------------------------------\n";
-
     of.close();
   }
 };

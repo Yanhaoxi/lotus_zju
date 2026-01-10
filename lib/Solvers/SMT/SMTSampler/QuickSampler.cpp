@@ -15,6 +15,7 @@
 #include <iomanip>
 #include <iostream>
 #include <map>
+#include <random>
 #include <set>
 #include <sstream>
 #include <unordered_map>
@@ -23,6 +24,22 @@
 
 using namespace std;
 using namespace z3;
+
+namespace {
+constexpr const char *kSamplerName = "QuickSampler";
+
+void log_info(const std::string &msg) {
+  std::cout << "[" << kSamplerName << "] " << msg << '\n';
+}
+
+void log_warn(const std::string &msg) {
+  std::cerr << "[" << kSamplerName << "] WARN: " << msg << '\n';
+}
+
+void log_error(const std::string &msg) {
+  std::cerr << "[" << kSamplerName << "] ERROR: " << msg << '\n';
+}
+} // namespace
 
 class quick_sampler {
   std::string input_file;
@@ -40,35 +57,57 @@ class quick_sampler {
   int flips = 0;
   int samples = 0;
   int solver_calls = 0;
+  bool stop_requested = false;
+  std::string stop_reason;
+
+  std::mt19937 rng;
+  std::uniform_int_distribution<int> bit_dist{0, 1};
 
   std::ofstream results_file;
 
 public:
   quick_sampler(std::string input, int max_samples, double max_time)
       : input_file(input), max_samples(max_samples), max_time(max_time),
-        opt(c) {}
+        opt(c) {
+    auto seed = static_cast<uint64_t>(
+        std::chrono::high_resolution_clock::now().time_since_epoch().count());
+    rng.seed(seed);
+  }
 
   void run() {
     clock_gettime(CLOCK_REALTIME, &start_time);
-    srand(start_time.tv_sec);
-    parse_cnf();
-    results_file.open(input_file + ".samples");
+    if (!parse_cnf()) {
+      log_error("Failed to parse CNF input: " + input_file);
+      return;
+    }
+    results_file.open(input_file + ".samples", std::ios::out | std::ios::trunc);
+    if (!results_file.is_open()) {
+      log_error("Failed to open output file: " + input_file + ".samples");
+      return;
+    }
+    results_file << "# format: <mutations>: <bitstring>\n";
     while (true) {
       opt.push();
       for (int v : ind) {
-        if (rand() % 2)
+        if (bit_dist(rng))
           opt.add(literal(v), 1);
         else
           opt.add(!literal(v), 1);
       }
-      if (!solve())
+      if (!solve()) {
+        opt.pop();
         break;
+      }
       z3::model m = opt.get_model();
       opt.pop();
 
       sample(m);
       print_stats(false);
     }
+    if (stop_requested) {
+      log_info("Stopped due to " + stop_reason);
+    }
+    finish();
   }
 
   void print_stats(bool simple) {
@@ -84,26 +123,27 @@ public:
               << unsat_vars.size() << ", Calls " << solver_calls << '\n';
   }
 
-  void parse_cnf() {
+  bool parse_cnf() {
     z3::expr_vector exp(c);
     std::ifstream f(input_file);
     if (!f.is_open()) {
-      std::cout << "Error opening input file\n";
-      abort();
+      log_error("Unable to open input file");
+      return false;
     }
     std::unordered_set<int> indset;
     bool has_ind = false;
     int max_var = 0;
     std::string line;
     while (getline(f, line)) {
+      if (line.empty())
+        continue;
       std::istringstream iss(line);
       if (line.find("c ind ") == 0) {
         std::string s;
         iss >> s;
         iss >> s;
         int v;
-        while (!iss.eof()) {
-          iss >> v;
+        while (iss >> v) {
           if (v && indset.find(v) == indset.end()) {
             indset.insert(v);
             ind.push_back(v);
@@ -113,8 +153,7 @@ public:
       } else if (line[0] != 'c' && line[0] != 'p') {
         z3::expr_vector clause(c);
         int v;
-        while (!iss.eof()) {
-          iss >> v;
+        while (iss >> v) {
           if (v > 0)
             clause.push_back(literal(v));
           else if (v < 0)
@@ -130,19 +169,27 @@ public:
     }
     f.close();
     if (!has_ind) {
-      for (int lit = 0; lit <= max_var; ++lit) {
+      for (int lit = 1; lit <= max_var; ++lit) {
         if (indset.find(lit) != indset.end()) {
           ind.push_back(lit);
         }
       }
     }
+    if (ind.empty()) {
+      log_warn("No independent variables found in CNF");
+    }
     z3::expr formula = mk_and(exp);
     opt.add(formula);
+    return true;
   }
 
   void sample(z3::model &m) {
     std::unordered_set<std::string> initial_mutations;
     std::string m_string = model_string(m);
+    if (m_string.size() != ind.size()) {
+      log_error("Model projection size mismatch; skipping sample");
+      return;
+    }
     std::cout << m_string << " STARTING\n";
     output(m_string, 0);
     opt.push();
@@ -200,7 +247,7 @@ public:
           // std::cout << new_string << " repeated\n";
         }
       } else {
-        std::cout << "unsat\n";
+        log_warn("Mutation unsat at index " + std::to_string(i));
         unsat_vars.insert(i);
       }
       opt.pop();
@@ -217,9 +264,10 @@ public:
 
   void finish() {
     print_stats(false);
-    results_file.close();
-    std::cout << "samples file closed!!!\n";
-    exit(0);
+    if (results_file.is_open()) {
+      results_file.close();
+      log_info("Samples file closed");
+    }
   }
 
   bool solve() {
@@ -227,12 +275,16 @@ public:
     clock_gettime(CLOCK_REALTIME, &start);
     double elapsed = duration(&start_time, &start);
     if (elapsed > max_time) {
-      std::cout << "Stopping: timeout\n";
-      finish();
+      stop_requested = true;
+      stop_reason = "timeout";
+      log_info("Stopping: timeout");
+      return false;
     }
     if (samples >= max_samples) {
-      std::cout << "Stopping: samples\n";
-      finish();
+      stop_requested = true;
+      stop_reason = "samples";
+      log_info("Stopping: sample limit");
+      return false;
     }
 
     z3::check_result result = opt.check();
@@ -241,6 +293,9 @@ public:
     solver_time += duration(&start, &end);
     solver_calls += 1;
 
+    if (result == z3::unknown) {
+      log_warn("Solver returned unknown");
+    }
     return result == z3::sat;
   }
 
@@ -248,9 +303,8 @@ public:
     std::string s;
 
     for (int v : ind) {
-      z3::func_decl decl(literal(v).decl());
-      z3::expr b = model.get_const_interp(decl);
-      if (b.bool_value() == Z3_L_TRUE) {
+      z3::expr b = model.eval(literal(v), true);
+      if (b.is_true()) {
         s += "1";
       } else {
         s += "0";
