@@ -3,4 +3,5 @@
 add_subdirectory(LIBSMT)
 add_subdirectory(SymAbs)
 add_subdirectory(SLOT)
+add_subdirectory(SMTSampler)
 # add_subdirectory(STAUB)

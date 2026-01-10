@@ -26,6 +26,6 @@
 using namespace std;
 using namespace z3;
 
-class quicksampler;
-
-class regionsampler;
+class quick_sampler;
+struct interval_sampler;
+struct region_sampler;
