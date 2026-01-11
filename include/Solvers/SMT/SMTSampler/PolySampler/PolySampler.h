@@ -12,7 +12,9 @@ namespace RegionSampling {
 enum class Walk {
   HitAndRun,
   Dikin,
-  Coordinate
+  Coordinate,
+  Constraint,
+  Ball
 };
 
 struct SampleConfig {

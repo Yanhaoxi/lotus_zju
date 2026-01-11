@@ -9,6 +9,8 @@
 #include <sstream>
 #include <unordered_set>
 
+#include "Solvers/SMT/SMTSampler/PolySampler/BallWalk.h"
+#include "Solvers/SMT/SMTSampler/PolySampler/ConstraintWalk.h"
 #include "Solvers/SMT/SMTSampler/PolySampler/CoordinateWalk.h"
 #include "Solvers/SMT/SMTSampler/PolySampler/DikinWalk.h"
 #include "Solvers/SMT/SMTSampler/PolySampler/HitAndRun.h"
@@ -30,11 +32,17 @@ static bool walk_step(const std::vector<LinearConstraint> &constraints,
                       std::vector<int64_t> &point,
                       Walk walk,
                       std::mt19937_64 &rng) {
-  if (walk == Walk::HitAndRun) {
+  switch (walk) {
+  case Walk::HitAndRun:
     return RegionSampling::hit_and_run_step(constraints, point, rng);
-  }
-  if (walk == Walk::Dikin) {
+  case Walk::Dikin:
     return RegionSampling::dikin_walk_step(constraints, point, rng);
+  case Walk::Coordinate:
+    return RegionSampling::coordinate_walk_step(constraints, point, rng);
+  case Walk::Constraint:
+    return RegionSampling::constraint_walk_step(constraints, point, rng);
+  case Walk::Ball:
+    return RegionSampling::ball_walk_step(constraints, point, rng);
   }
   return RegionSampling::coordinate_walk_step(constraints, point, rng);
 }

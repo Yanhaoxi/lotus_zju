@@ -17,6 +17,7 @@
 
 #include "IR/PDG/Slicing.h"
 #include "IR/PDG/PDGUtils.h"
+#include <algorithm>
 #include <queue>
 
 using namespace llvm;
@@ -113,7 +114,7 @@ namespace {
   bool isEdgeTypeAllowed(EdgeType edge_type, const std::set<EdgeType> &allowed_types) {
     return allowed_types.empty() || allowed_types.find(edge_type) != allowed_types.end();
   }
-}
+} // namespace
 
 // ==================== ForwardSlicing Implementation ====================
 
@@ -171,9 +172,22 @@ bool BackwardSlicing::isEdgeTypeAllowed(EdgeType edge_type, const std::set<EdgeT
 
 // ==================== ProgramChopping Implementation ====================
 
-ProgramChopping::NodeSet ProgramChopping::computeChop(const NodeSet &source_nodes, const NodeSet &sink_nodes, const std::set<EdgeType> &edge_types)
+ProgramChopping::NodeSet ProgramChopping::computeChop(const NodeSet &source_nodes, const NodeSet &sink_nodes,
+                                                      const std::set<EdgeType> &edge_types,
+                                                      size_t max_paths,
+                                                      size_t max_path_length,
+                                                      ChopDiagnostics *diagnostics)
 {
   NodeSet chop;
+  if (diagnostics != nullptr)
+    *diagnostics = ChopDiagnostics{};
+  auto mergeDiagnostics = [](ChopDiagnostics &dst, const ChopDiagnostics &src) {
+    dst.depth_limit_hit |= src.depth_limit_hit;
+    dst.path_limit_hit |= src.path_limit_hit;
+    dst.path_length_limit_hit |= src.path_length_limit_hit;
+    dst.max_depth_reached = std::max(dst.max_depth_reached, src.max_depth_reached);
+    dst.paths_found += src.paths_found;
+  };
   
   // For each source-sink pair, find all nodes on paths between them
   for (auto *source : source_nodes)
@@ -182,8 +196,12 @@ ProgramChopping::NodeSet ProgramChopping::computeChop(const NodeSet &source_node
       if (source == nullptr || sink == nullptr)
         continue;
         
-      // Find all paths from source to sink (0 means unlimited paths)
-      auto paths = findAllPaths(*source, *sink, 0, edge_types);
+      // Find all paths from source to sink; caps are optional guardrails.
+      ChopDiagnostics local_diag;
+      ChopDiagnostics *diag_ptr = diagnostics != nullptr ? &local_diag : nullptr;
+      auto paths = findAllPaths(*source, *sink, max_paths, edge_types, 0, max_path_length, diag_ptr);
+      if (diagnostics != nullptr)
+        mergeDiagnostics(*diagnostics, local_diag);
       
       // Add all nodes on these paths to the chop
       for (const auto &path : paths)
@@ -194,14 +212,32 @@ ProgramChopping::NodeSet ProgramChopping::computeChop(const NodeSet &source_node
   return chop;
 }
 
-ProgramChopping::NodeSet ProgramChopping::computeChop(Node &source_node, Node &sink_node, const std::set<EdgeType> &edge_types)
+ProgramChopping::NodeSet ProgramChopping::computeChop(Node &source_node, Node &sink_node,
+                                                      const std::set<EdgeType> &edge_types,
+                                                      size_t max_paths,
+                                                      size_t max_path_length,
+                                                      ChopDiagnostics *diagnostics)
 {
-  return computeChop({&source_node}, {&sink_node}, edge_types);
+  return computeChop({&source_node}, {&sink_node}, edge_types, max_paths, max_path_length, diagnostics);
 }
 
-ProgramChopping::NodeSet ProgramChopping::computeChopWithDepth(const NodeSet &source_nodes, const NodeSet &sink_nodes, size_t max_depth, const std::set<EdgeType> &edge_types)
+ProgramChopping::NodeSet ProgramChopping::computeChopWithDepth(const NodeSet &source_nodes, const NodeSet &sink_nodes,
+                                                               size_t max_depth,
+                                                               const std::set<EdgeType> &edge_types,
+                                                               size_t max_paths,
+                                                               size_t max_path_length,
+                                                               ChopDiagnostics *diagnostics)
 {
   NodeSet chop;
+  if (diagnostics != nullptr)
+    *diagnostics = ChopDiagnostics{};
+  auto mergeDiagnostics = [](ChopDiagnostics &dst, const ChopDiagnostics &src) {
+    dst.depth_limit_hit |= src.depth_limit_hit;
+    dst.path_limit_hit |= src.path_limit_hit;
+    dst.path_length_limit_hit |= src.path_length_limit_hit;
+    dst.max_depth_reached = std::max(dst.max_depth_reached, src.max_depth_reached);
+    dst.paths_found += src.paths_found;
+  };
   
   // For each source-sink pair, find all nodes on paths between them
   for (auto *source : source_nodes)
@@ -209,14 +245,17 @@ ProgramChopping::NodeSet ProgramChopping::computeChopWithDepth(const NodeSet &so
       if (source == nullptr || sink == nullptr)
         continue;
         
-      // Find all paths from source to sink with depth limit
-      auto paths = findAllPaths(*source, *sink, max_depth, edge_types);
+      // Find all paths from source to sink with depth limit; caps are optional guardrails.
+      ChopDiagnostics local_diag;
+      ChopDiagnostics *diag_ptr = diagnostics != nullptr ? &local_diag : nullptr;
+      auto paths = findAllPaths(*source, *sink, max_paths, edge_types, max_depth, max_path_length, diag_ptr);
+      if (diagnostics != nullptr)
+        mergeDiagnostics(*diagnostics, local_diag);
       
       // Add all nodes on these paths to the chop
       for (const auto &path : paths)
-        if (path.size() <= max_depth + 1) // +1 because we count nodes, not edges
-          for (auto *node : path)
-            chop.insert(node);
+        for (auto *node : path)
+          chop.insert(node);
     }
   
   return chop;
@@ -240,37 +279,81 @@ bool ProgramChopping::hasPath(Node &source_node, Node &sink_node, const std::set
   return _pdg.canReach(source_node, sink_node, exclude_edges);
 }
 
-std::vector<std::vector<Node *>> ProgramChopping::findAllPaths(Node &source_node, Node &sink_node, size_t max_paths, const std::set<EdgeType> &edge_types)
+std::vector<std::vector<Node *>> ProgramChopping::findAllPaths(Node &source_node, Node &sink_node,
+                                                               size_t max_paths,
+                                                               const std::set<EdgeType> &edge_types,
+                                                               size_t max_depth,
+                                                               size_t max_path_length,
+                                                               ChopDiagnostics *diagnostics)
 {
   std::vector<std::vector<Node *>> all_paths;
   std::vector<Node *> current_path;
   VisitedSet visited;
-  findPathsDFS(source_node, sink_node, visited, current_path, all_paths, max_paths, edge_types);
+  findPathsDFS(source_node, sink_node, visited, current_path, all_paths, 0, max_paths, max_depth,
+               max_path_length, edge_types, diagnostics);
+  if (diagnostics != nullptr)
+    diagnostics->paths_found = all_paths.size();
   return all_paths;
 }
 
 void ProgramChopping::findPathsDFS(Node &current, Node &sink, VisitedSet &visited,
-                                 std::vector<Node *> &current_path, std::vector<std::vector<Node *>> &all_paths,
-                                 size_t max_paths, const std::set<EdgeType> &edge_types)
+                                   std::vector<Node *> &current_path, std::vector<std::vector<Node *>> &all_paths,
+                                   size_t depth, size_t max_paths, size_t max_depth, size_t max_path_length,
+                                   const std::set<EdgeType> &edge_types, ChopDiagnostics *diagnostics)
 {
   // Add current node to path and mark as visited to prevent cycles
   current_path.push_back(&current);
   visited.insert(&current);
+  if (diagnostics != nullptr)
+    diagnostics->max_depth_reached = std::max(diagnostics->max_depth_reached, depth);
   
+  // Guardrails: stop if we hit configured caps to avoid unbounded path explosion.
+  if (max_path_length > 0 && current_path.size() > max_path_length) {
+    if (diagnostics != nullptr)
+      diagnostics->path_length_limit_hit = true;
+    current_path.pop_back();
+    visited.erase(&current);
+    return;
+  }
+  if (max_paths > 0 && all_paths.size() >= max_paths) {
+    if (diagnostics != nullptr)
+      diagnostics->path_limit_hit = true;
+    current_path.pop_back();
+    visited.erase(&current);
+    return;
+  }
+
   // If we reached the sink, add this path to results
   if (&current == &sink) {
     all_paths.push_back(current_path);
-  } else if ((max_paths == 0 || all_paths.size() < max_paths) && current_path.size() <= 100) {
-    // Continue searching if we haven't found enough paths and path isn't too long
+  } else if (max_depth == 0 || depth < max_depth) {
+    // Continue searching if we haven't exceeded the depth cap.
     for (auto *edge : current.getOutEdgeSet()) {
+      if (edge == nullptr)
+        continue;
       // Only follow edges of allowed types
       if (::pdg::isEdgeTypeAllowed(edge->getEdgeType(), edge_types)) {
         Node *neighbor = edge->getDstNode();
         // Skip null neighbors or already visited neighbors (cycle prevention)
-        if (neighbor != nullptr && visited.find(neighbor) == visited.end())
-          findPathsDFS(*neighbor, sink, visited, current_path, all_paths, max_paths, edge_types);
+        if (neighbor != nullptr && visited.find(neighbor) == visited.end()) {
+          size_t next_depth = depth + 1;
+          if (max_depth > 0 && next_depth > max_depth) {
+            if (diagnostics != nullptr)
+              diagnostics->depth_limit_hit = true;
+            continue;
+          }
+          if (max_path_length > 0 && current_path.size() + 1 > max_path_length) {
+            if (diagnostics != nullptr)
+              diagnostics->path_length_limit_hit = true;
+            continue;
+          }
+          findPathsDFS(*neighbor, sink, visited, current_path, all_paths, next_depth, max_paths,
+                       max_depth, max_path_length, edge_types, diagnostics);
+        }
       }
     }
+  } else if (diagnostics != nullptr) {
+    diagnostics->depth_limit_hit = true;
   }
   
   // Backtrack: remove current node from path and unmark as visited

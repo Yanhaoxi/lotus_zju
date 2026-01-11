@@ -149,6 +149,13 @@ namespace pdg
   public:
     using NodeSet = std::set<Node *>;
     using VisitedSet = std::unordered_set<Node *>;
+    struct ChopDiagnostics {
+      bool depth_limit_hit = false;
+      bool path_limit_hit = false;
+      bool path_length_limit_hit = false;
+      size_t max_depth_reached = 0;
+      size_t paths_found = 0;
+    };
     
     /**
      * @brief Constructor
@@ -161,20 +168,32 @@ namespace pdg
      * @param source_nodes Set of source nodes
      * @param sink_nodes Set of sink nodes
      * @param edge_types Optional set of edge types to include (empty means all types)
+     * @param max_paths Maximum number of paths to explore (0 means unlimited)
+     * @param max_path_length Maximum path length in nodes (0 means unlimited)
+     * @param diagnostics Optional diagnostic output for truncation guardrails
      * @return Set of nodes in the chop
      */
     NodeSet computeChop(const NodeSet &source_nodes, const NodeSet &sink_nodes, 
-                       const std::set<EdgeType> &edge_types = {});
+                       const std::set<EdgeType> &edge_types = {},
+                       size_t max_paths = 0,
+                       size_t max_path_length = 0,
+                       ChopDiagnostics *diagnostics = nullptr);
     
     /**
      * @brief Compute program chop between single source and sink nodes
      * @param source_node Single source node
      * @param sink_node Single sink node
      * @param edge_types Optional set of edge types to include (empty means all types)
+     * @param max_paths Maximum number of paths to explore (0 means unlimited)
+     * @param max_path_length Maximum path length in nodes (0 means unlimited)
+     * @param diagnostics Optional diagnostic output for truncation guardrails
      * @return Set of nodes in the chop
      */
     NodeSet computeChop(Node &source_node, Node &sink_node, 
-                       const std::set<EdgeType> &edge_types = {});
+                       const std::set<EdgeType> &edge_types = {},
+                       size_t max_paths = 0,
+                       size_t max_path_length = 0,
+                       ChopDiagnostics *diagnostics = nullptr);
     
     /**
      * @brief Compute program chop with depth limit
@@ -182,10 +201,16 @@ namespace pdg
      * @param sink_nodes Set of sink nodes
      * @param max_depth Maximum depth to traverse (0 means unlimited)
      * @param edge_types Optional set of edge types to include (empty means all types)
+     * @param max_paths Maximum number of paths to explore (0 means unlimited)
+     * @param max_path_length Maximum path length in nodes (0 means unlimited)
+     * @param diagnostics Optional diagnostic output for truncation guardrails
      * @return Set of nodes in the chop
      */
     NodeSet computeChopWithDepth(const NodeSet &source_nodes, const NodeSet &sink_nodes,
-                                size_t max_depth, const std::set<EdgeType> &edge_types = {});
+                                size_t max_depth, const std::set<EdgeType> &edge_types = {},
+                                size_t max_paths = 0,
+                                size_t max_path_length = 0,
+                                ChopDiagnostics *diagnostics = nullptr);
     
     /**
      * @brief Check if there exists a path from source to sink
@@ -202,11 +227,17 @@ namespace pdg
      * @param sink_node Sink node
      * @param max_paths Maximum number of paths to find (0 means unlimited)
      * @param edge_types Optional set of edge types to include (empty means all types)
+     * @param max_depth Maximum depth to traverse (0 means unlimited)
+     * @param max_path_length Maximum path length in nodes (0 means unlimited)
+     * @param diagnostics Optional diagnostic output for truncation guardrails
      * @return Vector of paths (each path is a vector of nodes)
      */
     std::vector<std::vector<Node *>> findAllPaths(Node &source_node, Node &sink_node,
                                                  size_t max_paths = 0, 
-                                                 const std::set<EdgeType> &edge_types = {});
+                                                 const std::set<EdgeType> &edge_types = {},
+                                                 size_t max_depth = 0,
+                                                 size_t max_path_length = 0,
+                                                 ChopDiagnostics *diagnostics = nullptr);
     
   private:
     GenericGraph &_pdg;
@@ -226,12 +257,17 @@ namespace pdg
      * @param visited Set of visited nodes in current path
      * @param current_path Current path being built
      * @param all_paths All paths found so far
+     * @param depth Current traversal depth in edges
      * @param max_paths Maximum number of paths to find
+     * @param max_depth Maximum traversal depth in edges (0 means unlimited)
+     * @param max_path_length Maximum path length in nodes (0 means unlimited)
      * @param edge_types Set of allowed edge types
+     * @param diagnostics Optional diagnostic output for truncation guardrails
      */
     void findPathsDFS(Node &current, Node &sink, VisitedSet &visited,
                      std::vector<Node *> &current_path, std::vector<std::vector<Node *>> &all_paths,
-                     size_t max_paths, const std::set<EdgeType> &edge_types);
+                     size_t depth, size_t max_paths, size_t max_depth, size_t max_path_length,
+                     const std::set<EdgeType> &edge_types, ChopDiagnostics *diagnostics);
   };
 
 
