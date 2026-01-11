@@ -27,8 +27,13 @@ public:
     static void setBitWidth(unsigned W) { BitWidth = W; }
     static unsigned getBitWidth() { return BitWidth; }
 
-    // Identity: f(x) = x  => Kill=0, Gen=0
+    // Additive identity (no paths): f(x) = 0  => Kill=all, Gen=0
     static value_type zero() {
+        return {llvm::APInt::getAllOnes(BitWidth), llvm::APInt(BitWidth, 0)};
+    }
+
+    // Multiplicative identity (no-op): f(x) = x  => Kill=0, Gen=0
+    static value_type one() {
         return {llvm::APInt(BitWidth, 0), llvm::APInt(BitWidth, 0)};
     }
 
@@ -83,4 +88,3 @@ using GenKillDomain = GenKillTransferDomain;
 } // namespace npa
 
 #endif
-

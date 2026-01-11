@@ -51,7 +51,7 @@
  *   - test_type: type for conditional guards (used by T0_cond/T1_cond)
  * 
  * Required methods:
- *   - zero, equal, combine, extend, subtract, ndetCombine, condCombine
+ *   - zero, one, equal, combine, extend, subtract, ndetCombine, condCombine
  *   - extend_lin: linear extension (required for forward compatibility,
  *                 but only used by symbolic solvers which are NOT implemented;
  *                 for non-symbolic use, can equal extend)
@@ -62,6 +62,7 @@
 template <class D> struct DomainHas {
   template <class T>
   static auto test(int)->decltype( T::zero()
+                                 , T::one()
                                  , T::combine(T::zero(),T::zero())
                                  , T::extend(T::zero(),T::zero())
                                  , T::extend_lin(T::zero(),T::zero())
@@ -78,7 +79,7 @@ public:
 template <class D> using DomVal = typename D::value_type;
 template <class D> using DomTest = typename D::test_type;
 
-#define NPA_REQUIRE_DOMAIN(D) static_assert(DomainHas<D>::value,"Invalid DOMAIN: missing required methods (zero, combine, extend, extend_lin, ndetCombine, condCombine, subtract, equal) or test_type")
+#define NPA_REQUIRE_DOMAIN(D) static_assert(DomainHas<D>::value,"Invalid DOMAIN: missing required methods (zero, one, combine, extend, extend_lin, ndetCombine, condCombine, subtract, equal) or test_type")
  
 /**********************************************************************
   * 2. Dirty-flag base
@@ -463,6 +464,7 @@ struct BoolDom{
   using test_type=bool;
   static constexpr bool idempotent=true;
   static bool zero(){return false;}
+  static bool one(){return true;}
   static bool equal(bool a,bool b){return a==b;}
   static bool combine(bool a,bool b){return a||b;}
   static bool extend(bool a,bool b){return a&&b;}

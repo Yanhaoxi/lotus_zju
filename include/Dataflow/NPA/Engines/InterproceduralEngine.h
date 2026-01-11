@@ -68,6 +68,51 @@ public:
         return next;
     }
 
+private:
+    template <typename A>
+    static auto getCallEntryTransfer(A &analysis,
+                                     const llvm::CallInst &call,
+                                     const llvm::Function &callee,
+                                     int) -> decltype(analysis.getCallEntryTransfer(call, callee)) {
+        return analysis.getCallEntryTransfer(call, callee);
+    }
+
+    static typename D::value_type getCallEntryTransfer(Analysis &,
+                                                       const llvm::CallInst &,
+                                                       const llvm::Function &,
+                                                       long) {
+        return D::one();
+    }
+
+    template <typename A>
+    static auto getCallReturnTransfer(A &analysis,
+                                      const llvm::CallInst &call,
+                                      const llvm::Function &callee,
+                                      int) -> decltype(analysis.getCallReturnTransfer(call, callee)) {
+        return analysis.getCallReturnTransfer(call, callee);
+    }
+
+    static typename D::value_type getCallReturnTransfer(Analysis &,
+                                                        const llvm::CallInst &,
+                                                        const llvm::Function &,
+                                                        long) {
+        return D::one();
+    }
+
+    template <typename A>
+    static auto getCallToReturnTransfer(A &analysis,
+                                        const llvm::CallInst &call,
+                                        int) -> decltype(analysis.getCallToReturnTransfer(call)) {
+        return analysis.getCallToReturnTransfer(call);
+    }
+
+    static typename D::value_type getCallToReturnTransfer(Analysis &,
+                                                          const llvm::CallInst &,
+                                                          long) {
+        return D::one();
+    }
+
+public:
     static Result run(llvm::Module &M, Analysis &analysis, bool verbose = false) {
         std::vector<std::pair<Symbol, E>> eqns;
         
@@ -105,7 +150,7 @@ public:
                 // Entry to Block (Joins from Predecessors)
                 E inExpr = nullptr;
                 if (&BB == &F->getEntryBlock()) {
-                    inExpr = Exp::term(D::zero());
+                    inExpr = Exp::term(D::one());
                 } else {
                     bool hasPreds = false;
                     for (auto *Pred : predecessors(&BB)) {
@@ -129,8 +174,14 @@ public:
                                     visited.insert({Callee, calleeCS});
                                     worklist.push_back({Callee, calleeCS});
                                 }
+                                currentPath = Exp::seq(getCallEntryTransfer(analysis, *CI, *Callee, 0), currentPath);
                                 currentPath = Exp::call(getFuncSymbol(Callee, calleeCS), currentPath);
+                                currentPath = Exp::seq(getCallReturnTransfer(analysis, *CI, *Callee, 0), currentPath);
+                            } else {
+                                currentPath = Exp::seq(getCallToReturnTransfer(analysis, *CI, 0), currentPath);
                             }
+                        } else {
+                            currentPath = Exp::seq(getCallToReturnTransfer(analysis, *CI, 0), currentPath);
                         }
                     }
                     currentPath = analysis.getTransfer(I, currentPath);
@@ -198,7 +249,7 @@ public:
                 // Compute Facts at Block Entry
                 Val entryToBlockStart = D::zero();
                 if (&BB == &F->getEntryBlock()) {
-                    entryToBlockStart = D::zero();
+                    entryToBlockStart = D::one();
                 } else {
                     bool first = true;
                     for (auto *Pred : predecessors(&BB)) {
@@ -214,38 +265,40 @@ public:
                 res.blockEntryFacts[bSym] = blockEntryFact;
 
                 // Process Calls to propagate to Callees
-                E currentPath = Exp::term(D::zero());
+                E currentPath = Exp::term(D::one());
                 
                 for (auto &I : BB) {
                     if (auto *CI = llvm::dyn_cast<llvm::CallInst>(&I)) {
                         if (auto *Callee = CI->getCalledFunction()) {
-                            if (Callee->isDeclaration()) continue;
-                            
-                            // 1. Propagate facts to callee
-                            CallString calleeCS = pushContext(cs, CI);
-                            std::string calleeFSym = getFuncSymbol(Callee, calleeCS);
-                            
-                            // Eval summary path to call site
-                            Val currentPathVal = I0<D>::eval(false, solvedMap, currentPath);
-                            Val totalToCall = D::extend(currentPathVal, entryToBlockStart);
-                            
-                            auto factAtCall = analysis.applySummary(totalToCall, inputVal);
-                            
-                            // Update Callee Input
-                            if (!funcInput.count(calleeFSym)) {
-                                funcInput[calleeFSym] = factAtCall;
-                                if (inWorklist2.find({Callee, calleeCS}) == inWorklist2.end()) {
-                                    worklist2.push_back({Callee, calleeCS});
-                                    inWorklist2.insert({Callee, calleeCS});
-                                }
-                            } else {
-                                auto oldVal = funcInput[calleeFSym];
-                                auto newVal = analysis.joinFacts(oldVal, factAtCall);
-                                if (!analysis.factsEqual(oldVal, newVal)) {
-                                    funcInput[calleeFSym] = newVal;
+                            if (!Callee->isDeclaration()) {
+                                // 1. Propagate facts to callee
+                                CallString calleeCS = pushContext(cs, CI);
+                                std::string calleeFSym = getFuncSymbol(Callee, calleeCS);
+
+                                // Eval summary path to call site
+                                Val currentPathVal = I0<D>::eval(false, solvedMap, currentPath);
+                                Val callEntry = D::extend(getCallEntryTransfer(analysis, *CI, *Callee, 0),
+                                                          currentPathVal);
+                                Val totalToCall = D::extend(callEntry, entryToBlockStart);
+
+                                auto factAtCall = analysis.applySummary(totalToCall, inputVal);
+
+                                // Update Callee Input
+                                if (!funcInput.count(calleeFSym)) {
+                                    funcInput[calleeFSym] = factAtCall;
                                     if (inWorklist2.find({Callee, calleeCS}) == inWorklist2.end()) {
                                         worklist2.push_back({Callee, calleeCS});
                                         inWorklist2.insert({Callee, calleeCS});
+                                    }
+                                } else {
+                                    auto oldVal = funcInput[calleeFSym];
+                                    auto newVal = analysis.joinFacts(oldVal, factAtCall);
+                                    if (!analysis.factsEqual(oldVal, newVal)) {
+                                        funcInput[calleeFSym] = newVal;
+                                        if (inWorklist2.find({Callee, calleeCS}) == inWorklist2.end()) {
+                                            worklist2.push_back({Callee, calleeCS});
+                                            inWorklist2.insert({Callee, calleeCS});
+                                        }
                                     }
                                 }
                             }
@@ -257,7 +310,11 @@ public:
                          if (auto *Callee = CI->getCalledFunction()) {
                              if (!Callee->isDeclaration()) {
                                  CallString calleeCS = pushContext(cs, CI);
+                                 currentPath = Exp::seq(getCallEntryTransfer(analysis, *CI, *Callee, 0), currentPath);
                                  currentPath = Exp::call(getFuncSymbol(Callee, calleeCS), currentPath);
+                                 currentPath = Exp::seq(getCallReturnTransfer(analysis, *CI, *Callee, 0), currentPath);
+                             } else {
+                                 currentPath = Exp::seq(getCallToReturnTransfer(analysis, *CI, 0), currentPath);
                              }
                          }
                     }

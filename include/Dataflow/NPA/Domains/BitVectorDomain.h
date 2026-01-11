@@ -26,6 +26,7 @@ public:
   static unsigned getBitWidth() { return BitWidth; }
 
   static value_type zero() { return llvm::APInt(BitWidth, 0); }
+  static value_type one() { return llvm::APInt::getAllOnes(BitWidth); }
 
   static bool equal(const value_type &a, const value_type &b) {
     return a.eq(b);
