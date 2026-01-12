@@ -4,8 +4,8 @@
 set(IFDS_FRAMEWORK_SOURCES
   IDESolver.cpp
   IFDSDebugUtils.cpp
-  IFDSSolver.cpp
-  ParallelIFDSSolver.cpp
+  #IFDSSolver.cpp          # moved to the include dir?
+  #ParallelIFDSSolver.cpp  # moved to the include dir?
 )
 
 # Client analyses

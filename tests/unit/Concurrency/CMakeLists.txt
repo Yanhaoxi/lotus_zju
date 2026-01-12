@@ -1,0 +1,1 @@
+add_lotus_test(mhp_analysis_test MHPAnalysisTest.cpp)

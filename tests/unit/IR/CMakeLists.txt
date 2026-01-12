@@ -1,0 +1,1 @@
+add_lotus_test(pdg_slicing_test pdg_slicing_test.cpp)
