@@ -26,6 +26,22 @@
 using namespace llvm;
 using namespace std;
 
+static void getLoopExitBlocks(const Loop *L,
+                              SmallVectorImpl<BasicBlock *> &ExitBlocks) {
+  SmallPtrSet<const BasicBlock *, 32> LoopBlocks;
+  for (const BasicBlock *BB : L->blocks())
+    LoopBlocks.insert(BB);
+
+  for (const BasicBlock *BB : L->blocks()) {
+    for (const_succ_iterator SI = succ_begin(BB), SE = succ_end(BB); SI != SE;
+         ++SI) {
+      const BasicBlock *SuccBB = *SI;
+      if (!LoopBlocks.count(SuccBB))
+        ExitBlocks.push_back(const_cast<BasicBlock *>(BB));
+    }
+  }
+}
+
 void findFunctionBackedgesIntra(llvm::Function *func,
                                 std::set<BBEdgePair> &res) {
   findBackedgesFromBasicBlock(&func->getEntryBlock(), res);
@@ -529,10 +545,7 @@ bool isReachableFrom(llvm::BasicBlock *from, llvm::BasicBlock *to,
       break;
 
     if (const Loop *Outer = LI ? getOutermostLoop(LI, BB) : nullptr) {
-      // All blocks in a single loop are reachable from all other blocks. From
-      // any of these blocks, we can skip directly to the exits of the loop,
-      // ignoring any other blocks inside the loop body.
-      Outer->getExitBlocks(Worklist);
+      getLoopExitBlocks(Outer, Worklist);
     } else {
       Worklist.append(succ_begin(BB), succ_end(BB));
     }
