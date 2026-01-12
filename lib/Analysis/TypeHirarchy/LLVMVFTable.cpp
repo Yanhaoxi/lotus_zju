@@ -19,6 +19,9 @@
 
 namespace lotus {
 
+// Out-of-class definition for static constexpr member (C++17 ODR-use)
+constexpr char LLVMVFTable::NullFunName[];
+
 const llvm::Function *LLVMVFTable::getFunction(unsigned Idx) const {
   if (Idx < size()) {
     return VFT[Idx];

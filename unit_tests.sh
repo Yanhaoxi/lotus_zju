@@ -1,2 +1,2 @@
 #!/bin/bash
-cd "$(dirname "$0")/build" && ctest -R "Test$" --output-on-failure
+cd "$(dirname "$0")/build/tests" && ctest -R "_test$" --output-on-failure
