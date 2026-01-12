@@ -7,6 +7,7 @@
 
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Module.h>
+#include <llvm/Support/Casting.h>
 
 namespace context {
 class Context;
@@ -86,7 +87,7 @@ public:
              const context::Context *ctx = nullptr) const {
     std::vector<const llvm::Function *> ret;
 
-    const auto *callBase = dyn_cast<llvm::CallBase>(inst);
+    const auto *callBase = llvm::dyn_cast<llvm::CallBase>(inst);
     if (!callBase)
       return ret;
 

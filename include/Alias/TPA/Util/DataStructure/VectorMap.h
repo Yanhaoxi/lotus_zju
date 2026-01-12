@@ -2,6 +2,7 @@
 
 #include "Alias/TPA/Util/DataStructure/SortedVector.h"
 
+#include <stdexcept>
 #include <tuple>
 
 namespace util {

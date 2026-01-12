@@ -1,7 +1,9 @@
 #pragma once
 
+#include <cstddef>
 #include <functional>
 #include <type_traits>
+#include <memory>
 
 namespace util
 {
@@ -57,7 +59,7 @@ std::size_t hashTriple(const T1& t1, const T2& t2, const T3& t3)
 }
 
 template <typename EnumClassType>
-size_t hashEnumClass(EnumClassType e)
+std::size_t hashEnumClass(EnumClassType e)
 {
 	using RealType = std::underlying_type_t<EnumClassType>;
 	return std::hash<RealType>()(static_cast<RealType>(e));

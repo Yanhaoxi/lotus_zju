@@ -1,5 +1,7 @@
 #include "Alias/TPA/PointerAnalysis/MemoryModel/Type/ArrayLayout.h"
 
+#include <limits>
+
 namespace tpa {
 
 static bool validateTripleList(const ArrayLayout::ArrayTripleList &list) {

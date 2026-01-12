@@ -13,5 +13,5 @@ add_subdirectory(LotusAA)
 add_subdirectory(AserPTA)
 # add_subdirectory(TypeQualifier) # not used for now
 add_subdirectory(AliasAnalysisWrapper)
-add_subdirectory(Pestrie)
+# add_subdirectory(Pestrie)  # not used fow now
 add_subdirectory(TPA)
