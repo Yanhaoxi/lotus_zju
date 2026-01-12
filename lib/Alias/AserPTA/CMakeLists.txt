@@ -23,11 +23,19 @@ target_compile_options(AserPTA PRIVATE
     -DSPDLOG_ACTIVE_LEVEL=2
 )
 
+# LLVM component libs needed by AserPTA.
+# Note: This must be expressed at the AserPTA target level so consumers (tests/tools)
+# reliably link the right LLVM libs on platforms where LLVM is split into many libs.
+llvm_map_components_to_libnames(aserpta_llvm_libs
+    analysis
+    core
+    support
+    transformutils
+)
+
 # Link against LLVM libraries
 target_link_libraries(AserPTA PUBLIC
-    #LLVMCore
-    #LLVMTransformUtils
-    #LLVMAnalysis
+    ${aserpta_llvm_libs}
     CanaryAliasBDD
 )
 
