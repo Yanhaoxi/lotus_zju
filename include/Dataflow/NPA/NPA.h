@@ -16,6 +16,7 @@
 
 #include <cassert>
 #include <chrono>
+#include <deque>
 #include <functional>
 #include <iostream>
 #include <memory>

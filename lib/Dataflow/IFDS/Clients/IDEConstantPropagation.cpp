@@ -4,8 +4,8 @@
 */
 #include "Dataflow/IFDS/Clients/IDEConstantPropagation.h"
 #include <llvm/IR/Instructions.h>
-#include <llvm/IR/Operator.h>
 #include <llvm/IR/IntrinsicInst.h>
+#include <llvm/IR/Operator.h>
 #include <llvm/Support/MathExtras.h>
 
 #include <limits>
@@ -207,7 +207,8 @@ IDEConstantPropagation::EdgeFunction IDEConstantPropagation::normal_edge_functio
         const llvm::Value* ptrOp = store->getPointerOperand();
         if (tgt_fact == ptrOp) {
             if (!src_fact) {
-                if (auto c = asConst(valueOp); c.hasValue()) {
+                auto c = asConst(valueOp);
+                if (c.hasValue()) {
                     long long k = c.getValue();
                     return [k](const Value& /*v*/) { return Value::constant(k); };
                 }
@@ -292,7 +293,8 @@ IDEConstantPropagation::EdgeFunction IDEConstantPropagation::call_edge_function(
             if (&arg == tgt_fact && idx < call->arg_size()) {
                 const llvm::Value* actual = call->getArgOperand(idx);
                 if (!src_fact) {
-                    if (auto c = asConst(actual); c.hasValue()) {
+                    auto c = asConst(actual);
+                    if (c.hasValue()) {
                         long long k = c.getValue();
                         return [k](const Value& /*v*/) { return Value::constant(k); };
                     }
