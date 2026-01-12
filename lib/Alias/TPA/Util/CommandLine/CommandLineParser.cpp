@@ -48,11 +48,11 @@ void CommandLineParser::printUsage(const StringRef &progName) const {
   outs() << "Optional arguments:\n";
   for (auto const &mapping : optFlagMap) {
     auto argName = "-" + mapping.first.str();
-    if (mapping.second.defaultValue)
+    if (mapping.second.requiresArg)
       argName += " <" + mapping.first.str() + "_arg>";
     outs() << "  " << argName << "\t\t\t" << mapping.second.desc;
-    if (mapping.second.defaultValue && !mapping.second.defaultValue->empty())
-      outs() << " (default = " << *mapping.second.defaultValue << ")";
+    if (mapping.second.requiresArg && !mapping.second.defaultValue.empty())
+      outs() << " (default = " << mapping.second.defaultValue << ")";
     outs() << "\n";
   }
 }
@@ -82,14 +82,14 @@ void CommandLineParser::addPositionalFlag(const StringRef &name,
 
 void CommandLineParser::addOptionalFlag(const StringRef &name,
                                         const StringRef &desc) {
-  OptionalFlagEntry entry = {desc, nullptr};
+  OptionalFlagEntry entry = {desc, /*requiresArg=*/false, /*defaultValue=*/""};
   addOptionalFlagEntry(name, std::move(entry));
 }
 
 void CommandLineParser::addOptionalFlag(const StringRef &name,
                                         const StringRef &desc,
                                         const StringRef &init) {
-  OptionalFlagEntry entry = {desc, &init};
+  OptionalFlagEntry entry = {desc, /*requiresArg=*/true, /*defaultValue=*/init};
   addOptionalFlagEntry(name, std::move(entry));
 }
 
@@ -126,7 +126,7 @@ void CommandLineParser::parseArgs(const std::vector<StringRef> &args,
       if (itr == optFlagMap.end())
         throw ParseException("Option not recognized: " + flag.str());
 
-      if (itr->second.defaultValue) {
+      if (itr->second.requiresArg) {
         ++numFlagConsumed;
         if (numFlagConsumed >= args.size())
           throw ParseException(
@@ -151,8 +151,8 @@ void CommandLineParser::parseArgs(const std::vector<StringRef> &args,
     throw ParseException("Not enough positional arguments are provided");
 
   for (auto const &mapping : optFlagMap) {
-    if (mapping.second.defaultValue && result.lookup(mapping.first) == nullptr)
-      result.addFlag(mapping.first, *mapping.second.defaultValue);
+    if (mapping.second.requiresArg && result.lookup(mapping.first) == nullptr)
+      result.addFlag(mapping.first, mapping.second.defaultValue);
   }
 }
 

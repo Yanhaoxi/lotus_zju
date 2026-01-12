@@ -10,5 +10,5 @@ set (TransformSourceCodes
 	RunPrepass.cpp
 )
 
-add_library (Transforms STATIC ${TransformSourceCodes})
-target_link_libraries (Transforms LLVMTransformUtils LLVMipo LLVMSupport LLVMCore)
+add_library (TPATransforms STATIC ${TransformSourceCodes})
+target_link_libraries (TPATransforms LLVMTransformUtils LLVMipo LLVMSupport LLVMCore)

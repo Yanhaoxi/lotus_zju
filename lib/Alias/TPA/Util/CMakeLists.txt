@@ -5,5 +5,5 @@ set (UtilCodes
 	IO/WriteIR.cpp
 )
 
-add_library (Util STATIC ${UtilCodes})
-target_link_libraries (Util LLVMIRReader LLVMAsmParser LLVMBitWriter LLVMSupport LLVMCore)
+add_library (TPAUtil STATIC ${UtilCodes})
+target_link_libraries (TPAUtil LLVMIRReader LLVMAsmParser LLVMBitWriter LLVMSupport LLVMCore)

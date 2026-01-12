@@ -163,6 +163,20 @@ ExternalPointerTable ExternalPointerTable::buildTable(const StringRef& fileConte
 		}
 	);
 
+	auto deallocEntry = rule(
+		seq(
+			token(str("DEALLOC")),
+			token(id)
+		),
+		[&extTable] (auto const& pair)
+		{
+			// TPA currently does not model deallocation effects; treat as no-op
+			assert(extTable.lookup(std::get<1>(pair)) == nullptr && "Dealloc entry should not co-exist with other entries");
+			extTable.table.insert(std::make_pair(std::get<1>(pair).str(), PointerEffectSummary()));
+			return false;
+		}
+	);
+
 	auto allocWithSize = rule(
 		seq(
 			str("ALLOC"),
@@ -222,7 +236,7 @@ ExternalPointerTable ExternalPointerTable::buildTable(const StringRef& fileConte
 		}
 	);
 
-	auto pentry = alt(commentEntry, ignoreEntry, allocEntry, copyEntry, exitEntry);
+	auto pentry = alt(commentEntry, ignoreEntry, deallocEntry, allocEntry, copyEntry, exitEntry);
 	auto ptable = many(pentry);
 
 	auto parseResult = ptable.parse(fileContent);

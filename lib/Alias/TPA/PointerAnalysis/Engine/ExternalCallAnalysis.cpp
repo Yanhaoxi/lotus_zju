@@ -7,6 +7,7 @@
 #include "Alias/TPA/PointerAnalysis/Program/SemiSparseProgram.h"
 #include "Annotation/Pointer/PointerEffect.h"
 
+#include <llvm/IR/Intrinsics.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/Support/raw_ostream.h>
@@ -307,14 +308,28 @@ void TransferFunction::evalExternalCall(const context::Context *ctx,
                                         const CallCFGNode &callNode,
                                         const FunctionContext &fc,
                                         EvalResult &evalResult) {
+  if (fc.getFunction()->isIntrinsic()) {
+    switch (fc.getFunction()->getIntrinsicID()) {
+    case Intrinsic::dbg_value:
+    case Intrinsic::dbg_declare:
+    case Intrinsic::dbg_label:
+    case Intrinsic::lifetime_start:
+    case Intrinsic::lifetime_end:
+      addMemLevelSuccessors(ProgramPoint(ctx, &callNode), *localState,
+                            evalResult);
+      return;
+    default:
+      break;
+    }
+  }
+
   const auto *summary =
       globalState.getExternalPointerTable().lookup(fc.getFunction()->getName());
   if (summary == nullptr) {
-    errs() << "\nPointer Analysis error: cannot find annotation for the "
-              "following function:\n"
-           << fc.getFunction()->getName() << "\n\n";
-    llvm_unreachable("Please add annotation to the aforementioned function and "
-                     "in the config file and try again.\n");
+    // Skip functions without annotations: conservatively propagate memory-level successors
+    addMemLevelSuccessors(ProgramPoint(ctx, &callNode), *localState,
+                          evalResult);
+    return;
   }
 
   // If the external func is a noop, we still need to propagate

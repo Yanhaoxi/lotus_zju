@@ -25,6 +25,53 @@ Inclusion-based points-to analysis (flow-insensitive, context-insensitive, conte
 - Good default when you need quick alias information
 - Note: this tool have some redundancies with aserpta, and reuses some header files from it (from context abstraction).
 
+TPA (tpa)
+---------
+
+Flow- and context-sensitive pointer analysis using semi-sparse representation
+with k-limiting support.
+
+**Binary**: ``tpa``  
+**Location**: ``tools/alias/tpa.cpp``
+
+**Usage**:
+
+.. code-block:: bash
+
+   ./build/bin/tpa [options] input.bc
+
+**Key Options** (see also :doc:`../../alias/tpa`):
+
+- ``-ext <file>`` – External pointer table file for modeling library functions
+- ``-no-prepass`` – Skip TPA IR normalization prepasses (GEP expansion, etc.)
+- ``-prepass-out <file>`` – Write module after prepass to file (suffix .ll or .bc)
+- ``-cfg-dot-dir <dir>`` – Write per-function pointer CFGs as .dot files into directory
+- ``-print-pts`` – Print points-to sets for pointers materialized by the analysis
+- ``-print-indirect-calls`` – Print resolved targets for each indirect call
+
+**Characteristics**:
+
+- Flow-sensitive: tracks control flow within functions
+- Context-sensitive: supports k-limiting and adaptive context strategies
+- Semi-sparse representation: only analyzes def-use chains, not all program points
+- Field-sensitive memory model: models individual struct fields and array elements
+
+**Examples**:
+
+.. code-block:: bash
+
+   # Basic analysis
+   ./build/bin/tpa input.bc
+
+   # With external pointer table and output CFG graphs
+   ./build/bin/tpa -ext ext_table.txt -cfg-dot-dir cfgs/ input.bc
+
+   # Print points-to sets and indirect call targets
+   ./build/bin/tpa -print-pts -print-indirect-calls input.bc
+
+   # Skip prepass and save preprocessed IR
+   ./build/bin/tpa -no-prepass -prepass-out preprocessed.bc input.bc
+
 AserPTA (aser-aa)
 -----------------
 

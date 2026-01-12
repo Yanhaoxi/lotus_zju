@@ -14,6 +14,7 @@ This directory contains various alias analysis implementations and toolkits used
 - SRAA: range-based alias analsyis (flow- and context-insensitive)
 - UnderApproxAA: pattern-based must-alias analysis
 - AllocAA.
+- TPA: Inclusin-based, flow- and context-sensitive analysis (k-limiting)
 
 Note: SparrowAA and AserPTA have some redundancies, but are different
 - SparrowAA does not use on-the-fly callgraph construction, while AserPTA uses it by default.

@@ -18,7 +18,7 @@ private:
 	TypeMap typeMap;
 
 	using MapType = std::unordered_map<const llvm::Function*, CFG>;
-	MapType cfgMap;
+	mutable MapType cfgMap;
 
 	using FunctionList = std::vector<const llvm::Function*>;
 	FunctionList addrTakenFuncList;
@@ -33,6 +33,7 @@ public:
 	void setTypeMap(TypeMap&& t) { typeMap = std::move(t); }
 
 	CFG& getOrCreateCFGForFunction(const llvm::Function& f);
+	CFG& getOrCreateCFGForFunction(const llvm::Function& f) const;
 	const CFG* getCFGForFunction(const llvm::Function& f) const;
 	const CFG* getEntryCFG() const;
 

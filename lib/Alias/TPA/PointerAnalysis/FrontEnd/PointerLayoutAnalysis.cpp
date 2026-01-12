@@ -41,6 +41,14 @@ void PtrLayoutMapBuilder::insertMap(const Type* type, const PointerLayout* layou
 
 const PointerLayout* PtrLayoutMapBuilder::processStructType(StructType* stType)
 {
+	// We know nothing about opaque type. Conservatively treat it as a non-pointer blob.
+	if (stType->isOpaque())
+	{
+		const auto *layout = PointerLayout::getEmptyLayout();
+		insertMap(stType, layout);
+		return layout;
+	}
+
 	util::VectorSet<size_t> ptrOffsets;
 
 	const auto *structLayout = typeSet.getDataLayout().getStructLayout(stType);

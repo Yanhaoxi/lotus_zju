@@ -6,4 +6,4 @@ namespace transform {
 
 void runPrepassOn(llvm::Module &);
 
-}
+} // namespace transform

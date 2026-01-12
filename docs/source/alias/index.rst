@@ -18,3 +18,4 @@ This section covers the various alias analysis algorithms implemented in Lotus.
    underapproxaa
    dynaa
    sraa
+   tpa

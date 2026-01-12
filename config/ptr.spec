@@ -424,6 +424,9 @@ IGNORE llvm.dbg.value
 IGNORE llvm.lifetime.end
 IGNORE llvm.lifetime.start
 IGNORE llvm.stackrestore
+IGNORE llvm.va_start
+IGNORE llvm.va_end
+IGNORE llvm.va_copy
 IGNORE llvm.trap
 IGNORE llvm.umul.with.overflow.i64
 

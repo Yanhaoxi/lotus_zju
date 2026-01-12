@@ -3,7 +3,7 @@
 llvm_map_components_to_libnames(LLVM_LINK_COMPONENTS
   Core
   Coroutines
-  #IRReader
+  IRReader
   Target
 )
 
@@ -53,6 +53,15 @@ target_link_libraries(sparrow-aa PRIVATE
 add_executable(dyck-aa dyck-aa.cpp)
 target_link_libraries(dyck-aa PRIVATE
   CanaryDyckAA
+  ${LLVM_LINK_COMPONENTS}
+)
+
+# TPA (semi-sparse pointer analysis) Tool
+add_executable(tpa tpa.cpp)
+target_link_libraries(tpa PRIVATE
+  FSCSPointerAnalysis
+  TPATransforms
+  TPAUtil
   ${LLVM_LINK_COMPONENTS}
 )
 

@@ -14,7 +14,8 @@ private:
 
   struct OptionalFlagEntry {
     llvm::StringRef desc;
-    const llvm::StringRef *defaultValue;
+    bool requiresArg;
+    llvm::StringRef defaultValue;
   };
 
   using OptionalFlagMap = VectorMap<llvm::StringRef, OptionalFlagEntry>;

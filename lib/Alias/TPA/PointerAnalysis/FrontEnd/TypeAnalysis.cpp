@@ -63,6 +63,15 @@ void TypeMapBuilder::buildTypeMap()
 
 	for (auto *type: typeSet)
 	{
+		// Some LLVM IR types are unsized (e.g., function types, opaque structs, etc.).
+		// We conservatively treat unknown/unsized types as a byte array to avoid
+		// triggering DataLayout assertions.
+		if (!isa<FunctionType>(type) && !type->isSized())
+		{
+			insertOpaqueType(type);
+			continue;
+		}
+
 		if (auto *stType = dyn_cast<StructType>(type))
 		{
 			if (stType->isOpaque())

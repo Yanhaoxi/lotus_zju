@@ -23,6 +23,10 @@ CFG& SemiSparseProgram::getOrCreateCFGForFunction(const llvm::Function& f)
 		itr = cfgMap.emplace(&f, f).first;
 	return itr->second;
 }
+CFG& SemiSparseProgram::getOrCreateCFGForFunction(const llvm::Function& f) const
+{
+	return const_cast<SemiSparseProgram*>(this)->getOrCreateCFGForFunction(f);
+}
 const CFG* SemiSparseProgram::getCFGForFunction(const llvm::Function& f) const
 {
 	auto itr = cfgMap.find(&f);
@@ -35,7 +39,7 @@ const CFG* SemiSparseProgram::getEntryCFG() const
 {
 	auto *mainFunc = module.getFunction("main");
 	assert(mainFunc != nullptr && "Cannot find main function!");
-	return getCFGForFunction(*mainFunc);
+	return &getOrCreateCFGForFunction(*mainFunc);
 }
 
 } // namespace tpa
