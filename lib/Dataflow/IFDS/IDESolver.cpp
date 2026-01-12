@@ -22,22 +22,6 @@
 namespace ifds {
 
 // ============================================================================
-// IDEProblem Implementation
-// ============================================================================
-
-template<typename Fact, typename Value>
-typename IDEProblem<Fact, Value>::EdgeFunction 
-IDEProblem<Fact, Value>::compose(const EdgeFunction& f1, const EdgeFunction& f2) const {
-    return [f1, f2](const Value& v) { return f1(f2(v)); };
-}
-
-template<typename Fact, typename Value>
-typename IDEProblem<Fact, Value>::EdgeFunction 
-IDEProblem<Fact, Value>::identity() const {
-    return [](const Value& v) { return v; };
-}
-
-// ============================================================================
 // IDESolver Implementation
 // ============================================================================
 

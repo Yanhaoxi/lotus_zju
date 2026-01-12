@@ -391,4 +391,20 @@ IFDSProblem<Fact>::initial_seeds(const llvm::Module& module) {
     return seeds;
 }
 
+// ============================================================================
+// IDEProblem Inline Implementations
+// ============================================================================
+
+template<typename Fact, typename Value>
+inline typename IDEProblem<Fact, Value>::EdgeFunction
+IDEProblem<Fact, Value>::compose(const EdgeFunction& f1, const EdgeFunction& f2) const {
+    return [f1, f2](const Value& v) { return f1(f2(v)); };
+}
+
+template<typename Fact, typename Value>
+inline typename IDEProblem<Fact, Value>::EdgeFunction
+IDEProblem<Fact, Value>::identity() const {
+    return [](const Value& v) { return v; };
+}
+
 } // namespace ifds
