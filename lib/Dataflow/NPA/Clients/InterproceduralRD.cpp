@@ -72,7 +72,7 @@ InterproceduralRD::Result InterproceduralRD::run(llvm::Module &M, bool verbose) 
     auto engineResult = InterproceduralEngine<GenKillTransferDomain, RDAnalysis>::run(M, analysis, verbose);
     
     InterproceduralRD::Result res;
-    res.summaries = engineResult.summaries;
+    res.summaries.insert(engineResult.summaries.begin(), engineResult.summaries.end());
     for (auto &kv : engineResult.blockEntryFacts) {
         res.blockFacts[kv.first] = kv.second;
     }

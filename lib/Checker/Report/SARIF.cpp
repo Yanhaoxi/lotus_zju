@@ -18,7 +18,7 @@ std::string levelToString(Level level) {
         default: return "warning";
     }
 }
-}
+} // namespace
 
 // Location implementation
 cJSON* Location::toJson() const {

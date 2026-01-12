@@ -3,9 +3,9 @@
  * Author: rainoftime
  */
 #include "Dataflow/NPA/Clients/InterproceduralTaint.h"
-#include "Dataflow/NPA/Engines/InterproceduralEngine.h"
-#include "Annotation/Taint/TaintConfigManager.h"
 #include "Alias/AliasAnalysisWrapper/AliasAnalysisWrapper.h"
+#include "Annotation/Taint/TaintConfigManager.h"
+#include "Dataflow/NPA/Engines/InterproceduralEngine.h"
 #include <llvm/Analysis/ValueTracking.h>
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Instructions.h>
@@ -268,7 +268,7 @@ public:
     D::value_type transfer = D::one();
     unsigned numArgs = static_cast<unsigned>(
         std::min<size_t>(call.arg_size(), callee.arg_size()));
-    auto paramIt = callee.arg_begin();
+    const auto *paramIt = callee.arg_begin();
     for (unsigned i = 0; i < numArgs; ++i, ++paramIt) {
       const llvm::Value *arg = call.getArgOperand(i);
       unsigned argBit = info.getValueBit(arg);
@@ -464,7 +464,7 @@ InterproceduralTaint::Result InterproceduralTaint::run(llvm::Module &M,
       InterproceduralEngine<TaintTransferDomain, TaintAnalysis, 1>::run(M, analysis, verbose);
 
   InterproceduralTaint::Result res;
-  res.summaries = engineResult.summaries;
+  res.summaries.insert(engineResult.summaries.begin(), engineResult.summaries.end());
   for (auto &kv : engineResult.blockEntryFacts) res.blockFacts[kv.first] = kv.second;
   return res;
 }

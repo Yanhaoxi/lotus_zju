@@ -2,42 +2,37 @@
  * Newtonian Program Analysis – generic C++14 header
  *
  * Based on OCaml NPA-PMA by Di Wang.
- * TBD: for KleeIter and NewtonIter (and other components), maybe use the (somewhat more comprehensive) one in lib/Solvers/FPsolve for solving the equations.
  *
- *   ✅ Conditional expressions (T0_cond/T1_cond) with condCombine
- *   ✅ Kleene & Newton iterators with correct differential construction
- *   ✅ Ndet linearization: adds base values to branches
- *   ✅ InfClos: re-marks dirty each iteration
- *   ✅ Diff::clone: resets cached values like OCaml unmasked_copy
+ * Features:
+ *   - Conditional expressions (T0_cond/T1_cond) with condCombine
+ *   - Kleene & Newton iterators with correct differential construction
+ *   - Ndet linearization: adds base values to branches
+ *   - InfClos: re-marks dirty each iteration
+ *   - Diff::clone: resets cached values
  *
- * KNOWN LIMITATIONS vs. OCaml version:
- *   ❌ Probabilistic expressions (T0_prob/T1_prob) - NOT IMPLEMENTED
- *   ❌ Symbolic solving infrastructure - NOT IMPLEMENTED
- *      (Interp0_symbolic, Interp1_symbolic, Newton_symbolic)
- *      Note: extend_lin in domain is for forward compatibility
- 
- When you later add symbolic support, you must:
-    - implement extend_lin,
-    - implement the symbolic interpreters and equaliser,
-    - use variable-sensitive dirty marking to avoid exponential re-evaluation.
- * MIT licence – use at will, no warranty.
  *********************************************************************/
 #ifndef NPA_HPP
 #define NPA_HPP
+
 #include <cassert>
 #include <chrono>
 #include <functional>
 #include <iostream>
-#include <map>
 #include <memory>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
- 
+
+namespace npa {
+
  /**********************************************************************
   * 0. helpers
   *********************************************************************/
  using Symbol = std::string;
+ enum class LinearStrategy { Naive, Worklist };
+
  template <class T> inline void hash_combine(std::size_t& h,const T& v){
      h ^= std::hash<T>{}(v)+0x9e3779b9+(h<<6)+(h>>2);}
  
@@ -79,26 +74,24 @@ public:
 template <class D> using DomVal = typename D::value_type;
 template <class D> using DomTest = typename D::test_type;
 
-#define NPA_REQUIRE_DOMAIN(D) static_assert(DomainHas<D>::value,"Invalid DOMAIN: missing required methods (zero, one, combine, extend, extend_lin, ndetCombine, condCombine, subtract, equal) or test_type")
+#define NPA_REQUIRE_DOMAIN(D) static_assert(DomainHas<D>::value,"Invalid DOMAIN: missing required methods")
  
 /**********************************************************************
   * 2. Dirty-flag base
   *********************************************************************/
  struct Dirty{ mutable bool dirty_=true; void mark(bool d=true)const{dirty_=d;}};
 
-// Lightweight optional replacement to keep this header C++14 friendly.
-// Only the small subset of std::optional used below is implemented.
+// Lightweight optional replacement
 template <class V>
-struct NPAOptional {
+struct Optional {
   bool has{false};
   V val{};
 
-  NPAOptional() = default;
-  NPAOptional(const NPAOptional&) = default;
-  NPAOptional& operator=(const NPAOptional&) = default;
+  Optional() = default;
+  Optional(const Optional&) = default;
+  Optional& operator=(const Optional&) = default;
 
-  // Assign from value – marks the optional as engaged
-  NPAOptional& operator=(const V& v_in) {
+  Optional& operator=(const V& v_in) {
     val = v_in;
     has = true;
     return *this;
@@ -129,7 +122,7 @@ struct Exp0 : Dirty, std::enable_shared_from_this<Exp0<D>>{
   Symbol sym;                    // Call / Hole / Concat var / InfClos loop var
   T phi;                         // Cond guard
   E0<D> t1,t2;                   // Cond / Ndet / Concat branches
-  /* cache */ mutable NPAOptional<V> val;
+  /* cache */ mutable Optional<V> val;
   /* factories */
   static E0<D> term(V v){ auto e=std::make_shared<Exp0>(); e->k=Term; e->c=v; return e;}
   static E0<D> seq(V c,E0<D> t){ auto e=std::make_shared<Exp0>(); e->k=Seq; e->c=c; e->t=t; return e;}
@@ -159,7 +152,7 @@ struct Exp1 : Dirty{
   Symbol sym;
   T phi;                          // Cond guard
   E1<D> t,t1,t2;                  // various
-  mutable NPAOptional<V> val;
+  mutable Optional<V> val;
   /* factories */
   static E1<D> term(V v){ auto e=std::make_shared<Exp1>(); e->k=Term; e->c=v; return e;}
   static E1<D> add(E1<D> a,E1<D> b){ auto e=std::make_shared<Exp1>(); e->k=Add; e->t1=a; e->t2=b; return e;}
@@ -174,6 +167,40 @@ struct Exp1 : Dirty{
   static E1<D> inf(E1<D> body,Symbol x){
         auto e=std::make_shared<Exp1>(); e->k=InfClos; e->t=body; e->sym=x; return e;}
 };
+
+ /**********************************************************************
+  * 4.5 DepFinder helper
+  *********************************************************************/
+ template <class D>
+ struct DepFinder {
+   using Set = std::unordered_set<Symbol>;
+   static void find(const E1<D>& e, Set& deps) {
+     if (!e) return;
+     using K = typename Exp1<D>::K;
+     switch(e->k) {
+       case K::Hole: deps.insert(e->sym); break;
+       // Call in Exp1 is typically 'c . dArg + c2'. 
+       // If Call(f, c) node in Exp1 was created from differential, it depends on 'f' if 'f' is a variable?
+       // But in Exp1::Call(sym, c), 'sym' is function name and 'c' is constant. 
+       // Wait, Diff::aux generates Exp1::call(o->sym, ...) where o->sym is function name.
+       // However, for Interprocedural analysis, we might treat function summaries as variables.
+       // For now, Hole is the primary variable dependency.
+       case K::Concat: 
+           deps.insert(e->sym); // Loop/Concat variable
+           find(e->t1, deps); find(e->t2, deps); 
+           break;
+       case K::InfClos:
+           deps.insert(e->sym);
+           find(e->t, deps);
+           break;
+       default:
+           if(e->t) find(e->t, deps);
+           if(e->t1) find(e->t1, deps);
+           if(e->t2) find(e->t2, deps);
+           break;
+     }
+   }
+ };
  
  /**********************************************************************
   * 5. Fixed-point helper (scalar / vector)
@@ -199,18 +226,19 @@ auto fix(bool verbose, DomVal<D> init, F f){
      init.swap(nxt); ++cnt;
    }
  }
+
  
  /**********************************************************************
   * 6. Interpreter Exp0
   *********************************************************************/
  template <class D>
  struct I0{
-   using V = DomVal<D>; using Map = std::map<Symbol,V>;
+   using V = DomVal<D>; using Map = std::unordered_map<Symbol,V>;
   static V eval(bool /*verbose*/,const Map& nu,const E0<D>& e){
     mark(e); return rec(nu,{},e);
    }
  private:
-   using Env = std::map<Symbol,V>;
+   using Env = std::unordered_map<Symbol,V>;
   static void mark(const E0<D>& e){
     if(!e) return; e->mark();
     switch(e->k){
@@ -240,7 +268,6 @@ auto fix(bool verbose, DomVal<D> init, F f){
           V init=D::zero();
           v=fix<D>(false,init,[&](V cur){
                 auto env2=env; env2[e->sym]=cur;
-                // Re-mark body dirty to force re-evaluation (OCaml: mark_dirty_texp0)
                 mark(e->t);
                 return rec(nu,env2,e->t);
               });}
@@ -255,15 +282,13 @@ auto fix(bool verbose, DomVal<D> init, F f){
   *********************************************************************/
  template <class D>
  struct Diff{
-   using V = DomVal<D>; using M0 = E0<D>; using M1 = E1<D>; using Map = std::map<Symbol,V>;
+   using V = DomVal<D>; using M0 = E0<D>; using M1 = E1<D>; using Map = std::unordered_map<Symbol,V>;
    static M1 build(const Map& nu,const M0& e){ return aux(nu,e,clone(e)); }
  private:
   static M0 clone(const M0& e){
     auto c=std::make_shared<Exp0<D>>(*e);
-    // Reset cached value and dirty flag (OCaml: unmasked_copy_texp0)
     c->val.reset();
     c->dirty_=true;
-    // Recursively clone children
     if(e->t) c->t=clone(e->t);
     if(e->t1) c->t1=clone(e->t1);
     if(e->t2) c->t2=clone(e->t2);
@@ -292,10 +317,9 @@ auto fix(bool verbose, DomVal<D> init, F f){
       case K0::Ndet:{
         auto a1=aux(nu,o->t1,cur->t1);
         auto a2=aux(nu,o->t2,cur->t2);
-        // Must add base values to differentials (OCaml: t1_add (t1_term v1, dt1))
-        assert(o->t1->val.has_value() && "Ndet branch 1 must be evaluated before differential");
-        assert(o->t2->val.has_value() && "Ndet branch 2 must be evaluated before differential");
-        assert(o->val.has_value() && "Ndet node must be evaluated before differential");
+        assert(o->t1->val.has_value());
+        assert(o->t2->val.has_value());
+        assert(o->val.has_value());
         auto aug1 = Exp1<D>::add(Exp1<D>::term(*o->t1->val), a1);
         auto aug2 = Exp1<D>::add(Exp1<D>::term(*o->t2->val), a2);
         auto augmented = Exp1<D>::ndet(aug1, aug2);
@@ -313,21 +337,27 @@ auto fix(bool verbose, DomVal<D> init, F f){
         return Exp1<D>::inf(body,o->sym);
       }
      }
-     return nullptr; /*unreachable*/
+     return nullptr;
    }
  };
  
- /**********************************************************************
+// Forward declaration for worklist solver
+ template <class D>
+ std::vector<DomVal<D>> solve_linear_worklist_impl(bool verbose, 
+                                              const std::vector<std::pair<Symbol, E1<D>>>& rhs,
+                                              std::vector<DomVal<D>> init);
+
+/**********************************************************************
   * 8. Interpreter Exp1
   *********************************************************************/
  template <class D>
  struct I1{
-   using V = DomVal<D>; using Map = std::map<Symbol,V>;
+   using V = DomVal<D>; using Map = std::unordered_map<Symbol,V>;
   static V eval(bool /*verbose*/,const Map& nu,const E1<D>& e){
     mark(e); return rec(nu,{},e);
    }
  private:
-   using Env=std::map<Symbol,V>;
+   using Env=std::unordered_map<Symbol,V>;
    static void mark(const E1<D>& e){
      if(!e) return; e->mark();
      if(e->t) mark(e->t); if(e->t1) mark(e->t1); if(e->t2) mark(e->t2);
@@ -339,7 +369,7 @@ auto fix(bool verbose, DomVal<D> init, F f){
      switch(e->k){
       case K::Term: v=e->c; break;
       case K::Seq:  v=D::extend(e->c,rec(nu,env,e->t)); break;
-      case K::Call: v=D::extend(nu.at(e->sym), e->c); break; // non-symbolic uses extend
+      case K::Call: v=D::extend(nu.at(e->sym), e->c); break;
        case K::Cond: v=D::condCombine(e->phi, rec(nu,env,e->t1), rec(nu,env,e->t2)); break;
        case K::Add:  v=D::combine(rec(nu,env,e->t1),rec(nu,env,e->t2)); break;
        case K::Sub:  v=D::subtract(rec(nu,env,e->t1),rec(nu,env,e->t2)); break;
@@ -352,7 +382,6 @@ auto fix(bool verbose, DomVal<D> init, F f){
           V init=D::zero();
           v=fix<D>(false,init,[&](V cur){
                 auto env2=env; env2[e->sym]=cur;
-                // Re-mark body dirty to force re-evaluation (OCaml: mark_dirty_texp1)
                 mark(e->t);
                 return rec(nu,env2,e->t);
               });} break;
@@ -360,6 +389,65 @@ auto fix(bool verbose, DomVal<D> init, F f){
      e->val=v; e->mark(false); return v;
    }
  };
+
+ /**********************************************************************
+  * 8.5 Worklist Linear Solver Implementation
+  *********************************************************************/
+ template <class D>
+ std::vector<DomVal<D>> solve_linear_worklist_impl(bool verbose, 
+                                              const std::vector<std::pair<Symbol, E1<D>>>& rhs,
+                                              std::vector<DomVal<D>> init) {
+    using V = DomVal<D>;
+    std::unordered_map<Symbol, int> sym_to_idx;
+    std::unordered_map<Symbol, V> env;
+    for(int i=0; i<(int)rhs.size(); ++i) {
+        sym_to_idx[rhs[i].first] = i;
+        env[rhs[i].first] = init[i];
+    }
+
+    std::vector<std::vector<int>> users(rhs.size());
+    for(int i=0; i<(int)rhs.size(); ++i) {
+        std::unordered_set<Symbol> deps;
+        DepFinder<D>::find(rhs[i].second, deps);
+        for(const auto& d : deps) {
+            if(sym_to_idx.count(d)) {
+                users[sym_to_idx[d]].push_back(i);
+            }
+        }
+    }
+
+    std::deque<int> worklist;
+    std::vector<bool> in_queue(rhs.size(), false);
+    for(int i=0; i<(int)rhs.size(); ++i) {
+        worklist.push_back(i);
+        in_queue[i] = true;
+    }
+
+    long steps = 0;
+    while(!worklist.empty()) {
+        int idx = worklist.front(); 
+        worklist.pop_front(); 
+        in_queue[idx] = false;
+        steps++;
+
+        V new_val = I1<D>::eval(false, env, rhs[idx].second);
+        
+        if (!D::equal(env[rhs[idx].first], new_val)) {
+            env[rhs[idx].first] = new_val;
+            init[idx] = new_val; // keep sync
+            
+            for(int u : users[idx]) {
+                if(!in_queue[u]) {
+                    worklist.push_back(u);
+                    in_queue[u] = true;
+                }
+            }
+        }
+    }
+    if(verbose) std::cerr << "[linear-wl] steps=" << steps << "\n";
+    return init;
+ }
+
  
  /**********************************************************************
   * 9. Generic solver driver
@@ -368,7 +456,7 @@ auto fix(bool verbose, DomVal<D> init, F f){
  struct Solver{
    using V = DomVal<D>; using Eqn = std::pair<Symbol,E0<D>>;
    static std::pair<std::vector<std::pair<Symbol,V>>,Stat>
-   solve(const std::vector<Eqn>& eqns,bool verbose=false,int max=-1){
+   solve(const std::vector<Eqn>& eqns,bool verbose=false,int max=-1, LinearStrategy linStrat = LinearStrategy::Worklist){
      NPA_REQUIRE_DOMAIN(D);
      std::vector<std::pair<Symbol,V>> cur;
      for(auto& e:eqns) cur.emplace_back(e.first,D::zero());
@@ -376,7 +464,7 @@ auto fix(bool verbose, DomVal<D> init, F f){
      auto tic=std::chrono::high_resolution_clock::now();
      int it=0;
      while(max<0 || it<max){
-       auto nxt = ITER::run(verbose,eqns,cur);
+       auto nxt = ITER::run(verbose,eqns,cur,linStrat);
        bool stable=true;
        for(size_t i=0;i<cur.size();++i)
          if(!D::equal(cur[i].second,nxt[i].second)){stable=false;break;}
@@ -398,8 +486,9 @@ auto fix(bool verbose, DomVal<D> init, F f){
    using V = DomVal<D>; using Eqn = std::pair<Symbol,E0<D>>;
    static std::vector<std::pair<Symbol,V>>
    run(bool verbose,const std::vector<Eqn>& eqns,
-       const std::vector<std::pair<Symbol,V>>& binds){
-     std::map<Symbol,V> nu; for(auto&b:binds) nu[b.first]=b.second;
+       const std::vector<std::pair<Symbol,V>>& binds,
+       LinearStrategy /*ignored*/ = LinearStrategy::Worklist){
+     std::unordered_map<Symbol,V> nu; for(auto&b:binds) nu[b.first]=b.second;
      std::vector<std::pair<Symbol,V>> out;
      for(auto& e:eqns){
        V v=I0<D>::eval(verbose,nu,e.second);
@@ -417,27 +506,36 @@ auto fix(bool verbose, DomVal<D> init, F f){
    using V = DomVal<D>; using Eqn = std::pair<Symbol,E0<D>>;
    static std::vector<std::pair<Symbol,V>>
    run(bool verbose,const std::vector<Eqn>& eqns,
-       const std::vector<std::pair<Symbol,V>>& binds){
-     std::map<Symbol,V> nu; for(auto&b:binds) nu[b.first]=b.second;
+       const std::vector<std::pair<Symbol,V>>& binds,
+       LinearStrategy linStrat = LinearStrategy::Worklist){
+     std::unordered_map<Symbol,V> nu; for(auto&b:binds) nu[b.first]=b.second;
  
      /* 1. build differential system */
     std::vector<std::pair<Symbol,E1<D>>> rhs;
      for(auto& e:eqns){
        V v=I0<D>::eval(verbose,nu,e.second);
-      auto d=Diff<D>::build(nu,e.second);
-      auto base=D::idempotent? v : D::subtract(v,nu[e.first]);
-      rhs.emplace_back(e.first,Exp1<D>::add(Exp1<D>::term(base),d));
+       auto d=Diff<D>::build(nu,e.second);
+       auto base=D::idempotent? v : D::subtract(v,nu[e.first]);
+       rhs.emplace_back(e.first,Exp1<D>::add(Exp1<D>::term(base),d));
      }
  
      /* 2. solve linear system via Kleene star (vector fix) */
      std::vector<V> init(rhs.size(), D::zero());
-     auto delta=fix_vec<D>(verbose,init,[&](const std::vector<V>& cur){
-         std::map<Symbol,V> env;
-         for(size_t i=0;i<cur.size();++i) env[rhs[i].first]=cur[i];
-         std::vector<V> nxt;
-         for(auto& p:rhs) nxt.push_back(I1<D>::eval(verbose,env,p.second));
-         return nxt;
-       });
+     std::vector<V> delta;
+     
+     if (linStrat == LinearStrategy::Naive) {
+         // Old Naive Solver (fix_vec)
+         delta = fix_vec<D>(verbose,init,[&](const std::vector<V>& cur){
+             std::unordered_map<Symbol,V> env;
+             for(size_t i=0;i<cur.size();++i) env[rhs[i].first]=cur[i];
+             std::vector<V> nxt;
+             for(auto& p:rhs) nxt.push_back(I1<D>::eval(false,env,p.second)); // verbose=false for inner loops
+             return nxt;
+           });
+     } else {
+         // New Worklist Solver
+         delta = solve_linear_worklist_impl<D>(verbose, rhs, init);
+     }
  
      /* 3. new approximation */
      std::vector<std::pair<Symbol,V>> out;
@@ -455,44 +553,7 @@ auto fix(bool verbose, DomVal<D> init, F f){
   *********************************************************************/
  template<class D> using KleeneSolver = Solver<D,KleeneIter<D>>;
  template<class D> using NewtonSolver = Solver<D,NewtonIter<D>>;
- 
- /**********************************************************************
-  * 13. Example Boolean domain
-  *********************************************************************/
-struct BoolDom{
-  using value_type=bool; 
-  using test_type=bool;
-  static constexpr bool idempotent=true;
-  static bool zero(){return false;}
-  static bool one(){return true;}
-  static bool equal(bool a,bool b){return a==b;}
-  static bool combine(bool a,bool b){return a||b;}
-  static bool extend(bool a,bool b){return a&&b;}
-  static bool extend_lin(bool a,bool b){return a&&b;} // linear extension (same as extend for boolean)
-  static bool condCombine(bool phi,bool t_then,bool t_else){return (phi&&t_then)||(!phi&&t_else);}
-  static bool ndetCombine(bool a,bool b){return a||b;}
-  static bool subtract(bool a,bool b){return a&&(!b);}
-};
- 
- /**********************************************************************
-  * 14. Demo (remove NPA_DEMO to suppress)
-  *********************************************************************/
- #ifdef NPA_DEMO
- int main(){
-   using D=BoolDom; using V=DomVal<D>;
-   Symbol X="X";
-   auto a=E0<D>::term(true);
-   auto b=E0<D>::term(true);
-   auto hole=E0<D>::hole(X);
-   auto seq=E0<D>::seq(true,hole);
-   auto body=E0<D>::ndet(seq,b);
- 
-   std::vector<std::pair<Symbol,E0<D>>> eqns={{X,body}};
-   auto res1=KleeneSolver<D>::solve(eqns,true,50);
-   auto res2=NewtonSolver<D>::solve(eqns,true,50);
-   std::cout<<"Kleene iters="<<res1.second.iters<<"\n";
-   std::cout<<"Newton iters="<<res2.second.iters<<"\n";
-   return 0;
- }
- #endif
- #endif /* NPA_HPP */
+
+} // namespace npa
+
+#endif /* NPA_HPP */

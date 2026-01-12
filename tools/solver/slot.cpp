@@ -1,19 +1,19 @@
 #include "Solvers/SMT/SLOT/SMTFormula.h"
 #include "Solvers/SMT/SLOT/LLVMNode.h"
-#include <fstream>
-#include <streambuf>
-#include <sstream>
 #include <chrono>
+#include <fstream>
+#include <sstream>
+#include <streambuf>
 
-#include "llvm/Transforms/InstCombine/InstCombine.h"
 #include "llvm/Transforms/AggressiveInstCombine/AggressiveInstCombine.h"
+#include "llvm/Transforms/InstCombine/InstCombine.h"
+#include "llvm/Transforms/Scalar/ADCE.h"
+#include "llvm/Transforms/Scalar/DCE.h"
+#include "llvm/Transforms/Scalar/EarlyCSE.h"
+#include "llvm/Transforms/Scalar/GVN.h"
+#include "llvm/Transforms/Scalar/InstSimplifyPass.h"
 #include "llvm/Transforms/Scalar/Reassociate.h"
 #include "llvm/Transforms/Scalar/SCCP.h"
-#include "llvm/Transforms/Scalar/DCE.h"
-#include "llvm/Transforms/Scalar/ADCE.h"
-#include "llvm/Transforms/Scalar/InstSimplifyPass.h"
-#include "llvm/Transforms/Scalar/GVN.h"
-#include "llvm/Transforms/Scalar/EarlyCSE.h"
 
 #ifndef LLMAPPING
 #define LLMAPPING std::map<std::string, Value*>&

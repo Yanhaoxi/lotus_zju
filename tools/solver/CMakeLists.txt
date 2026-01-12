@@ -8,3 +8,7 @@ target_link_libraries(owl PRIVATE
         ${LLVM_LINK_COMPONENTS}
         ${Z3_LIBRARIES}
 )
+
+# TODO (mabye do not create independent binaries for slot and staub?)
+# slot
+# staub

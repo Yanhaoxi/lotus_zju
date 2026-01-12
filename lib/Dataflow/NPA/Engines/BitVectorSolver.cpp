@@ -3,15 +3,20 @@
  * Author: rainoftime
 */
 #include "Dataflow/NPA/Engines/BitVectorSolver.h"
-#include <sstream>
+#include <cstring>
+#include <string>
 
 namespace npa {
 
 // Helper to generate unique symbols for blocks
 static std::string getBlockSymbol(const llvm::BasicBlock *BB, const char* suffix) {
-    std::ostringstream oss;
-    oss << (const void*)BB << "_" << suffix;
-    return oss.str();
+    std::string s;
+    size_t suffixLen = strlen(suffix);
+    s.reserve(sizeof(BB) + suffixLen + 1);
+    s.append(reinterpret_cast<const char*>(&BB), sizeof(BB));
+    s.push_back('_');
+    s.append(suffix, suffixLen);
+    return s;
 }
 
 BitVectorSolver::Result BitVectorSolver::run(llvm::Function &F, 

@@ -9,7 +9,6 @@
 #include <deque>
 #include <map>
 #include <set>
-#include <sstream>
 #include <unordered_map>
 #include <vector>
 
@@ -18,17 +17,6 @@ namespace npa {
 // k-CFA context type
 using CallSiteID = const llvm::Instruction*;
 using CallString = std::vector<CallSiteID>;
-
-// Helper to stringify call string
-[[maybe_unused]] static inline std::string getCallStringSuffix(const CallString& cs) {
-    if (cs.empty()) return "";
-    std::ostringstream oss;
-    oss << "@CS";
-    for (auto *site : cs) {
-        oss << ":" << (const void*)site;
-    }
-    return oss.str();
-}
 
 template <class D, class Analysis, int K = 0>
 class InterproceduralEngine {
@@ -41,23 +29,34 @@ public:
     struct Result {
         // Summary at Function Exit (Phase 1)
         // Keyed by Function + Context
-        std::map<std::string, Val> summaries;
+        std::unordered_map<std::string, Val> summaries;
         
         // Fact at Basic Block Entry (Phase 2)
-        std::map<std::string, Fact> blockEntryFacts;
+        std::unordered_map<std::string, Fact> blockEntryFacts;
     };
 
+    static void appendCallString(std::string& s, const CallString& cs) {
+        for (auto* site : cs) {
+            s.append(reinterpret_cast<const char*>(&site), sizeof(site));
+        }
+    }
+
     static std::string getBlockSymbol(const llvm::BasicBlock *BB, const CallString& cs) {
-        std::ostringstream oss;
-        oss << (const void*)BB << getCallStringSuffix(cs);
-        return oss.str();
+        std::string s;
+        s.reserve(1 + sizeof(BB) + cs.size() * sizeof(CallSiteID));
+        s.push_back('B');
+        s.append(reinterpret_cast<const char*>(&BB), sizeof(BB));
+        appendCallString(s, cs);
+        return s;
     }
 
     static std::string getFuncSymbol(const llvm::Function *F, const CallString& cs) {
-        if (F->hasName()) return F->getName().str() + getCallStringSuffix(cs);
-        std::ostringstream oss;
-        oss << "Func_" << (const void*)F << getCallStringSuffix(cs);
-        return oss.str();
+        std::string s;
+        s.reserve(1 + sizeof(F) + cs.size() * sizeof(CallSiteID));
+        s.push_back('F');
+        s.append(reinterpret_cast<const char*>(&F), sizeof(F));
+        appendCallString(s, cs);
+        return s;
     }
 
     // Helper to append call site to context
@@ -203,8 +202,7 @@ public:
         auto rawRes = NewtonSolver<D>::solve(eqns, verbose);
         
         // Convert result to map for random access
-        // Note: NPA I0::eval uses std::map, so we use that here
-        std::map<Symbol, Val> solvedMap;
+        std::unordered_map<Symbol, Val> solvedMap;
         for (auto &p : rawRes.first) solvedMap[p.first] = p.second;
 
         // 2. Phase 2: Top-Down Propagation
