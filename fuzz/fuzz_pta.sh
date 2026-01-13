@@ -86,6 +86,18 @@ while true; do
         exit 1
     fi
     echo "✓ lotus-aa completed successfully"
+    
+    # tpa with different -k-limit values
+    for k_limit in 0 1 2; do
+        echo "=== Running tpa with -k-limit=$k_limit ==="
+        if ! "$BUILD_DIR/bin/tpa" -k-limit "$k_limit" "$BC_FILE" 2>&1; then
+            echo "CRASH: tpa (-k-limit=$k_limit) crashed on $C_FILE"
+            echo "Test files preserved: $C_FILE, $BC_FILE"
+            exit 1
+        fi
+        echo "✓ tpa (-k-limit=$k_limit) completed successfully"
+    done
+    
     # Cleanup if no crash
     rm -f "$C_FILE" "$BC_FILE"
 done

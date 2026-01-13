@@ -1,4 +1,5 @@
 #include "Alias/TPA/Util/IO/WriteIR.h"
+#include "Alias/TPA/Util/Log.h"
 
 #include <llvm/Bitcode/BitcodeWriter.h>
 #include <llvm/IR/Module.h>
@@ -14,7 +15,7 @@ void writeModuleToText(const Module &module, const char *fileName) {
   std::error_code ec;
   ToolOutputFile out(fileName, ec, sys::fs::OF_None);
   if (ec) {
-    errs() << ec.message() << "\n";
+    LOG_ERROR("Failed to write module to text file {}: {}", fileName, ec.message());
     std::exit(-3);
   }
 
@@ -27,7 +28,7 @@ void writeModuleToBitCode(const Module &module, const char *fileName) {
   std::error_code ec;
   raw_fd_ostream out(fileName, ec, sys::fs::OF_None);
   if (ec) {
-    errs() << ec.message() << "\n";
+    LOG_ERROR("Failed to write module to bitcode file {}: {}", fileName, ec.message());
     std::exit(-3);
   }
 

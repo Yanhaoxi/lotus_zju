@@ -4,6 +4,7 @@
 #include "Alias/TPA/PointerAnalysis/FrontEnd/Type/TypeMap.h"
 #include "Alias/TPA/PointerAnalysis/MemoryModel/MemoryManager.h"
 #include "Alias/TPA/PointerAnalysis/MemoryModel/PointerManager.h"
+#include "Alias/TPA/Util/Log.h"
 
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/DataLayout.h>
@@ -155,13 +156,21 @@ GlobalPointerAnalysis::processConstantGEP(const llvm::ConstantExpr *cexpr,
         baseVal = ce->getOperand(0);
         // Don't return. Keep looping on baseVal
         break;
-      default:
-        errs() << "Constant expr not yet handled in global intializer: " << *ce
-               << "\n";
+      default: {
+        std::string ceStr;
+        raw_string_ostream ceOS(ceStr);
+        ceOS << *ce;
+        ceOS.flush();
+        LOG_ERROR("Constant expr not yet handled in global initializer: {}", ceStr);
         llvm_unreachable("Unknown constantexpr!");
       }
+      }
     } else {
-      llvm::errs() << *baseVal << "\n";
+      std::string baseValStr;
+      raw_string_ostream baseValOS(baseValStr);
+      baseValOS << *baseVal;
+      baseValOS.flush();
+      LOG_ERROR("Unknown constant gep base: {}", baseValStr);
       llvm_unreachable("Unknown constant gep base!");
     }
   }
@@ -214,7 +223,11 @@ void GlobalPointerAnalysis::processGlobalScalarInitializer(
       break;
     }
   } else {
-    llvm::errs() << *initializer << "\n";
+    std::string initStr;
+    raw_string_ostream initOS(initStr);
+    initOS << *initializer;
+    initOS.flush();
+    LOG_ERROR("Unsupported constant pointer: {}", initStr);
     llvm_unreachable("Unsupported constant pointer!");
   }
 }
@@ -279,7 +292,11 @@ void GlobalPointerAnalysis::processGlobalInitializer(
   else if (initializer->getType()->isArrayTy())
     processGlobalArrayInitializer(gObj, initializer, envStore, dataLayout);
   else {
-    errs() << "initializer = " << *initializer << "\n";
+    std::string initStr;
+    raw_string_ostream initOS(initStr);
+    initOS << *initializer;
+    initOS.flush();
+    LOG_ERROR("Unknown initializer type: {}", initStr);
     llvm_unreachable("Unknown initializer type");
   }
 }
@@ -301,6 +318,7 @@ std::pair<Env, Store> GlobalPointerAnalysis::runOnModule(const Module &module) {
   EnvStore envStore;
 
   // Set up the points-to relations of uPtr, uObj and nullPtr
+  LOG_DEBUG("Initializing special pointer objects (universal, null)");
   initializeSpecialPointerObject(module, envStore);
 
   // TODO: Fix this file after finishing typeMap
@@ -308,12 +326,18 @@ std::pair<Env, Store> GlobalPointerAnalysis::runOnModule(const Module &module) {
   // First, scan through all the global values and register them in ptrManager.
   // This scan should precede varaible initialization because the initialization
   // may refer to another global value defined "below" it
+  unsigned numGlobals = module.getGlobalList().size();
+  unsigned numFunctions = module.getFunctionList().size();
+  LOG_INFO("  Creating {} global variables and {} function pointers...", 
+           numGlobals, numFunctions);
   createGlobalVariables(module, envStore.first);
   createFunctions(module, envStore.first);
 
   // After all the global values are defined, go ahead and process the
   // initializers
+  LOG_INFO("  Processing global initializers...");
   initializeGlobalValues(module, envStore);
+  LOG_INFO("  Global initialization completed");
 
   // I'm not sure whether RVO will trigger in this case. So to be safe I'll just
   // use move construction.

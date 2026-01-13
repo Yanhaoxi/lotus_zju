@@ -3,6 +3,7 @@
 #include "Alias/TPA/Context/Context.h"
 #include "Alias/TPA/PointerAnalysis/FrontEnd/Type/TypeMap.h"
 #include "Alias/TPA/PointerAnalysis/Program/CFG/CFG.h"
+#include "Alias/TPA/Util/Log.h"
 
 #include <llvm/Support/raw_ostream.h>
 
@@ -169,7 +170,11 @@ tpa::CFGNode *InstructionTranslator::visitBitCastInst(BitCastInst &bcInst) {
 
 tpa::CFGNode *
 InstructionTranslator::handleUnsupportedInst(const Instruction &inst) {
-  errs() << "inst = " << inst << "\n";
+  std::string instStr;
+  raw_string_ostream instOS(instStr);
+  instOS << inst;
+  instOS.flush();
+  LOG_ERROR("Unsupported instruction: {}", instStr);
   llvm_unreachable("instruction not supported");
 }
 

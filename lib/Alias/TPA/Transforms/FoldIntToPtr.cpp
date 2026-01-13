@@ -16,6 +16,11 @@ static bool foldInstruction(IntToPtrInst *inst) {
   // Pointer copy: Y = inttoptr (ptrtoint X)
   Value *src = nullptr;
   if (match(op, m_PtrToInt(m_Value(src)))) {
+    // RAUW requires the replacement to have the exact same type.
+    // `src` is a pointer, but its pointee type/address space can differ from
+    // the `inttoptr` result type.
+    if (src->getType() != inst->getType())
+      src = CastInst::CreatePointerCast(src, inst->getType(), "src.cast", inst);
     inst->replaceAllUsesWith(src);
     inst->eraseFromParent();
     return true;
@@ -27,7 +32,7 @@ static bool foldInstruction(IntToPtrInst *inst) {
     if (!offsetValue->getType()->isIntegerTy())
       return false;
     if (src->getType() != inst->getType())
-      src = new BitCastInst(src, inst->getType(), "src.cast", inst);
+      src = CastInst::CreatePointerCast(src, inst->getType(), "src.cast", inst);
     const auto &DL = inst->getModule()->getDataLayout();
     auto *indexTy = DL.getIndexType(src->getType());
     if (offsetValue->getType() != indexTy) {

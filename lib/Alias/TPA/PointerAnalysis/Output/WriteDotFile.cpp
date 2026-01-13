@@ -2,6 +2,7 @@
 
 #include "Alias/TPA/PointerAnalysis/Program/CFG/CFG.h"
 #include "Alias/TPA/Util/IO/PointerAnalysis/Printer.h"
+#include "Alias/TPA/Util/Log.h"
 
 #include <llvm/IR/Function.h>
 #include <llvm/Support/FileSystem.h>
@@ -32,8 +33,7 @@ void writeDotFile(const char *filePath, const tpa::CFG &cfg) {
   std::error_code ec;
   ToolOutputFile out(filePath, ec, sys::fs::OF_None);
   if (ec) {
-    errs() << "Failed to open file " << filePath << ": " << ec.message()
-           << "\n";
+    LOG_ERROR("Failed to open file {}: {}", filePath, ec.message());
     return;
   }
 

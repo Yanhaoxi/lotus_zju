@@ -3,6 +3,7 @@
 #include "Alias/TPA/PointerAnalysis/FrontEnd/CFG/InstructionTranslator.h"
 #include "Alias/TPA/PointerAnalysis/FrontEnd/CFG/PriorityAssigner.h"
 #include "Alias/TPA/PointerAnalysis/Program/CFG/CFG.h"
+#include "Alias/TPA/Util/Log.h"
 
 #include <llvm/IR/CFG.h>
 #include <llvm/IR/Function.h>
@@ -128,8 +129,13 @@ void FunctionTranslator::drawDefUseEdgeFromValue(const Value *defVal,
     // For instructions, see if we have corresponding node attached to it
     if (auto *defNode = instToNode[defInst])
       defNode->insertDefUseEdge(useNode);
-    else
-      errs() << "Failed to find node for instruction " << *defInst << "\n";
+    else {
+      std::string instStr;
+      raw_string_ostream instOS(instStr);
+      instOS << *defInst;
+      instOS.flush();
+      LOG_WARN("Failed to find node for instruction: {}", instStr);
+    }
   }
 }
 

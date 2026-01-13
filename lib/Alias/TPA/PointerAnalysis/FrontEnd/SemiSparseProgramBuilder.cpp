@@ -2,6 +2,7 @@
 
 #include "Alias/TPA/PointerAnalysis/FrontEnd/CFG/CFGBuilder.h"
 #include "Alias/TPA/PointerAnalysis/FrontEnd/Type/TypeAnalysis.h"
+#include "Alias/TPA/Util/Log.h"
 
 #include <llvm/IR/Module.h>
 
@@ -20,15 +21,35 @@ SemiSparseProgram SemiSparseProgramBuilder::runOnModule(const Module &module) {
   SemiSparseProgram ssProg(module);
 
   // Process types
+  LOG_INFO("Running type analysis on module...");
   auto typeMap = TypeAnalysis().runOnModule(module);
+  unsigned typeCount = 0;
+  for (auto it = typeMap.begin(); it != typeMap.end(); ++it) {
+    typeCount++;
+  }
+  LOG_INFO("Type analysis completed: {} types in map", typeCount);
 
   // Translate functions to CFG
+  unsigned numFunctions = 0;
+  for (auto const &f : module) {
+    if (f.isDeclaration())
+      continue;
+    numFunctions++;
+  }
+  LOG_INFO("Building CFGs for {} functions...", numFunctions);
+  
+  unsigned cfgCount = 0;
   for (auto const &f : module) {
     if (f.isDeclaration())
       continue;
 
     buildCFGForFunction(ssProg, f, typeMap);
+    cfgCount++;
+    if (cfgCount % 100 == 0) {
+      LOG_INFO("  Built {} CFGs...", cfgCount);
+    }
   }
+  LOG_INFO("CFG construction completed: {} CFGs built", cfgCount);
 
   ssProg.setTypeMap(std::move(typeMap));
   return ssProg;

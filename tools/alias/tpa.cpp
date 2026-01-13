@@ -1,15 +1,28 @@
+/*
+An Inclusion-based, Semi-Sparse, Flow- and Context-Sensitive Pointer Analysis Tool. 
+Cmd options:
+-ext <file>: External pointer table file for modeling library functions
+-no-prepass: Skip TPA IR normalization prepasses (GEP expansion, etc.)
+-prepass-out <file>: Write module after prepass to file (suffix .ll or .bc)
+-cfg-dot-dir <dir>: Write per-function pointer CFGs as .dot files into directory
+-print-pts: Print points-to sets for pointers that were materialized by the analysis
+-print-indirect-calls: Print resolved targets for each indirect call in the module
+-k-limit <n>: Set k-limit for context-sensitive analysis (0 = context-insensitive, default: 0)
+*/
+
 #include "Alias/TPA/Context/KLimitContext.h"
 #include "Alias/TPA/PointerAnalysis/Analysis/SemiSparsePointerAnalysis.h"
 #include "Alias/TPA/PointerAnalysis/FrontEnd/SemiSparseProgramBuilder.h"
 #include "Alias/TPA/Transforms/RunPrepass.h"
-#include "Alias/TPA/Util/CommandLine/TypedCommandLineParser.h"
 #include "Alias/TPA/Util/IO/PointerAnalysis/Printer.h"
 #include "Alias/TPA/Util/IO/PointerAnalysis/WriteDotFile.h"
 #include "Alias/TPA/Util/IO/WriteIR.h"
+#include "Alias/TPA/Util/Log.h"
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IRReader/IRReader.h>
+#include <llvm/Support/CommandLine.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/InitLLVM.h>
 #include <llvm/Support/Path.h>
@@ -17,10 +30,49 @@
 #include <llvm/Support/raw_ostream.h>
 
 #include <cstdlib>
+#include <sstream>
 #include <string>
 #include <unordered_set>
 
 using namespace llvm;
+
+// Command line options
+static cl::opt<std::string> InputFile(cl::Positional,
+                                      cl::desc("<input bitcode file>"),
+                                      cl::value_desc("filename"));
+
+static cl::opt<std::string> ExtPointerTableFile(
+    "ext", cl::desc("External pointer table file (optional)"),
+    cl::value_desc("filename"), cl::init(""));
+
+static cl::opt<bool> NoPrepass(
+    "no-prepass", cl::desc("Skip TPA IR normalization prepasses"),
+    cl::init(false));
+
+static cl::opt<std::string> PrepassOutFile(
+    "prepass-out",
+    cl::desc("Write module after prepass to this file (suffix .ll or .bc)"),
+    cl::value_desc("filename"), cl::init(""));
+
+static cl::opt<std::string> CFGDotOutDir(
+    "cfg-dot-dir",
+    cl::desc("Write per-function pointer CFGs as .dot files into this directory"),
+    cl::value_desc("directory"), cl::init(""));
+
+static cl::opt<bool> PrintPts(
+    "print-pts",
+    cl::desc("Print points-to sets for pointers that were materialized by the analysis"),
+    cl::init(false));
+
+static cl::opt<bool> PrintIndirectCalls(
+    "print-indirect-calls",
+    cl::desc("Print resolved targets for each indirect call in the module"),
+    cl::init(false));
+
+static cl::opt<unsigned> KLimit(
+    "k-limit",
+    cl::desc("Set k-limit for context-sensitive analysis (0 = context-insensitive, default: 0)"),
+    cl::init(0));
 
 static std::string findDefaultPointerSpec() {
   // 1) LOTUS_CONFIG_DIR/ptr.spec
@@ -73,100 +125,84 @@ static void collectCandidatePointerValues(const Module &M,
 int main(int argc, char **argv) {
   InitLLVM X(argc, argv);
 
-  StringRef InputFile;
-  StringRef ExtPointerTableFile;
-  StringRef PrepassOutFile;
-  StringRef CFGDotOutDir;
-  bool NoPrepass = false;
-  bool PrintPts = false;
-  bool PrintIndirectCalls = false;
-  unsigned KLimit = 0;
+  cl::ParseCommandLineOptions(argc, argv,
+                              "TPA (flow-/context-sensitive semi-sparse pointer analysis) tool\n");
 
-  util::TypedCommandLineParser parser(
-      "TPA (flow-/context-sensitive semi-sparse pointer analysis) tool");
-  parser.addStringPositionalFlag("input", "Input LLVM IR (.bc or .ll)",
-                                 InputFile);
-  parser.addStringOptionalFlag("ext",
-                               "External pointer table file (optional)",
-                               ExtPointerTableFile);
-  parser.addBooleanOptionalFlag("no-prepass",
-                                "Skip TPA IR normalization prepasses",
-                                NoPrepass);
-  parser.addStringOptionalFlag(
-      "prepass-out",
-      "Write module after prepass to this file (suffix .ll or .bc)",
-      PrepassOutFile);
-  parser.addStringOptionalFlag(
-      "cfg-dot-dir",
-      "Write per-function pointer CFGs as .dot files into this directory",
-      CFGDotOutDir);
-  parser.addBooleanOptionalFlag(
-      "print-pts",
-      "Print points-to sets for pointers that were materialized by the analysis",
-      PrintPts);
-  parser.addBooleanOptionalFlag(
-      "print-indirect-calls",
-      "Print resolved targets for each indirect call in the module",
-      PrintIndirectCalls);
-  parser.addUIntOptionalFlag(
-      "k-limit",
-      "Set k-limit for context-sensitive analysis (0 = context-insensitive, default: 0)",
-      KLimit);
-  parser.parseCommandLineOptions(argc, argv);
+  // Initialize spdlog with default pattern
+  spdlog::set_pattern("%^[%l]%$ %v");
 
+  LOG_INFO("Loading LLVM IR from: {}", InputFile);
   LLVMContext Context;
   SMDiagnostic Err;
   std::unique_ptr<Module> M = parseIRFile(InputFile, Err, Context);
   if (!M) {
     Err.print(argv[0], errs());
+    LOG_ERROR("Failed to parse input file: {}", InputFile);
     return 1;
   }
+  LOG_INFO("Module loaded: {} functions, {} global variables", 
+           M->getFunctionList().size(), M->getGlobalList().size());
 
   if (!NoPrepass) {
+    LOG_INFO("Running TPA IR normalization prepasses...");
     transform::runPrepassOn(*M);
+    LOG_INFO("Prepass completed");
+  } else {
+    LOG_INFO("Skipping prepass (--no-prepass specified)");
   }
 
   if (!PrepassOutFile.empty()) {
-    const bool isText = PrepassOutFile.endswith_insensitive(".ll");
-    util::io::writeModuleToFile(*M, PrepassOutFile.data(), isText);
+    const bool isText = StringRef(PrepassOutFile).endswith_insensitive(".ll");
+    LOG_INFO("Writing prepass output to: {}", PrepassOutFile);
+    util::io::writeModuleToFile(*M, PrepassOutFile.c_str(), isText);
   }
 
   // Set k-limit for context-sensitive analysis
   context::KLimitContext::setLimit(KLimit);
+  if (KLimit > 0) {
+    LOG_INFO("Context-sensitive analysis enabled with k-limit: {}", KLimit);
+  } else {
+    LOG_INFO("Context-insensitive analysis mode");
+  }
 
   // Build semi-sparse program and run analysis
+  LOG_INFO("Building semi-sparse program representation...");
   tpa::SemiSparseProgramBuilder builder;
   tpa::SemiSparseProgram ssProg = builder.runOnModule(*M);
+  //LOG_INFO("Semi-sparse program built: {} CFGs", ssProg.cfgMap.size());
 
   tpa::SemiSparsePointerAnalysis analysis;
   std::string pointerSpecPath =
       ExtPointerTableFile.empty() ? findDefaultPointerSpec()
-                                  : ExtPointerTableFile.str();
+                                  : std::string(ExtPointerTableFile);
   if (!sys::fs::exists(pointerSpecPath)) {
-    errs() << "Pointer spec file not found: " << pointerSpecPath << "\n";
+    LOG_ERROR("Pointer spec file not found: {}", pointerSpecPath);
     return 1;
   }
+  LOG_INFO("Loading external pointer table from: {}", pointerSpecPath);
   analysis.loadExternalPointerTable(pointerSpecPath.c_str());
+  
+  LOG_INFO("Starting TPA pointer analysis...");
   analysis.runOnProgram(ssProg);
+  LOG_INFO("TPA analysis completed successfully");
 
   if (!CFGDotOutDir.empty()) {
     std::error_code EC = sys::fs::create_directories(CFGDotOutDir);
     if (EC) {
-      errs() << "Failed to create directory " << CFGDotOutDir << ": "
-             << EC.message() << "\n";
+      LOG_ERROR("Failed to create directory {}: {}", CFGDotOutDir, EC.message());
       return 2;
     }
 
+    LOG_INFO("Writing CFG dot files to: {}", CFGDotOutDir);
     for (const tpa::CFG &cfg : ssProg) {
       const auto &F = cfg.getFunction();
-      std::string outPath =
-          (CFGDotOutDir + "/" + F.getName() + ".dot").str();
+      std::string outPath = CFGDotOutDir + "/" + F.getName().str() + ".dot";
       util::io::writeDotFile(outPath.c_str(), cfg);
     }
   }
 
   if (PrintIndirectCalls) {
-    outs() << "=== Indirect call targets ===\n";
+    LOG_INFO("=== Indirect call targets ===");
     for (const Function &F : *M) {
       if (F.isDeclaration())
         continue;
@@ -180,18 +216,23 @@ int main(int argc, char **argv) {
             continue;
 
           auto targets = analysis.getCallees(&I);
-          outs() << "\n" << F.getName() << ": " << I << "\n";
-          outs() << "  targets(" << targets.size() << "): ";
-          for (const Function *TF : targets)
-            outs() << TF->getName() << " ";
-          outs() << "\n";
+          std::string targetNames;
+          for (const Function *TF : targets) {
+            if (!targetNames.empty()) targetNames += " ";
+            targetNames += TF->getName().str();
+          }
+          std::string instStr;
+          raw_string_ostream instOS(instStr);
+          instOS << I;
+          instOS.flush();
+          LOG_INFO("{}: {} -> targets({}): {}", F.getName(), instStr, targets.size(), targetNames);
         }
       }
     }
   }
 
   if (PrintPts) {
-    outs() << "=== Points-to sets ===\n";
+    LOG_INFO("=== Points-to sets ===");
 
     std::unordered_set<const Value *> values;
     collectCandidatePointerValues(*M, values);
@@ -202,11 +243,23 @@ int main(int argc, char **argv) {
       if (ptrs.empty())
         continue;
 
-      outs() << "\nValue: ";
-      util::io::dumpValue(outs(), *V);
-      outs() << "\n";
+      std::string valueStr;
+      raw_string_ostream valueOS(valueStr);
+      util::io::dumpValue(valueOS, *V);
+      valueOS.flush();
+      
       for (const tpa::Pointer *P : ptrs) {
-        outs() << "  " << *P << " -> " << analysis.getPtsSet(P) << "\n";
+        std::string ptrStr;
+        raw_string_ostream ptrOS(ptrStr);
+        ptrOS << *P;
+        ptrOS.flush();
+        
+        std::string ptsStr;
+        raw_string_ostream ptsOS(ptsStr);
+        ptsOS << analysis.getPtsSet(P);
+        ptsOS.flush();
+        
+        LOG_INFO("Value: {} -> {} -> {}", valueStr, ptrStr, ptsStr);
       }
     }
   }
