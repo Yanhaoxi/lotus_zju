@@ -1,27 +1,25 @@
 #include "Alias/TPA/PointerAnalysis/FrontEnd/CFG/PriorityAssigner.h"
+
 #include "Alias/TPA/PointerAnalysis/Program/CFG/CFG.h"
 
-namespace tpa
-{
+namespace tpa {
 
-void PriorityAssigner::traverse()
-{
-	currLabel = 1;
-	for (auto *node: cfg)
-		if (node->getPriority() == 0u)
-			visitNode(node);
+void PriorityAssigner::traverse() {
+  currLabel = 1;
+  for (auto *node : cfg)
+    if (node->getPriority() == 0u)
+      visitNode(node);
 }
 
-void PriorityAssigner::visitNode(tpa::CFGNode* node)
-{
-	if (!visitedNodes.insert(node).second)
-		return;
+void PriorityAssigner::visitNode(tpa::CFGNode *node) {
+  if (!visitedNodes.insert(node).second)
+    return;
 
-	for (auto const& succ: node->succs())
-		visitNode(succ);
+  for (auto const &succ : node->succs())
+    visitNode(succ);
 
-	node->setPriority(currLabel);
-	++currLabel;
+  node->setPriority(currLabel);
+  ++currLabel;
 }
 
 } // namespace tpa

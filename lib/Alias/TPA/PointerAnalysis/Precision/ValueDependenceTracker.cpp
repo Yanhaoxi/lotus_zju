@@ -1,4 +1,5 @@
 #include "Alias/TPA/PointerAnalysis/Precision/ValueDependenceTracker.h"
+
 #include "Alias/TPA/PointerAnalysis/Program/CFG/CFG.h"
 #include "Alias/TPA/PointerAnalysis/Program/CFG/CFGNode.h"
 #include "Alias/TPA/PointerAnalysis/Program/CFG/NodeVisitor.h"
@@ -9,93 +10,85 @@
 using namespace context;
 using namespace llvm;
 
-namespace tpa
-{
+namespace tpa {
 
-namespace
-{
+namespace {
 
-class ValueTracker: public ConstNodeVisitor<ValueTracker>
-{
+class ValueTracker : public ConstNodeVisitor<ValueTracker> {
 private:
-	const SemiSparseProgram& ssProg;
+  const SemiSparseProgram &ssProg;
 
-	using CallGraphType = CallGraph<ProgramPoint, FunctionContext>;
-	const CallGraphType& callGraph;
+  using CallGraphType = CallGraph<ProgramPoint, FunctionContext>;
+  const CallGraphType &callGraph;
 
-	const Context* ctx;
-	ProgramPointSet& ppSet;
+  const Context *ctx;
+  ProgramPointSet &ppSet;
 
-	void addDef(const CFGNode& node, const Value* val)
-	{
-		assert(val != nullptr);
+  void addDef(const CFGNode &node, const Value *val) {
+    assert(val != nullptr);
 
-		if (isa<GlobalValue>(val))
-			return;
-		const auto *predNode = node.getCFG().getCFGNodeForValue(val);
-		assert(predNode != nullptr);
-		ppSet.insert(ProgramPoint(ctx, predNode));
-	}
+    if (isa<GlobalValue>(val))
+      return;
+    const auto *predNode = node.getCFG().getCFGNodeForValue(val);
+    assert(predNode != nullptr);
+    ppSet.insert(ProgramPoint(ctx, predNode));
+  }
+
 public:
-	ValueTracker(const SemiSparseProgram& s, const CallGraphType& cg, const Context* c, ProgramPointSet& p): ssProg(s), callGraph(cg), ctx(c), ppSet(p) {}
+  ValueTracker(const SemiSparseProgram &s, const CallGraphType &cg,
+               const Context *c, ProgramPointSet &p)
+      : ssProg(s), callGraph(cg), ctx(c), ppSet(p) {}
 
-	void visitEntryNode(const EntryCFGNode& entryNode)
-	{
-		auto const& func = entryNode.getFunction();
-		auto callers = callGraph.getCallers(FunctionContext(ctx, &func));
-		for (auto const& caller: callers)
-			ppSet.insert(caller);
-	}
+  void visitEntryNode(const EntryCFGNode &entryNode) {
+    auto const &func = entryNode.getFunction();
+    auto callers = callGraph.getCallers(FunctionContext(ctx, &func));
+    for (auto const &caller : callers)
+      ppSet.insert(caller);
+  }
 
-	void visitCopyNode(const CopyCFGNode& copyNode)
-	{
-		for (const auto *src: copyNode)
-			addDef(copyNode, src);
-	}
-	void visitOffsetNode(const OffsetCFGNode& offsetNode)
-	{
-		addDef(offsetNode, offsetNode.getSrc());
-	}
+  void visitCopyNode(const CopyCFGNode &copyNode) {
+    for (const auto *src : copyNode)
+      addDef(copyNode, src);
+  }
+  void visitOffsetNode(const OffsetCFGNode &offsetNode) {
+    addDef(offsetNode, offsetNode.getSrc());
+  }
 
-	void visitCallNode(const CallCFGNode& callNode)
-	{
-		auto callees = callGraph.getCallees(ProgramPoint(ctx, &callNode));
-		for (auto const& callee: callees)
-		{
-			const auto *cfg = ssProg.getCFGForFunction(*callee.getFunction());
-			assert(cfg != nullptr);
-			if (!cfg->doesNotReturn())
-			{
-				const auto *retNode = cfg->getExitNode();
-				ppSet.insert(ProgramPoint(callee.getContext(), retNode));
-			}
-		}
-	}
+  void visitCallNode(const CallCFGNode &callNode) {
+    auto callees = callGraph.getCallees(ProgramPoint(ctx, &callNode));
+    for (auto const &callee : callees) {
+      const auto *cfg = ssProg.getCFGForFunction(*callee.getFunction());
+      assert(cfg != nullptr);
+      if (!cfg->doesNotReturn()) {
+        const auto *retNode = cfg->getExitNode();
+        ppSet.insert(ProgramPoint(callee.getContext(), retNode));
+      }
+    }
+  }
 
-	void visitReturnNode(const ReturnCFGNode& retNode)
-	{
-		for (auto *defNode: retNode.defs())
-			ppSet.insert(ProgramPoint(ctx, defNode));
-	}
+  void visitReturnNode(const ReturnCFGNode &retNode) {
+    for (auto *defNode : retNode.defs())
+      ppSet.insert(ProgramPoint(ctx, defNode));
+  }
 
-	// These nodes are no-ops
-	void visitAllocNode(const AllocCFGNode&) {}
-	void visitLoadNode(const LoadCFGNode&) {}
-	void visitStoreNode(const StoreCFGNode&) {}
+  // These nodes are no-ops
+  void visitAllocNode(const AllocCFGNode &) {}
+  void visitLoadNode(const LoadCFGNode &) {}
+  void visitStoreNode(const StoreCFGNode &) {}
 };
 
 } // namespace
 
-ProgramPointSet ValueDependenceTracker::getValueDependencies(const ProgramPoint& pp) const
-{
-	ProgramPointSet ppSet;
+ProgramPointSet
+ValueDependenceTracker::getValueDependencies(const ProgramPoint &pp) const {
+  ProgramPointSet ppSet;
 
-	const auto *ctx = pp.getContext();
-	const auto *node = pp.getCFGNode();
+  const auto *ctx = pp.getContext();
+  const auto *node = pp.getCFGNode();
 
-	ValueTracker(ssProg, callGraph, ctx, ppSet).visit(*node);
+  ValueTracker(ssProg, callGraph, ctx, ppSet).visit(*node);
 
-	return ppSet;
+  return ppSet;
 }
 
 } // namespace tpa

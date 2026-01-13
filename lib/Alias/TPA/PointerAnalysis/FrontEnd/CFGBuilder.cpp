@@ -1,4 +1,5 @@
 #include "Alias/TPA/PointerAnalysis/FrontEnd/CFG/CFGBuilder.h"
+
 #include "Alias/TPA/PointerAnalysis/FrontEnd/CFG/CFGSimplifier.h"
 #include "Alias/TPA/PointerAnalysis/FrontEnd/CFG/FunctionTranslator.h"
 #include "Alias/TPA/PointerAnalysis/FrontEnd/CFG/InstructionTranslator.h"
@@ -8,21 +9,16 @@
 
 using namespace llvm;
 
-namespace tpa
-{
+namespace tpa {
 
-CFGBuilder::CFGBuilder(CFG& c, const TypeMap& t): cfg(c), typeMap(t)
-{
+CFGBuilder::CFGBuilder(CFG &c, const TypeMap &t) : cfg(c), typeMap(t) {}
 
-}
-
-void CFGBuilder::buildCFG(const Function& llvmFunc)
-{
-	auto dataLayout = DataLayout(llvmFunc.getParent());
-	auto instTranslator = InstructionTranslator(cfg, typeMap, dataLayout);
-	FunctionTranslator(cfg, instTranslator).translateFunction(llvmFunc);
-	CFGSimplifier().simplify(cfg);
-	cfg.buildValueMap();
+void CFGBuilder::buildCFG(const Function &llvmFunc) {
+  auto dataLayout = DataLayout(llvmFunc.getParent());
+  auto instTranslator = InstructionTranslator(cfg, typeMap, dataLayout);
+  FunctionTranslator(cfg, instTranslator).translateFunction(llvmFunc);
+  CFGSimplifier().simplify(cfg);
+  cfg.buildValueMap();
 }
 
 } // namespace tpa

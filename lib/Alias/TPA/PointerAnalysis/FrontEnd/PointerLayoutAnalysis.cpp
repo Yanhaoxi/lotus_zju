@@ -1,5 +1,6 @@
-#include "Alias/TPA/PointerAnalysis/FrontEnd/Type/CastMap.h"
 #include "Alias/TPA/PointerAnalysis/FrontEnd/Type/PointerLayoutAnalysis.h"
+
+#include "Alias/TPA/PointerAnalysis/FrontEnd/Type/CastMap.h"
 #include "Alias/TPA/PointerAnalysis/FrontEnd/Type/TypeSet.h"
 #include "Alias/TPA/PointerAnalysis/MemoryModel/Type/PointerLayout.h"
 
@@ -9,148 +10,139 @@
 
 using namespace llvm;
 
-namespace tpa
-{
+namespace tpa {
 
-namespace
-{
+namespace {
 
-class PtrLayoutMapBuilder
-{
+class PtrLayoutMapBuilder {
 private:
-	const TypeSet& typeSet;
-	PointerLayoutMap& ptrLayoutMap;
+  const TypeSet &typeSet;
+  PointerLayoutMap &ptrLayoutMap;
 
-	void insertMap(const Type*, const PointerLayout*);
+  void insertMap(const Type *, const PointerLayout *);
 
-	const PointerLayout* processStructType(StructType*);
-	const PointerLayout* processArrayType(ArrayType*);
-	const PointerLayout* processPointerType(Type*);
-	const PointerLayout* processNonPointerType(Type*);
-	const PointerLayout* processType(Type*);
+  const PointerLayout *processStructType(StructType *);
+  const PointerLayout *processArrayType(ArrayType *);
+  const PointerLayout *processPointerType(Type *);
+  const PointerLayout *processNonPointerType(Type *);
+  const PointerLayout *processType(Type *);
+
 public:
-	PtrLayoutMapBuilder(const TypeSet& t, PointerLayoutMap& p): typeSet(t), ptrLayoutMap(p) {}
+  PtrLayoutMapBuilder(const TypeSet &t, PointerLayoutMap &p)
+      : typeSet(t), ptrLayoutMap(p) {}
 
-	void buildPtrLayoutMap();
+  void buildPtrLayoutMap();
 };
 
-void PtrLayoutMapBuilder::insertMap(const Type* type, const PointerLayout* layout)
-{
-	ptrLayoutMap.insert(type, layout);
+void PtrLayoutMapBuilder::insertMap(const Type *type,
+                                    const PointerLayout *layout) {
+  ptrLayoutMap.insert(type, layout);
 }
 
-const PointerLayout* PtrLayoutMapBuilder::processStructType(StructType* stType)
-{
-	// We know nothing about opaque type. Conservatively treat it as a non-pointer blob.
-	if (stType->isOpaque())
-	{
-		const auto *layout = PointerLayout::getEmptyLayout();
-		insertMap(stType, layout);
-		return layout;
-	}
+const PointerLayout *
+PtrLayoutMapBuilder::processStructType(StructType *stType) {
+  // We know nothing about opaque type. Conservatively treat it as a non-pointer
+  // blob.
+  if (stType->isOpaque()) {
+    const auto *layout = PointerLayout::getEmptyLayout();
+    insertMap(stType, layout);
+    return layout;
+  }
 
-	util::VectorSet<size_t> ptrOffsets;
+  util::VectorSet<size_t> ptrOffsets;
 
-	const auto *structLayout = typeSet.getDataLayout().getStructLayout(stType);
-	for (unsigned i = 0, e = stType->getNumElements(); i != e; ++i)
-	{
-		auto offset = structLayout->getElementOffset(i);
-		auto *subType = stType->getElementType(i);
-		const auto *subLayout = processType(subType);
+  const auto *structLayout = typeSet.getDataLayout().getStructLayout(stType);
+  for (unsigned i = 0, e = stType->getNumElements(); i != e; ++i) {
+    auto offset = structLayout->getElementOffset(i);
+    auto *subType = stType->getElementType(i);
+    const auto *subLayout = processType(subType);
 
-		for (auto subOffset: *subLayout)
-			ptrOffsets.insert(subOffset + offset);
-	}
+    for (auto subOffset : *subLayout)
+      ptrOffsets.insert(subOffset + offset);
+  }
 
-	const auto *stPtrLayout = PointerLayout::getLayout(std::move(ptrOffsets));
-	insertMap(stType, stPtrLayout);
-	return stPtrLayout;
+  const auto *stPtrLayout = PointerLayout::getLayout(std::move(ptrOffsets));
+  insertMap(stType, stPtrLayout);
+  return stPtrLayout;
 }
 
-const PointerLayout* PtrLayoutMapBuilder::processArrayType(ArrayType* arrayType)
-{
-	const auto *layout = processType(arrayType->getElementType());
-	insertMap(arrayType, layout);
-	return layout;
+const PointerLayout *
+PtrLayoutMapBuilder::processArrayType(ArrayType *arrayType) {
+  const auto *layout = processType(arrayType->getElementType());
+  insertMap(arrayType, layout);
+  return layout;
 }
 
-const PointerLayout* PtrLayoutMapBuilder::processPointerType(Type* ptrType)
-{
-	const auto *layout = PointerLayout::getSinglePointerLayout();
-	insertMap(ptrType, layout);
-	return layout;
+const PointerLayout *PtrLayoutMapBuilder::processPointerType(Type *ptrType) {
+  const auto *layout = PointerLayout::getSinglePointerLayout();
+  insertMap(ptrType, layout);
+  return layout;
 }
 
-const PointerLayout* PtrLayoutMapBuilder::processNonPointerType(Type* nonPtrType)
-{
-	const auto *layout = PointerLayout::getEmptyLayout();
-	insertMap(nonPtrType, layout);
-	return layout;
+const PointerLayout *
+PtrLayoutMapBuilder::processNonPointerType(Type *nonPtrType) {
+  const auto *layout = PointerLayout::getEmptyLayout();
+  insertMap(nonPtrType, layout);
+  return layout;
 }
 
+const PointerLayout *PtrLayoutMapBuilder::processType(Type *type) {
+  const auto *layout = ptrLayoutMap.lookup(type);
+  if (layout != nullptr)
+    return layout;
 
-const PointerLayout* PtrLayoutMapBuilder::processType(Type* type)
-{
-	const auto *layout = ptrLayoutMap.lookup(type);
-	if (layout != nullptr)
-		return layout;
-
-	if (auto *stType = dyn_cast<StructType>(type))
-		return processStructType(stType);
-	else if (auto *arrayType = dyn_cast<ArrayType>(type))
-		return processArrayType(arrayType);
-	else if (type->isPointerTy() || type->isFunctionTy())
-		return processPointerType(type);
-	else
-		return processNonPointerType(type);
+  if (auto *stType = dyn_cast<StructType>(type))
+    return processStructType(stType);
+  else if (auto *arrayType = dyn_cast<ArrayType>(type))
+    return processArrayType(arrayType);
+  else if (type->isPointerTy() || type->isFunctionTy())
+    return processPointerType(type);
+  else
+    return processNonPointerType(type);
 }
 
-void PtrLayoutMapBuilder::buildPtrLayoutMap()
-{
-	for (auto *type: typeSet)
-		processType(type);
+void PtrLayoutMapBuilder::buildPtrLayoutMap() {
+  for (auto *type : typeSet)
+    processType(type);
 }
 
-class PtrLayoutMapPropagator
-{
+class PtrLayoutMapPropagator {
 private:
-	const CastMap& castMap;
-	PointerLayoutMap& ptrLayoutMap;
-public:
-	PtrLayoutMapPropagator(const CastMap& c, PointerLayoutMap& p): castMap(c), ptrLayoutMap(p) {}
+  const CastMap &castMap;
+  PointerLayoutMap &ptrLayoutMap;
 
-	void propagatePtrLayoutMap();
+public:
+  PtrLayoutMapPropagator(const CastMap &c, PointerLayoutMap &p)
+      : castMap(c), ptrLayoutMap(p) {}
+
+  void propagatePtrLayoutMap();
 };
 
-void PtrLayoutMapPropagator::propagatePtrLayoutMap()
-{
-	for (auto const& mapping: castMap)
-	{
-		auto *lhs = mapping.first;
-		const auto *dstLayout = ptrLayoutMap.lookup(lhs);
-		assert(dstLayout != nullptr && "Cannot find ptrLayout for lhs type");
+void PtrLayoutMapPropagator::propagatePtrLayoutMap() {
+  for (auto const &mapping : castMap) {
+    auto *lhs = mapping.first;
+    const auto *dstLayout = ptrLayoutMap.lookup(lhs);
+    assert(dstLayout != nullptr && "Cannot find ptrLayout for lhs type");
 
-		for (auto *rhs: mapping.second)
-		{
-			const auto *srcLayout = ptrLayoutMap.lookup(rhs);
-			assert(srcLayout != nullptr && "Cannot find ptrLayout for src type");
-			dstLayout = PointerLayout::merge(dstLayout, srcLayout);
-		}
-		ptrLayoutMap.insert(lhs, dstLayout);
-	}
+    for (auto *rhs : mapping.second) {
+      const auto *srcLayout = ptrLayoutMap.lookup(rhs);
+      assert(srcLayout != nullptr && "Cannot find ptrLayout for src type");
+      dstLayout = PointerLayout::merge(dstLayout, srcLayout);
+    }
+    ptrLayoutMap.insert(lhs, dstLayout);
+  }
 }
 
 } // namespace
 
-PointerLayoutMap PointerLayoutAnalysis::runOnTypes(const TypeSet& typeSet)
-{
-	PointerLayoutMap ptrLayoutMap;
+PointerLayoutMap PointerLayoutAnalysis::runOnTypes(const TypeSet &typeSet) {
+  PointerLayoutMap ptrLayoutMap;
 
-	PtrLayoutMapBuilder(typeSet, ptrLayoutMap).buildPtrLayoutMap();
+  PtrLayoutMapBuilder(typeSet, ptrLayoutMap).buildPtrLayoutMap();
 
-	PtrLayoutMapPropagator(castMap, ptrLayoutMap).propagatePtrLayoutMap();
+  PtrLayoutMapPropagator(castMap, ptrLayoutMap).propagatePtrLayoutMap();
 
-	return ptrLayoutMap;
+  return ptrLayoutMap;
 }
 
 } // namespace tpa

@@ -2,26 +2,38 @@
 
 #include "Alias/TPA/Context/Context.h"
 
-namespace llvm
-{
-	class Instruction;
+namespace llvm {
+class Instruction;
 } // namespace llvm
 
-namespace context
-{
+namespace context {
 
 class ProgramPoint;
 
-class KLimitContext
-{
+class KLimitContext {
 private:
-	static unsigned defaultLimit;
-public:
-	static void setLimit(unsigned k) { defaultLimit = k; }
-	static unsigned getLimit() { return defaultLimit; }
+  // K-limiting context sensitivity parameter
+  // Controls the maximum depth of the call stack that is tracked
+  // A value of 0 means context-insensitive (no call stack tracking)
+  // Higher values provide more precision at the cost of scalability
+  static unsigned defaultLimit;
 
-	static const Context* pushContext(const Context*, const llvm::Instruction*);
-	static const Context* pushContext(const ProgramPoint&);
+public:
+  // Set the K-limit parameter
+  // Parameters: k - the maximum call stack depth to track
+  // Recommended values: 1-3 for most programs, higher for small programs
+  static void setLimit(unsigned k) { defaultLimit = k; }
+  // Get the current K-limit value
+  static unsigned getLimit() { return defaultLimit; }
+
+  // Push a new call site onto the context stack with K-limiting
+  // If current context size >= K, returns the current context unchanged
+  // This prevents the context from growing beyond the K limit
+  // Parameters: ctx - the current context before the call, inst - the call
+  // instruction
+  static const Context *pushContext(const Context *, const llvm::Instruction *);
+  // Push a new call site using a ProgramPoint (contains both context and node)
+  static const Context *pushContext(const ProgramPoint &);
 };
 
 } // namespace context

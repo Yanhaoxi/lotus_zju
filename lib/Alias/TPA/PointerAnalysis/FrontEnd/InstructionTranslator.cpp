@@ -200,7 +200,8 @@ InstructionTranslator::visitExtractValueInst(ExtractValueInst &inst) {
     break;
   }
 
-  // If we can't recover a source, conservatively model it as an unknown pointer.
+  // If we can't recover a source, conservatively model it as an unknown
+  // pointer.
   if (extractedPtr == nullptr)
     extractedPtr = UndefValue::get(inst.getType());
 
@@ -252,7 +253,8 @@ InstructionTranslator::visitExtractElementInst(ExtractElementInst &inst) {
     }
   }
 
-  // If we can't recover a source, conservatively model it as an unknown pointer.
+  // If we can't recover a source, conservatively model it as an unknown
+  // pointer.
   if (extractedPtr == nullptr)
     extractedPtr = UndefValue::get(inst.getType());
 
@@ -276,10 +278,11 @@ InstructionTranslator::visitShuffleVectorInst(ShuffleVectorInst &inst) {
   return nullptr;
 }
 tpa::CFGNode *InstructionTranslator::visitLandingPadInst(LandingPadInst &inst) {
-  // `landingpad` produces an aggregate { i8*, i32 } (or similar), not a pointer-
-  // typed SSA value. The pointer analysis only models pointer-typed SSA values;
-  // any uses that extract a pointer field are handled conservatively by
-  // `visitExtractValueInst()` (fallback to unknown pointer when needed).
+  // `landingpad` produces an aggregate { i8*, i32 } (or similar), not a
+  // pointer- typed SSA value. The pointer analysis only models pointer-typed
+  // SSA values; any uses that extract a pointer field are handled
+  // conservatively by `visitExtractValueInst()` (fallback to unknown pointer
+  // when needed).
   //
   // So we can safely ignore `landingpad` here to avoid crashing on IR with EH.
   (void)inst;

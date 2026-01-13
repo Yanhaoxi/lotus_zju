@@ -8,157 +8,142 @@
 
 using namespace llvm;
 
-namespace tpa
-{
+namespace tpa {
 
-namespace
-{
+namespace {
 
-class TypeSetBuilder
-{
+class TypeSetBuilder {
 private:
-	const Module& module;
-	TypeSet& typeSet;
+  const Module &module;
+  TypeSet &typeSet;
 
-	DenseSet<const Value*> visitedValues;
+  DenseSet<const Value *> visitedValues;
 
-	void incorporateFunctionType(FunctionType*);
-	void incorporateStructType(StructType*);
-	void incorporateArrayType(ArrayType*);
-	void incorporatePointerType(PointerType*);
-	void incorporateType(Type*);
+  void incorporateFunctionType(FunctionType *);
+  void incorporateStructType(StructType *);
+  void incorporateArrayType(ArrayType *);
+  void incorporatePointerType(PointerType *);
+  void incorporateType(Type *);
 
-	void incorporateConstant(const Constant*);
-	void incorporateInstruction(const Instruction*);
-	void incorporateValue(const Value*);
+  void incorporateConstant(const Constant *);
+  void incorporateInstruction(const Instruction *);
+  void incorporateValue(const Value *);
+
 public:
-	TypeSetBuilder(const Module& m, TypeSet& t): module(m), typeSet(t) {}
+  TypeSetBuilder(const Module &m, TypeSet &t) : module(m), typeSet(t) {}
 
-	void collectType();
+  void collectType();
 };
 
-void TypeSetBuilder::incorporateConstant(const Constant* constant)
-{
-	// Skip global value
-	if (isa<GlobalValue>(constant))
-		return;
+void TypeSetBuilder::incorporateConstant(const Constant *constant) {
+  // Skip global value
+  if (isa<GlobalValue>(constant))
+    return;
 
-	// Already visited?
-	if (!visitedValues.insert(constant).second)
-		return;
+  // Already visited?
+  if (!visitedValues.insert(constant).second)
+    return;
 
-	// Check the type
-	incorporateType(constant->getType());
+  // Check the type
+  incorporateType(constant->getType());
 
-	// Look in operands for types.
-	for (auto const& op: constant->operands())
-		incorporateValue(op);
+  // Look in operands for types.
+  for (auto const &op : constant->operands())
+    incorporateValue(op);
 }
 
-void TypeSetBuilder::incorporateInstruction(const Instruction* inst)
-{
-	// Already visited?
-	if (!visitedValues.insert(inst).second)
-		return;
+void TypeSetBuilder::incorporateInstruction(const Instruction *inst) {
+  // Already visited?
+  if (!visitedValues.insert(inst).second)
+    return;
 
-	// Check the type
-	incorporateType(inst->getType());
+  // Check the type
+  incorporateType(inst->getType());
 
-	if (const auto *allocInst = dyn_cast<AllocaInst>(inst))
-		incorporateType(allocInst->getAllocatedType());
+  if (const auto *allocInst = dyn_cast<AllocaInst>(inst))
+    incorporateType(allocInst->getAllocatedType());
 
-	// Look in operands for types.
-	for (auto const& op: inst->operands())
-	{
-		if (!isa<Instruction>(op))
-			incorporateValue(op);
-	}
+  // Look in operands for types.
+  for (auto const &op : inst->operands()) {
+    if (!isa<Instruction>(op))
+      incorporateValue(op);
+  }
 }
 
-void TypeSetBuilder::incorporateValue(const Value* value)
-{
-	if (const auto *constant = dyn_cast<Constant>(value))
-		incorporateConstant(constant);
-	else if (const auto *inst = dyn_cast<Instruction>(value))
-		incorporateInstruction(inst);
+void TypeSetBuilder::incorporateValue(const Value *value) {
+  if (const auto *constant = dyn_cast<Constant>(value))
+    incorporateConstant(constant);
+  else if (const auto *inst = dyn_cast<Instruction>(value))
+    incorporateInstruction(inst);
 }
 
-void TypeSetBuilder::incorporateFunctionType(FunctionType* funType)
-{
-	for (auto *pType: funType->params())
-		incorporateType(pType);
+void TypeSetBuilder::incorporateFunctionType(FunctionType *funType) {
+  for (auto *pType : funType->params())
+    incorporateType(pType);
 }
 
-void TypeSetBuilder::incorporateStructType(StructType* stType)
-{
-	for (auto *elemType: stType->elements())
-		incorporateType(elemType);
+void TypeSetBuilder::incorporateStructType(StructType *stType) {
+  for (auto *elemType : stType->elements())
+    incorporateType(elemType);
 }
 
-void TypeSetBuilder::incorporateArrayType(ArrayType* arrayType)
-{
-	incorporateType(arrayType->getElementType());
+void TypeSetBuilder::incorporateArrayType(ArrayType *arrayType) {
+  incorporateType(arrayType->getElementType());
 }
 
-void TypeSetBuilder::incorporatePointerType(PointerType* ptrType)
-{
-	incorporateType(ptrType->getElementType());
+void TypeSetBuilder::incorporatePointerType(PointerType *ptrType) {
+  incorporateType(ptrType->getElementType());
 }
 
-void TypeSetBuilder::incorporateType(Type* llvmType)
-{
-	// We don't care about void type
-	if (llvmType->isVoidTy())
-		return;
+void TypeSetBuilder::incorporateType(Type *llvmType) {
+  // We don't care about void type
+  if (llvmType->isVoidTy())
+    return;
 
-	// Check to see if we've already visited this type.
-	if (!typeSet.insert(llvmType))
-		return;
+  // Check to see if we've already visited this type.
+  if (!typeSet.insert(llvmType))
+    return;
 
-	if (auto *ptrType = dyn_cast<PointerType>(llvmType))
-		incorporatePointerType(ptrType);
-	else if (auto *funType = dyn_cast<FunctionType>(llvmType))
-		incorporateFunctionType(funType);
-	else if (auto *stType = dyn_cast<StructType>(llvmType))
-		incorporateStructType(stType);
-	else if (auto *arrType = dyn_cast<ArrayType>(llvmType))
-		incorporateArrayType(arrType);
-	else if (llvmType->isVectorTy())
-		llvm_unreachable("Vector type not supported");
+  if (auto *ptrType = dyn_cast<PointerType>(llvmType))
+    incorporatePointerType(ptrType);
+  else if (auto *funType = dyn_cast<FunctionType>(llvmType))
+    incorporateFunctionType(funType);
+  else if (auto *stType = dyn_cast<StructType>(llvmType))
+    incorporateStructType(stType);
+  else if (auto *arrType = dyn_cast<ArrayType>(llvmType))
+    incorporateArrayType(arrType);
+  else if (llvmType->isVectorTy())
+    llvm_unreachable("Vector type not supported");
 }
 
-void TypeSetBuilder::collectType()
-{
-	// Get types from global variables
-	for (auto const& global: module.globals())
-	{
-		incorporateType(global.getType());
-		if (global.hasInitializer())
-			incorporateValue(global.getInitializer());
-	}
+void TypeSetBuilder::collectType() {
+  // Get types from global variables
+  for (auto const &global : module.globals()) {
+    incorporateType(global.getType());
+    if (global.hasInitializer())
+      incorporateValue(global.getInitializer());
+  }
 
-	// Get types from functions
-	for (auto const& f: module)
-	{
-		assert(!f.hasPrefixData() && !f.hasPrologueData());
+  // Get types from functions
+  for (auto const &f : module) {
+    assert(!f.hasPrefixData() && !f.hasPrologueData());
 
-		incorporateType(f.getType());
+    incorporateType(f.getType());
 
-		for (auto const& bb: f)
-			for (auto const& inst: bb)
-				incorporateValue(&inst);
-	}
+    for (auto const &bb : f)
+      for (auto const &inst : bb)
+        incorporateValue(&inst);
+  }
 }
 
 } // namespace
 
-TypeSet TypeCollector::runOnModule(const Module& module)
-{
-	TypeSet typeSet(module);
+TypeSet TypeCollector::runOnModule(const Module &module) {
+  TypeSet typeSet(module);
 
-	TypeSetBuilder(module, typeSet).collectType();
+  TypeSetBuilder(module, typeSet).collectType();
 
-	return typeSet;
+  return typeSet;
 }
 
 } // namespace tpa

@@ -16,12 +16,42 @@ class Context;
 namespace tpa {
 
 // CRTP pointer analysis base class
+//
+// This template class provides common functionality for pointer analysis
+// implementations using the Curiously Recurring Template Pattern (CRTP).
+// Subclasses implement specific pointer analysis algorithms while this base
+// class provides common interfaces and utilities.
+//
+// Key Responsibilities:
+// 1. Memory and pointer management via PointerManager and MemoryManager
+// 2. External pointer table loading for modeling library functions
+// 3. Points-to set queries with optional context sensitivity
+// 4. Indirect call target resolution
+//
+// Design:
+// - Uses CRTP for static polymorphism - SubClass implements getPtsSetImpl()
+// - PointerManager handles mapping (context, value) -> Pointer objects
+// - MemoryManager handles memory object allocation and management
+// - External pointer table models library functions with annotations
+//
+// Usage Pattern:
+//   class MyAnalysis : public PointerAnalysis<MyAnalysis> {
+//     PtsSet getPtsSetImpl(const Pointer* ptr) const { ... }
+//   };
+//
 template <typename SubClass> class PointerAnalysis {
 protected:
+  // Manages pointer SSA variables and their mapping to LLVM values
   PointerManager ptrManager;
+  // Manages memory objects and their allocation sites
   MemoryManager memManager;
+  // External pointer table for modeling library function effects
   annotation::ExternalPointerTable extTable;
 
+  // Helper method to extract function targets from a points-to set
+  // If the set contains the universal object, all address-taken functions are
+  // potential targets Otherwise, only functions whose allocation site is in the
+  // set are targets
   void getCallees(const llvm::Instruction *inst, PtsSet pSet,
                   std::vector<const llvm::Function *> &funcs) const {
     if (pSet.has(MemoryManager::getUniversalObject())) {
@@ -46,17 +76,28 @@ public:
   PointerAnalysis &operator=(const PointerAnalysis &) = delete;
   PointerAnalysis &operator=(PointerAnalysis &&) = delete;
 
+  // Access the pointer manager
   const PointerManager &getPointerManager() const { return ptrManager; }
+  // Access the memory manager
   const MemoryManager &getMemoryManager() const { return memManager; }
 
+  // Load external pointer table from file
+  // The external pointer table describes pointer effects of library functions
+  // Parameters: extFileName - path to the external pointer table file
   void loadExternalPointerTable(const char *extFileName) {
     extTable = annotation::ExternalPointerTable::loadFromFile(extFileName);
   }
 
+  // Get points-to set for a pointer (internal dispatch)
+  // Subclass must implement getPtsSetImpl()
   PtsSet getPtsSet(const Pointer *ptr) const {
     return static_cast<const SubClass *>(this)->getPtsSetImpl(ptr);
   }
 
+  // Get points-to set for a value in a specific context
+  // This is the main query interface for context-sensitive analysis
+  // Parameters: ctx - the calling context, val - the LLVM value to query
+  // Returns: the points-to set of the pointer (ctx, val)
   PtsSet getPtsSet(const context::Context *ctx, const llvm::Value *val) const {
     assert(ctx != nullptr && val != nullptr);
 
@@ -67,6 +108,10 @@ public:
     return getPtsSet(ptr);
   }
 
+  // Get points-to set for a value (context-insensitive)
+  // Merges points-to sets from all contexts where the value appears
+  // Parameters: val - the LLVM value to query
+  // Returns: union of points-to sets across all contexts
   PtsSet getPtsSet(const llvm::Value *val) const {
     assert(val != nullptr);
 
@@ -82,6 +127,9 @@ public:
     return PtsSet::mergeAll(pSets);
   }
 
+  // Get possible callee functions for an indirect call
+  // Parameters: inst - the call instruction, ctx - optional context
+  // Returns: list of functions that may be called at this site
   std::vector<const llvm::Function *>
   getCallees(const llvm::Instruction *inst,
              const context::Context *ctx = nullptr) const {

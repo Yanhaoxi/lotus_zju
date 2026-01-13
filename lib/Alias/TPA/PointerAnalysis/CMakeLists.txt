@@ -48,4 +48,4 @@ set (PointerAnalysisSourceCodes
 )
 add_library (FSCSPointerAnalysis STATIC ${PointerAnalysisSourceCodes})
 
-target_link_libraries (FSCSPointerAnalysis Annotation LLVMSupport LLVMCore)
+target_link_libraries (FSCSPointerAnalysis Annotation)

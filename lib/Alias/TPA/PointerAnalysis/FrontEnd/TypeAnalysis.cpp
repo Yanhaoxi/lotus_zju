@@ -1,7 +1,8 @@
+#include "Alias/TPA/PointerAnalysis/FrontEnd/Type/TypeAnalysis.h"
+
 #include "Alias/TPA/PointerAnalysis/FrontEnd/Type/ArrayLayoutAnalysis.h"
 #include "Alias/TPA/PointerAnalysis/FrontEnd/Type/PointerLayoutAnalysis.h"
 #include "Alias/TPA/PointerAnalysis/FrontEnd/Type/StructCastAnalysis.h"
-#include "Alias/TPA/PointerAnalysis/FrontEnd/Type/TypeAnalysis.h"
 #include "Alias/TPA/PointerAnalysis/FrontEnd/Type/TypeCollector.h"
 #include "Alias/TPA/PointerAnalysis/MemoryModel/Type/TypeLayout.h"
 
@@ -10,98 +11,90 @@
 
 using namespace llvm;
 
-namespace tpa
-{
+namespace tpa {
 
-namespace
-{
+namespace {
 
-class TypeMapBuilder
-{
+class TypeMapBuilder {
 private:
-	const Module& module;
-	TypeMap& typeMap;
+  const Module &module;
+  TypeMap &typeMap;
 
-	size_t getTypeSize(Type*, const DataLayout&);
-	void insertTypeMap(Type*, size_t, const ArrayLayout*, const PointerLayout*);
-	void insertOpaqueType(Type*);
+  size_t getTypeSize(Type *, const DataLayout &);
+  void insertTypeMap(Type *, size_t, const ArrayLayout *,
+                     const PointerLayout *);
+  void insertOpaqueType(Type *);
+
 public:
-	TypeMapBuilder(const Module& m, TypeMap& t): module(m), typeMap(t) {}
+  TypeMapBuilder(const Module &m, TypeMap &t) : module(m), typeMap(t) {}
 
-	void buildTypeMap();
+  void buildTypeMap();
 };
 
-void TypeMapBuilder::insertOpaqueType(Type* type)
-{
-	typeMap.insert(type, TypeLayout::getByteArrayTypeLayout());
+void TypeMapBuilder::insertOpaqueType(Type *type) {
+  typeMap.insert(type, TypeLayout::getByteArrayTypeLayout());
 }
 
-void TypeMapBuilder::insertTypeMap(Type* type, size_t size, const ArrayLayout* arrayLayout, const PointerLayout* ptrLayout)
-{
-	const auto *typeLayout = TypeLayout::getTypeLayout(size, arrayLayout, ptrLayout);
-	typeMap.insert(type, typeLayout);
+void TypeMapBuilder::insertTypeMap(Type *type, size_t size,
+                                   const ArrayLayout *arrayLayout,
+                                   const PointerLayout *ptrLayout) {
+  const auto *typeLayout =
+      TypeLayout::getTypeLayout(size, arrayLayout, ptrLayout);
+  typeMap.insert(type, typeLayout);
 }
 
-size_t TypeMapBuilder::getTypeSize(Type* type, const DataLayout& dataLayout)
-{
-	if (isa<FunctionType>(type))
-		return dataLayout.getPointerSize();
-	else
-	{
-		while (auto *arrayType = dyn_cast<ArrayType>(type))
-			type = arrayType->getElementType();
-		return dataLayout.getTypeAllocSize(type);
-	}
+size_t TypeMapBuilder::getTypeSize(Type *type, const DataLayout &dataLayout) {
+  if (isa<FunctionType>(type))
+    return dataLayout.getPointerSize();
+  else {
+    while (auto *arrayType = dyn_cast<ArrayType>(type))
+      type = arrayType->getElementType();
+    return dataLayout.getTypeAllocSize(type);
+  }
 }
 
-void TypeMapBuilder::buildTypeMap()
-{
-	auto typeSet = TypeCollector().runOnModule(module);
-	auto structCastMap = StructCastAnalysis().runOnModule(module);
-	auto arrayLayoutMap = ArrayLayoutAnalysis().runOnTypes(typeSet);
-	auto ptrLayoutMap = PointerLayoutAnalysis(structCastMap).runOnTypes(typeSet);
+void TypeMapBuilder::buildTypeMap() {
+  auto typeSet = TypeCollector().runOnModule(module);
+  auto structCastMap = StructCastAnalysis().runOnModule(module);
+  auto arrayLayoutMap = ArrayLayoutAnalysis().runOnTypes(typeSet);
+  auto ptrLayoutMap = PointerLayoutAnalysis(structCastMap).runOnTypes(typeSet);
 
-	for (auto *type: typeSet)
-	{
-		// Some LLVM IR types are unsized (e.g., function types, opaque structs, etc.).
-		// We conservatively treat unknown/unsized types as a byte array to avoid
-		// triggering DataLayout assertions.
-		if (!isa<FunctionType>(type) && !type->isSized())
-		{
-			insertOpaqueType(type);
-			continue;
-		}
+  for (auto *type : typeSet) {
+    // Some LLVM IR types are unsized (e.g., function types, opaque structs,
+    // etc.). We conservatively treat unknown/unsized types as a byte array to
+    // avoid triggering DataLayout assertions.
+    if (!isa<FunctionType>(type) && !type->isSized()) {
+      insertOpaqueType(type);
+      continue;
+    }
 
-		if (auto *stType = dyn_cast<StructType>(type))
-		{
-			if (stType->isOpaque())
-			{
-				insertOpaqueType(type);
-				continue;
-			}
-		}
+    if (auto *stType = dyn_cast<StructType>(type)) {
+      if (stType->isOpaque()) {
+        insertOpaqueType(type);
+        continue;
+      }
+    }
 
-		auto typeSize = getTypeSize(type, typeSet.getDataLayout());
+    auto typeSize = getTypeSize(type, typeSet.getDataLayout());
 
-		const auto *ptrLayout = ptrLayoutMap.lookup(type);
-		assert(ptrLayout != nullptr);
+    const auto *ptrLayout = ptrLayoutMap.lookup(type);
+    assert(ptrLayout != nullptr);
 
-		const auto *arrayLayout = arrayLayoutMap.lookup(type);
-		assert(arrayLayout != nullptr);
+    const auto *arrayLayout = arrayLayoutMap.lookup(type);
+    assert(arrayLayout != nullptr);
 
-		insertTypeMap(type, typeSize, arrayLayout, ptrLayout);
-	}
+    insertTypeMap(type, typeSize, arrayLayout, ptrLayout);
+  }
 }
 
 } // namespace
 
-TypeMap TypeAnalysis::runOnModule(const Module& module)
-{
-	TypeMap typeMap;
+TypeMap TypeAnalysis::runOnModule(const Module &module) {
+  TypeMap typeMap;
 
-	TypeMapBuilder(module, typeMap).buildTypeMap();
+  TypeMapBuilder(module, typeMap).buildTypeMap();
 
-	return typeMap;
+  return typeMap;
 }
 
 } // namespace tpa

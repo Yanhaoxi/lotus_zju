@@ -1,38 +1,37 @@
-#include "Alias/TPA/PointerAnalysis/FrontEnd/CFG/CFGBuilder.h"
 #include "Alias/TPA/PointerAnalysis/FrontEnd/SemiSparseProgramBuilder.h"
+
+#include "Alias/TPA/PointerAnalysis/FrontEnd/CFG/CFGBuilder.h"
 #include "Alias/TPA/PointerAnalysis/FrontEnd/Type/TypeAnalysis.h"
 
 #include <llvm/IR/Module.h>
 
 using namespace llvm;
 
-namespace tpa
-{
+namespace tpa {
 
-void SemiSparseProgramBuilder::buildCFGForFunction(SemiSparseProgram& ssProg, const Function& f, const TypeMap& typeMap)
-{
-	auto& cfg = ssProg.getOrCreateCFGForFunction(f);
-	CFGBuilder(cfg, typeMap).buildCFG(f);
+void SemiSparseProgramBuilder::buildCFGForFunction(SemiSparseProgram &ssProg,
+                                                   const Function &f,
+                                                   const TypeMap &typeMap) {
+  auto &cfg = ssProg.getOrCreateCFGForFunction(f);
+  CFGBuilder(cfg, typeMap).buildCFG(f);
 }
 
-SemiSparseProgram SemiSparseProgramBuilder::runOnModule(const Module& module)
-{
-	SemiSparseProgram ssProg(module);
+SemiSparseProgram SemiSparseProgramBuilder::runOnModule(const Module &module) {
+  SemiSparseProgram ssProg(module);
 
-	// Process types
-	auto typeMap = TypeAnalysis().runOnModule(module);
+  // Process types
+  auto typeMap = TypeAnalysis().runOnModule(module);
 
-	// Translate functions to CFG
-	for (auto const& f: module)
-	{
-		if (f.isDeclaration())
-			continue;
+  // Translate functions to CFG
+  for (auto const &f : module) {
+    if (f.isDeclaration())
+      continue;
 
-		buildCFGForFunction(ssProg, f, typeMap);
-	}
+    buildCFGForFunction(ssProg, f, typeMap);
+  }
 
-	ssProg.setTypeMap(std::move(typeMap));
-	return ssProg;
+  ssProg.setTypeMap(std::move(typeMap));
+  return ssProg;
 }
 
 } // namespace tpa

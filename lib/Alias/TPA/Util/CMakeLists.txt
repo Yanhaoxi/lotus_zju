@@ -6,4 +6,3 @@ set (UtilCodes
 )
 
 add_library (TPAUtil STATIC ${UtilCodes})
-target_link_libraries (TPAUtil LLVMIRReader LLVMAsmParser LLVMBitWriter LLVMSupport LLVMCore)
