@@ -42,8 +42,8 @@ jobs:
               # Basic tooling (root inside container; no sudo).
               dnf -y update || true
 
-              # Ensure we have config-manager reliably (dnf-plugins-core isn't always present/needed).
-              dnf -y install "dnf-command(config-manager)"
+              # Ensure we have config-manager reliably (dnf-plugins-core provides config-manager).
+              dnf -y install dnf-plugins-core
 
               # Detect major version (8/9) to enable correct repo names.
               . /etc/os-release
