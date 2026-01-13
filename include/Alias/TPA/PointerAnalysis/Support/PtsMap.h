@@ -113,4 +113,4 @@ public:
 	const_iterator end() const { return mapping.end(); }
 };
 
-}
+} // namespace tpa

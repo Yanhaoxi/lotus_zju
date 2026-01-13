@@ -15,4 +15,4 @@ public:
 	ArrayLayoutMap runOnTypes(const TypeSet&);
 };
 
-}
+} // namespace tpa

@@ -7,9 +7,9 @@
 #include "Alias/TPA/PointerAnalysis/Program/SemiSparseProgram.h"
 #include "Annotation/Pointer/PointerEffect.h"
 
-#include <llvm/IR/Intrinsics.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/Intrinsics.h>
 #include <llvm/Support/raw_ostream.h>
 
 using namespace annotation;
@@ -51,7 +51,9 @@ static Type *getMallocType(const Instruction *callInst) {
   }
 
   // Malloc call has 1 bitcast use, so type is the bitcast's destination type.
-  if (numOfBitCastUses == 1)
+  // Note: a single GEP user also increments numOfBitCastUses, but does not
+  // provide a destination element type we can safely recover.
+  if (numOfBitCastUses == 1 && mallocType != nullptr)
     return mallocType->getNonOpaquePointerElementType();
 
   // Malloc call was not bitcast, so type is the malloc function's return type.

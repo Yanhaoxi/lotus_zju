@@ -29,4 +29,4 @@ public:
 	friend class MemoryManager;
 };
 
-}
+} // namespace tpa

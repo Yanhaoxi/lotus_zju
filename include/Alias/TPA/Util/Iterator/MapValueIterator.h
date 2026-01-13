@@ -43,4 +43,4 @@ MapValueConstIterator<Iterator> mapValueConstIterator(Iterator&& itr)
 	return MapValueConstIterator<Iterator>(std::forward<Iterator>(itr));
 }
 
-}
+} // namespace util

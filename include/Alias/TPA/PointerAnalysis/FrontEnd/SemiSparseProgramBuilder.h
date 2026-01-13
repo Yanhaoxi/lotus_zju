@@ -7,7 +7,7 @@ namespace llvm
 {
 	class Function;
 	class Module;
-}
+} // namespace llvm
 
 namespace tpa
 {
@@ -20,4 +20,4 @@ public:
 	tpa::SemiSparseProgram runOnModule(const llvm::Module& module);
 };
 
-}
+} // namespace tpa

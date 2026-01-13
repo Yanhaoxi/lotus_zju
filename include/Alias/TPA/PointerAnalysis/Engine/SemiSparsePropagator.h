@@ -24,4 +24,4 @@ public:
 	void propagate(const EvalResult&);
 };
 
-}
+} // namespace tpa

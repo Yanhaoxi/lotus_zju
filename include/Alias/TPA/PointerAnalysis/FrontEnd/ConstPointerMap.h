@@ -40,4 +40,4 @@ public:
 	const_iterator end() const { return ptrMap.end(); }
 };
 
-}
+} // namespace tpa

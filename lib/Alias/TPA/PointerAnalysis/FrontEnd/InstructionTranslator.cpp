@@ -20,7 +20,7 @@ tpa::CFGNode *InstructionTranslator::createCopyNode(
 tpa::CFGNode *InstructionTranslator::visitAllocaInst(AllocaInst &allocaInst) {
   assert(allocaInst.getType()->isPointerTy());
 
-  auto allocType = typeMap.lookup(allocaInst.getAllocatedType());
+  const auto *allocType = typeMap.lookup(allocaInst.getAllocatedType());
   assert(allocType != nullptr && "Alloc type not found");
 
   return cfg.create<tpa::AllocCFGNode>(&allocaInst, allocType);
@@ -30,41 +30,46 @@ tpa::CFGNode *InstructionTranslator::visitLoadInst(LoadInst &loadInst) {
   if (!loadInst.getType()->isPointerTy())
     return nullptr;
 
-  auto dstVal = &loadInst;
-  auto srcVal = loadInst.getPointerOperand()->stripPointerCasts();
+  auto *dstVal = &loadInst;
+  auto *srcVal = loadInst.getPointerOperand()->stripPointerCasts();
   return cfg.create<tpa::LoadCFGNode>(dstVal, srcVal);
 }
 
 tpa::CFGNode *InstructionTranslator::visitStoreInst(StoreInst &storeInst) {
-  auto valOp = storeInst.getValueOperand();
+  auto *valOp = storeInst.getValueOperand();
   if (!valOp->getType()->isPointerTy())
     return nullptr;
-  auto ptrOp = storeInst.getPointerOperand();
+  auto *ptrOp = storeInst.getPointerOperand();
 
   return cfg.create<tpa::StoreCFGNode>(ptrOp->stripPointerCasts(),
                                        valOp->stripPointerCasts());
 }
 
 tpa::CFGNode *InstructionTranslator::visitReturnInst(ReturnInst &retInst) {
-  auto retVal = retInst.getReturnValue();
+  auto *retVal = retInst.getReturnValue();
   if (retVal != nullptr)
     retVal = retVal->stripPointerCasts();
 
-  auto retNode = cfg.create<tpa::ReturnCFGNode>(retVal);
+  auto *retNode = cfg.create<tpa::ReturnCFGNode>(retVal);
   cfg.setExitNode(retNode);
   return retNode;
 }
 
 tpa::CFGNode *InstructionTranslator::visitCallInst(CallInst &callInst) {
-  auto funPtr = callInst.getCalledOperand()->stripPointerCasts();
+  auto *funPtr = callInst.getCalledOperand()->stripPointerCasts();
 
-  auto callNode = cfg.create<tpa::CallCFGNode>(funPtr, &callInst);
+  auto *callNode = cfg.create<tpa::CallCFGNode>(funPtr, &callInst);
 
   for (unsigned i = 0; i < callInst.arg_size(); ++i) {
-    auto arg = callInst.getArgOperand(i)->stripPointerCasts();
-
-    if (!arg->getType()->isPointerTy())
+    auto *argOp = callInst.getArgOperand(i);
+    if (!argOp->getType()->isPointerTy())
       continue;
+
+    // Keep pointer-typed operands even if stripping casts would expose a
+    // non-pointer (e.g., inttoptr).
+    auto *arg = argOp->stripPointerCasts();
+    if (!arg->getType()->isPointerTy())
+      arg = argOp;
 
     callNode->addArgument(arg);
   }
@@ -72,15 +77,18 @@ tpa::CFGNode *InstructionTranslator::visitCallInst(CallInst &callInst) {
 }
 
 tpa::CFGNode *InstructionTranslator::visitInvokeInst(InvokeInst &invokeInst) {
-  auto funPtr = invokeInst.getCalledOperand()->stripPointerCasts();
+  auto *funPtr = invokeInst.getCalledOperand()->stripPointerCasts();
 
-  auto callNode = cfg.create<tpa::CallCFGNode>(funPtr, &invokeInst);
+  auto *callNode = cfg.create<tpa::CallCFGNode>(funPtr, &invokeInst);
 
   for (unsigned i = 0; i < invokeInst.arg_size(); ++i) {
-    auto arg = invokeInst.getArgOperand(i)->stripPointerCasts();
-
-    if (!arg->getType()->isPointerTy())
+    auto *argOp = invokeInst.getArgOperand(i);
+    if (!argOp->getType()->isPointerTy())
       continue;
+
+    auto *arg = argOp->stripPointerCasts();
+    if (!arg->getType()->isPointerTy())
+      arg = argOp;
 
     callNode->addArgument(arg);
   }
@@ -93,7 +101,7 @@ tpa::CFGNode *InstructionTranslator::visitPHINode(PHINode &phiInst) {
 
   auto srcs = SmallPtrSet<const Value *, 4>();
   for (unsigned i = 0; i < phiInst.getNumIncomingValues(); ++i) {
-    auto value = phiInst.getIncomingValue(i)->stripPointerCasts();
+    auto *value = phiInst.getIncomingValue(i)->stripPointerCasts();
     if (isa<UndefValue>(value))
       continue;
     srcs.insert(value);
@@ -117,7 +125,7 @@ tpa::CFGNode *
 InstructionTranslator::visitGetElementPtrInst(GetElementPtrInst &gepInst) {
   assert(gepInst.getType()->isPointerTy());
 
-  auto srcVal = gepInst.getPointerOperand()->stripPointerCasts();
+  auto *srcVal = gepInst.getPointerOperand()->stripPointerCasts();
 
   auto gepOffset =
       APInt(dataLayout.getPointerTypeSizeInBits(srcVal->getType()), 0);
@@ -139,7 +147,7 @@ InstructionTranslator::visitGetElementPtrInst(GetElementPtrInst &gepInst) {
   else {
     assert(isa<ConstantInt>(gepInst.getOperand(1)) &&
            cast<ConstantInt>(gepInst.getOperand(1))->isZero());
-    auto elemType =
+    auto *elemType =
         gepInst.getPointerOperand()->getType()->getPointerElementType();
     offset = dataLayout.getTypeAllocSize(elemType->getPointerElementType());
   }
@@ -169,7 +177,36 @@ tpa::CFGNode *
 InstructionTranslator::visitExtractValueInst(ExtractValueInst &inst) {
   if (!inst.getType()->isPointerTy())
     return nullptr;
-  return handleUnsupportedInst(inst);
+
+  // Common lowering pattern: build an aggregate with insertvalue (often from
+  // undef), then extract a pointer-typed field from it.
+  //
+  // We try to recover the pointer value precisely by walking the insertvalue
+  // chain and finding the last insertion that matches the same index path.
+  const Value *agg = inst.getAggregateOperand();
+  const Value *extractedPtr = nullptr;
+
+  while (agg != nullptr) {
+    if (auto *iv = dyn_cast<InsertValueInst>(agg)) {
+      if (iv->getIndices() == inst.getIndices()) {
+        auto *ins = iv->getInsertedValueOperand()->stripPointerCasts();
+        if (ins->getType()->isPointerTy())
+          extractedPtr = ins;
+        break;
+      }
+      agg = iv->getAggregateOperand();
+      continue;
+    }
+    break;
+  }
+
+  // If we can't recover a source, conservatively model it as an unknown pointer.
+  if (extractedPtr == nullptr)
+    extractedPtr = UndefValue::get(inst.getType());
+
+  auto srcs = SmallPtrSet<const Value *, 1>();
+  srcs.insert(extractedPtr);
+  return createCopyNode(&inst, srcs);
 }
 tpa::CFGNode *
 InstructionTranslator::visitInsertValueInst(InsertValueInst &inst) {
@@ -182,18 +219,71 @@ tpa::CFGNode *InstructionTranslator::visitVAArgInst(VAArgInst &inst) {
 }
 tpa::CFGNode *
 InstructionTranslator::visitExtractElementInst(ExtractElementInst &inst) {
-  return handleUnsupportedInst(inst);
+  // Only relevant to the pointer analysis when the extracted element is a
+  // pointer. Otherwise we can safely ignore it.
+  if (!inst.getType()->isPointerTy())
+    return nullptr;
+
+  // Common lowering pattern: build a vector via insertelement (often from
+  // undef), then extract a pointer-typed element from it.
+  //
+  // Try to recover the pointer value precisely when the index is constant by
+  // walking the insertelement chain.
+  const Value *vec = inst.getVectorOperand();
+  const Value *extractedPtr = nullptr;
+
+  auto *idxC = dyn_cast<ConstantInt>(inst.getIndexOperand());
+  if (idxC != nullptr) {
+    const uint64_t targetIdx = idxC->getZExtValue();
+
+    while (vec != nullptr) {
+      if (auto *ie = dyn_cast<InsertElementInst>(vec)) {
+        auto *ieIdxC = dyn_cast<ConstantInt>(ie->getOperand(2));
+        if (ieIdxC != nullptr && ieIdxC->getZExtValue() == targetIdx) {
+          auto *ins = ie->getOperand(1)->stripPointerCasts();
+          if (ins->getType()->isPointerTy())
+            extractedPtr = ins;
+          break;
+        }
+        vec = ie->getOperand(0);
+        continue;
+      }
+      break;
+    }
+  }
+
+  // If we can't recover a source, conservatively model it as an unknown pointer.
+  if (extractedPtr == nullptr)
+    extractedPtr = UndefValue::get(inst.getType());
+
+  auto srcs = SmallPtrSet<const Value *, 1>();
+  srcs.insert(extractedPtr);
+  return createCopyNode(&inst, srcs);
 }
 tpa::CFGNode *
 InstructionTranslator::visitInsertElementInst(InsertElementInst &inst) {
-  return handleUnsupportedInst(inst);
+  // Vectors are not memory locations. The pointer analysis only needs to model
+  // pointer-typed SSA values. We recover pointer elements at use sites (e.g.,
+  // extractelement), so insertelement itself can be ignored.
+  (void)inst;
+  return nullptr;
 }
 tpa::CFGNode *
 InstructionTranslator::visitShuffleVectorInst(ShuffleVectorInst &inst) {
-  return handleUnsupportedInst(inst);
+  // Similar to insertelement: pointer-typed values extracted from shuffled
+  // vectors are handled conservatively at the extraction site.
+  (void)inst;
+  return nullptr;
 }
 tpa::CFGNode *InstructionTranslator::visitLandingPadInst(LandingPadInst &inst) {
-  return handleUnsupportedInst(inst);
+  // `landingpad` produces an aggregate { i8*, i32 } (or similar), not a pointer-
+  // typed SSA value. The pointer analysis only models pointer-typed SSA values;
+  // any uses that extract a pointer field are handled conservatively by
+  // `visitExtractValueInst()` (fallback to unknown pointer when needed).
+  //
+  // So we can safely ignore `landingpad` here to avoid crashing on IR with EH.
+  (void)inst;
+  return nullptr;
 }
 
 } // namespace tpa

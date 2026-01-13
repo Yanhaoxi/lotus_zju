@@ -7,7 +7,7 @@
 namespace context
 {
 	class Context;
-}
+} // namespace context
 
 namespace tpa
 {
@@ -59,7 +59,7 @@ public:
 	}
 };
 
-}
+} // namespace tpa
 
 namespace std
 {
@@ -70,4 +70,4 @@ namespace std
 			return util::hashPair(p.getContext(), p.getCFGNode());
 		}
 	};
-}
+} // namespace std

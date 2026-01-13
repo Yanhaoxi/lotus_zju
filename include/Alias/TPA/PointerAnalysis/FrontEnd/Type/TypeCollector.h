@@ -5,7 +5,7 @@
 namespace llvm
 {
 	class Module;
-}
+} // namespace llvm
 
 namespace tpa
 {
@@ -18,4 +18,4 @@ public:
 	TypeSet runOnModule(const llvm::Module&);
 };
 
-}
+} // namespace tpa

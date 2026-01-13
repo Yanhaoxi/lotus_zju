@@ -5,7 +5,7 @@
 namespace llvm
 {
 	class Value;
-}
+} // namespace llvm
 
 namespace tpa
 {
@@ -22,7 +22,7 @@ namespace tpa
 	class CFGNode;
 	class ProgramPoint;
 	class FunctionContext;
-}
+} // namespace tpa
 
 namespace util
 {
@@ -45,7 +45,7 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const tpa::CFGNode&);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const tpa::ProgramPoint&);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const tpa::FunctionContext&);
 
-}
-}
+} // namespace io
+} // namespace util
 
 using namespace util::io;

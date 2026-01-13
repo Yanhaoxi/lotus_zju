@@ -7,7 +7,7 @@ namespace llvm
 {
 	class Module;
 	class Type;
-}
+} // namespace llvm
 
 namespace tpa
 {
@@ -40,4 +40,4 @@ public:
 	const_iterator end() const { return typeSet.end(); }
 };
 
-}
+} // namespace tpa

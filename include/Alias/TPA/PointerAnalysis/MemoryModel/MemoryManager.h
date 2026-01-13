@@ -68,4 +68,4 @@ public:
 	std::vector<const MemoryObject*> getReachablePointerObjects(const MemoryObject*, bool includeSelf = true) const;
 };
 
-}
+} // namespace tpa

@@ -38,9 +38,9 @@ PtsSet PtsSet::merge(const PtsSet& rhs)
 	// The easy case
 	if (pSet == rhs.pSet)
 		return *this;
-	else if (pSet == emptySet)
+	if (pSet == emptySet)
 		return rhs;
-	else if (rhs.pSet == emptySet)
+	if (rhs.pSet == emptySet)
 		return *this;
 
 	SetType newSet(*pSet);

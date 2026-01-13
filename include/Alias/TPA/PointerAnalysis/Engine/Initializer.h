@@ -20,4 +20,4 @@ public:
 	ForwardWorkList runOnInitState(Store&& initStore);
 };
 
-}
+} // namespace tpa

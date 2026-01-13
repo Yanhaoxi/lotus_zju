@@ -24,4 +24,4 @@ public:
 	ProgramPointSet getValueDependencies(const ProgramPoint&) const;
 };
 
-}
+} // namespace tpa

@@ -59,7 +59,7 @@ public:
 	friend struct std::hash<PointerLayout>;
 };
 
-}
+} // namespace tpa
 
 namespace std
 {
@@ -72,4 +72,4 @@ template<> struct hash<tpa::PointerLayout>
 	}
 };
 
-}
+} // namespace std

@@ -107,7 +107,7 @@ public:
 	friend struct std::hash<AllocSite>;
 };
 
-}
+} // namespace tpa
 
 namespace std
 {
@@ -128,4 +128,4 @@ template<> struct hash<tpa::AllocSite>
 	}
 };
 
-}
+} // namespace std

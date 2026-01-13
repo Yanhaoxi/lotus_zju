@@ -21,5 +21,5 @@ inline std::unique_ptr<llvm::MemoryBuffer> readFileIntoBuffer(const char* fileNa
 	return std::move(fileOrErr.get());
 }
 
-}
-}
+} // namespace io
+} // namespace util

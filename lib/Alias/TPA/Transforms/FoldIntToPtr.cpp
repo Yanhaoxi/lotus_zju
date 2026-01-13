@@ -31,13 +31,13 @@ static bool foldInstruction(IntToPtrInst *inst) {
     const auto &DL = inst->getModule()->getDataLayout();
     auto *indexTy = DL.getIndexType(src->getType());
     if (offsetValue->getType() != indexTy) {
-      offsetValue = CastInst::CreateIntegerCast(offsetValue, indexTy,
-                                                /*isSigned=*/true,
-                                                "offset.cast", inst);
+      offsetValue =
+          CastInst::CreateIntegerCast(offsetValue, indexTy,
+                                      /*isSigned=*/true, "offset.cast", inst);
     }
-    auto *gepInst = GetElementPtrInst::Create(
-        inst->getType()->getPointerElementType(), src, {offsetValue},
-        inst->getName(), inst);
+    auto *gepInst =
+        GetElementPtrInst::Create(inst->getType()->getPointerElementType(), src,
+                                  {offsetValue}, inst->getName(), inst);
     inst->replaceAllUsesWith(gepInst);
     inst->eraseFromParent();
     return true;

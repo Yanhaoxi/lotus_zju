@@ -5,7 +5,7 @@
 namespace llvm
 {
 	class raw_ostream;
-}
+} // namespace llvm
 
 namespace util
 {
@@ -30,5 +30,5 @@ public:
 	void visitReturnNode(const tpa::ReturnNodeMixin<T>&);
 };
 
-}
-}
+} // namespace io
+} // namespace util

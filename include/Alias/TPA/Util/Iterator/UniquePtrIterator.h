@@ -33,4 +33,4 @@ public:
 	ValueT operator*() const { return this->itr->get(); }
 };
 
-}
+} // namespace util

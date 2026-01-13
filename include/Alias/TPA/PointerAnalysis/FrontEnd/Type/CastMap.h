@@ -7,7 +7,7 @@
 namespace llvm
 {
 	class Type;
-}
+} // namespace llvm
 
 namespace tpa
 {
@@ -43,4 +43,4 @@ public:
 	const_iterator end() const { return castMap.end(); }
 };
 
-}
+} // namespace tpa

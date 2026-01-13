@@ -66,7 +66,7 @@ public:
 	friend std::hash<PtsSet>;
 };
 
-}
+} // namespace tpa
 
 namespace std
 {
@@ -77,4 +77,4 @@ namespace std
 			return std::hash<const typename tpa::PtsSet::SetType*>()(p.pSet);
 		}
 	};
-}
+} // namespace std

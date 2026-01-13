@@ -8,7 +8,7 @@
 namespace annotation
 {
 	class ExternalPointerTable;
-}
+} // namespace annotation
 
 namespace tpa
 {
@@ -45,4 +45,4 @@ public:
 	const decltype(callGraph)& getCallGraph() const { return callGraph; }
 };
 
-}
+} // namespace tpa

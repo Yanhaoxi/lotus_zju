@@ -18,4 +18,4 @@ public:
 	PointerLayoutMap runOnTypes(const TypeSet&);
 };
 
-}
+} // namespace tpa

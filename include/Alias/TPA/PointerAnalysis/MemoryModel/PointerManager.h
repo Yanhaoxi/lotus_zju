@@ -11,7 +11,7 @@ namespace llvm
 	class ConstantPointerNull;
 	class Value;
 	class UndefValue;
-}
+} // namespace llvm
 
 namespace tpa
 {
@@ -47,4 +47,4 @@ public:
 	PointerVector getPointersWithValue(const llvm::Value* val) const;
 };
 
-}
+} // namespace tpa

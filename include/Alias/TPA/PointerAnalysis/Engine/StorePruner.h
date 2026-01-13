@@ -31,4 +31,4 @@ public:
 	Store pruneStore(const Store&, const ProgramPoint&);
 };
 
-}
+} // namespace tpa

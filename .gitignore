@@ -1,4 +1,5 @@
 rebuild.sh
+pta_regress.sh
 .csv
 fuzz/*.c
 fuzz/*.ll 

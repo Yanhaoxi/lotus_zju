@@ -67,7 +67,7 @@ public:
 	friend struct std::hash<ArrayLayout>;
 };
 
-}
+} // namespace tpa
 
 namespace std
 {
@@ -88,4 +88,4 @@ template<> struct hash<tpa::ArrayLayout>
 	}
 };
 
-}
+} // namespace std

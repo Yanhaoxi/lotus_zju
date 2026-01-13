@@ -12,7 +12,7 @@
 namespace llvm
 {
 	class Function;
-}
+} // namespace llvm
 
 namespace tpa
 {
@@ -89,4 +89,4 @@ public:
 	size_t getNumNodes() const { return nodes.size(); }
 };
 
-}
+} // namespace tpa

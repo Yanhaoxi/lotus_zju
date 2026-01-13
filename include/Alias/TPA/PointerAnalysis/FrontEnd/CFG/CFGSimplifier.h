@@ -7,7 +7,7 @@
 namespace llvm
 {
 	class Value;
-}
+} // namespace llvm
 
 namespace tpa
 {
@@ -31,4 +31,4 @@ public:
 	void simplify(CFG&);
 };
 
-}
+} // namespace tpa

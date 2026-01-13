@@ -5,7 +5,7 @@
 namespace llvm
 {
 	class Module;
-}
+} // namespace llvm
 
 namespace tpa
 {
@@ -16,4 +16,4 @@ public:
 	CastMap runOnModule(const llvm::Module&);
 };
 
-}
+} // namespace tpa

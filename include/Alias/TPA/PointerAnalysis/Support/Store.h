@@ -5,4 +5,4 @@ namespace tpa
 
 using Store = PtsMap<const MemoryObject*>;
 
-}
+} // namespace tpa

@@ -1,3 +1,4 @@
+#include "Alias/TPA/Context/KLimitContext.h"
 #include "Alias/TPA/PointerAnalysis/Analysis/SemiSparsePointerAnalysis.h"
 #include "Alias/TPA/PointerAnalysis/FrontEnd/SemiSparseProgramBuilder.h"
 #include "Alias/TPA/Transforms/RunPrepass.h"
@@ -9,11 +10,11 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IRReader/IRReader.h>
+#include <llvm/Support/FileSystem.h>
 #include <llvm/Support/InitLLVM.h>
+#include <llvm/Support/Path.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_ostream.h>
-#include <llvm/Support/FileSystem.h>
-#include <llvm/Support/Path.h>
 
 #include <cstdlib>
 #include <string>
@@ -79,6 +80,7 @@ int main(int argc, char **argv) {
   bool NoPrepass = false;
   bool PrintPts = false;
   bool PrintIndirectCalls = false;
+  unsigned KLimit = 0;
 
   util::TypedCommandLineParser parser(
       "TPA (flow-/context-sensitive semi-sparse pointer analysis) tool");
@@ -106,6 +108,10 @@ int main(int argc, char **argv) {
       "print-indirect-calls",
       "Print resolved targets for each indirect call in the module",
       PrintIndirectCalls);
+  parser.addUIntOptionalFlag(
+      "k-limit",
+      "Set k-limit for context-sensitive analysis (0 = context-insensitive, default: 0)",
+      KLimit);
   parser.parseCommandLineOptions(argc, argv);
 
   LLVMContext Context;
@@ -124,6 +130,9 @@ int main(int argc, char **argv) {
     const bool isText = PrepassOutFile.endswith_insensitive(".ll");
     util::io::writeModuleToFile(*M, PrepassOutFile.data(), isText);
   }
+
+  // Set k-limit for context-sensitive analysis
+  context::KLimitContext::setLimit(KLimit);
 
   // Build semi-sparse program and run analysis
   tpa::SemiSparseProgramBuilder builder;

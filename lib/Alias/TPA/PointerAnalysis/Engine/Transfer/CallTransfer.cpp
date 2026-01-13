@@ -78,7 +78,10 @@ TransferFunction::collectArgumentPtsSets(const context::Context *ctx,
   auto &ptrManager = globalState.getPointerManager();
   auto &env = globalState.getEnv();
   auto argItr = callNode.begin();
+  const auto argEnd = callNode.end();
   for (auto i = 0u; i < numParams; ++i) {
+    if (argItr == argEnd)
+      break;
     const auto *argPtr = ptrManager.getPointer(ctx, *argItr);
     if (argPtr == nullptr)
       break;
@@ -124,8 +127,8 @@ TransferFunction::evalCallArguments(const context::Context *ctx,
                                     const CallCFGNode &callNode,
                                     const FunctionContext &fc) {
   const auto numParams = countPointerArguments(fc.getFunction());
-  assert(callNode.getNumArgument() >= numParams);
-  ;
+  if (callNode.getNumArgument() < numParams)
+    return std::make_pair(false, false);
   const auto argSets = collectArgumentPtsSets(ctx, callNode, numParams);
   if (argSets.size() < numParams)
     return std::make_pair(false, false);

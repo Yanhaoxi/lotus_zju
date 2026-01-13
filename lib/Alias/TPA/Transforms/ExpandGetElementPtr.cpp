@@ -39,6 +39,12 @@ using namespace llvm;
 
 namespace transform {
 
+static bool isZeroIndex(Value *V) {
+  if (auto *CI = dyn_cast<ConstantInt>(V))
+    return CI->isZero();
+  return false;
+}
+
 static bool expandGEP(GetElementPtrInst *gepInst, const DataLayout &dataLayout,
                       Type *ptrType) {
   int64_t offset = 0;
@@ -67,19 +73,46 @@ static bool expandGEP(GetElementPtrInst *gepInst, const DataLayout &dataLayout,
       partitions.push_back(i);
   }
 
-  assert(!partitions.empty());
+  if (partitions.empty())
+    return false;
   if (partitions.size() == 1 && gepInst->getNumOperands() == 2)
     return false;
 
-  auto *ptr = gepInst->getPointerOperand();
+  // Phase 1: plan the split and validate that all intermediate GEPs are
+  // well-typed. Never start rewriting if we can't build a valid chain.
+  struct GEPStep {
+    Type *sourceTy = nullptr;
+    std::vector<Value *> indices;
+    const char *name = nullptr;
+  };
+
+  std::vector<GEPStep> steps;
+  Type *curSourceTy = gepInst->getSourceElementType();
+
+  auto tryAddStep = [&](const std::vector<Value *> &indices,
+                        const char *name) -> bool {
+    if (indices.empty())
+      return true;
+    if (indices.size() == 1 && isZeroIndex(indices[0]))
+      return true;
+
+    Type *nextTy = GetElementPtrInst::getIndexedType(curSourceTy, indices);
+    if (!nextTy)
+      return false;
+
+    steps.push_back(GEPStep{curSourceTy, indices, name});
+    curSourceTy = nextTy;
+    return true;
+  };
+
   unsigned start = 0;
   unsigned lastSplit = 1;
   if (partitions[0] == 1) {
+    // Keep the exact original behavior: first split can be a single variable
+    // index with no leading 0.
     std::vector<Value *> indices = {gepInst->getOperand(1)};
-    ptr = GetElementPtrInst::Create(gepInst->getSourceElementType(), ptr,
-                                    indices, "gep_array_var", gepInst);
-    cast<GetElementPtrInst>(ptr)->setIsInBounds(isInbound);
-    // errs() << "\tvar = " << *ptr << "\n";
+    if (!tryAddStep(indices, "gep_array_var"))
+      return false;
     start = 1;
     lastSplit = 2;
   }
@@ -87,29 +120,21 @@ static bool expandGEP(GetElementPtrInst *gepInst, const DataLayout &dataLayout,
   for (unsigned i = start, e = partitions.size(); i < e; ++i) {
     auto splitPoint = partitions[i];
 
+    // Constant segment before the variable index.
     std::vector<Value *> indices;
     if (lastSplit != 1u)
       indices.push_back(ConstantInt::get(ptrType, 0));
+    for (auto j = lastSplit; j < splitPoint; ++j)
+      indices.push_back(gepInst->getOperand(j));
+    if (!tryAddStep(indices, "gep_array_const"))
+      return false;
 
-    for (auto i = lastSplit; i < splitPoint; ++i)
-      indices.push_back(gepInst->getOperand(i));
-
-    if (!indices.empty() &&
-        !(indices.size() == 1 && isa<ConstantInt>(indices[0]) &&
-          cast<ConstantInt>(indices[0])->isZero())) {
-      ptr = GetElementPtrInst::Create(gepInst->getSourceElementType(), ptr,
-                                      indices, "gep_array_const", gepInst);
-      cast<GetElementPtrInst>(ptr)->setIsInBounds(isInbound);
-      // errs() << "\tconst = " << *ptr << "\n";
-    }
+    // Variable index segment: always {0, idx} like the original.
     indices.clear();
-
     indices.push_back(ConstantInt::get(ptrType, 0));
     indices.push_back(gepInst->getOperand(splitPoint));
-    ptr = GetElementPtrInst::Create(gepInst->getSourceElementType(), ptr,
-                                    indices, "gep_array_var", gepInst);
-    cast<GetElementPtrInst>(ptr)->setIsInBounds(isInbound);
-    // errs() << "\tvar = " << *ptr << "\n";
+    if (!tryAddStep(indices, "gep_array_var"))
+      return false;
 
     lastSplit = splitPoint + 1;
   }
@@ -118,10 +143,26 @@ static bool expandGEP(GetElementPtrInst *gepInst, const DataLayout &dataLayout,
     std::vector<Value *> indices = {ConstantInt::get(ptrType, 0)};
     for (auto i = lastSplit; i < gepInst->getNumOperands(); ++i)
       indices.push_back(gepInst->getOperand(i));
-    ptr = GetElementPtrInst::Create(gepInst->getSourceElementType(), ptr,
-                                    indices, "gep_array_const", gepInst);
-    cast<GetElementPtrInst>(ptr)->setIsInBounds(isInbound);
-    // errs() << "\tconst = " << *ptr << "\n";
+    if (!tryAddStep(indices, "gep_array_const"))
+      return false;
+  }
+
+  // Ensure the final rewritten value has the same type as the original GEP.
+  if (auto *PT = dyn_cast<PointerType>(gepInst->getType())) {
+    auto *expectedTy = PointerType::get(curSourceTy, PT->getAddressSpace());
+    if (expectedTy != gepInst->getType())
+      return false;
+  } else {
+    return false;
+  }
+
+  // Phase 2: rewrite using the validated plan.
+  Value *ptr = gepInst->getPointerOperand();
+  for (const auto &step : steps) {
+    auto *newGEP = GetElementPtrInst::Create(step.sourceTy, ptr, step.indices,
+                                             step.name, gepInst);
+    newGEP->setIsInBounds(isInbound);
+    ptr = newGEP;
   }
 
   ptr->takeName(gepInst);

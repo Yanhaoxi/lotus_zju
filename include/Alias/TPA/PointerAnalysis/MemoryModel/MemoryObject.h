@@ -53,7 +53,7 @@ public:
 	friend class MemoryManager;
 };
 
-}
+} // namespace tpa
 
 namespace std
 {
@@ -64,4 +64,4 @@ namespace std
 			return util::hashPair(obj.getMemoryBlock(), obj.getOffset());
 		}
 	};
-}
+} // namespace std

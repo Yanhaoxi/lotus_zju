@@ -25,4 +25,4 @@ public:
 	ProgramPointSet trackImprecision(const PointerList&);
 };
 
-}
+} // namespace tpa

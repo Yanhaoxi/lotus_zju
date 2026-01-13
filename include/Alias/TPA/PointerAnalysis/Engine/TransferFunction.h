@@ -6,13 +6,13 @@
 namespace context
 {
 	class Context;
-}
+} // namespace context
 
 namespace llvm
 {
 	class Function;
 	class Instruction;
-}
+} // namespace llvm
 
 namespace annotation
 {
@@ -22,7 +22,7 @@ namespace annotation
 	class PointerAllocEffect;
 	class PointerCopyEffect;
 	class PointerEffect;
-}
+} // namespace annotation
 
 namespace tpa
 {
@@ -94,4 +94,4 @@ public:
 	EvalResult eval(const ProgramPoint&);
 };
 
-}
+} // namespace tpa

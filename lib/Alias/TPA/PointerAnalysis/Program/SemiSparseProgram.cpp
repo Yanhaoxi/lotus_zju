@@ -37,9 +37,23 @@ const CFG* SemiSparseProgram::getCFGForFunction(const llvm::Function& f) const
 }
 const CFG* SemiSparseProgram::getEntryCFG() const
 {
-	auto *mainFunc = module.getFunction("main");
-	assert(mainFunc != nullptr && "Cannot find main function!");
-	return &getOrCreateCFGForFunction(*mainFunc);
+	// Prefer the usual whole-program entry.
+	if (auto *mainFunc = module.getFunction("main"))
+		return &getOrCreateCFGForFunction(*mainFunc);
+
+	// Some inputs (e.g., shared libraries) have no `main`. Pick a best-effort
+	// entry to avoid crashing the analysis pipeline.
+	for (auto const& f: module)
+	{
+		if (f.isDeclaration())
+			continue;
+		if (f.isIntrinsic())
+			continue;
+		return &getOrCreateCFGForFunction(f);
+	}
+
+	// No suitable entry.
+	return nullptr;
 }
 
 } // namespace tpa

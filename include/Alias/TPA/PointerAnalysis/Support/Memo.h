@@ -68,4 +68,4 @@ public:
 	void clear() { inState.clear(); }
 };
 
-}
+} // namespace tpa

@@ -21,4 +21,4 @@ public:
 	friend class EvalResult;
 };
 
-}
+} // namespace tpa

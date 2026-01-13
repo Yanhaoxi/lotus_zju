@@ -7,12 +7,12 @@
 namespace context
 {
 	class Context;
-}
+} // namespace context
 
 namespace llvm
 {
 	class Value;
-}
+} // namespace llvm
 
 namespace tpa
 {
@@ -51,7 +51,7 @@ public:
 	friend class PointerManager;
 };
 
-}
+} // namespace tpa
 
 namespace std
 {
@@ -64,4 +64,4 @@ template<> struct hash<tpa::Pointer>
 	}
 };
 
-}
+} // namespace std

@@ -7,7 +7,7 @@
 
 namespace llvm {
 class DataLayout;
-}
+} // namespace llvm
 
 namespace tpa {
 

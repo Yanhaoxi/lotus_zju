@@ -7,12 +7,12 @@
 namespace context
 {
 	class Context;
-}
+} // namespace context
 
 namespace llvm
 {
 	class Function;
-}
+} // namespace llvm
 
 namespace tpa
 {
@@ -62,7 +62,7 @@ public:
 	}
 };
 
-}
+} // namespace tpa
 
 namespace std
 {
@@ -73,4 +73,4 @@ namespace std
 			return util::hashPair(f.getContext(), f.getFunction());
 		}
 	};
-}
+} // namespace std

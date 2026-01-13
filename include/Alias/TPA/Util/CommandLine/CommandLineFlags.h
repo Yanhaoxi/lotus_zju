@@ -44,4 +44,4 @@ public:
 	friend class CommandLineParser;
 };
 
-}
+} // namespace util
