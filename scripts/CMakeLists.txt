@@ -1,2 +1,5 @@
 add_subdirectory(clam)
-add_subdirectory(seahorn)
+
+if(ENABLE_SEAHORN)
+  add_subdirectory(seahorn)
+endif()
