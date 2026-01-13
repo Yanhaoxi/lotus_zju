@@ -1,12 +1,9 @@
-# Not ready - DISABLED
 name: Build Lotus on CentOS (containers)
 
-# Disabled - uncomment below to enable
-# on:
-#   push:
-#   pull_request:
 on:
-  workflow_dispatch:  # Only allow manual trigger
+  push:
+  pull_request:
+  # workflow_dispatch:  # manual trigger
 
 jobs:
   build-centos:
@@ -16,7 +13,6 @@ jobs:
       fail-fast: false
       matrix:
         image:
-          - quay.io/centos/centos:stream8
           - quay.io/centos/centos:stream9
         compiler: [gcc, clang]
 
@@ -70,7 +66,7 @@ jobs:
                 gcc gcc-c++ clang cmake ninja-build make git \
                 gmp-devel boost-devel z3-devel \
                 python3 python3-pip \
-                llvm14 llvm14-devel llvm14-static llvm14-tools \
+                llvm14 llvm14-devel llvm14-static \
                 gtest-devel
 
               # Some EL variants don’t ship gmock-devel separately; try best-effort.

@@ -39,7 +39,8 @@ if (ENABLE_SVF)
     include(cmake/ConfigureSVF.cmake)
 endif()
 
-option(ENABLE_SEAHORN "Enable SeaHorn" ON)
+# Do not build Seahorn by default
+option(ENABLE_SEAHORN "Enable SeaHorn" OFF)
 if (ENABLE_SEAHORN)
     include(cmake/ConfigureSeaHorn.cmake)
 endif()
@@ -49,7 +50,7 @@ add_subdirectory(lib)
 add_subdirectory(tools)
 add_subdirectory(benchmarks)
 
-option(BUILD_EXAMPLES "Build examples" ON)
+option(BUILD_EXAMPLES "Build examples" OFF)
 if(BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()

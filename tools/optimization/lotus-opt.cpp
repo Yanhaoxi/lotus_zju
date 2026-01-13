@@ -3,6 +3,7 @@
  * A command-line driver for inter-procedural optimizations in lib/Optimization.
  */
 
+#include <llvm/Analysis/CallGraph.h>
 #include <llvm/Bitcode/BitcodeWriter.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/LegacyPassManager.h>
@@ -10,24 +11,23 @@
 #include <llvm/IR/Verifier.h>
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/InitializePasses.h>
-#include <llvm/PassRegistry.h>
 #include <llvm/Pass.h>
+#include <llvm/PassRegistry.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/InitLLVM.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/ToolOutputFile.h>
 #include <llvm/Support/raw_ostream.h>
-#include <llvm/Analysis/CallGraph.h>
 #include <llvm/Transforms/IPO.h>
 
 #include "Alias/seadsa/InitializePasses.hh"
-#include "Alias/seadsa/DsaAnalysis.hh"
 #include "Alias/seadsa/AllocSiteInfo.hh"
+#include "Alias/seadsa/AllocWrapInfo.hh"
+#include "Alias/seadsa/DsaAnalysis.hh"
+#include "Alias/seadsa/DsaLibFuncInfo.hh"
 #include "Alias/seadsa/ShadowMem.hh"
 #include "Alias/seadsa/support/RemovePtrToInt.hh"
-#include "Alias/seadsa/AllocWrapInfo.hh"
-#include "Alias/seadsa/DsaLibFuncInfo.hh"
 
 #include <memory>
 #include <string>

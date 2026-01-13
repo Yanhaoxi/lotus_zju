@@ -29,11 +29,3 @@ configure_file(
 )
 include_directories(${CMAKE_BINARY_DIR}/include ${CMAKE_BINARY_DIR}/include/Verification)
 
-# SeaHorn Verification Integration
-option(ENABLE_SEAHORN "Enable seahorn verifier" ON)
-
-if(ENABLE_SEAHORN)
-  message(STATUS "Building with verification support")
-  add_definitions(-DHAVE_SEAHORN)
-endif()
-
