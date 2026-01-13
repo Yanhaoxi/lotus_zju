@@ -1,3 +1,17 @@
+// Implementation of TypeCollector.
+//
+// The TypeCollector is responsible for scanning the entire LLVM Module to gather
+// the set of all Types that are relevant to the pointer analysis.
+//
+// Relevance:
+// - It visits Global Variables, Functions, and Instructions.
+// - It drills down into aggregate types (Structs, Arrays, Pointers).
+// - It ignores non-relevant types like `void` or `vector` (partially).
+//
+// Output:
+// - A `TypeSet` containing all unique types found. This set is used by subsequent
+//   phases (ArrayLayoutAnalysis, PointerLayoutAnalysis) to build type metadata.
+
 #include "Alias/TPA/PointerAnalysis/FrontEnd/Type/TypeCollector.h"
 
 #include <llvm/IR/DataLayout.h>
@@ -36,7 +50,7 @@ public:
 };
 
 void TypeSetBuilder::incorporateConstant(const Constant *constant) {
-  // Skip global value
+  // Skip global value (handled separately as they have their own types)
   if (isa<GlobalValue>(constant))
     return;
 
@@ -44,10 +58,10 @@ void TypeSetBuilder::incorporateConstant(const Constant *constant) {
   if (!visitedValues.insert(constant).second)
     return;
 
-  // Check the type
+  // Check the type of the constant itself
   incorporateType(constant->getType());
 
-  // Look in operands for types.
+  // Recursively look in operands for types (e.g. ConstantStruct fields)
   for (auto const &op : constant->operands())
     incorporateValue(op);
 }
@@ -57,25 +71,32 @@ void TypeSetBuilder::incorporateInstruction(const Instruction *inst) {
   if (!visitedValues.insert(inst).second)
     return;
 
-  // Check the type
+  // Check the return type of the instruction
   incorporateType(inst->getType());
 
+  // Special handling for Alloca: we need the type *being allocated*, 
+  // which is distinct from the instruction type (pointer to it).
   if (const auto *allocInst = dyn_cast<AllocaInst>(inst))
     incorporateType(allocInst->getAllocatedType());
 
   // Look in operands for types.
   for (auto const &op : inst->operands()) {
+    // Optimization: Skip instruction operands here because they will be visited
+    // when iterating the basic block. Only recurse for Constants.
     if (!isa<Instruction>(op))
       incorporateValue(op);
   }
 }
 
+// Dispatch based on Value kind.
 void TypeSetBuilder::incorporateValue(const Value *value) {
   if (const auto *constant = dyn_cast<Constant>(value))
     incorporateConstant(constant);
   else if (const auto *inst = dyn_cast<Instruction>(value))
     incorporateInstruction(inst);
 }
+
+// --- Recursive Type Decomposition ---
 
 void TypeSetBuilder::incorporateFunctionType(FunctionType *funType) {
   for (auto *pType : funType->params())
@@ -95,6 +116,8 @@ void TypeSetBuilder::incorporatePointerType(PointerType *ptrType) {
   incorporateType(ptrType->getElementType());
 }
 
+// Main type insertion logic.
+// Decomposes composite types to ensure all sub-types are registered.
 void TypeSetBuilder::incorporateType(Type *llvmType) {
   // We don't care about void type
   if (llvmType->isVoidTy())

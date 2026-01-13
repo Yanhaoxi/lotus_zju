@@ -1,3 +1,16 @@
+// Implementation of the PointerManager.
+//
+// The PointerManager is responsible for managing the `Pointer` abstraction.
+// A `Pointer` in TPA represents an SSA value (register) in a specific context.
+//
+// Key Responsibilities:
+// 1. Value Canonicalization: Handling LLVM value quirks (stripping bitcasts,
+//    handling trivial PHIs) to map equivalent values to the same Pointer.
+// 2. Pointer Interning: Maintaining a unique set of Pointer objects to allow
+//    fast pointer equality comparison.
+// 3. Mapping: Maintaining the relationship between LLVM Values and TPA Pointers.
+// 4. Special Pointers: Managing the Universal and Null pointers.
+
 #include "Alias/TPA/PointerAnalysis/MemoryModel/PointerManager.h"
 
 #include "Alias/TPA/Context/Context.h"
@@ -10,9 +23,14 @@ using namespace context;
 
 namespace tpa {
 
+// Helper to strip non-functional wrappers from an LLVM Value.
+// - Strips pointer casts (BitCast, GEP with 0 offset, etc.)
+// - Collapses trivial PHI nodes (single operand).
+// - Normalizes IntToPtr to Undef (conservative).
 const llvm::Value *canonicalizeValue(const llvm::Value *value) {
   assert(value != nullptr);
   value = value->stripPointerCasts();
+  
   if (const auto *phiNode = llvm::dyn_cast<llvm::PHINode>(value)) {
     const llvm::Value *rhs = nullptr;
     for (auto &op : phiNode->operands()) {
@@ -20,6 +38,7 @@ const llvm::Value *canonicalizeValue(const llvm::Value *value) {
       if (rhs == nullptr)
         rhs = val;
       else if (val != rhs) {
+        // PHI has different incoming values, cannot simplify.
         rhs = nullptr;
         break;
       }
@@ -35,6 +54,8 @@ const llvm::Value *canonicalizeValue(const llvm::Value *value) {
 
 PointerManager::PointerManager() : uPtr(nullptr), nPtr(nullptr) {}
 
+// Creates or retrieves a Pointer object.
+// Interns the pointer in `ptrSet`.
 const Pointer *PointerManager::buildPointer(const context::Context *ctx,
                                             const llvm::Value *val) {
   auto ptr = Pointer(ctx, val);
@@ -44,10 +65,12 @@ const Pointer *PointerManager::buildPointer(const context::Context *ctx,
 
   itr = ptrSet.insert(itr, ptr);
   const auto *ret = &*itr;
+  // Record reverse mapping: Value -> List of Pointers (one per context)
   valuePtrMap[val].push_back(ret);
   return ret;
 }
 
+// Initializes the universal pointer (represents unknown/all pointers).
 const Pointer *PointerManager::setUniversalPointer(const llvm::UndefValue *v) {
   assert(uPtr == nullptr);
   assert(v->getType() == llvm::Type::getInt8PtrTy(v->getContext()));
@@ -60,6 +83,7 @@ const Pointer *PointerManager::getUniversalPointer() const {
   return uPtr;
 }
 
+// Initializes the null pointer.
 const Pointer *
 PointerManager::setNullPointer(const llvm::ConstantPointerNull *v) {
   assert(nPtr == nullptr);
@@ -73,6 +97,8 @@ const Pointer *PointerManager::getNullPointer() const {
   return nPtr;
 }
 
+// Retrieves an existing pointer. Returns nullptr if not found.
+// Handles special cases (Null, Undef/Universal, Globals).
 const Pointer *PointerManager::getPointer(const Context *ctx,
                                           const llvm::Value *val) const {
   assert(ctx != nullptr && val != nullptr);
@@ -84,6 +110,7 @@ const Pointer *PointerManager::getPointer(const Context *ctx,
   else if (llvm::isa<llvm::UndefValue>(val))
     return uPtr;
   else if (llvm::isa<llvm::GlobalValue>(val))
+    // Globals always live in the global context
     ctx = Context::getGlobalContext();
 
   auto itr = ptrSet.find(Pointer(ctx, val));
@@ -93,6 +120,7 @@ const Pointer *PointerManager::getPointer(const Context *ctx,
     return &*itr;
 }
 
+// Retrieves a pointer, creating it if it doesn't exist.
 const Pointer *PointerManager::getOrCreatePointer(const Context *ctx,
                                                   const llvm::Value *val) {
   assert(ctx != nullptr && val != nullptr);
@@ -109,6 +137,7 @@ const Pointer *PointerManager::getOrCreatePointer(const Context *ctx,
   return buildPointer(ctx, val);
 }
 
+// Finds all Pointers associated with a given LLVM Value across all contexts.
 PointerManager::PointerVector
 PointerManager::getPointersWithValue(const llvm::Value *val) const {
   PointerVector vec;

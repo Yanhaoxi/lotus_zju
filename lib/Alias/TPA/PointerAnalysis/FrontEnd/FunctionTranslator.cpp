@@ -1,3 +1,20 @@
+// Implementation of FunctionTranslator.
+//
+// Translates a single LLVM Function into a TPA Control Flow Graph (CFG).
+//
+// Process:
+// 1. Basic Block Translation: Iterates over instructions, translating each relevant one
+//    into a `CFGNode` via `InstructionTranslator`.
+// 2. CFG Construction: Connects the translated nodes to form the graph structure.
+//    Handles empty blocks (blocks with no relevant pointer instructions) by stitching
+//    predecessors directly to successors.
+// 3. Def-Use Analysis: Explicitly builds def-use chains for pointer values.
+//    (e.g., connecting an Alloc node to a Store node that uses it).
+// 4. Cleanup: Detaches store-preserving nodes (Alloc, Copy, Offset) from the control-flow
+//    graph, leaving them only connected via def-use chains. This transforms the CFG
+//    into a "Semi-Sparse" representation where only memory-accessing nodes (Load, Store, Call)
+//    are sequenced in control flow.
+
 #include "Alias/TPA/PointerAnalysis/FrontEnd/CFG/FunctionTranslator.h"
 
 #include "Alias/TPA/PointerAnalysis/FrontEnd/CFG/InstructionTranslator.h"
@@ -46,6 +63,8 @@ void FunctionTranslator::translateBasicBlock(const Function &llvmFunc) {
 }
 
 // TODO: This function contains some legacy codes. Refactoring needed
+// Handling empty blocks (blocks that became empty after filtering irrelevant instructions).
+// We need to find the nearest non-empty successors to connect the graph correctly.
 void FunctionTranslator::processEmptyBlock() {
   auto processedEmptyBlock = SmallPtrSet<const BasicBlock *, 32>();
   for (auto &mapping : nonEmptySuccMap) {
@@ -203,6 +222,11 @@ void FunctionTranslator::computeNodePriority() {
   pa.traverse();
 }
 
+// "Semi-Sparse" optimization:
+// Nodes that only manipulate top-level pointers (Alloc, Copy, Offset) do not
+// affect the store directly. They are "sparse" in the sense that they don't participate
+// in the memory flow directly. We detach them from the CFG, so the flow analysis
+// skips them, relying purely on def-use chains for their values.
 void FunctionTranslator::detachStorePreservingNodes() {
   for (auto *node : cfg) {
     if (node->isAllocNode() || node->isCopyNode() || node->isOffsetNode())

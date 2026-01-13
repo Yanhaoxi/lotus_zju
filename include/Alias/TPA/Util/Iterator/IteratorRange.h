@@ -35,4 +35,4 @@ IteratorRange<T> iteratorRange(std::pair<T, T> pair)
 	return IteratorRange<T>(std::move(pair.first), std::move(pair.second));
 }
 
-}
+} // namespace util

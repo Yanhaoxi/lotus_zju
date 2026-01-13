@@ -1,3 +1,15 @@
+// Implementation of CFGSimplifier.
+//
+// This class performs graph transformations to reduce the size and complexity of the CFG.
+//
+// Optimization: Redundant Node Elimination
+// 1. Identify nodes that are "identity" transforms:
+//    - Copy nodes with a single source (dst = src).
+//    - Offset nodes with 0 offset (dst = src + 0).
+// 2. These nodes can be removed, and all their uses replaced by their definitions.
+//    (effectively merging the pointer equivalence classes).
+// 3. Updates Def-Use chains to bypass the removed nodes.
+
 #include "Alias/TPA/PointerAnalysis/FrontEnd/CFG/CFGSimplifier.h"
 
 #include "Alias/TPA/PointerAnalysis/Program/CFG/CFG.h"
@@ -12,6 +24,7 @@ namespace tpa {
 
 namespace {
 
+// Visitor to rewrite node operands based on the equivalence map.
 class CFGAdjuster : public NodeVisitor<CFGAdjuster> {
 private:
   using MapType = DenseMap<const Value *, const Value *>;
@@ -20,6 +33,7 @@ private:
   using SetType = util::VectorSet<CFGNode *>;
   const SetType &redundantSet;
 
+  // Helper to find the replacement value for v (if any).
   const Value *lookup(const Value *v) {
     assert(v != nullptr);
     auto itr = eqMap.find(v);
@@ -34,6 +48,7 @@ public:
 
   void visitEntryNode(EntryCFGNode &) {}
   void visitAllocNode(AllocCFGNode &) {}
+  
   void visitCopyNode(CopyCFGNode &copyNode) {
     if (redundantSet.count(&copyNode))
       return;
@@ -45,6 +60,7 @@ public:
     for (const auto *src : copyNode) {
       if (!visitedSrcs.insert(src).second)
         continue;
+      // If source is replaced, use replacement
       if (const auto *newSrc = lookup(src))
         newSrcs.push_back(newSrc);
       else
@@ -96,11 +112,14 @@ public:
 
 } // namespace
 
+// Scans CFG for redundant nodes.
+// Populates eqMap with {Dest -> Src} mappings.
 std::vector<CFGNode *> CFGSimplifier::findRedundantNodes(CFG &cfg) {
   std::vector<CFGNode *> ret;
   for (auto *node : cfg) {
     if (node->isCopyNode()) {
       auto *copyNode = static_cast<CopyCFGNode *>(node);
+      // Copy with 1 source is an identity: Dest == Src
       if (copyNode->getNumSrc() == 1u) {
         ret.push_back(copyNode);
         eqMap[copyNode->getDest()] = copyNode->getSrc(0);
@@ -109,6 +128,7 @@ std::vector<CFGNode *> CFGSimplifier::findRedundantNodes(CFG &cfg) {
 
     if (node->isOffsetNode()) {
       auto *offsetNode = static_cast<OffsetCFGNode *>(node);
+      // Offset 0 is an identity: Dest == Src
       if (offsetNode->getOffset() == 0u) {
         ret.push_back(offsetNode);
         eqMap[offsetNode->getDest()] = offsetNode->getSrc();
@@ -118,6 +138,8 @@ std::vector<CFGNode *> CFGSimplifier::findRedundantNodes(CFG &cfg) {
   return ret;
 }
 
+// Flattens the equivalence map (path compression).
+// If A->B and B->C, update A->C.
 void CFGSimplifier::flattenEquivalentMap() {
   auto find = [this](const Value *val) {
     while (true) {
@@ -135,6 +157,7 @@ void CFGSimplifier::flattenEquivalentMap() {
     mapping.second = find(mapping.second);
 }
 
+// Updates all nodes in the CFG to use the representative values.
 void CFGSimplifier::adjustCFG(
     CFG &cfg, const util::VectorSet<CFGNode *> &redundantNodes) {
   auto adjuster = CFGAdjuster(eqMap, redundantNodes);
@@ -142,6 +165,7 @@ void CFGSimplifier::adjustCFG(
     adjuster.visit(*node);
 }
 
+// Rewires Def-Use edges to bypass redundant nodes.
 void CFGSimplifier::adjustDefUseChain(
     const util::VectorSet<tpa::CFGNode *> &redundantNodes) {
   for (auto *node : redundantNodes) {
@@ -151,10 +175,13 @@ void CFGSimplifier::adjustDefUseChain(
       assert(node->def_size() == 1u);
       auto *defNode = *node->def_begin();
       defNode->removeDefUseEdge(node);
+      
+      // Connect definition directly to all uses
       for (auto *useNode : node->uses())
         defNode->insertDefUseEdge(useNode);
     }
 
+    // Clean up node's edges
     auto uses = SmallVector<CFGNode *, 8>(node->use_begin(), node->use_end());
     for (auto *useNode : uses)
       node->removeDefUseEdge(useNode);
@@ -168,6 +195,8 @@ void CFGSimplifier::removeNodes(
   cfg.removeNodes(redundantNodes);
 }
 
+// Main optimization loop.
+// Runs iteratively until no more redundant nodes are found (fixpoint).
 void CFGSimplifier::simplify(CFG &cfg) {
   while (true) {
     auto redundantNodes = util::VectorSet<CFGNode *>(findRedundantNodes(cfg));

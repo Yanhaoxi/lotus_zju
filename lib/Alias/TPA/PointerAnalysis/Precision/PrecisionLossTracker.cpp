@@ -1,3 +1,17 @@
+// Implementation of the PrecisionLossTracker.
+//
+// This component identifies the sources of precision loss in the pointer analysis.
+// It traces back from a given set of "interesting" pointers (e.g., query results)
+// to find where the points-to sets became imprecise (too large or containing Universal).
+//
+// Algorithm:
+// 1. Start with a set of target pointers/program points.
+// 2. Perform a backward traversal of the value dependence graph (using ValueDependenceTracker).
+// 3. At merge points (e.g., PHI nodes, function returns), compare the precision of
+//    incoming values vs. the result.
+// 4. If a merge causes significant precision loss (e.g., merging precise set with Universal),
+//    flag the source of the imprecise value.
+
 #include "Alias/TPA/PointerAnalysis/Precision/PrecisionLossTracker.h"
 
 #include "Alias/TPA/PointerAnalysis/Engine/GlobalState.h"
@@ -18,6 +32,7 @@ using namespace llvm;
 
 namespace tpa {
 
+// Helper to resolve the parent function of a Value.
 static const Function *getFunction(const Value *val) {
   if (const auto *arg = dyn_cast<Argument>(val))
     return arg->getParent();
@@ -27,6 +42,7 @@ static const Function *getFunction(const Value *val) {
     return nullptr;
 }
 
+// Converts abstract Pointers to concrete ProgramPoints (CFG nodes).
 PrecisionLossTracker::ProgramPointList
 PrecisionLossTracker::getProgramPointsFromPointers(const PointerList &ptrs) {
   ProgramPointList list;
@@ -51,6 +67,7 @@ PrecisionLossTracker::getProgramPointsFromPointers(const PointerList &ptrs) {
 
 namespace {
 
+// Internal worker class for the backward tracking traversal.
 class ImprecisionTracker {
 private:
   TrackerGlobalState &globalState;
@@ -73,27 +90,37 @@ PtsSet ImprecisionTracker::getPtsSet(const Context *ctx, const Value *val) {
   return globalState.getEnv().lookup(ptr);
 }
 
+// Main backward traversal loop.
 void ImprecisionTracker::runOnWorkList(BackwardWorkList &workList) {
   while (!workList.empty()) {
     const auto pp = workList.dequeue();
+    // Avoid cycles
     if (!globalState.insertVisitedLocation(pp))
       continue;
 
+    // Find where the value at 'pp' comes from (backward dependency)
     auto deps = ValueDependenceTracker(globalState.getCallGraph(),
                                        globalState.getSemiSparseProgram())
                     .getValueDependencies(pp);
 
     const auto *node = pp.getCFGNode();
+    // Special handling for inter-procedural boundaries
     if (node->isCallNode())
       checkCalleeDependencies(pp, deps);
     else if (node->isEntryNode())
       checkCallerDependencies(pp, deps);
 
+    // Continue tracking backwards
     for (auto const &succ : deps)
       workList.enqueue(succ);
   }
 }
 
+// Heuristic to compare precision of two points-to sets.
+// Returns true if lhs is "significantly" more precise than rhs.
+// Criteria:
+// 1. If rhs has Universal (unknown), and lhs doesn't, lhs is more precise.
+// 2. Otherwise, smaller set size is considered more precise.
 bool ImprecisionTracker::morePrecise(const PtsSet &lhs, const PtsSet &rhs) {
   const auto *uObj = MemoryManager::getUniversalObject();
   if (rhs.has(uObj))
@@ -102,6 +129,9 @@ bool ImprecisionTracker::morePrecise(const PtsSet &lhs, const PtsSet &rhs) {
   return lhs.size() < rhs.size();
 }
 
+// Checks dependencies at a function call (tracking back from return value to callee return).
+// If a specific callee returns a much more precise set than what is observed at the call site
+// (which is the union of all callees), then other callees must be polluting the result.
 void ImprecisionTracker::checkCalleeDependencies(const ProgramPoint &pp,
                                                  ProgramPointSet &deps) {
   assert(pp.getCFGNode()->isCallNode());
@@ -110,11 +140,14 @@ void ImprecisionTracker::checkCalleeDependencies(const ProgramPoint &pp,
   if (dstVal == nullptr)
     return;
 
+  // The points-to set observed at the call site (merged result)
   const auto dstSet = getPtsSet(pp.getContext(), dstVal);
   assert(!dstSet.empty());
 
   ProgramPointSet newSet;
   bool needPrecision = false;
+  
+  // Check each potential callee's return value
   for (auto const &retPoint : deps) {
     assert(retPoint.getCFGNode()->isReturnNode());
     const auto *retNode =
@@ -124,14 +157,21 @@ void ImprecisionTracker::checkCalleeDependencies(const ProgramPoint &pp,
 
     const auto retSet = getPtsSet(retPoint.getContext(), retVal);
     assert(!retSet.empty());
+    
+    // If a callee returns a set that is significantly more precise than the merged result,
+    // then the merge operation at this call site is a source of precision loss.
     if (morePrecise(retSet, dstSet))
       needPrecision = true;
     else
       newSet.insert(retPoint);
   }
 
+  // If we detected precision loss here, mark this call site as a culprit.
   if (needPrecision) {
     globalState.addImprecisionSource(pp);
+    // Focus tracking on the imprecise paths? Or precise ones?
+    // Logic here seems to swap deps to newSet (the ones that are NOT more precise, i.e., the polluters?)
+    // This implies we want to track down where the *bad* values came from.
     deps.swap(newSet);
   }
 }
@@ -140,11 +180,13 @@ void ImprecisionTracker::checkCallerDependencies(const ProgramPoint &pp,
                                                  ProgramPointSet &deps) {
   (void)pp;
   (void)deps;
-  // TODO: Finish this
+  // TODO: Implement logic to check if parameter merging from multiple call sites
+  // causes precision loss at function entry.
 }
 
 } // namespace
 
+// Entry point for the tracker.
 ProgramPointSet
 PrecisionLossTracker::trackImprecision(const PointerList &ptrs) {
   ProgramPointSet ppSet;
@@ -158,6 +200,7 @@ PrecisionLossTracker::trackImprecision(const PointerList &ptrs) {
       globalState.getPointerManager(), globalState.getMemoryManager(),
       globalState.getSemiSparseProgram(), globalState.getEnv(),
       globalState.getCallGraph(), globalState.getExternalPointerTable(), ppSet);
+  
   ImprecisionTracker(trackerState).runOnWorkList(workList);
 
   return ppSet;

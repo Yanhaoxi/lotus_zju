@@ -55,4 +55,4 @@ public:
 	bool empty() const { return globalWorkList.empty(); }
 };
 
-}
+} // namespace util

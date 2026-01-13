@@ -1,3 +1,18 @@
+// Implementation of ArrayLayoutAnalysis.
+//
+// Builds the ArrayLayout for all types in the program.
+//
+// Key Concepts:
+// - Nested Arrays: Recursively flattens nested structures and arrays to identify
+//   linear memory regions that behave as arrays.
+// - Layout Construction:
+//   - For Structs: Recursively processes fields, shifting offsets.
+//   - For Arrays: Creates a single region {0, total_size, elem_size} + recursive sub-layouts.
+// - Opaque Types: Treated conservatively as byte arrays.
+//
+// This analysis ensures that the MemoryModel can correctly collapse accesses to
+// different array indices into a single summary element.
+
 #include "Alias/TPA/PointerAnalysis/FrontEnd/Type/ArrayLayoutAnalysis.h"
 
 #include "Alias/TPA/PointerAnalysis/FrontEnd/Type/TypeSet.h"
@@ -55,7 +70,7 @@ ArrayLayoutMapBuilder::processStructType(StructType *stType) {
     const auto *subLayout = processType(subType);
     if (!subLayout->empty()) {
       // Adjust the start and end field in the sub-layout according to the
-      // offset
+      // offset (shift the sub-layout to its position in the struct)
       std::transform(subLayout->begin(), subLayout->end(),
                      std::back_inserter(arrayTripleList),
                      [offset](auto const &triple) -> ArrayTriple {
@@ -81,9 +96,11 @@ ArrayLayoutMapBuilder::processArrayType(ArrayType *arrayType) {
   auto elemSize = typeSet.getDataLayout().getTypeAllocSize(elemType);
 
   auto arraySize = numElems * elemSize;
+  // Create the main triple for this array: [0, total_size, elem_size]
   ArrayLayout::ArrayTripleList arrayTripleList = {{0, arraySize, elemSize}};
+  
   // We need to examine the element type here because it may contain additional
-  // array triple
+  // array triple (e.g., array of structs containing arrays)
   const auto *subLayout = processType(elemType);
   if (!subLayout->empty())
     arrayTripleList.insert(arrayTripleList.end(), subLayout->begin(),

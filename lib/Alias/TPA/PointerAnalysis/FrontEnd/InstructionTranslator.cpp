@@ -1,3 +1,13 @@
+// Implementation of InstructionTranslator.
+//
+// Translates individual LLVM Instructions into TPA CFGNodes.
+//
+// Key Responsibilities:
+// 1. Identify relevant instructions (Alloca, Load, Store, Call, GEP, etc.).
+// 2. Filter irrelevant instructions (arithmetic, etc.).
+// 3. Handle complicated logic like PHI nodes and Selects (translating them to Copy).
+// 4. Handle "extraction" patterns (ExtractValue, ExtractElement) to recover pointers.
+
 #include "Alias/TPA/PointerAnalysis/FrontEnd/CFG/InstructionTranslator.h"
 
 #include "Alias/TPA/Context/Context.h"
@@ -11,6 +21,7 @@ using namespace llvm;
 
 namespace tpa {
 
+// Helper to create a Copy node for PHI/Select instructions.
 tpa::CFGNode *InstructionTranslator::createCopyNode(
     const Instruction *inst, const SmallPtrSetImpl<const Value *> &srcs) {
   assert(inst != nullptr && srcs.size() > 0u);
@@ -19,6 +30,15 @@ tpa::CFGNode *InstructionTranslator::createCopyNode(
 }
 
 tpa::CFGNode *InstructionTranslator::visitAllocaInst(AllocaInst &allocaInst) {
+  // Only interested in allocas of pointer types (pointer to pointer),
+  // OR allocas of anything if we track address-taken?
+  // Actually, TPA tracks allocations of memory blocks.
+  // Wait, `allocaInst.getType()` is `T*`. `allocaInst.getAllocatedType()` is `T`.
+  // The check below says `isPointerTy()`. This implies we only track stack
+  // allocations if the *result* is treated as a pointer (always true) 
+  // or maybe it means we only care if we allocate a pointer on the stack?
+  //
+  // Re-reading code: `visitAllocaInst` assumes `getType()->isPointerTy()`, which is always true.
   assert(allocaInst.getType()->isPointerTy());
 
   const auto *allocType = typeMap.lookup(allocaInst.getAllocatedType());
@@ -28,6 +48,7 @@ tpa::CFGNode *InstructionTranslator::visitAllocaInst(AllocaInst &allocaInst) {
 }
 
 tpa::CFGNode *InstructionTranslator::visitLoadInst(LoadInst &loadInst) {
+  // We only care about loading POINTERS. Data flow of non-pointers is irrelevant.
   if (!loadInst.getType()->isPointerTy())
     return nullptr;
 
@@ -38,6 +59,7 @@ tpa::CFGNode *InstructionTranslator::visitLoadInst(LoadInst &loadInst) {
 
 tpa::CFGNode *InstructionTranslator::visitStoreInst(StoreInst &storeInst) {
   auto *valOp = storeInst.getValueOperand();
+  // We only care about storing POINTERS into memory.
   if (!valOp->getType()->isPointerTy())
     return nullptr;
   auto *ptrOp = storeInst.getPointerOperand();
@@ -63,6 +85,7 @@ tpa::CFGNode *InstructionTranslator::visitCallInst(CallInst &callInst) {
 
   for (unsigned i = 0; i < callInst.arg_size(); ++i) {
     auto *argOp = callInst.getArgOperand(i);
+    // Only pass pointer arguments to the analysis.
     if (!argOp->getType()->isPointerTy())
       continue;
 
@@ -128,6 +151,7 @@ InstructionTranslator::visitGetElementPtrInst(GetElementPtrInst &gepInst) {
 
   auto *srcVal = gepInst.getPointerOperand()->stripPointerCasts();
 
+  // Try to fold constant offset
   auto gepOffset =
       APInt(dataLayout.getPointerTypeSizeInBits(srcVal->getType()), 0);
   if (gepInst.accumulateConstantOffset(dataLayout, gepOffset)) {
@@ -136,6 +160,8 @@ InstructionTranslator::visitGetElementPtrInst(GetElementPtrInst &gepInst) {
     return cfg.create<tpa::OffsetCFGNode>(&gepInst, srcVal, offset, false);
   }
 
+  // Handle variable offset GEPs (array access).
+  // Assumes canonicalized GEPs via -expand-gep pass.
   auto numOps = gepInst.getNumOperands();
   if (numOps != 2 && numOps != 3)
     llvm_unreachable(
@@ -159,11 +185,14 @@ InstructionTranslator::visitGetElementPtrInst(GetElementPtrInst &gepInst) {
 tpa::CFGNode *InstructionTranslator::visitIntToPtrInst(IntToPtrInst &inst) {
   assert(inst.getType()->isPointerTy());
 
+  // Model inttoptr as producing Undef (unknown pointer).
   std::vector<const llvm::Value *> srcs = {UndefValue::get(inst.getType())};
   return cfg.create<tpa::CopyCFGNode>(&inst, std::move(srcs));
 }
 
 tpa::CFGNode *InstructionTranslator::visitBitCastInst(BitCastInst &bcInst) {
+  // Bitcasts are ignored in the CFG translation because the analysis
+  // strips pointer casts when looking up values.
   (void)bcInst;
   return nullptr;
 }
@@ -284,7 +313,7 @@ InstructionTranslator::visitShuffleVectorInst(ShuffleVectorInst &inst) {
 }
 tpa::CFGNode *InstructionTranslator::visitLandingPadInst(LandingPadInst &inst) {
   // `landingpad` produces an aggregate { i8*, i32 } (or similar), not a
-  // pointer- typed SSA value. The pointer analysis only models pointer-typed
+  // pointer-typed SSA value. The pointer analysis only models pointer-typed
   // SSA values; any uses that extract a pointer field are handled
   // conservatively by `visitExtractValueInst()` (fallback to unknown pointer
   // when needed).

@@ -1,3 +1,13 @@
+// Implementation of Call transfer functions.
+//
+// This file handles the evaluation of function calls, which is the most complex part
+// of the pointer analysis. It handles:
+// 1. Call Graph Construction: Dynamic discovery of callee functions (for indirect calls).
+// 2. Argument Passing: Mapping actual arguments (caller) to formal parameters (callee).
+// 3. Return Value Passing: Mapping return values (callee) to call sites (caller).
+// 4. Context Sensitivity: Creating new contexts for callees (via KLimitContext).
+// 5. External Calls: Handling calls to external/library functions using annotations.
+
 #include "Alias/TPA/Context/KLimitContext.h"
 #include "Alias/TPA/PointerAnalysis/Engine/GlobalState.h"
 #include "Alias/TPA/PointerAnalysis/Engine/StorePruner.h"
@@ -13,6 +23,8 @@ using namespace llvm;
 
 namespace tpa {
 
+// Helper to count the number of pointer-typed arguments in a function.
+// Used to verify signature matching for indirect calls.
 static inline size_t countPointerArguments(const llvm::Function *f) {
   size_t ret = 0;
   for (auto &arg : f->args()) {
@@ -22,6 +34,9 @@ static inline size_t countPointerArguments(const llvm::Function *f) {
   return ret;
 };
 
+// Resolves potential target functions from a points-to set of a function pointer.
+// Handles the case where the function pointer points to the "Universal Object"
+// by conservatively matching signatures of all address-taken functions.
 std::vector<const llvm::Function *>
 TransferFunction::findFunctionInPtsSet(PtsSet pSet,
                                        const CallCFGNode &callNode) {
@@ -30,8 +45,8 @@ TransferFunction::findFunctionInPtsSet(PtsSet pSet,
   // Two cases here
   if (pSet.has(MemoryManager::getUniversalObject())) {
     // If funSet contains unknown location, then we can't really derive callees
-    // based on the points-to set Instead, guess callees based on the number of
-    // arguments
+    // based on the points-to set. Instead, guess callees based on the number of
+    // arguments (type-based matching approximation).
     auto defaultTargets = globalState.getSemiSparseProgram().addr_taken_funcs();
     std::copy_if(defaultTargets.begin(), defaultTargets.end(),
                  std::back_inserter(callees), [&callNode](const Function *f) {
@@ -43,6 +58,7 @@ TransferFunction::findFunctionInPtsSet(PtsSet pSet,
                    return isArgMatch && isRetMatch;
                  });
   } else {
+    // Precise resolution: the object in the points-to set IS the function.
     for (const auto *obj : pSet) {
       if (obj->isFunctionObject())
         callees.emplace_back(obj->getAllocSite().getFunction());
@@ -52,6 +68,8 @@ TransferFunction::findFunctionInPtsSet(PtsSet pSet,
   return callees;
 }
 
+// Top-level resolver for call targets.
+// Fetches the points-to set of the called value and delegates to findFunctionInPtsSet.
 std::vector<const llvm::Function *>
 TransferFunction::resolveCallTarget(const context::Context *ctx,
                                     const CallCFGNode &callNode) {
@@ -68,6 +86,7 @@ TransferFunction::resolveCallTarget(const context::Context *ctx,
   return callees;
 }
 
+// Collects the points-to sets of all actual arguments at the call site.
 std::vector<PtsSet>
 TransferFunction::collectArgumentPtsSets(const context::Context *ctx,
                                          const CallCFGNode &callNode,
@@ -97,6 +116,9 @@ TransferFunction::collectArgumentPtsSets(const context::Context *ctx,
   return result;
 }
 
+// Updates the formal parameters of the callee in the new context.
+// Performs a "weak update" to merge points-to sets from different call sites.
+// Returns true if the environment changed.
 bool TransferFunction::updateParameterPtsSets(
     const FunctionContext &fc, const std::vector<PtsSet> &argSets) {
   auto changed = false;
@@ -121,7 +143,8 @@ bool TransferFunction::updateParameterPtsSets(
   return changed;
 }
 
-// Return true if eval succeeded
+// Evaluates argument passing.
+// Returns {isValid, envChanged}.
 std::pair<bool, bool>
 TransferFunction::evalCallArguments(const context::Context *ctx,
                                     const CallCFGNode &callNode,
@@ -137,6 +160,12 @@ TransferFunction::evalCallArguments(const context::Context *ctx,
   return std::make_pair(true, envChanged);
 }
 
+// Handling for internal (defined in the module) function calls.
+// 1. Evaluates argument passing.
+// 2. Prunes the store (optimizes by removing irrelevant objects for the callee).
+// 3. Propagates execution to the callee's Entry node.
+// 4. Also propagates to the "next" instruction in the caller (to handle return flow
+//    or parallel execution assumption).
 void TransferFunction::evalInternalCall(const context::Context *ctx,
                                         const CallCFGNode &callNode,
                                         const FunctionContext &fc,
@@ -151,11 +180,17 @@ void TransferFunction::evalInternalCall(const context::Context *ctx,
   std::tie(isValid, envChanged) = evalCallArguments(ctx, callNode, fc);
   if (!isValid)
     return;
+    
+  // If the environment changed (new args) or it's a new edge, we must
+  // re-evaluate the callee's entry point.
   if (envChanged || callGraphUpdated) {
     evalResult.addTopLevelProgramPoint(
         ProgramPoint(fc.getContext(), tgtEntryNode));
   }
 
+  // Pass the store to the callee.
+  // We use StorePruner to reduce the size of the passed store,
+  // keeping only objects reachable from the arguments and globals.
   auto prunedStore =
       StorePruner(globalState.getEnv(), globalState.getPointerManager(),
                   globalState.getMemoryManager())
@@ -164,12 +199,15 @@ void TransferFunction::evalInternalCall(const context::Context *ctx,
   evalResult.addMemLevelProgramPoint(
       ProgramPoint(fc.getContext(), tgtEntryNode), newStore);
 
-  // Force enqueuing the direct successors of the call
+  // Force enqueuing the direct successors of the call in the caller.
+  // This ensures that even if the callee doesn't return immediately,
+  // the caller continues analysis (approximation).
   if (!tgtCFG->doesNotReturn())
     addMemLevelSuccessors(ProgramPoint(ctx, &callNode), *localState,
                           evalResult);
 }
 
+// Main visitor method for Call nodes.
 void TransferFunction::evalCallNode(const ProgramPoint &pp,
                                     EvalResult &evalResult) {
   const auto *ctx = pp.getContext();
@@ -180,14 +218,15 @@ void TransferFunction::evalCallNode(const ProgramPoint &pp,
     return;
 
   for (const auto *f : callees) {
-    // Update call graph first
+    // Update call graph first.
+    // We create a new context for the callee using KLimitContext.
     const auto *callsite = callNode.getCallSite();
     const auto *newCtx = context::KLimitContext::pushContext(ctx, callsite);
     auto callTgt = FunctionContext(newCtx, f);
     bool callGraphUpdated = globalState.getCallGraph().insertEdge(
         ProgramPoint(ctx, &callNode), callTgt);
 
-    // Check whether f is an external library call
+    // Check whether f is an external library call or internal function.
     if (f->isDeclaration())
       evalExternalCall(ctx, callNode, callTgt, evalResult);
     else

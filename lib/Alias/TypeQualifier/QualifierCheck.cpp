@@ -350,7 +350,7 @@ void FuncAnalysis::QualifierCheck() {
         }
       } else {
         // indirect call
-        for (auto Func : Ctx->Callees[CI]) {
+        for (auto *Func : Ctx->Callees[CI]) {
           StringRef fName = Func->getName();
           if (Ctx->OtherFuncs.count(fName.str())) {
             continue;

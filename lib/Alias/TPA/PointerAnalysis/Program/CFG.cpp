@@ -1,3 +1,16 @@
+// Implementation of the Control Flow Graph (CFG) and CFGNodes.
+//
+// The TPA CFG is a "semi-sparse" representation optimized for pointer analysis.
+// Unlike the standard LLVM CFG (BasicBlocks containing Instructions), the TPA CFG
+// consists of `CFGNode`s that correspond only to pointer-relevant instructions.
+//
+// Structure:
+// - CFG: Represents a function's control flow graph.
+// - CFGNode: Abstract base class for nodes (Alloc, Copy, Store, etc.).
+// - Edges:
+//   - Control Flow (succ/pred): Standard execution order.
+//   - Def-Use (def/use): Data flow dependencies for top-level pointers (SSA-like).
+
 #include "Alias/TPA/PointerAnalysis/Program/CFG/CFG.h"
 
 #include "Alias/TPA/PointerAnalysis/Program/CFG/NodeVisitor.h"
@@ -9,11 +22,14 @@ using namespace llvm;
 
 namespace tpa {
 
+// --- CFGNode Implementation ---
+
 const Function &CFGNode::getFunction() const {
   assert(cfg != nullptr);
   return cfg->getFunction();
 }
 
+// Manages control-flow edges.
 void CFGNode::insertEdge(CFGNode *node) {
   assert(node != nullptr);
 
@@ -28,6 +44,8 @@ void CFGNode::removeEdge(CFGNode *node) {
   (node->pred).erase(this);
 }
 
+// Manages data-flow (def-use) edges.
+// Note: Def-Use edges bypass control flow for top-level pointer propagation.
 void CFGNode::insertDefUseEdge(CFGNode *node) {
   assert(node != nullptr);
 
@@ -42,8 +60,10 @@ void CFGNode::removeDefUseEdge(CFGNode *node) {
   node->def.erase(this);
 }
 
+// Removes a node from the graph, rewiring its predecessors to its successors.
+// Used during CFG simplification (e.g., removing redundant nodes).
 void CFGNode::detachFromCFG() {
-  // Remove edges to predecessors
+  // Remove edges to predecessors and bypass this node
   auto preds = SmallVector<CFGNode *, 8>(pred.begin(), pred.end());
   for (auto *predNode : preds) {
     // Ignore self-loop
@@ -55,10 +75,11 @@ void CFGNode::detachFromCFG() {
       if (succNode == this)
         continue;
 
+      // Connect pred directly to succ
       predNode->insertEdge(succNode);
     }
 
-    // Remove edges from predecessors
+    // Disconnect pred from this
     predNode->removeEdge(this);
   }
 
@@ -68,11 +89,14 @@ void CFGNode::detachFromCFG() {
     removeEdge(succNode);
 }
 
+// --- CFG Implementation ---
+
 CFG::CFG(const Function &f)
     : func(f), entryNode(create<EntryCFGNode>()), exitNode(nullptr) {
   entryNode->setCFG(*this);
 }
 
+// Bulk removal of nodes.
 void CFG::removeNodes(const util::VectorSet<CFGNode *> &removeSet) {
   if (removeSet.empty())
     return;
@@ -93,6 +117,8 @@ void CFG::removeNodes(const util::VectorSet<CFGNode *> &removeSet) {
 
 namespace {
 
+// Visitor to build a map from LLVM Values to CFG Nodes.
+// This map allows looking up the "definition node" for any given pointer value.
 class ValueMapVisitor : public ConstNodeVisitor<ValueMapVisitor> {
 private:
   using MapType = DenseMap<const Value *, const CFGNode *>;
@@ -119,6 +145,7 @@ public:
   void visitLoadNode(const LoadCFGNode &loadNode) {
     valueMap[loadNode.getDest()] = &loadNode;
   }
+  // Stores and Returns don't define new pointer values.
   void visitStoreNode(const StoreCFGNode &) {}
   void visitCallNode(const CallCFGNode &callNode) {
     if (const auto *dst = callNode.getDest())
@@ -129,6 +156,8 @@ public:
 
 } // namespace
 
+// Rebuilds the Value -> Node mapping.
+// Must be called after CFG simplification or modification.
 void CFG::buildValueMap() {
   valueMap.clear();
 

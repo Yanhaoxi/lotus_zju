@@ -1,3 +1,15 @@
+// Implementation of GlobalPointerAnalysis.
+//
+// This class is responsible for the initial setup of the pointer analysis state
+// derived from global variables and their initializers in the LLVM module.
+//
+// Key responsibilities:
+// 1. Register all global variables and functions with the PointerManager.
+// 2. Allocate MemoryObjects for global variables and functions.
+// 3. Process initializers (scalar, array, struct) to populate the initial
+//    points-to graph (Environment and Store).
+// 4. Handle constant expressions (GEP, BitCast) in initializers.
+
 #include "Alias/TPA/PointerAnalysis/Analysis/GlobalPointerAnalysis.h"
 
 #include "Alias/TPA/Context/Context.h"
@@ -15,11 +27,15 @@ using namespace llvm;
 
 namespace tpa {
 
+// Helper to check if a type is a scalar non-pointer type (e.g., int, float).
+// These types are generally uninteresting for pointer analysis unless cast to pointers.
 static bool isScalarNonPointerType(const Type *type) {
   assert(type != nullptr);
   return type->isSingleValueType() && !type->isPointerTy();
 }
 
+// Calculates the byte offset for a sequence of GEP indices.
+// Traverses struct layouts and array sizes to compute the static offset.
 static unsigned calculateIndexedOffset(const DataLayout &dataLayout,
                                        Type *baseType,
                                        ArrayRef<Value *> indexes) {
@@ -33,20 +49,24 @@ static unsigned calculateIndexedOffset(const DataLayout &dataLayout,
       unsigned fieldIdx = ci->getZExtValue();
 
       if (auto *structTy = dyn_cast<StructType>(currentType)) {
+        // Handle struct member access
         auto *structLayout = dataLayout.getStructLayout(structTy);
         offset += structLayout->getElementOffset(fieldIdx);
         currentType = structTy->getElementType(fieldIdx);
       } else if (auto *arrayTy = dyn_cast<ArrayType>(currentType)) {
+        // Handle array element access
         Type *elemType = arrayTy->getElementType();
         unsigned elemSize = dataLayout.getTypeAllocSize(elemType);
         offset += fieldIdx * elemSize;
         currentType = elemType;
       } else if (auto *vecTy = dyn_cast<VectorType>(currentType)) {
+        // Handle vector element access
         Type *elemType = vecTy->getElementType();
         unsigned elemSize = dataLayout.getTypeAllocSize(elemType);
         offset += fieldIdx * elemSize;
         currentType = elemType;
       } else {
+        // Handle pointer arithmetic (treated as array access)
         Type *elemType = currentType->getPointerElementType();
         unsigned elemSize = dataLayout.getTypeAllocSize(elemType);
         offset += fieldIdx * elemSize;
@@ -65,37 +85,42 @@ GlobalPointerAnalysis::GlobalPointerAnalysis(PointerManager &p,
     : ptrManager(p), memManager(m), typeMap(t),
       globalCtx(context::Context::getGlobalContext()) {}
 
+// Creates Pointer and MemoryObject representations for all global variables.
+// Updates the Environment (env) to map the global pointer to its memory object.
 void GlobalPointerAnalysis::createGlobalVariables(const Module &module,
                                                   Env &env) {
   for (auto const &gVar : module.globals()) {
-    // Create pointer first
+    // Create pointer first (represents the address of the global)
     const auto *gPtr = ptrManager.getOrCreatePointer(globalCtx, &gVar);
 
-    // Create of memory object
+    // Create memory object (represents the storage of the global)
     auto *gType = gVar.getType()->getNonOpaquePointerElementType();
     const auto *typeLayout = typeMap.lookup(gType);
     assert(typeLayout != nullptr);
     const auto *gObj = memManager.allocateGlobalMemory(&gVar, typeLayout);
 
-    // Now add the top-level mapping
+    // Now add the top-level mapping: gPtr -> { gObj }
     env.insert(gPtr, gObj);
   }
 }
 
+// Creates Pointer and MemoryObject representations for all functions.
+// This is necessary because functions can be taken as addresses (function pointers).
 void GlobalPointerAnalysis::createFunctions(const llvm::Module &module,
                                             Env &env) {
   for (auto const &f : module) {
     // For each function, regardless of whether it is internal or external, and
     // regardless of whether it has its address taken or not, we are going to
-    // create a function pointer and a function object for it
+    // create a function pointer and a function object for it.
     const auto *fPtr = ptrManager.getOrCreatePointer(globalCtx, &f);
     const auto *fObj = memManager.allocateMemoryForFunction(&f);
 
-    // Add the top-level mapping
+    // Add the top-level mapping: fPtr -> { fObj }
     env.insert(fPtr, fObj);
   }
 }
 
+// Retrieves the memory object associated with a global value from the environment.
 const MemoryObject *
 GlobalPointerAnalysis::getGlobalObject(const GlobalValue *gv, const Env &env) {
   const auto *iPtr = ptrManager.getPointer(globalCtx, gv);
@@ -107,6 +132,8 @@ GlobalPointerAnalysis::getGlobalObject(const GlobalValue *gv, const Env &env) {
   return obj;
 }
 
+// Iterates over all globals to process their initializers.
+// Populates the Store with the values written by initializers.
 void GlobalPointerAnalysis::initializeGlobalValues(const llvm::Module &module,
                                                    EnvStore &envStore) {
   DataLayout dataLayout(&module);
@@ -119,14 +146,16 @@ void GlobalPointerAnalysis::initializeGlobalValues(const llvm::Module &module,
     } else {
       // If gVar doesn't have an initializer, since we are assuming a
       // whole-program analysis, the value must be external (e.g. struct FILE*
-      // stdin) To be conservative, assume that those "external" globals can
-      // points to anything
+      // stdin). To be conservative, assume that those "external" globals can
+      // point to anything (UniversalObject).
       envStore.second.strongUpdate(
           gObj, PtsSet::getSingletonSet(MemoryManager::getUniversalObject()));
     }
   }
 }
 
+// Analyzes a ConstantExpr GEP to determine the base global variable and total offset.
+// Handles nested BitCasts and recursive GEPs.
 std::pair<const llvm::GlobalVariable *, size_t>
 GlobalPointerAnalysis::processConstantGEP(const llvm::ConstantExpr *cexpr,
                                           const DataLayout &dataLayout) {
@@ -138,21 +167,23 @@ GlobalPointerAnalysis::processConstantGEP(const llvm::ConstantExpr *cexpr,
   unsigned offset =
       calculateIndexedOffset(dataLayout, baseVal->getType(), indexes);
 
-  // The loop is written for bitcast handling
+  // The loop is written for bitcast handling and nested constant expressions
   while (true) {
     if (auto *gVar = dyn_cast<GlobalVariable>(baseVal)) {
       return std::make_pair(gVar, offset);
     } else if (auto *ce = dyn_cast<ConstantExpr>(baseVal)) {
       switch (ce->getOpcode()) {
       case Instruction::GetElementPtr: {
-        // Accumulate offset
+        // Accumulate offset from nested GEP
         const auto baseOffsetPair = processConstantGEP(ce, dataLayout);
         return std::make_pair(baseOffsetPair.first,
                               baseOffsetPair.second + offset);
       }
       case Instruction::IntToPtr:
+        // IntToPtr results in unknown base
         return std::make_pair(nullptr, 0);
       case Instruction::BitCast:
+        // Strip bitcast and continue
         baseVal = ce->getOperand(0);
         // Don't return. Keep looping on baseVal
         break;
@@ -176,6 +207,8 @@ GlobalPointerAnalysis::processConstantGEP(const llvm::ConstantExpr *cexpr,
   }
 }
 
+// Handles scalar initializers (pointer values).
+// Updates the store at gObj to point to the target of the initializer.
 void GlobalPointerAnalysis::processGlobalScalarInitializer(
     const MemoryObject *gObj, const llvm::Constant *initializer,
     EnvStore &envStore, const DataLayout &dataLayout) {
@@ -194,7 +227,7 @@ void GlobalPointerAnalysis::processGlobalScalarInitializer(
   } else if (const auto *ce = dyn_cast<ConstantExpr>(initializer)) {
     switch (ce->getOpcode()) {
     case Instruction::GetElementPtr: {
-      // Offset calculation
+      // Offset calculation for GEP constant expressions
       const auto baseOffsetPair = processConstantGEP(ce, dataLayout);
       if (baseOffsetPair.first == nullptr)
         envStore.second.strongUpdate(
@@ -210,12 +243,13 @@ void GlobalPointerAnalysis::processGlobalScalarInitializer(
     }
     case Instruction::IntToPtr: {
       // By default, clang won't generate global pointer arithmetic as
-      // ptrtoint+inttoptr, so we will do the simplest thing here
+      // ptrtoint+inttoptr, so we will do the simplest thing here: treat as universal
       envStore.second.insert(gObj, MemoryManager::getUniversalObject());
 
       break;
     }
     case Instruction::BitCast: {
+      // Recursively process the operand of the bitcast
       processGlobalInitializer(gObj, ce->getOperand(0), envStore, dataLayout);
       break;
     }
@@ -232,6 +266,7 @@ void GlobalPointerAnalysis::processGlobalScalarInitializer(
   }
 }
 
+// Handles struct initializers by iterating over fields and offsets.
 void GlobalPointerAnalysis::processGlobalStructInitializer(
     const MemoryObject *gObj, const llvm::Constant *initializer,
     EnvStore &envStore, const DataLayout &dataLayout) {
@@ -255,11 +290,16 @@ void GlobalPointerAnalysis::processGlobalStructInitializer(
       // Not an interesting field. Skip it.
       continue;
 
+    // Apply the offset to get the memory object for the field
     const auto *offsetObj = memManager.offsetMemory(gObj, offset);
+    // Recursively process the field initializer
     processGlobalInitializer(offsetObj, subInitializer, envStore, dataLayout);
   }
 }
 
+// Handles array initializers.
+// Note: Arrays are often "collapsed" in pointer analysis (field-insensitive for array elements),
+// but this implementation iterates all elements. If offsetMemory collapses them, that logic is in MemoryManager.
 void GlobalPointerAnalysis::processGlobalArrayInitializer(
     const MemoryObject *gObj, const llvm::Constant *initializer,
     EnvStore &envStore, const DataLayout &dataLayout) {
@@ -282,6 +322,7 @@ void GlobalPointerAnalysis::processGlobalArrayInitializer(
   }
 }
 
+// Dispatch method for different initializer types.
 void GlobalPointerAnalysis::processGlobalInitializer(
     const MemoryObject *gObj, const Constant *initializer, EnvStore &envStore,
     const DataLayout &dataLayout) {
@@ -301,6 +342,7 @@ void GlobalPointerAnalysis::processGlobalInitializer(
   }
 }
 
+// Initializes special pointer objects (Universal, Null).
 void GlobalPointerAnalysis::initializeSpecialPointerObject(const Module &module,
                                                            EnvStore &envStore) {
   const auto *uPtr = ptrManager.setUniversalPointer(
@@ -314,6 +356,8 @@ void GlobalPointerAnalysis::initializeSpecialPointerObject(const Module &module,
   envStore.first.insert(nPtr, nLoc);
 }
 
+// Main driver for the global pointer analysis phase.
+// Returns a pair of (Env, Store) representing the initial state.
 std::pair<Env, Store> GlobalPointerAnalysis::runOnModule(const Module &module) {
   EnvStore envStore;
 
@@ -321,11 +365,9 @@ std::pair<Env, Store> GlobalPointerAnalysis::runOnModule(const Module &module) {
   LOG_DEBUG("Initializing special pointer objects (universal, null)");
   initializeSpecialPointerObject(module, envStore);
 
-  // TODO: Fix this file after finishing typeMap
-
   // First, scan through all the global values and register them in ptrManager.
-  // This scan should precede varaible initialization because the initialization
-  // may refer to another global value defined "below" it
+  // This scan should precede variable initialization because the initialization
+  // may refer to another global value defined "below" it.
   unsigned numGlobals = module.getGlobalList().size();
   unsigned numFunctions = module.getFunctionList().size();
   LOG_INFO("  Creating {} global variables and {} function pointers...", 
@@ -334,13 +376,12 @@ std::pair<Env, Store> GlobalPointerAnalysis::runOnModule(const Module &module) {
   createFunctions(module, envStore.first);
 
   // After all the global values are defined, go ahead and process the
-  // initializers
+  // initializers to populate the store.
   LOG_INFO("  Processing global initializers...");
   initializeGlobalValues(module, envStore);
   LOG_INFO("  Global initialization completed");
 
-  // I'm not sure whether RVO will trigger in this case. So to be safe I'll just
-  // use move construction.
+  // Return the constructed environment and store.
   return envStore;
 }
 

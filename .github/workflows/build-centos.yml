@@ -1,0 +1,108 @@
+# Not ready - DISABLED
+name: Build Lotus on CentOS (containers)
+
+# Disabled - uncomment below to enable
+# on:
+#   push:
+#   pull_request:
+on:
+  workflow_dispatch:  # Only allow manual trigger
+
+jobs:
+  build-centos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - quay.io/centos/centos:stream8
+          - quay.io/centos/centos:stream9
+        compiler: [gcc, clang]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build + test inside CentOS container
+        env:
+          IMAGE: ${{ matrix.image }}
+          COMPILER: ${{ matrix.compiler }}
+        run: |
+          set -euxo pipefail
+          docker pull "${IMAGE}"
+
+          docker run --rm \
+            -e COMPILER="${COMPILER}" \
+            -v "${GITHUB_WORKSPACE}:/work" \
+            -w /work \
+            "${IMAGE}" bash -lc '
+              set -euxo pipefail
+
+              # Basic tooling (root inside container; no sudo).
+              dnf -y update || true
+
+              # Ensure we have config-manager reliably (dnf-plugins-core isn't always present/needed).
+              dnf -y install "dnf-command(config-manager)"
+
+              # Detect major version (8/9) to enable correct repo names.
+              . /etc/os-release
+              MAJOR="${VERSION_ID%%.*}"
+
+              # Enable CRB / PowerTools depending on EL version.
+              if [ "${MAJOR}" = "9" ]; then
+                dnf -y config-manager --set-enabled crb || true
+              else
+                dnf -y config-manager --set-enabled powertools || true
+              fi
+
+              # EPEL: Stream 9 often needs epel-next too.
+              if [ "${MAJOR}" = "9" ]; then
+                dnf -y install epel-release epel-next-release
+              else
+                dnf -y install epel-release
+              fi
+
+              dnf -y makecache
+
+              # Install build dependencies.
+              dnf -y install \
+                gcc gcc-c++ clang cmake ninja-build make git \
+                gmp-devel boost-devel z3-devel \
+                python3 python3-pip \
+                llvm14 llvm14-devel llvm14-static llvm14-tools \
+                gtest-devel
+
+              # Some EL variants don’t ship gmock-devel separately; try best-effort.
+              dnf -y install gmock-devel || true
+
+              # Resolve llvm-config (prefer versioned binary, fallback if needed).
+              LLVM_CONFIG="$(command -v llvm-config-14 || command -v llvm-config)"
+              LLVM_CMAKE_DIR="$("${LLVM_CONFIG}" --cmakedir)"
+
+              if [ "${COMPILER}" = "clang" ]; then
+                export CC=clang
+                export CXX=clang++
+              else
+                export CC=gcc
+                export CXX=g++
+              fi
+
+              rm -rf build
+              mkdir -p build
+              cd build
+
+              cmake -DCMAKE_INSTALL_PREFIX=/opt/lotus \
+                    -DCMAKE_BUILD_TYPE=Release \
+                    -DLLVM_BUILD_PATH="${LLVM_CMAKE_DIR}" \
+                    -DLLVM_CONFIG_PATH="${LLVM_CONFIG}" \
+                    -DLLVM_DIR="${LLVM_CMAKE_DIR}" \
+                    -DZ3_DIR=/usr \
+                    ..
+
+              cmake --build . -j"$(nproc)"
+              cmake --install .
+
+              /opt/lotus/bin/lotus --version
+              ctest --output-on-failure -j"$(nproc)"
+            '

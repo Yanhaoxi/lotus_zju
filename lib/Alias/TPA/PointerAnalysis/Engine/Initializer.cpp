@@ -1,3 +1,15 @@
+// Implementation of the Initializer class.
+//
+// This class is responsible for bootstrapping the data-flow analysis.
+// It sets up the initial analysis state at the entry point of the program (usually 'main').
+//
+// Key Responsibilities:
+// 1. Locate the entry function and its CFG.
+// 2. Model the command-line arguments (argv) and environment variables (envp)
+//    passed to the entry function.
+// 3. Initialize the worklist with the entry program point.
+// 4. Seed the memoization table with the initial store (containing globals).
+
 #include "Alias/TPA/PointerAnalysis/Engine/Initializer.h"
 
 #include "Alias/TPA/Context/Context.h"
@@ -11,6 +23,9 @@
 
 namespace tpa {
 
+// Runs the initialization phase.
+// Takes the initial store (populated with global variable initializers)
+// and returns the initial worklist containing the entry point.
 ForwardWorkList Initializer::runOnInitState(Store &&initStore) {
   ForwardWorkList workList;
 
@@ -25,36 +40,51 @@ ForwardWorkList Initializer::runOnInitState(Store &&initStore) {
   LOG_DEBUG("TPA initializer: entry CFG={} entry node={}", 
             static_cast<const void*>(entryCFG), static_cast<const void*>(entryNode));
 
-  // Set up argv
+  // Set up argv and envp for the entry function (e.g., main(argc, argv, envp))
   auto &entryFunc = entryCFG->getFunction();
   LOG_DEBUG("TPA initializer: entry function={} args={}", 
             entryFunc.getName().str(), entryFunc.arg_size());
+            
+  // Handle 'argv' (2nd argument)
   if (entryFunc.arg_size() > 1) {
     const auto *argvValue = std::next(entryFunc.arg_begin());
     const auto *argvPtr =
         globalState.getPointerManager().getOrCreatePointer(entryCtx, argvValue);
     LOG_DEBUG("TPA initializer: argv ptr={}", static_cast<const void*>(argvPtr));
+    
+    // Allocate a memory object for argv (array of strings)
     const auto *argvObj = globalState.getMemoryManager().allocateArgv(argvValue);
     LOG_DEBUG("TPA initializer: argv obj={}", static_cast<const void*>(argvObj));
+    
+    // Map the pointer to the object in Env
     globalState.getEnv().insert(argvPtr, argvObj);
+    // Initialize the object content (argv[i] points to itself/universal for simplicity)
     initStore.insert(argvObj, argvObj);
 
+    // Handle 'envp' (3rd argument)
     if (entryFunc.arg_size() > 2) {
       const auto *envpValue = std::next(argvValue);
       const auto *envpPtr = globalState.getPointerManager().getOrCreatePointer(
           entryCtx, envpValue);
       LOG_DEBUG("TPA initializer: envp ptr={}", static_cast<const void*>(envpPtr));
+      
       const auto *envpObj = globalState.getMemoryManager().allocateEnvp(envpValue);
       LOG_DEBUG("TPA initializer: envp obj={}", static_cast<const void*>(envpObj));
+      
       globalState.getEnv().insert(envpPtr, envpObj);
       initStore.insert(envpObj, envpObj);
     }
   }
 
+  // Create the initial program point at the entry of the function
   auto pp = ProgramPoint(entryCtx, entryNode);
   LOG_DEBUG("TPA initializer: initial program point ready");
+  
+  // Seed the memo table with the initial store
   memo.update(pp, std::move(initStore));
   LOG_DEBUG("TPA initializer: memo updated");
+  
+  // Add the entry point to the worklist to start analysis
   workList.enqueue(pp);
   LOG_DEBUG("TPA initializer: worklist enqueued");
 

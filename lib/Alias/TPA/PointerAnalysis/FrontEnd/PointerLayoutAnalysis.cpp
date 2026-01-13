@@ -1,3 +1,18 @@
+// Implementation of PointerLayoutAnalysis.
+//
+// Identifies all offsets within a type that contain pointers.
+//
+// Key Feature: Layout Propagation via Casts.
+// Since pointers can be cast between different struct types (especially in C),
+// we must ensure that the pointer analysis "sees" pointers even if they are accessed
+// through a casted type.
+//
+// Algorithm:
+// 1. Build initial layout: recursively scan types to find pointer fields.
+// 2. Propagate layouts: Using the CastMap (from StructCastAnalysis), merge layout information.
+//    If StructA is cast to StructB, then StructA effectively "has" pointers where StructB does.
+//    (Conservative approach to handle unsafe casts).
+
 #include "Alias/TPA/PointerAnalysis/FrontEnd/Type/PointerLayoutAnalysis.h"
 
 #include "Alias/TPA/PointerAnalysis/FrontEnd/Type/CastMap.h"
@@ -57,6 +72,7 @@ PtrLayoutMapBuilder::processStructType(StructType *stType) {
     auto *subType = stType->getElementType(i);
     const auto *subLayout = processType(subType);
 
+    // Add offsets from sub-type, shifted by the field offset
     for (auto subOffset : *subLayout)
       ptrOffsets.insert(subOffset + offset);
   }
@@ -68,6 +84,8 @@ PtrLayoutMapBuilder::processStructType(StructType *stType) {
 
 const PointerLayout *
 PtrLayoutMapBuilder::processArrayType(ArrayType *arrayType) {
+  // For arrays, we just use the element layout.
+  // NOTE: This assumes array accesses are collapsed to element 0.
   const auto *layout = processType(arrayType->getElementType());
   insertMap(arrayType, layout);
   return layout;
@@ -106,6 +124,7 @@ void PtrLayoutMapBuilder::buildPtrLayoutMap() {
     processType(type);
 }
 
+// Propagates pointer layout information across bitcasts.
 class PtrLayoutMapPropagator {
 private:
   const CastMap &castMap;
@@ -119,11 +138,16 @@ public:
 };
 
 void PtrLayoutMapPropagator::propagatePtrLayoutMap() {
+  // For every cast mapping LHS -> {RHS1, RHS2...}
   for (auto const &mapping : castMap) {
     auto *lhs = mapping.first;
     const auto *dstLayout = ptrLayoutMap.lookup(lhs);
     assert(dstLayout != nullptr && "Cannot find ptrLayout for lhs type");
 
+    // Merge layout of RHS into LHS.
+    // Logic: If LHS is cast to RHS, then memory at LHS might be interpreted as RHS.
+    // So if RHS has a pointer at offset X, LHS should also be considered to potentially
+    // have a pointer at offset X to be safe.
     for (auto *rhs : mapping.second) {
       const auto *srcLayout = ptrLayoutMap.lookup(rhs);
       assert(srcLayout != nullptr && "Cannot find ptrLayout for src type");
@@ -138,8 +162,10 @@ void PtrLayoutMapPropagator::propagatePtrLayoutMap() {
 PointerLayoutMap PointerLayoutAnalysis::runOnTypes(const TypeSet &typeSet) {
   PointerLayoutMap ptrLayoutMap;
 
+  // Phase 1: Structural analysis
   PtrLayoutMapBuilder(typeSet, ptrLayoutMap).buildPtrLayoutMap();
 
+  // Phase 2: Propagation via casts
   PtrLayoutMapPropagator(castMap, ptrLayoutMap).propagatePtrLayoutMap();
 
   return ptrLayoutMap;

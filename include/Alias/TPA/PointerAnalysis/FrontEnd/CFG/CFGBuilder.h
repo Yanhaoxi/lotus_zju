@@ -6,7 +6,7 @@ namespace llvm
 {
 	class Function;
 	class Instruction;
-}
+} // namespace llvm
 
 namespace tpa
 {
@@ -27,4 +27,4 @@ public:
 	void buildCFG(const llvm::Function&);
 };
 
-}
+} // namespace tpa

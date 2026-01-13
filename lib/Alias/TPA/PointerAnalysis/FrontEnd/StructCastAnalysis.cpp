@@ -1,3 +1,19 @@
+// Implementation of StructCastAnalysis.
+//
+// This analysis identifies "compatible" struct types by analyzing BitCast instructions.
+// It constructs a map of (SrcType -> DstType) where a cast occurs.
+//
+// Purpose:
+// To handle C-style polymorphism and type punning. If a pointer to StructA is cast
+// to a pointer to StructB, the pointer analysis needs to merge the layouts or
+// account for the aliasing between fields of StructA and StructB.
+//
+// Algorithm:
+// 1. Collect all BitCast instructions in the module.
+// 2. Build a graph of type casts.
+// 3. Compute the Transitive Closure of the graph (if A->B and B->C, then A->C).
+// 4. Extract only the Struct types involved.
+
 #include "Alias/TPA/PointerAnalysis/FrontEnd/Type/StructCastAnalysis.h"
 
 #include <llvm/IR/Instructions.h>
@@ -32,9 +48,12 @@ void CastMapBuilder::collectCast(const Value &value, CastMap &castMap) {
     auto *srcType = bc->getSrcTy();
     auto *dstType = bc->getDestTy();
 
+    // Only care about pointer casts
     if (!srcType->isPointerTy() || !dstType->isPointerTy())
       return;
 
+    // Filter out irrelevant casts (e.g. to/from void* in memcpy, though usually we want those?)
+    // This specific check skips casts used *only* by MemIntrinsics (memcpy/memset).
     if (bc->hasOneUse()) {
       const auto *user = *bc->user_begin();
       if (isa<MemIntrinsic>(user))
@@ -45,6 +64,7 @@ void CastMapBuilder::collectCast(const Value &value, CastMap &castMap) {
   }
 }
 
+// Scans globals and functions for bitcasts.
 CastMap CastMapBuilder::collectAllCasts() {
   CastMap castMap;
 
@@ -61,6 +81,7 @@ CastMap CastMapBuilder::collectAllCasts() {
   return castMap;
 }
 
+// Computes transitive closure: if T1 casts to T2, and T2 casts to T3, then T1 casts to T3.
 void CastMapBuilder::computeTransitiveClosure(CastMap &castMap) {
   bool changed;
   do {
@@ -80,6 +101,7 @@ void CastMapBuilder::computeTransitiveClosure(CastMap &castMap) {
   } while (changed);
 }
 
+// Filters the cast map to only include struct types.
 void CastMapBuilder::extractStructs(CastMap &castMap) {
   for (auto const &mapping : castMap) {
     auto *lhs = mapping.first->getNonOpaquePointerElementType();

@@ -1,3 +1,12 @@
+// Implementation of SemiSparseProgramBuilder.
+//
+// Driver for the frontend pipeline.
+//
+// Steps:
+// 1. Type Analysis: Collects and analyzes all types in the module.
+// 2. CFG Construction: Iterates over all functions to build their CFGs.
+// 3. Result: Produces a `SemiSparseProgram` containing the IR ready for the Engine.
+
 #include "Alias/TPA/PointerAnalysis/FrontEnd/SemiSparseProgramBuilder.h"
 
 #include "Alias/TPA/PointerAnalysis/FrontEnd/CFG/CFGBuilder.h"

@@ -8,7 +8,7 @@
 namespace annotation
 {
 	class ExternalPointerTable;
-}
+} // namespace annotation
 
 namespace tpa
 {
