@@ -515,13 +515,6 @@ TaintAnalysis::TaintPath TaintAnalysis::trace_taint_sources_summary_based(
     return trace_taint_sources_impl(*this, solver, sink_call, tainted_fact);
 }
 
-TaintAnalysis::TaintPath TaintAnalysis::trace_taint_sources_summary_based(
-    const ParallelIFDSSolver<TaintAnalysis>& solver,
-    const llvm::CallInst* sink_call,
-    const TaintFact& tainted_fact) const {
-    return trace_taint_sources_impl(*this, solver, sink_call, tainted_fact);
-}
-
 // Helper to check if one instruction comes before another in the same function
 bool TaintAnalysis::comes_before(const llvm::Instruction* first, const llvm::Instruction* second) const {
     if (first->getFunction() != second->getFunction()) return false;
@@ -782,12 +775,6 @@ void report_vulnerabilities_impl(const TaintAnalysis& self, const SolverType& so
 }
 
 void TaintAnalysis::report_vulnerabilities(const IFDSSolver<TaintAnalysis>& solver,
-                                          llvm::raw_ostream& OS,
-                                          size_t max_vulnerabilities) const {
-    report_vulnerabilities_impl(*this, solver, OS, max_vulnerabilities);
-}
-
-void TaintAnalysis::report_vulnerabilities(const ParallelIFDSSolver<TaintAnalysis>& solver,
                                           llvm::raw_ostream& OS,
                                           size_t max_vulnerabilities) const {
     report_vulnerabilities_impl(*this, solver, OS, max_vulnerabilities);

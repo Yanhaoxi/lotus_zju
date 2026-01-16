@@ -19,6 +19,104 @@
  */
 
 #include "IR/PDG/DataDependencyGraph.h"
+#include "IR/PDG/PDGAliasWrapper.h"
+#include "IR/PDG/PDGCommandLineOptions.h"
+
+#include <algorithm>
+#include <cctype>
+#include <string>
+#include <llvm/Support/CommandLine.h>
+#include <llvm/Support/raw_ostream.h>
+
+using llvm::cl::desc;
+using llvm::cl::init;
+using llvm::cl::opt;
+
+namespace {
+// Fast filter: only consider instructions that touch or produce pointers.
+static bool isAliasRelevantInst(const llvm::Instruction &I) {
+  if (I.mayReadOrWriteMemory() || I.getType()->isPointerTy())
+    return true;
+  for (const auto &Op : I.operands())
+    if (Op->getType()->isPointerTy())
+      return true;
+  return false;
+}
+
+// Command-line knobs to choose alias analyses for data dependence construction.
+// -pdg-aa : over-approximate (sound) AA used to add alias edges (default: Andersen).
+// -pdg-aa-under : under-approximate AA used to confirm must-alias edges (default: UnderApprox, use "none" to disable).
+static opt<std::string> PdgAliasOverOpt(
+    "pdg-aa", desc("Alias analysis used for PDG data deps "
+                   "(andersen, andersen-1cfa, andersen-2cfa, dyck, cfl-anders, "
+                   "cfl-steens, combined, underapprox)"),
+    init("andersen"));
+
+static opt<std::string> PdgAliasUnderOpt(
+    "pdg-aa-under", desc("Under-approximate alias analysis for must-alias pruning "
+                         "(underapprox|none)"),
+    init("underapprox"));
+
+// Map a user-facing string to an AAType. Defaults to the provided fallback when
+// the string is unknown.
+static pdg::AAType parseAAType(const std::string &aa, pdg::AAType fallback) {
+  std::string lower = aa;
+  std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+
+  if (lower == "andersen" || lower == "andersen-nocontext" || lower == "andersen-noctx" ||
+      lower == "nocx" || lower == "noctx" || lower == "andersen0" || lower == "0cfa")
+    return pdg::AAType::Andersen;
+  if (lower == "andersen-1cfa" || lower == "andersen1" || lower == "1cfa")
+    return pdg::AAType::Andersen1CFA;
+  if (lower == "andersen-2cfa" || lower == "andersen2" || lower == "2cfa")
+    return pdg::AAType::Andersen2CFA;
+  if (lower == "dyck" || lower == "dyckaa")
+    return pdg::AAType::DyckAA;
+  if (lower == "cfl-anders" || lower == "cflanders")
+    return pdg::AAType::CFLAnders;
+  if (lower == "cfl-steens" || lower == "cflsteens")
+    return pdg::AAType::CFLSteens;
+  if (lower == "combined")
+    return pdg::AAType::Combined;
+  if (lower == "underapprox")
+    return pdg::AAType::UnderApprox;
+
+  if (!lower.empty())
+    llvm::errs() << "pdg: unknown alias analysis '" << aa << "', using default\n";
+  return fallback;
+}
+
+// Helper that builds an alias wrapper or returns nullptr when disabled/failed.
+static std::unique_ptr<pdg::PDGAliasWrapper> buildAliasWrapper(llvm::Module &M,
+                                                               const std::string &userChoice,
+                                                               pdg::AAType fallback,
+                                                               const char *label) {
+  std::string lower = userChoice;
+  std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+
+  if (lower == "none" || lower == "off" || lower == "disable")
+  {
+    llvm::errs() << "pdg: " << label << " alias analysis disabled by flag\n";
+    return nullptr;
+  }
+
+  auto aaType = parseAAType(userChoice, fallback);
+  auto wrapper = pdg::PDGAliasFactory::create(M, aaType);
+
+  if (!wrapper || !wrapper->isInitialized())
+  {
+    llvm::errs() << "pdg: failed to initialize " << label << " alias analysis: "
+                 << pdg::PDGAliasFactory::getTypeName(aaType) << "\n";
+    return nullptr;
+  }
+
+  if (pdg::DEBUG)
+    llvm::errs() << "pdg: using " << pdg::PDGAliasFactory::getTypeName(aaType)
+                 << " for " << label << " alias queries\n";
+
+  return wrapper;
+}
+} // namespace
 
 char pdg::DataDependencyGraph::ID = 0;
 
@@ -27,18 +125,16 @@ using namespace llvm;
 bool pdg::DataDependencyGraph::runOnModule(Module &M)
 {
   ProgramGraph &g = ProgramGraph::getInstance();
-  if (!g.isBuild())
+  if (!g.isBuiltForModule(M))
   {
+    g.reset();
     g.build(M);
-    // TODO: add comment
     g.bindDITypeToNodes(M);
   }
   
-  // Initialize two alias analysis wrappers:
-  // 1. Over-approximation using Andersen's analysis (precise, flow-insensitive)
-  // 2. Under-approximation using syntactic pattern matching (fast, conservative)
-  _alias_wrapper_over = PDGAliasFactory::create(M, AAType::Andersen);
-  _alias_wrapper_under = PDGAliasFactory::create(M, AAType::UnderApprox);
+  // Initialize alias analysis wrappers based on command-line choices.
+  _alias_wrapper_over = buildAliasWrapper(M, PdgAliasOverOpt.getValue(), AAType::Andersen, "over-approximate");
+  _alias_wrapper_under = buildAliasWrapper(M, PdgAliasUnderOpt.getValue(), AAType::UnderApprox, "under-approximate");
   
   for (auto &F : M)
   {
@@ -60,19 +156,31 @@ void pdg::DataDependencyGraph::addAliasEdges(Instruction &inst)
 {
   ProgramGraph &g = ProgramGraph::getInstance();
   Function* func = inst.getFunction();
+  Node* src = g.getNode(inst);
+  if (src == nullptr)
+    return;
+  if (!isAliasRelevantInst(inst))
+    return;
+
   for (auto inst_iter = inst_begin(func); inst_iter != inst_end(func); inst_iter++)
   {
     if (&inst == &*inst_iter)
       continue;
-    auto alias_result = queryAliasUnderApproximate(inst, *inst_iter);
-    if (alias_result != llvm::AliasResult::NoAlias)
-    {
-      Node* src = g.getNode(inst);
-      Node* dst = g.getNode(*inst_iter);
-      if (src == nullptr || dst == nullptr)
-        continue;
-      src->addNeighbor(*dst, EdgeType::DATA_ALIAS);
-    }
+    if (!isAliasRelevantInst(*inst_iter))
+      continue;
+
+    auto under_result = queryAliasUnderApproximate(inst, *inst_iter);
+    auto over_result = queryAliasOverApproximate(inst, *inst_iter);
+    if (under_result == llvm::AliasResult::NoAlias && over_result == llvm::AliasResult::NoAlias)
+      continue;
+
+    Node* dst = g.getNode(*inst_iter);
+    if (dst == nullptr)
+      continue;
+
+    // Prefer must-alias edges when the under-approximation can prove them,
+    // otherwise fall back to the over-approximation for may-alias coverage.
+    src->addNeighbor(*dst, EdgeType::DATA_ALIAS);
   }
 }
 
@@ -140,7 +248,7 @@ llvm::AliasResult pdg::DataDependencyGraph::queryAliasOverApproximate(llvm::Valu
     return _alias_wrapper_over->query(&v1, &v2);
   }
   
-  // Fall back to conservative answer if wrapper is not available
+  // Wrapper disabled or failed to initialize: stay conservative.
   return llvm::AliasResult::MayAlias;
 }
 

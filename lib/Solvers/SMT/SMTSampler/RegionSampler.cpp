@@ -25,10 +25,6 @@ using namespace z3;
 namespace {
 constexpr const char *kSamplerName = "RegionSampler";
 
-void log_info(const std::string &msg) {
-  std::cout << "[" << kSamplerName << "] " << msg << '\n';
-}
-
 void log_warn(const std::string &msg) {
   std::cerr << "[" << kSamplerName << "] WARN: " << msg << '\n';
 }
@@ -113,6 +109,12 @@ struct region_sampler {
     }
   }
 
+  /**
+   * @brief Collects all bit-vector variables from the SMT formula.
+   *
+   * Iterates through all variables in the formula and selects only those
+   * of bit-vector sort. Stores them in the `vars` vector.
+   */
   void collect_vars() {
     expr_vector all_vars(c);
     get_expr_vars(smt_formula, all_vars);
@@ -126,6 +128,15 @@ struct region_sampler {
     }
   }
 
+  /**
+   * @brief Builds linear integer constraints from the SMT formula.
+   *
+   * Uses Symbolic Abstraction (SymAbs) to abstract the SMT formula into
+   * a set of linear constraints (Zone or Octagon domain).
+   * Also adds bounds for bit-vector variables.
+   *
+   * @return true if constraints were successfully built, false otherwise.
+   */
   bool build_constraints() {
     std::unordered_map<std::string, size_t> index;
     for (size_t i = 0; i < vars.size(); ++i) {
@@ -173,6 +184,7 @@ struct region_sampler {
       }
     }
 
+    // Add bit-width bounds for each variable
     for (size_t i = 0; i < vars.size(); ++i) {
       int64_t min_v = 0;
       int64_t max_v = 0;
@@ -203,6 +215,14 @@ struct region_sampler {
     return out;
   }
 
+  /**
+   * @brief Finds an initial satisfying assignment using the SMT solver.
+   *
+   * This point serves as the starting point for the random walk.
+   *
+   * @param point [out] The found point as a vector of integers.
+   * @return true if a point was found, false otherwise (UNSAT or error).
+   */
   bool initial_point(std::vector<int64_t> &point) {
     solver s(c);
     s.add(smt_formula);
@@ -220,6 +240,16 @@ struct region_sampler {
     return true;
   }
 
+  /**
+   * @brief Main execution function for RegionSampler.
+   *
+   * 1. Parses SMT formula.
+   * 2. Collects bit-vector variables.
+   * 3. Builds abstraction constraints (polytope).
+   * 4. Finds an initial valid point.
+   * 5. Runs the random walk sampling (RegionSampling::sample_points).
+   * 6. Writes samples to output file.
+   */
   void run() {
     parse_smt();
     if (!smt_formula) {
@@ -247,6 +277,7 @@ struct region_sampler {
       log_error("Failed to open output file: " + input_file + ".abs.samples");
       return;
     }
+    // Write header (variable names)
     for (size_t i = 0; i < vars.size(); ++i) {
       if (i)
         out << " ";
@@ -256,6 +287,7 @@ struct region_sampler {
 
     sample_config.max_samples = max_samples;
     sample_config.max_time_ms = max_time_ms;
+    // Acceptance criterion: must satisfy original SMT formula
     auto accept = [this](const std::vector<int64_t> &candidate) {
       return model_satisfies(smt_formula, vars, candidate);
     };

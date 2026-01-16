@@ -23,7 +23,6 @@
 #include <functional>
 #include <memory>
 #include <set>
-#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -40,28 +39,6 @@ using lotus::ThreadSafeSet;
 using lotus::ThreadSafeMap;
 using lotus::ThreadSafeVector;
 using lotus::ShardedMap;
-
-// ============================================================================
-// Parallel IFDS Solver Configuration
-// ============================================================================
-
-struct ParallelIFDSConfig {
-    size_t num_threads = std::thread::hardware_concurrency();
-    bool enable_parallel_processing = true;
-    enum class ParallelMode {
-        WORKLIST_PARALLELISM,    // Parallel worklist processing (default)
-        FUNCTION_PARALLELISM,    // Function-level parallelism
-        HYBRID_PARALLELISM       // Combination of both
-    };
-    ParallelMode parallel_mode = ParallelMode::WORKLIST_PARALLELISM;
-
-    // Worklist batch size for load balancing (tuned for performance)
-    // Empirically optimal range is 256-1024 (?)
-    size_t worklist_batch_size = 512;
-
-    // Synchronization frequency (how often to sync shared data structures)
-    size_t sync_frequency = 1000;
-};
 
 // ============================================================================
 // Forward Declarations
@@ -320,11 +297,11 @@ private:
 
 
 // ============================================================================
-// Parallel IFDS Solver and IFDS Solver (Declarations moved to IFDSSolvers.h)
+// IFDS Solver (Declarations moved to IFDSSolvers.h)
 // ============================================================================
 
-// Note: ParallelIFDSSolver and IFDSSolver class definitions have been moved
-// to include/Dataflow/IFDS/IFDSSolvers.h to avoid duplication and improve
+// Note: IFDSSolver class definitions have been moved to
+// include/Dataflow/IFDS/IFDSSolvers.h to avoid duplication and improve
 // modularity. Include that header for solver implementations.
 
 } // namespace ifds

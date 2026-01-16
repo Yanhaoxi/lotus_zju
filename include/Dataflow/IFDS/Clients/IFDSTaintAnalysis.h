@@ -100,12 +100,8 @@ public:
     void add_source_function(const std::string& func_name);
     void add_sink_function(const std::string& func_name);
     
-    // Vulnerability detection and reporting (overloaded for sequential and parallel solvers)
+    // Vulnerability detection and reporting
     void report_vulnerabilities(const IFDSSolver<TaintAnalysis>& solver,
-                               llvm::raw_ostream& OS,
-                               size_t max_vulnerabilities = 10) const;
-    
-    void report_vulnerabilities(const ParallelIFDSSolver<TaintAnalysis>& solver,
                                llvm::raw_ostream& OS,
                                size_t max_vulnerabilities = 10) const;
     
@@ -115,14 +111,9 @@ public:
         std::vector<const llvm::Function*> intermediate_functions;
     };
 
-    // Tracing method for reconstructing taint propagation paths (overloaded for both solver types)
+    // Tracing method for reconstructing taint propagation paths
     TaintPath trace_taint_sources_summary_based(
         const IFDSSolver<TaintAnalysis>& solver,
-        const llvm::CallInst* sink_call,
-        const TaintFact& tainted_fact) const;
-    
-    TaintPath trace_taint_sources_summary_based(
-        const ParallelIFDSSolver<TaintAnalysis>& solver,
         const llvm::CallInst* sink_call,
         const TaintFact& tainted_fact) const;
 

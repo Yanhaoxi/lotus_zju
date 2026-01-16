@@ -50,12 +50,12 @@ class quick_sampler {
   double max_time;
 
   z3::context c;
-  z3::optimize opt;
-  std::vector<int> ind;
-  std::unordered_set<int> unsat_vars;
-  int epochs = 0;
-  int flips = 0;
-  int samples = 0;
+  z3::optimize opt; ///< The Z3 optimizer used for solving
+  std::vector<int> ind; ///< Independent variables (the support set for sampling)
+  std::unordered_set<int> unsat_vars; ///< Variables that are constrained (cannot be flipped)
+  int epochs = 0; ///< Number of mutation rounds
+  int flips = 0; ///< Number of successful bit flips
+  int samples = 0; ///< Total number of valid samples generated
   int solver_calls = 0;
   bool stop_requested = false;
   std::string stop_reason;
@@ -74,6 +74,16 @@ public:
     rng.seed(seed);
   }
 
+  /**
+   * @brief Main execution loop of the QuickSampler
+   *
+   * 1. Parses the CNF input.
+   * 2. Opens the output file.
+   * 3. Enters a loop where it:
+   *    - Generates a random assignment for independent variables.
+   *    - Checks satisfiability.
+   *    - If satisfiable, uses the model as a seed for mutation-based sampling (sample()).
+   */
   void run() {
     clock_gettime(CLOCK_REALTIME, &start_time);
     if (!parse_cnf()) {
@@ -88,6 +98,7 @@ public:
     results_file << "# format: <mutations>: <bitstring>\n";
     while (true) {
       opt.push();
+      // Randomly assign independent variables to start search
       for (int v : ind) {
         if (bit_dist(rng))
           opt.add(literal(v), 1);
@@ -101,6 +112,7 @@ public:
       z3::model m = opt.get_model();
       opt.pop();
 
+      // Use the found model as a seed for mutation-based sampling
       sample(m);
       print_stats(false);
     }
@@ -123,6 +135,13 @@ public:
               << unsat_vars.size() << ", Calls " << solver_calls << '\n';
   }
 
+  /**
+   * @brief Parses the input CNF file.
+   *
+   * Expects a standard DIMACS CNF format.
+   * Also supports "c ind ..." lines to specify independent variables.
+   * If no independent variables are specified, all variables are treated as independent.
+   */
   bool parse_cnf() {
     z3::expr_vector exp(c);
     std::ifstream f(input_file);
@@ -183,6 +202,14 @@ public:
     return true;
   }
 
+  /**
+   * @brief Generates samples by mutating a known satisfying model.
+   *
+   * 1. Output the initial model.
+   * 2. Try to flip each independent variable one by one.
+   * 3. If a flip results in a valid model (SAT), record it as a new sample.
+   * 4. Also try to combine mutations (simple genetic-like recombination).
+   */
   void sample(z3::model &m) {
     std::unordered_set<std::string> initial_mutations;
     std::string m_string = model_string(m);
@@ -193,6 +220,7 @@ public:
     std::cout << m_string << " STARTING\n";
     output(m_string, 0);
     opt.push();
+    // Soft constraints: try to keep variables same as in model m
     for (unsigned i = 0; i < ind.size(); ++i) {
       int v = ind[i];
       if (m_string[i] == '1')
@@ -207,10 +235,12 @@ public:
         continue;
       opt.push();
       int v = ind[i];
+      // Force flip of variable i
       if (m_string[i] == '1')
         opt.add(!literal(v));
       else
         opt.add(literal(v));
+      
       if (solve()) {
         z3::model new_model = opt.get_model();
         std::string new_string = model_string(new_model);
@@ -221,6 +251,8 @@ public:
           new_mutations[new_string] = 1;
           output(new_string, 1);
           flips += 1;
+          
+          // Try to combine this mutation with previous mutations
           for (auto &it : mutations) {
             if (it.second >= 6)
               continue;
@@ -229,6 +261,7 @@ public:
               bool a = m_string[j] == '1';
               bool b = it.first[j] == '1';
               bool c = new_string[j] == '1';
+              // XOR-based recombination logic
               if (a ^ ((a ^ b) | (a ^ c)))
                 candidate += '1';
               else
@@ -248,7 +281,7 @@ public:
         }
       } else {
         log_warn("Mutation unsat at index " + std::to_string(i));
-        unsat_vars.insert(i);
+        unsat_vars.insert(i); // Mark variable as hard to flip
       }
       opt.pop();
       print_stats(true);

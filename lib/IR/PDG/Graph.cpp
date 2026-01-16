@@ -116,6 +116,7 @@ bool pdg::GenericGraph::canReach(pdg::Node &src, pdg::Node &dst, std::set<EdgeTy
 // PDG Specific
 void pdg::ProgramGraph::build(Module &M)
 {
+  _built_module = &M;
   // build node for global variables
   for (auto &global_var : M.getGlobalList())
   {

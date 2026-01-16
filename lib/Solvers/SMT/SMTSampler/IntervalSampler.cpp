@@ -114,6 +114,13 @@ struct interval_sampler {
     }
   }
 
+  /**
+   * @brief Computes bounds for all variables in the SMT formula.
+   *
+   * Uses Z3 optimizer (MaxRes) to find the minimum and maximum possible values
+   * for each variable that satisfies the formula.
+   * If optimization fails (e.g. timeout), falls back to the full range of the bit-vector sort.
+   */
   void get_bounds() {
     params p(c);
     p.set("priority", c.str_symbol("box"));
@@ -172,6 +179,12 @@ struct interval_sampler {
     }
   }
 
+  /**
+   * @brief Generates a single sample by choosing values uniformly within computed bounds.
+   *
+   * For each variable, if min != max, picks a random value in [min, max].
+   * Otherwise uses the fixed value.
+   */
   std::vector<int> sample_once() {
     m_samples++;
     std::vector<int> sample;
@@ -192,6 +205,11 @@ struct interval_sampler {
     return sample;
   }
 
+  /**
+   * @brief Verifies if the generated sample satisfies the original SMT formula.
+   *
+   * Also tracks unique valid models found.
+   */
   bool check_random_model(std::vector<int> &assignments) {
     model rand_model(c);
     for (unsigned i = 0; i < m_vars.size(); i++) {
@@ -230,6 +248,18 @@ struct interval_sampler {
     }
   }
 
+  /**
+   * @brief Main execution function.
+   *
+   * 1. Iterates over input files (or directory).
+   * 2. For each file:
+   *    - Parses SMT formula.
+   *    - Computes variable bounds (get_bounds).
+   *    - Enters sampling loop:
+   *      - Generates candidate sample (sample_once).
+   *      - Checks validity (check_random_model).
+   *      - Records statistics.
+   */
   void run() {
     //        clock_gettime(CLOCK_REALTIME, &start_time);
     //        srand(start_time.tv_sec);

@@ -43,11 +43,15 @@ bool pdg::ProgramDependencyGraph::runOnModule(Module &M)
   _PDG = &ProgramGraph::getInstance();
 
   PDGCallGraph &call_g = PDGCallGraph::getInstance();
-  if (!call_g.isBuild())
-    call_g.build(M);
-  
-  if (!_PDG->isBuild())
+  if (!call_g.isBuiltForModule(M))
   {
+    call_g.reset();
+    call_g.build(M);
+  }
+  
+  if (!_PDG->isBuiltForModule(M))
+  {
+    _PDG->reset();
     _PDG->build(M);
     _PDG->bindDITypeToNodes(M);
   }
@@ -65,12 +69,15 @@ bool pdg::ProgramDependencyGraph::runOnModule(Module &M)
     connectClassNodeWithClassMethods(F);
     func_size++;
   }
-  errs() << "func size: " << func_size << "\n";
-  errs() << "Finsh adding dependencies" << "\n";
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-  errs() << "building PDG takes: " <<  duration.count() << "\n";
-  errs() << "PDG Node size: " << _PDG->numNode() << "\n";
+  if (DEBUG)
+  {
+    errs() << "func size: " << func_size << "\n";
+    errs() << "Finsh adding dependencies" << "\n";
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+    errs() << "building PDG takes: " <<  duration.count() << "\n";
+    errs() << "PDG Node size: " << _PDG->numNode() << "\n";
+  }
 
   if (DEBUG)
     _PDG->dumpGraph();
@@ -160,7 +167,7 @@ void pdg::ProgramDependencyGraph::connectCallerAndCallee(CallWrapper &cw, Functi
   auto actual_arg_list = cw.getArgList();
   auto formal_arg_list = fw.getArgList();
   assert(actual_arg_list.size() == formal_arg_list.size() && "cannot connect tree edges due to inequal arg num! (connectCallerandCallee)");
-  if (cw.getCalledFunc())
+  if (DEBUG && cw.getCalledFunc())
     errs() << "connecting interproc call: " << cw.getCalledFunc()->getName() << " - " << cw.getCallInst()->getFunction()->getName() << "\n";
   int num_arg = cw.getArgList().size();
   for (int i = 0; i < num_arg; i++)
@@ -170,7 +177,8 @@ void pdg::ProgramDependencyGraph::connectCallerAndCallee(CallWrapper &cw, Functi
     // step 2: connect actual in -> formal in
     auto* actual_in_tree = cw.getArgActualInTree(*actual_arg);
     auto* formal_in_tree = fw.getArgFormalInTree(*formal_arg);
-    errs() << "tree size compare: " << actual_in_tree->size() << " - " << formal_in_tree->size() << "\n";
+    if (DEBUG)
+      errs() << "tree size compare: " << actual_in_tree->size() << " - " << formal_in_tree->size() << "\n";
     _PDG->addTreeNodesToGraph(*actual_in_tree);
     connectInTrees(actual_in_tree, formal_in_tree, EdgeType::PARAMETER_IN);
     // step 3: connect actual out -> formal out

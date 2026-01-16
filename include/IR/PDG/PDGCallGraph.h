@@ -20,6 +20,12 @@ namespace pdg
       return g;
     }
     void build(llvm::Module &M) override;
+    bool isBuiltForModule(const llvm::Module &M) const { return _is_build && _built_module == &M; }
+    void reset()
+    {
+      GenericGraph::reset();
+      _built_module = nullptr;
+    }
     std::set<llvm::Function *> getIndirectCallCandidates(llvm::CallInst &ci, llvm::Module &M);
     bool isFuncSignatureMatch(llvm::CallInst &ci, llvm::Function &f);
     bool isTypeEqual(llvm::Type &t1, llvm::Type &t2);
@@ -30,5 +36,6 @@ namespace pdg
     void computePathsHelper(PathVecs &path_vecs, Node &src, Node &sink, std::vector<llvm::Function *> cur_path, std::unordered_set<llvm::Function *> visited_funcs, bool &found_path);
 
   private:
+    llvm::Module *_built_module = nullptr;
   };
 } // namespace pdg

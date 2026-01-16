@@ -57,19 +57,6 @@ static cl::opt<std::string> SourceFunctions("sources", cl::desc("Comma-separated
 static cl::opt<std::string> SinkFunctions("sinks", cl::desc("Comma-separated list of sink functions"),
                                           cl::init(""));
 
-static cl::opt<bool> EnableParallel("parallel", cl::desc("Enable parallel IFDS processing"),
-                                   cl::init(true));
-
-static cl::opt<unsigned> NumThreads("threads", cl::desc("Number of threads for parallel processing"),
-                                   cl::init(std::thread::hardware_concurrency()));
-
-static cl::opt<unsigned> WorklistBatchSize("batch-size", cl::desc("Worklist batch size for load balancing"),
-                                          cl::init(100));
-
-
-static cl::opt<unsigned> SyncFrequency("sync-freq", cl::desc("Synchronization frequency (edges between syncs)"),
-                                      cl::init(1000));
-
 static cl::opt<bool> PrintStats("print-stats", cl::desc("Print LLVM statistics"),
                                 cl::init(false));
 
@@ -182,65 +169,25 @@ int main(int argc, char **argv) {
 
                 auto analysisStart = std::chrono::high_resolution_clock::now();
 
-                if (EnableParallel) {
-                    outs() << "Using parallel IFDS solver with " << NumThreads << " threads\n";
+                outs() << "Using sequential IFDS solver\n";
 
-                    // Configure parallel solver
-                    ifds::ParallelIFDSConfig config;
-                    config.num_threads = NumThreads;
-                    config.enable_parallel_processing = true;
-                    config.parallel_mode = ifds::ParallelIFDSConfig::ParallelMode::WORKLIST_PARALLELISM;
-                    config.worklist_batch_size = WorklistBatchSize;
-                    config.sync_frequency = SyncFrequency;
+                ifds::IFDSSolver<ifds::TaintAnalysis> solver(taintAnalysis);
 
-                    ifds::ParallelIFDSSolver<ifds::TaintAnalysis> solver(taintAnalysis, config);
+                // Enable progress bar when running in verbose mode
+                if (Verbose) {
+                    solver.set_show_progress(true);
+                }
 
-                    // Enable progress bar when running in verbose mode
-                    if (Verbose) {
-                        solver.set_show_progress(true);
-                    }
+                solver.solve(*M);
 
-                    solver.solve(*M);
+                auto analysisEnd = std::chrono::high_resolution_clock::now();
+                auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    analysisEnd - analysisStart);
 
-                    auto analysisEnd = std::chrono::high_resolution_clock::now();
-                    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-                        analysisEnd - analysisStart);
+                outs() << "Sequential analysis completed in " << duration.count() << " ms\n";
 
-                    // Report performance statistics
-                    auto stats = solver.get_performance_stats();
-                    outs() << "\n=== Parallel Analysis Performance ===\n";
-                    outs() << "Total time: " << duration.count() << " ms\n";
-                    outs() << "Edges processed: " << stats.total_edges_processed << "\n";
-                    outs() << "Path edges discovered: " << stats.total_path_edges << "\n";
-                    outs() << "Summary edges discovered: " << stats.total_summary_edges << "\n";
-                    outs() << "Average edges/second: " << (int)stats.average_edges_per_second << "\n";
-                    outs() << "Max worklist size: " << stats.max_worklist_size << "\n";
-
-                    if (ShowResults) {
-                        taintAnalysis.report_vulnerabilities(solver, outs(), MaxDetailedResults.getValue());
-                    }
-
-                } else {
-                    outs() << "Using sequential IFDS solver\n";
-
-                    ifds::IFDSSolver<ifds::TaintAnalysis> solver(taintAnalysis);
-
-                    // Enable progress bar when running in verbose mode
-                    if (Verbose) {
-                        solver.set_show_progress(true);
-                    }
-
-                    solver.solve(*M);
-
-                    auto analysisEnd = std::chrono::high_resolution_clock::now();
-                    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-                        analysisEnd - analysisStart);
-
-                    outs() << "Sequential analysis completed in " << duration.count() << " ms\n";
-
-                    if (ShowResults) {
-                        taintAnalysis.report_vulnerabilities(solver, outs(), MaxDetailedResults.getValue());
-                    }
+                if (ShowResults) {
+                    taintAnalysis.report_vulnerabilities(solver, outs(), MaxDetailedResults.getValue());
                 }
                 break;
             }

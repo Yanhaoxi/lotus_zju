@@ -44,6 +44,14 @@ opt -load libpdg.so -dot-pdg < test.bc
 
 **\-dot-\*:** for visualization. (dot)
 
+### Alias analysis selection
+PDG data-dependence construction now lets you choose which alias analysis to use:
+
+- `-pdg-aa=<type>` selects the over-approximate AA used to add alias edges (default: `andersen`).
+- `-pdg-aa-under=<type>` optionally enables an under-approximate AA to confirm must-alias edges (default: `underapprox`, set to `none` to disable).
+
+Supported AA types include `andersen`, `andersen-1cfa`, `andersen-2cfa`, `dyck`, `cfl-anders`, `cfl-steens`, `combined`, and `underapprox`.
+
 For those large software, generating a visualizable PDG is not easy. Graphviz often fails to generate the .dot file for a program with more than 1000 lines of C code. Fortunately, we rarely need such a large .dot file but only do kinds of analyses on the PDG, which is always in memory.
 
 ## LLVM IR compilation

@@ -79,6 +79,7 @@ namespace pdg
     FuncWrapperMap &getFuncWrapperMap() { return _func_wrapper_map; }
     CallWrapperMap &getCallWrapperMap() { return _call_wrapper_map; }
     NodeDIMap &getNodeDIMap() { return _node_di_type_map; }
+    bool isBuiltForModule(const llvm::Module &M) const { return _is_build && _built_module == &M; }
     void build(llvm::Module &M) override;
     bool hasFuncWrapper(llvm::Function &F) { return _func_wrapper_map.find(&F) != _func_wrapper_map.end(); }
     bool hasCallWrapper(llvm::CallInst &ci) { return _call_wrapper_map.find(&ci) != _call_wrapper_map.end(); }
@@ -99,6 +100,7 @@ namespace pdg
       _node_di_type_map.clear();
       _class_node_map.clear();
       _class_name_set.clear();
+      _built_module = nullptr;
     }
 
   private:
@@ -107,6 +109,6 @@ namespace pdg
     NodeDIMap _node_di_type_map;
     ClassNodeMap _class_node_map;
     std::set<std::string> _class_name_set;
+    llvm::Module *_built_module = nullptr;
   };
 } // namespace pdg
-

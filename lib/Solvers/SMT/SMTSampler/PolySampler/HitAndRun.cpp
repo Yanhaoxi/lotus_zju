@@ -23,12 +23,27 @@ static long double dot_ld(const std::vector<int64_t> &a,
 
 } // namespace
 
+/**
+ * @brief Performs a single Hit-and-Run step.
+ *
+ * The Hit-and-Run algorithm works as follows:
+ * 1. Choose a random direction uniformly from the unit sphere (hypersphere).
+ * 2. Find the line segment (chord) defined by the current point and the direction,
+ *    restricted by the polytope's constraints.
+ * 3. Sample a new point uniformly from this line segment.
+ *
+ * @param constraints The set of linear constraints defining the polytope (Ax <= b).
+ * @param point [in,out] The current point, updated to the new sample.
+ * @param rng The random number generator.
+ * @return true if a valid step was taken, false otherwise.
+ */
 bool hit_and_run_step(const std::vector<LinearConstraint> &constraints,
                       std::vector<int64_t> &point,
                       std::mt19937_64 &rng) {
   if (point.empty())
     return false;
 
+  // 1. Generate a random direction vector
   std::normal_distribution<double> normal(0.0, 1.0);
   std::vector<int64_t> direction(point.size(), 0);
   for (int attempt = 0; attempt < 16; ++attempt) {
@@ -53,19 +68,25 @@ bool hit_and_run_step(const std::vector<LinearConstraint> &constraints,
   if (all_zero)
     return false;
 
+  // 2. Find the line segment (chord) intersecting the polytope
   long double t_min = -std::numeric_limits<long double>::infinity();
   long double t_max = std::numeric_limits<long double>::infinity();
 
   for (const auto &c : constraints) {
     long double a_dot_x = dot_ld(c.coeffs, point);
     long double a_dot_d = dot_ld(c.coeffs, direction);
+    // slack = bound - a_dot_x. Since Ax <= b, we want a_dot_x + t * a_dot_d <= bound
+    // t * a_dot_d <= bound - a_dot_x
     long double slack = static_cast<long double>(c.bound) - a_dot_x;
 
     if (a_dot_d > 0.0L) {
+      // t <= slack / a_dot_d -> upper bound for t
       t_max = std::min(t_max, slack / a_dot_d);
     } else if (a_dot_d < 0.0L) {
+      // t >= slack / a_dot_d -> lower bound for t (dividing by negative flips inequality)
       t_min = std::max(t_min, slack / a_dot_d);
     } else if (slack < 0.0L) {
+      // Constraint violated regardless of t (point outside polytope?)
       return false;
     }
   }
@@ -78,6 +99,7 @@ bool hit_and_run_step(const std::vector<LinearConstraint> &constraints,
   if (t_low_ld > t_high_ld)
     return false;
 
+  // 3. Sample a new point uniformly from the segment [t_min, t_max]
   int64_t t_low = static_cast<int64_t>(t_low_ld);
   int64_t t_high = static_cast<int64_t>(t_high_ld);
   std::uniform_int_distribution<int64_t> dist(t_low, t_high);

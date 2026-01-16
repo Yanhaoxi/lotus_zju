@@ -24,6 +24,7 @@ using namespace llvm;
 
 void pdg::PDGCallGraph::build(Module &M)
 {
+  _built_module = &M;
   for (auto &F : M)
   {
     if (F.isDeclaration() || F.empty())
