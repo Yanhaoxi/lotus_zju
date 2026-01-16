@@ -4,7 +4,7 @@ add_subdirectory(checker)
 add_subdirectory(optimization)
 add_subdirectory(verifier)
 
-#add_subdirectory(ir)  # not used for now
+add_subdirectory(ir)
 #add_subdirectory(mcp)        # not used for now
 
 # not used for now

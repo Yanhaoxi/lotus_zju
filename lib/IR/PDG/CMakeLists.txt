@@ -17,8 +17,7 @@ add_library(CanaryPDG STATIC
   PDGNode.cpp
   PDGUtils.cpp
   ProgramDependencyGraph.cpp
-  QueryLanguage.cpp
-  QueryParser.cpp
+  CypherQuery.cpp
   Slicing.cpp
   Tree.cpp
 ) 
