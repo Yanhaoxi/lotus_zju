@@ -26,6 +26,7 @@
 
 #include "IR/PDG/ContextSensitiveSlicing.h"
 #include "IR/PDG/PDGUtils.h"
+#include <algorithm>
 #include <queue>
 
 using namespace llvm;
@@ -40,9 +41,25 @@ ContextSensitiveSlicing::NodeSet ContextSensitiveSlicing::computeForwardSlice(No
   return computeForwardSlice({&start_node}, edge_types);
 }
 
+ContextSensitiveSlicing::NodeSet ContextSensitiveSlicing::computeForwardSlice(Node &start_node,
+                                                                              const std::set<EdgeType> &edge_types,
+                                                                              const CFLTraversalLimits &limits,
+                                                                              CFLDiagnostics *diagnostics)
+{
+  return computeForwardSlice({&start_node}, edge_types, limits, diagnostics);
+}
+
 ContextSensitiveSlicing::NodeSet ContextSensitiveSlicing::computeForwardSlice(const NodeSet &start_nodes, const std::set<EdgeType> &edge_types)
 {
   return traverseWithStack(start_nodes, edge_types, true);
+}
+
+ContextSensitiveSlicing::NodeSet ContextSensitiveSlicing::computeForwardSlice(const NodeSet &start_nodes,
+                                                                              const std::set<EdgeType> &edge_types,
+                                                                              const CFLTraversalLimits &limits,
+                                                                              CFLDiagnostics *diagnostics)
+{
+  return traverseWithStack(start_nodes, edge_types, true, limits, diagnostics);
 }
 
 ContextSensitiveSlicing::NodeSet ContextSensitiveSlicing::computeBackwardSlice(Node &end_node, const std::set<EdgeType> &edge_types)
@@ -50,9 +67,25 @@ ContextSensitiveSlicing::NodeSet ContextSensitiveSlicing::computeBackwardSlice(N
   return computeBackwardSlice({&end_node}, edge_types);
 }
 
+ContextSensitiveSlicing::NodeSet ContextSensitiveSlicing::computeBackwardSlice(Node &end_node,
+                                                                               const std::set<EdgeType> &edge_types,
+                                                                               const CFLTraversalLimits &limits,
+                                                                               CFLDiagnostics *diagnostics)
+{
+  return computeBackwardSlice({&end_node}, edge_types, limits, diagnostics);
+}
+
 ContextSensitiveSlicing::NodeSet ContextSensitiveSlicing::computeBackwardSlice(const NodeSet &end_nodes, const std::set<EdgeType> &edge_types)
 {
   return traverseWithStack(end_nodes, edge_types, false);
+}
+
+ContextSensitiveSlicing::NodeSet ContextSensitiveSlicing::computeBackwardSlice(const NodeSet &end_nodes,
+                                                                               const std::set<EdgeType> &edge_types,
+                                                                               const CFLTraversalLimits &limits,
+                                                                               CFLDiagnostics *diagnostics)
+{
+  return traverseWithStack(end_nodes, edge_types, false, limits, diagnostics);
 }
 
 ContextSensitiveSlicing::NodeSet ContextSensitiveSlicing::computeChop(Node &source_node, Node &sink_node, const std::set<EdgeType> &edge_types)
@@ -76,9 +109,20 @@ bool ContextSensitiveSlicing::hasContextSensitivePath(Node &source_node, Node &s
 
 ContextSensitiveSlicing::NodeSet ContextSensitiveSlicing::traverseWithStack(const NodeSet &start_nodes, const std::set<EdgeType> &edge_types, bool forward)
 {
+  return traverseWithStack(start_nodes, edge_types, forward, CFLTraversalLimits{}, nullptr);
+}
+
+ContextSensitiveSlicing::NodeSet ContextSensitiveSlicing::traverseWithStack(const NodeSet &start_nodes,
+                                                                            const std::set<EdgeType> &edge_types,
+                                                                            bool forward,
+                                                                            const CFLTraversalLimits &limits,
+                                                                            CFLDiagnostics *diagnostics)
+{
   NodeSet slice;
   VisitedSet visited;
   std::queue<std::pair<Node *, std::vector<Node *>>> worklist; // <node, call_stack>
+  if (diagnostics != nullptr)
+    *diagnostics = CFLDiagnostics{};
   
   // Initialize worklist with starting nodes and empty call stacks
   for (auto *node : start_nodes) {
@@ -88,18 +132,31 @@ ContextSensitiveSlicing::NodeSet ContextSensitiveSlicing::traverseWithStack(cons
     }
   }
   
-  // BFS traversal with CFL-reachability constraints
-  // Safety limit prevents infinite loops in case of cycles
-  for (size_t iteration_count = 0; !worklist.empty() && iteration_count < 50000; ++iteration_count) {
+  // BFS traversal with CFL-reachability constraints; visited set avoids cycles.
+  while (!worklist.empty()) {
     auto current_pair = worklist.front();
     Node *current = current_pair.first;
     std::vector<Node *> call_stack = current_pair.second;
     worklist.pop();
     
+    if (diagnostics != nullptr) {
+      diagnostics->max_stack_depth_reached = std::max(diagnostics->max_stack_depth_reached, call_stack.size());
+    }
+    if (limits.max_stack_depth > 0 && call_stack.size() > limits.max_stack_depth) {
+      if (diagnostics != nullptr)
+        diagnostics->stack_depth_limit_hit = true;
+      continue;
+    }
+
     // Check if this (node, call_stack) state has been visited
     auto state = std::make_pair(current, call_stack);
     if (visited.find(state) != visited.end()) {
       continue;
+    }
+    if (limits.max_states > 0 && visited.size() + 1 > limits.max_states) {
+      if (diagnostics != nullptr)
+        diagnostics->state_limit_hit = true;
+      break;
     }
     visited.insert(state);
     
@@ -148,6 +205,12 @@ ContextSensitiveSlicing::NodeSet ContextSensitiveSlicing::traverseWithStack(cons
             }
           }
         }
+
+        if (limits.max_stack_depth > 0 && new_stack.size() > limits.max_stack_depth) {
+          if (diagnostics != nullptr)
+            diagnostics->stack_depth_limit_hit = true;
+          continue;
+        }
         
         // Check if this (node, call_stack) state has been visited
         auto new_state = std::make_pair(neighbor, new_stack);
@@ -163,6 +226,8 @@ ContextSensitiveSlicing::NodeSet ContextSensitiveSlicing::traverseWithStack(cons
     }
   }
   
+  if (diagnostics != nullptr)
+    diagnostics->states_explored = visited.size();
   return slice;
 }
 

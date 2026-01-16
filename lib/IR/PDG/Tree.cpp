@@ -146,6 +146,23 @@ pdg::Tree::Tree(const Tree &src_tree)
   _size = 0;
 }
 
+bool pdg::Tree::isShapeCompatible(const Tree &other) const
+{
+  if (_size != other._size)
+    return false;
+  if (_root_node == nullptr || other._root_node == nullptr)
+    return false;
+  auto *lhs_type = _root_node->getDIType();
+  auto *rhs_type = other._root_node->getDIType();
+  if (lhs_type == nullptr || rhs_type == nullptr)
+    return true;
+  auto *lhs_stripped = dbgutils::stripAttributes(*lhs_type);
+  auto *rhs_stripped = dbgutils::stripAttributes(*rhs_type);
+  if (lhs_stripped == nullptr || rhs_stripped == nullptr)
+    return true;
+  return dbgutils::hasSameDIName(*lhs_stripped, *rhs_stripped);
+}
+
 void pdg::Tree::print()
 {
   std::queue<TreeNode *> node_queue;

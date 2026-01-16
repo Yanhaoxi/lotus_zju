@@ -192,11 +192,12 @@ public:
     Value *join = cb->getArgOperand(0);
     if (llvm::isa<LoadInst>(join))
       return llvm::cast<LoadInst>(join)->getPointerOperand();
-    else if (llvm::isa<Argument>(join))
-      return join;
-    assert(
-        false &&
-        "the value of the first argument at join is not a load instruction?");
+    Value *stripped = join->stripPointerCasts();
+    if (llvm::isa<Argument>(stripped) || llvm::isa<AllocaInst>(stripped))
+      return stripped;
+    if (stripped->getType()->isPointerTy())
+      return stripped;
+    assert(false && "the value of the first argument at join is unexpected");
     return NULL;
   }
   inline const Value *getJoinedThread(const CallBase *cb) const {

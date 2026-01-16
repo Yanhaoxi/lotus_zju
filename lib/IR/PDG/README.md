@@ -18,10 +18,6 @@ year = {2017}
 
 }
 
-Currently, the implmentation in master branch is based on LLVM 10.0.1. 
-
-The current implementation only supports building PDGs for C programs.
-
 For detailed description of PDG node and edge, please refer to **PDG_Specification.md**. 
 
 

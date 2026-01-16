@@ -129,8 +129,14 @@ void pdg::ProgramDependencyGraph::connectGlobalWithUses()
  */
 void pdg::ProgramDependencyGraph::connectInTrees(Tree* src_tree, Tree* dst_tree, EdgeType edge_type)
 {
-  if (src_tree->size() != dst_tree->size())
+  if (!src_tree->isShapeCompatible(*dst_tree))
+  {
+    // Fallback: at least connect roots when tree shapes differ (e.g., void* vs struct*).
+    if (auto* src_root = src_tree->getRootNode())
+      if (auto* dst_root = dst_tree->getRootNode())
+        src_root->addNeighbor(*dst_root, edge_type);
     return;
+  }
   auto* src_tree_root_node = src_tree->getRootNode();
   auto* dst_tree_root_node = dst_tree->getRootNode();
   std::queue<std::pair<TreeNode*, TreeNode*>> node_pairs_queue;
@@ -154,8 +160,15 @@ void pdg::ProgramDependencyGraph::connectInTrees(Tree* src_tree, Tree* dst_tree,
 
 void pdg::ProgramDependencyGraph::connectOutTrees(Tree* src_tree, Tree* dst_tree, EdgeType edge_type)
 {
-  if (src_tree->size() != dst_tree->size())
+  if (!src_tree->isShapeCompatible(*dst_tree))
+  {
+    // Fallback: connect roots to avoid dropping all PARAMETER_OUT edges.
+    if (auto* src_root = src_tree->getRootNode())
+      if (auto* dst_root = dst_tree->getRootNode())
+        if (src_root->hasWriteAccess())
+          src_root->addNeighbor(*dst_root, edge_type);
     return;
+  }
   auto* src_tree_root_node = src_tree->getRootNode();
   auto* dst_tree_root_node = dst_tree->getRootNode();
   std::queue<std::pair<TreeNode*, TreeNode*>> node_pairs_queue;

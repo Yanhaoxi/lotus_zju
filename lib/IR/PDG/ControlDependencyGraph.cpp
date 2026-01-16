@@ -61,31 +61,28 @@ void pdg::ControlDependencyGraph::addControlDepFromDominatedBlockToDominator(Fun
   ProgramGraph &g = ProgramGraph::getInstance();
   for (auto &BB : F)
   {
+    Instruction *terminator = BB.getTerminator();
+    if (!terminator)
+      continue;
+    if (terminator->getNumSuccessors() <= 1)
+      continue;
+    Node *terminator_node = g.getNode(*terminator);
+    if (terminator_node == nullptr)
+      continue;
+
     for (auto succ_iter = succ_begin(&BB); succ_iter != succ_end(&BB); succ_iter++)
     {
       BasicBlock *succ_bb = *succ_iter;
       if (&BB == &*succ_bb || !_PDT->dominates(&*succ_bb, &BB))
       {
-        // get terminator and connect with the dependent block
-        Instruction *terminator = BB.getTerminator();
-        if (BranchInst *bi = dyn_cast<BranchInst>(terminator))
-        {
-          if (!bi->isConditional() || !bi->getCondition())
-            break;
-          // Node *cond_node = g.getNode(*bi->getCondition());
-          // if (!cond_node)
-          //   break;
-          Node *branch_node = g.getNode(*bi);
-          if (branch_node == nullptr)
-            break;
-          BasicBlock *nearestCommonDominator = _PDT->findNearestCommonDominator(&BB, succ_bb);
-          if (nearestCommonDominator == &BB)
-            addControlDepFromNodeToBB(*branch_node, *succ_bb, EdgeType::CONTROLDEP_BR);
+        BasicBlock *nearestCommonDominator = _PDT->findNearestCommonDominator(&BB, succ_bb);
+        if (nearestCommonDominator == &BB)
+          addControlDepFromNodeToBB(*terminator_node, *succ_bb, EdgeType::CONTROLDEP_BR);
 
-          for (auto *cur = _PDT->getNode(&*succ_bb); cur != _PDT->getNode(nearestCommonDominator); cur = cur->getIDom())
-          {
-            addControlDepFromNodeToBB(*branch_node, *cur->getBlock(), EdgeType::CONTROLDEP_BR);
-          }
+        auto *nearest_node = _PDT->getNode(nearestCommonDominator);
+        for (auto *cur = _PDT->getNode(&*succ_bb); cur && cur != nearest_node; cur = cur->getIDom())
+        {
+          addControlDepFromNodeToBB(*terminator_node, *cur->getBlock(), EdgeType::CONTROLDEP_BR);
         }
       }
     }

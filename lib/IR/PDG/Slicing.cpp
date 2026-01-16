@@ -61,8 +61,8 @@ namespace {
         slice.insert(node);
       }
     
-    // BFS traversal with safety limit to prevent infinite loops
-    for (size_t iteration_count = 0; !worklist.empty() && iteration_count < 10000; ++iteration_count) {
+    // BFS traversal; visited set prevents infinite loops on cyclic graphs.
+    while (!worklist.empty()) {
       auto current_pair = worklist.front();
       Node *current = current_pair.first;
       size_t depth = current_pair.second;
@@ -132,6 +132,8 @@ ForwardSlicing::NodeSet ForwardSlicing::computeSlice(const NodeSet &start_nodes,
 
 ForwardSlicing::NodeSet ForwardSlicing::computeSliceWithDepth(Node &start_node, size_t max_depth, const std::set<EdgeType> &edge_types)
 {
+  if (max_depth == 0)
+    max_depth = SIZE_MAX;
   return traverseBFS({&start_node}, edge_types,
                      [](Node *n) { return n->getOutEdgeSet(); },
                      [](Edge *e) { return e->getDstNode(); },
@@ -159,6 +161,8 @@ BackwardSlicing::NodeSet BackwardSlicing::computeSlice(const NodeSet &end_nodes,
 
 BackwardSlicing::NodeSet BackwardSlicing::computeSliceWithDepth(Node &end_node, size_t max_depth, const std::set<EdgeType> &edge_types)
 {
+  if (max_depth == 0)
+    max_depth = SIZE_MAX;
   return traverseBFS({&end_node}, edge_types,
                      [](Node *n) { return n->getInEdgeSet(); },
                      [](Edge *e) { return e->getSrcNode(); },
@@ -189,6 +193,19 @@ ProgramChopping::NodeSet ProgramChopping::computeChop(const NodeSet &source_node
     dst.paths_found += src.paths_found;
   };
   
+  // Fast path: when no caps are requested, compute chop via reachability intersection.
+  if (max_paths == 0 && max_path_length == 0) {
+    ForwardSlicing forward(_pdg);
+    BackwardSlicing backward(_pdg);
+    auto forward_slice = forward.computeSlice(source_nodes, edge_types);
+    auto backward_slice = backward.computeSlice(sink_nodes, edge_types);
+    for (auto *node : forward_slice) {
+      if (backward_slice.count(node))
+        chop.insert(node);
+    }
+    return chop;
+  }
+
   // For each source-sink pair, find all nodes on paths between them
   for (auto *source : source_nodes)
     for (auto *sink : sink_nodes) {
@@ -239,6 +256,19 @@ ProgramChopping::NodeSet ProgramChopping::computeChopWithDepth(const NodeSet &so
     dst.paths_found += src.paths_found;
   };
   
+  // Fast path: when traversal is unlimited, avoid path enumeration.
+  if (max_depth == 0 && max_paths == 0 && max_path_length == 0) {
+    ForwardSlicing forward(_pdg);
+    BackwardSlicing backward(_pdg);
+    auto forward_slice = forward.computeSlice(source_nodes, edge_types);
+    auto backward_slice = backward.computeSlice(sink_nodes, edge_types);
+    for (auto *node : forward_slice) {
+      if (backward_slice.count(node))
+        chop.insert(node);
+    }
+    return chop;
+  }
+
   // For each source-sink pair, find all nodes on paths between them
   for (auto *source : source_nodes)
     for (auto *sink : sink_nodes) {

@@ -25,6 +25,8 @@
 #include <algorithm>
 #include <cctype>
 #include <string>
+
+#include <llvm/ADT/SmallVector.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/raw_ostream.h>
 
@@ -211,16 +213,30 @@ void pdg::DataDependencyGraph::addRAWEdges(Instruction &inst)
   auto dep_res = _mem_dep_res->getDependency(&inst);
   auto* dep_inst = dep_res.getInst();
 
-  if (!dep_inst)
-    return;
-  if (!isa<StoreInst>(dep_inst))
-    return;
+  if (dep_inst && dep_inst != &inst && dep_inst->mayWriteToMemory())
+  {
+    Node *src = g.getNode(inst);
+    Node *dst = g.getNode(*dep_inst);
+    if (src != nullptr && dst != nullptr)
+      dst->addNeighbor(*src, EdgeType::DATA_RAW);
+  }
 
-  Node *src = g.getNode(inst);
-  Node *dst = g.getNode(*dep_inst);
-  if (src == nullptr || dst == nullptr)
-    return;
-  dst->addNeighbor(*src, EdgeType::DATA_RAW);
+  // Non-local dependencies: walk defs/clobbers in other blocks.
+  llvm::SmallVector<llvm::NonLocalDepResult, 8> non_local_deps;
+  _mem_dep_res->getNonLocalPointerDependency(&inst, non_local_deps);
+  for (auto &dep : non_local_deps)
+  {
+    auto res = dep.getResult();
+    if (!res.isDef() && !res.isClobber())
+      continue;
+    Instruction *nl_inst = res.getInst();
+    if (!nl_inst || nl_inst == &inst || !nl_inst->mayWriteToMemory())
+      continue;
+    Node *src = g.getNode(inst);
+    Node *dst = g.getNode(*nl_inst);
+    if (src != nullptr && dst != nullptr)
+      dst->addNeighbor(*src, EdgeType::DATA_RAW);
+  }
 }
 
 llvm::AliasResult pdg::DataDependencyGraph::queryAliasUnderApproximate(llvm::Value &v1, llvm::Value &v2)

@@ -41,6 +41,16 @@ namespace pdg
   public:
     using NodeSet = std::set<Node *>;
     using VisitedSet = std::unordered_set<std::pair<Node *, std::vector<Node *>>, NodeStackHash>;
+    struct CFLTraversalLimits {
+      size_t max_states = 0;
+      size_t max_stack_depth = 0;
+    };
+    struct CFLDiagnostics {
+      bool state_limit_hit = false;
+      bool stack_depth_limit_hit = false;
+      size_t states_explored = 0;
+      size_t max_stack_depth_reached = 0;
+    };
     
     /**
      * @brief Constructor
@@ -55,6 +65,17 @@ namespace pdg
      * @return Set of nodes in the context-sensitive forward slice
      */
     NodeSet computeForwardSlice(Node &start_node, const std::set<EdgeType> &edge_types = {});
+
+    /**
+     * @brief Compute context-sensitive forward slice with traversal limits
+     * @param start_node The starting node for the slice
+     * @param edge_types Optional set of edge types to include (empty means all types)
+     * @param limits Optional traversal limits (0 means unlimited)
+     * @param diagnostics Optional diagnostic output for truncation guardrails
+     * @return Set of nodes in the context-sensitive forward slice
+     */
+    NodeSet computeForwardSlice(Node &start_node, const std::set<EdgeType> &edge_types,
+                                const CFLTraversalLimits &limits, CFLDiagnostics *diagnostics);
     
     /**
      * @brief Compute context-sensitive forward slice from multiple nodes
@@ -63,6 +84,17 @@ namespace pdg
      * @return Set of nodes in the context-sensitive forward slice
      */
     NodeSet computeForwardSlice(const NodeSet &start_nodes, const std::set<EdgeType> &edge_types = {});
+
+    /**
+     * @brief Compute context-sensitive forward slice from multiple nodes with traversal limits
+     * @param start_nodes Set of starting nodes for the slice
+     * @param edge_types Optional set of edge types to include (empty means all types)
+     * @param limits Optional traversal limits (0 means unlimited)
+     * @param diagnostics Optional diagnostic output for truncation guardrails
+     * @return Set of nodes in the context-sensitive forward slice
+     */
+    NodeSet computeForwardSlice(const NodeSet &start_nodes, const std::set<EdgeType> &edge_types,
+                                const CFLTraversalLimits &limits, CFLDiagnostics *diagnostics);
     
     /**
      * @brief Compute context-sensitive backward slice from a single node
@@ -71,6 +103,17 @@ namespace pdg
      * @return Set of nodes in the context-sensitive backward slice
      */
     NodeSet computeBackwardSlice(Node &end_node, const std::set<EdgeType> &edge_types = {});
+
+    /**
+     * @brief Compute context-sensitive backward slice with traversal limits
+     * @param end_node The ending node for the slice
+     * @param edge_types Optional set of edge types to include (empty means all types)
+     * @param limits Optional traversal limits (0 means unlimited)
+     * @param diagnostics Optional diagnostic output for truncation guardrails
+     * @return Set of nodes in the context-sensitive backward slice
+     */
+    NodeSet computeBackwardSlice(Node &end_node, const std::set<EdgeType> &edge_types,
+                                 const CFLTraversalLimits &limits, CFLDiagnostics *diagnostics);
     
     /**
      * @brief Compute context-sensitive backward slice from multiple nodes
@@ -79,6 +122,17 @@ namespace pdg
      * @return Set of nodes in the context-sensitive backward slice
      */
     NodeSet computeBackwardSlice(const NodeSet &end_nodes, const std::set<EdgeType> &edge_types = {});
+
+    /**
+     * @brief Compute context-sensitive backward slice from multiple nodes with traversal limits
+     * @param end_nodes Set of ending nodes for the slice
+     * @param edge_types Optional set of edge types to include (empty means all types)
+     * @param limits Optional traversal limits (0 means unlimited)
+     * @param diagnostics Optional diagnostic output for truncation guardrails
+     * @return Set of nodes in the context-sensitive backward slice
+     */
+    NodeSet computeBackwardSlice(const NodeSet &end_nodes, const std::set<EdgeType> &edge_types,
+                                 const CFLTraversalLimits &limits, CFLDiagnostics *diagnostics);
     
     /**
      * @brief Compute context-sensitive chop between source and sink nodes
@@ -109,6 +163,9 @@ namespace pdg
      * @return Set of reachable nodes
      */
     NodeSet traverseWithStack(const NodeSet &start_nodes, const std::set<EdgeType> &edge_types, bool forward);
+
+    NodeSet traverseWithStack(const NodeSet &start_nodes, const std::set<EdgeType> &edge_types, bool forward,
+                              const CFLTraversalLimits &limits, CFLDiagnostics *diagnostics);
     
   };
 

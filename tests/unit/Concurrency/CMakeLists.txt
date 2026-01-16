@@ -1,1 +1,2 @@
 add_lotus_test(mhp_analysis_test MHPAnalysisTest.cpp)
+add_lotus_test(lockset_analysis_test LockSetAnalysisTest.cpp)

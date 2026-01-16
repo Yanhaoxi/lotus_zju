@@ -85,9 +85,10 @@ namespace pdg
     void setRootNode(TreeNode &root_node) { _root_node = &root_node; }
     void setTreeNodeType(GraphNodeType node_type) { _root_node->setNodeType(node_type); }
     TreeNode *getRootNode() const { return _root_node; }
-    int size() { return _size; }
+    int size() const { return _size; }
     void setSize(int size) { _size = size; }
     void increaseTreeSize() { _size++; }
+    bool isShapeCompatible(const Tree &other) const;
     
     void print();
     

@@ -243,13 +243,16 @@ TEST_F(PDGSlicingTest, DepthLimitedSlicing) {
   auto slice1 = forwardSlicer.computeSliceWithDepth(*startNode, 1);
   auto slice2 = forwardSlicer.computeSliceWithDepth(*startNode, 2);
   auto sliceUnlimited = forwardSlicer.computeSlice(*startNode);
+  auto sliceZero = forwardSlicer.computeSliceWithDepth(*startNode, 0);
   
   EXPECT_LE(slice1.size(), slice2.size()) << "Depth 1 slice should be smaller than depth 2";
   EXPECT_LE(slice2.size(), sliceUnlimited.size()) << "Depth 2 slice should be smaller than unlimited";
+  EXPECT_EQ(sliceZero.size(), sliceUnlimited.size()) << "Depth 0 should mean unlimited";
   
   EXPECT_TRUE(slice1.find(startNode) != slice1.end());
   EXPECT_TRUE(slice2.find(startNode) != slice2.end());
   EXPECT_TRUE(sliceUnlimited.find(startNode) != sliceUnlimited.end());
+  EXPECT_TRUE(sliceZero.find(startNode) != sliceZero.end());
 }
 
 TEST_F(PDGSlicingTest, MultipleStartNodes) {
@@ -407,6 +410,29 @@ TEST_F(PDGSlicingTest, ContextSensitiveEdgeTypeFiltering) {
   EXPECT_TRUE(dataSlice.find(startNode) != dataSlice.end());
   EXPECT_TRUE(controlSlice.find(startNode) != controlSlice.end());
   EXPECT_TRUE(callReturnSlice.find(startNode) != callReturnSlice.end());
+}
+
+TEST_F(PDGSlicingTest, ContextSensitiveTraversalLimits) {
+  if (!hasMinimumNodes(1)) {
+    GTEST_SKIP() << "No PDG or test nodes available";
+    return;
+  }
+
+  ContextSensitiveSlicing csSlicer(*PDG);
+  ContextSensitiveSlicing::CFLTraversalLimits limits;
+  limits.max_states = 1;
+  ContextSensitiveSlicing::CFLDiagnostics diagnostics;
+
+  auto csSlice = csSlicer.computeForwardSlice(*testNodes[0], {}, limits, &diagnostics);
+  auto csSliceUnlimited = csSlicer.computeForwardSlice(*testNodes[0]);
+
+  EXPECT_GT(csSlice.size(), 0) << "Slice should contain the start node";
+  EXPECT_EQ(diagnostics.states_explored, 1u) << "Should stop after exploring one state";
+  if (csSliceUnlimited.size() > csSlice.size()) {
+    EXPECT_TRUE(diagnostics.state_limit_hit) << "State limit should be reported as hit when truncating";
+  } else {
+    EXPECT_FALSE(diagnostics.state_limit_hit) << "State limit should not be reported when no truncation occurs";
+  }
 }
 
 TEST_F(PDGSlicingTest, ContextSensitiveVsContextInsensitiveComparison) {
