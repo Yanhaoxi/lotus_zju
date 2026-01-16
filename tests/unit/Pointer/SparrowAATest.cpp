@@ -5,6 +5,8 @@
 
 #include "Alias/SparrowAA/AndersenAA.h"
 
+#include <algorithm>
+
 #include <gtest/gtest.h>
 #include <llvm/AsmParser/Parser.h>
 #include <llvm/IR/Instructions.h>
@@ -55,8 +57,10 @@ TEST_F(SparrowAATest, SimpleAlias) {
       if (AllocaInst *AI = dyn_cast<AllocaInst>(&I)) {
         Type *allocType = AI->getAllocatedType();
         if (allocType && allocType->isIntegerTy(32)) {
-          if (!x) x = AI;
-          else if (!y) y = AI;
+          if (!x)
+            x = AI;
+          else if (!y)
+            y = AI;
         }
       }
       if (LoadInst *LI = dyn_cast<LoadInst>(&I)) {
@@ -74,7 +78,7 @@ TEST_F(SparrowAATest, SimpleAlias) {
   std::vector<const Value *> ptsSet;
   bool hasPointsTo = AA.getPointsToSet(q, ptsSet);
   EXPECT_TRUE(hasPointsTo || !ptsSet.empty());
-  
+
   // Verify that q may point to x (or x is in the points-to set)
   bool pointsToX = false;
   for (const Value *v : ptsSet) {
@@ -83,7 +87,8 @@ TEST_F(SparrowAATest, SimpleAlias) {
       break;
     }
   }
-  // In flow-insensitive analysis, this should be true if the analysis ran correctly
+  // In flow-insensitive analysis, this should be true if the analysis ran
+  // correctly
   EXPECT_TRUE(pointsToX || ptsSet.empty() || ptsSet.size() > 0);
 }
 
@@ -109,8 +114,10 @@ TEST_F(SparrowAATest, NoAlias) {
   for (auto &BB : *F) {
     for (auto &I : BB) {
       if (AllocaInst *AI = dyn_cast<AllocaInst>(&I)) {
-        if (!x) x = AI;
-        else if (!y) y = AI;
+        if (!x)
+          x = AI;
+        else if (!y)
+          y = AI;
       }
     }
   }
@@ -118,20 +125,73 @@ TEST_F(SparrowAATest, NoAlias) {
   ASSERT_NE(x, nullptr);
   ASSERT_NE(y, nullptr);
 
-  // Test that x and y have different points-to sets using alias analysis
-  // Use MemoryLocation::get for load/store instructions if available
-  // For allocas, test via points-to sets
   std::vector<const Value *> ptsSetX;
-  bool hasPtsX = AA.getPointsToSet(x, ptsSetX);
-  
-  // Different stack allocations should not point to each other
-  // Both should have empty or minimal points-to sets for stack allocas
-  EXPECT_TRUE(!hasPtsX || ptsSetX.empty() || 
-              (ptsSetX.size() == 1 && ptsSetX[0] == x));
+  std::vector<const Value *> ptsSetY;
+  AA.getPointsToSet(x, ptsSetX);
+  AA.getPointsToSet(y, ptsSetY);
+
+  auto contains = [](const std::vector<const Value *> &set, const Value *v) {
+    return std::find(set.begin(), set.end(), v) != set.end();
+  };
+
+  EXPECT_FALSE(contains(ptsSetX, y));
+  EXPECT_FALSE(contains(ptsSetY, x));
+}
+
+TEST_F(SparrowAATest, DirectAlias) {
+  const char *source = R"(
+    define i32 @test() {
+      %x = alloca i32
+      %p = alloca i32*
+      store i32* %x, i32** %p
+      %q = load i32*, i32** %p
+      ret i32 0
+    }
+  )";
+
+  auto module = parseModule(source);
+  ASSERT_NE(module, nullptr);
+
+  AndersenAAResult AA(*module);
+
+  Function *F = module->getFunction("test");
+  ASSERT_NE(F, nullptr);
+
+  Value *x = nullptr;
+  Value *q = nullptr;
+  for (auto &BB : *F) {
+    for (auto &I : BB) {
+      if (AllocaInst *AI = dyn_cast<AllocaInst>(&I)) {
+        if (AI->getAllocatedType()->isIntegerTy(32)) {
+          x = AI;
+        }
+      }
+      if (LoadInst *LI = dyn_cast<LoadInst>(&I)) {
+        if (LI->getType()->isPointerTy()) {
+          q = LI;
+        }
+      }
+    }
+  }
+
+  ASSERT_NE(x, nullptr);
+  ASSERT_NE(q, nullptr);
+
+  std::vector<const Value *> ptsSetQ;
+  AA.getPointsToSet(q, ptsSetQ);
+
+  bool pointsToX = false;
+  for (const Value *value : ptsSetQ) {
+    if (value == x) {
+      pointsToX = true;
+      break;
+    }
+  }
+
+  EXPECT_TRUE(pointsToX || ptsSetQ.empty());
 }
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
-

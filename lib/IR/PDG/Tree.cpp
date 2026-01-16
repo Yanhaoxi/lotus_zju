@@ -46,6 +46,14 @@ pdg::TreeNode::TreeNode(Function &f, DIType *di_type, int depth, TreeNode *paren
   _func = &f;
 }
 
+/**
+ * @brief Expands the current tree node based on its debug information type.
+ * 
+ * If the node represents an aggregate type (struct/class) or a pointer/reference,
+ * this method creates child nodes for fields or pointed-to objects.
+ * 
+ * @return The number of child nodes created.
+ */
 int pdg::TreeNode::expandNode()
 {
   // expand debugging information here
@@ -167,6 +175,14 @@ void pdg::Tree::print()
   }
 }
 
+/**
+ * @brief Builds the tree up to a maximum depth.
+ * 
+ * Performs a BFS traversal to expand nodes and construct the tree structure,
+ * creating a hierarchical representation of the data type.
+ * 
+ * @param max_tree_depth The maximum depth to expand the tree.
+ */
 void pdg::Tree::build(int max_tree_depth)
 {
   int current_tree_depth = 0;

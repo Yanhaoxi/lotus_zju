@@ -36,6 +36,15 @@ void pdg::ProgramDependencyGraph::getAnalysisUsage(AnalysisUsage &AU) const
   AU.setPreservesAll();
 }
 
+/**
+ * @brief Main entry point for the PDG pass.
+ * 
+ * Initializes the PDG, builds the call graph, and orchestrates the connection
+ * of dependencies (global, intra-procedural, inter-procedural).
+ * 
+ * @param M The LLVM Module to analyze.
+ * @return false (Analysis passes should return false).
+ */
 bool pdg::ProgramDependencyGraph::runOnModule(Module &M)
 {
   auto start = std::chrono::high_resolution_clock::now();
@@ -85,6 +94,12 @@ bool pdg::ProgramDependencyGraph::runOnModule(Module &M)
   return false;
 }
 
+/**
+ * @brief Connects global variables with their uses in the program.
+ * 
+ * Establishes DATA_DEF_USE edges between global variable nodes and the instruction
+ * nodes that use them.
+ */
 void pdg::ProgramDependencyGraph::connectGlobalWithUses()
 {
   for (auto &global_var : _module->getGlobalList())
@@ -103,6 +118,15 @@ void pdg::ProgramDependencyGraph::connectGlobalWithUses()
   }
 }
 
+/**
+ * @brief Connects two parameter trees with incoming edges (e.g., ActualIn -> FormalIn).
+ * 
+ * Traverses both trees in parallel and adds edges between corresponding nodes.
+ * 
+ * @param src_tree The source tree (e.g., Actual Argument Tree).
+ * @param dst_tree The destination tree (e.g., Formal Parameter Tree).
+ * @param edge_type The type of edge to create (e.g., PARAMETER_IN).
+ */
 void pdg::ProgramDependencyGraph::connectInTrees(Tree* src_tree, Tree* dst_tree, EdgeType edge_type)
 {
   if (src_tree->size() != dst_tree->size())
@@ -154,6 +178,18 @@ void pdg::ProgramDependencyGraph::connectOutTrees(Tree* src_tree, Tree* dst_tree
   }
 }
 
+/**
+ * @brief Connects a call site to the callee function.
+ * 
+ * Establishes:
+ * 1. Control dependency between call site and callee entry.
+ * 2. Parameter mapping (ActualIn -> FormalIn, FormalOut -> ActualOut).
+ * 3. Return value mapping.
+ * 4. Return control/data edges.
+ * 
+ * @param cw The CallWrapper for the call site.
+ * @param fw The FunctionWrapper for the callee.
+ */
 void pdg::ProgramDependencyGraph::connectCallerAndCallee(CallWrapper &cw, FunctionWrapper &fw)
 {
   // step 1: connect call site node with the entry node of function
@@ -223,6 +259,14 @@ void pdg::ProgramDependencyGraph::connectCallerAndCallee(CallWrapper &cw, Functi
 }
 
 // ===== connect dependencies =====
+/**
+ * @brief Connects intra-procedural dependencies for a function.
+ * 
+ * Adds control dependencies (CDG) and connects formal parameters to their
+ * usages within the function (address variables).
+ * 
+ * @param F The function to process.
+ */
 void pdg::ProgramDependencyGraph::connectIntraprocDependencies(Function &F)
 {
   // add control dependency edges
@@ -252,6 +296,14 @@ void pdg::ProgramDependencyGraph::connectIntraprocDependencies(Function &F)
   }
 }
 
+/**
+ * @brief Connects inter-procedural dependencies for a function.
+ * 
+ * Iterates through all call sites in the function and connects them to potential
+ * targets (callees) using the call graph.
+ * 
+ * @param F The function to process.
+ */
 void pdg::ProgramDependencyGraph::connectInterprocDependencies(Function &F)
 {
   auto* func_w = getFuncWrapper(F);
@@ -325,6 +377,14 @@ void pdg::ProgramDependencyGraph::connectInterprocDependencies(Function &F)
 }
 
 // ====== connect class node with class methods ======
+/**
+ * @brief Connects a class node (for C++ classes) with its methods.
+ * 
+ * Establishes a CLS_MTH edge between the class type node and the entry node
+ * of member functions.
+ * 
+ * @param F The member function.
+ */
 void pdg::ProgramDependencyGraph::connectClassNodeWithClassMethods(Function &F)
 {
   // iterate through all function wrappers. If the function is a class method (non-empty _class_name field),
@@ -341,6 +401,14 @@ void pdg::ProgramDependencyGraph::connectClassNodeWithClassMethods(Function &F)
 }
 
 // ====== connect tree with variables ======
+/**
+ * @brief Connects a FormalIn tree to address variables within the function.
+ * 
+ * Maps the tree nodes (representing parameter fields) to the local variables
+ * that access them (e.g., via load/store or GEP).
+ * 
+ * @param formal_in_tree The FormalIn tree to connect.
+ */
 void pdg::ProgramDependencyGraph::connectFormalInTreeWithAddrVars(Tree &formal_in_tree)
 {
   auto* root_node = formal_in_tree.getRootNode();
@@ -439,6 +507,14 @@ void pdg::ProgramDependencyGraph::connectActualInTreeWithAddrVars(Tree &actual_i
   }
 }
 
+/**
+ * @brief Connects an ActualOut tree to local variables at the call site.
+ * 
+ * Maps the output of arguments (e.g., modified pointers) back to local variables.
+ * 
+ * @param actual_out_tree The ActualOut tree to connect.
+ * @param ci The CallInst associated with the tree.
+ */
 void pdg::ProgramDependencyGraph::connectActualOutTreeWithAddrVars(Tree &actual_out_tree, CallInst &ci)
 {
   TreeNode *root_node = actual_out_tree.getRootNode();

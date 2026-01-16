@@ -100,6 +100,77 @@ TEST_F(MHPAnalysisTest, LockOperations) {
   EXPECT_GE(stats.num_unlocks, 1);
 }
 
+TEST_F(MHPAnalysisTest, JoinStatistics) {
+  const char *source = R"(
+    declare i32 @pthread_create(i8*, i8*, i8* (i8*)*, i8*)
+    declare i32 @pthread_join(i8*, i8*)
+
+    define i8* @worker(i8* %arg) {
+      ret i8* null
+    }
+
+    define i32 @main() {
+      %tid = alloca i8
+      %ret = call i32 @pthread_create(i8* %tid, i8* null,
+                                       i8* (i8*)* @worker, i8* null)
+      %join = call i32 @pthread_join(i8* %tid, i8* null)
+      ret i32 0
+    }
+  )";
+
+  auto module = parseModule(source);
+  ASSERT_NE(module, nullptr);
+
+  MHPAnalysis mhp(*module);
+  mhp.analyze();
+
+  auto stats = mhp.getStatistics();
+  EXPECT_GE(stats.num_forks, 1);
+  EXPECT_GE(stats.num_joins, 1);
+}
+
+TEST_F(MHPAnalysisTest, ThreadFlowGraphNodes) {
+  const char *source = R"(
+    declare i32 @pthread_create(i8*, i8*, i8* (i8*)*, i8*)
+    declare i32 @pthread_join(i8*, i8*)
+    declare i32 @pthread_mutex_lock(i8*)
+    declare i32 @pthread_mutex_unlock(i8*)
+
+    @lock = global i8 0
+
+    define i8* @worker(i8* %arg) {
+      %l = call i32 @pthread_mutex_lock(i8* @lock)
+      %u = call i32 @pthread_mutex_unlock(i8* @lock)
+      ret i8* null
+    }
+
+    define i32 @main() {
+      %tid = alloca i8
+      %ret = call i32 @pthread_create(i8* %tid, i8* null,
+                                       i8* (i8*)* @worker, i8* null)
+      %join = call i32 @pthread_join(i8* %tid, i8* null)
+      ret i32 0
+    }
+  )";
+
+  auto module = parseModule(source);
+  ASSERT_NE(module, nullptr);
+
+  MHPAnalysis mhp(*module);
+  mhp.analyze();
+
+  const ThreadFlowGraph &tfg = mhp.getThreadFlowGraph();
+  auto forkNodes = tfg.getNodesOfType(SyncNodeType::THREAD_FORK);
+  auto joinNodes = tfg.getNodesOfType(SyncNodeType::THREAD_JOIN);
+  auto lockNodes = tfg.getNodesOfType(SyncNodeType::LOCK_ACQUIRE);
+  auto unlockNodes = tfg.getNodesOfType(SyncNodeType::LOCK_RELEASE);
+
+  EXPECT_GE(forkNodes.size(), 1u);
+  EXPECT_GE(joinNodes.size(), 1u);
+  EXPECT_GE(lockNodes.size(), 1u);
+  EXPECT_GE(unlockNodes.size(), 1u);
+}
+
 // Main function for tests
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

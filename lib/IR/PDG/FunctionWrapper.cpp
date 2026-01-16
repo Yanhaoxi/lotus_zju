@@ -22,6 +22,14 @@
 
 using namespace llvm;
 
+/**
+ * @brief Categorizes and stores an instruction within the function wrapper.
+ * 
+ * Analyzes the instruction type (Alloca, Store, Load, Call, etc.) and adds it
+ * to the appropriate internal list for quick access during analysis.
+ * 
+ * @param i The instruction to add.
+ */
 void pdg::FunctionWrapper::addInst(Instruction &i)
 {
   if (AllocaInst *ai = dyn_cast<AllocaInst>(&i))
@@ -41,6 +49,15 @@ void pdg::FunctionWrapper::addInst(Instruction &i)
     _return_insts.push_back(reti);
 }
 
+/**
+ * @brief Retrieves the debug info type (DIType) for a function argument.
+ * 
+ * Searches the DbgDeclareInsts in the function to find the DILocalVariable
+ * corresponding to the given argument, and returns its type.
+ * 
+ * @param arg The argument to look up.
+ * @return The DIType of the argument, or nullptr if not found.
+ */
 DIType *pdg::FunctionWrapper::getArgDIType(Argument &arg)
 {
   for (auto* dbg_declare_inst : _dbg_declare_insts)
@@ -54,6 +71,13 @@ DIType *pdg::FunctionWrapper::getArgDIType(Argument &arg)
   return nullptr;
 }
 
+/**
+ * @brief Builds formal parameter trees for all function arguments.
+ * 
+ * For each argument, constructs a "FormalIn" tree representing the incoming data structure
+ * and a "FormalOut" tree representing the outgoing data structure (for pointer/reference types).
+ * It uses debug information to accurately model the type hierarchy.
+ */
 void pdg::FunctionWrapper::buildFormalTreeForArgs()
 {
   for (auto* arg : _arg_list)
@@ -92,6 +116,12 @@ void pdg::FunctionWrapper::buildFormalTreeForArgs()
   }
 }
 
+/**
+ * @brief Builds formal trees for the function's return value.
+ * 
+ * Constructs "FormalIn" and "FormalOut" trees for the return value, enabling
+ * field-sensitive analysis of returned data structures.
+ */
 void pdg::FunctionWrapper::buildFormalTreesForRetVal()
 {
   Tree* ret_formal_in_tree = new Tree();
@@ -118,6 +148,12 @@ void pdg::FunctionWrapper::buildFormalTreesForRetVal()
   _ret_val_formal_out_tree = ret_formal_out_tree;
 }
 
+/**
+ * @brief Retrieves the debug info local variable for a function argument.
+ * 
+ * @param arg The argument to look up.
+ * @return The DILocalVariable associated with the argument, or nullptr.
+ */
 DILocalVariable *pdg::FunctionWrapper::getArgDILocalVar(Argument &arg)
 {
   for (auto* dbg_declare_inst : _dbg_declare_insts)
@@ -161,6 +197,12 @@ pdg::Tree *pdg::FunctionWrapper::getArgFormalInTree(Argument& arg)
   return _arg_formal_in_tree_map[&arg];
 }
 
+/**
+ * @brief Retrieves the FormalOut tree for a specific argument.
+ * 
+ * @param arg The argument.
+ * @return A pointer to the Tree structure, or nullptr if not found.
+ */
 pdg::Tree *pdg::FunctionWrapper::getArgFormalOutTree(Argument& arg)
 {
   auto iter = _arg_formal_out_tree_map.find(&arg);

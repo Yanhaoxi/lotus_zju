@@ -30,6 +30,9 @@ function(add_lotus_test test_name source_file)
     add_executable(${test_name} ${source})
     set_target_properties(${test_name} PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${LOTUS_TEST_BIN_DIR}
+        CXX_STANDARD 17
+        CXX_STANDARD_REQUIRED ON
+        CXX_EXTENSIONS OFF
     )
     target_include_directories(${test_name} PRIVATE ${COMMON_INCLUDES})
     target_link_libraries(${test_name} lotus_test_utils)
@@ -50,6 +53,9 @@ function(add_lotus_pdg_test test_name source_file)
     add_executable(${test_name} ${source})
     set_target_properties(${test_name} PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${LOTUS_TEST_BIN_DIR}
+        CXX_STANDARD 17
+        CXX_STANDARD_REQUIRED ON
+        CXX_EXTENSIONS OFF
     )
     target_include_directories(${test_name} PRIVATE ${COMMON_INCLUDES})
     # PDG tests need additional LLVM analysis libraries

@@ -20,6 +20,16 @@
 
 using namespace llvm;
 
+/**
+ * @brief Adds a directed edge to a neighbor node.
+ * 
+ * Creates a new Edge object of the specified type connecting this node to the neighbor.
+ * Updates both the outgoing edges of this node and the incoming edges of the neighbor.
+ * Avoids duplicate edges of the same type to the same neighbor.
+ * 
+ * @param neighbor The destination node.
+ * @param edge_type The type of dependency (e.g., CONTROLDEP_BR, DATA_DEF_USE).
+ */
 void pdg::Node::addNeighbor(Node &neighbor, EdgeType edge_type)
 {
   if (hasOutNeighborWithEdgeType(neighbor, edge_type))
@@ -29,6 +39,11 @@ void pdg::Node::addNeighbor(Node &neighbor, EdgeType edge_type)
   neighbor.addInEdge(*edge);
 }
 
+/**
+ * @brief Retrieves the set of all nodes that have edges pointing to this node.
+ * 
+ * @return A set of pointers to source nodes of incoming edges.
+ */
 std::set<pdg::Node *> pdg::Node::getInNeighbors()
 {
   std::set<Node *> in_neighbors;
@@ -60,6 +75,12 @@ std::set<pdg::Node *> pdg::Node::getOutNeighbors()
   return out_neighbors;
 }
 
+/**
+ * @brief Retrieves outgoing neighbors connected by a specific edge type.
+ * 
+ * @param edge_type The edge type to filter by.
+ * @return A set of pointers to matching destination nodes.
+ */
 std::set<pdg::Node *> pdg::Node::getOutNeighborsWithDepType(pdg::EdgeType edge_type)
 {
   std::set<Node *> out_neighbors_with_dep_type;

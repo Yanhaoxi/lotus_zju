@@ -792,6 +792,16 @@ bool QueryExecutor::hasFunction(const std::string& name) const {
     return functions_.find(name) != functions_.end();
 }
 
+/**
+ * @brief Computes the forward slice from a set of start nodes.
+ * 
+ * Performs a BFS traversal following outgoing edges to find all reachable nodes
+ * within the specified depth.
+ * 
+ * @param startNodes The set of nodes to start the slice from.
+ * @param depth Maximum traversal depth (-1 for unlimited).
+ * @return A unique_ptr to a QueryResult containing the set of reachable nodes.
+ */
 std::unique_ptr<QueryResult> QueryExecutor::forwardSlice(const std::unordered_set<Node*>& startNodes, int depth) {
     auto result = std::make_unique<NodeSetResult>();
     std::unordered_set<Node*> visited;
@@ -904,6 +914,14 @@ std::unique_ptr<QueryResult> QueryExecutor::shortestPath(const std::unordered_se
     return result;
 }
 
+/**
+ * @brief Selects all edges of a specific type from the graph.
+ * 
+ * Iterates through all nodes in the PDG and collects edges matching the specified type.
+ * 
+ * @param edgeType The type of edge to select (e.g., DATA_DEF_USE, CONTROLDEP_BR).
+ * @return A unique_ptr to a QueryResult containing the selected edges.
+ */
 std::unique_ptr<QueryResult> QueryExecutor::selectEdges(EdgeType edgeType) {
     auto result = std::make_unique<EdgeSetResult>();
     
@@ -930,6 +948,15 @@ std::unique_ptr<QueryResult> QueryExecutor::selectNodes(GraphNodeType nodeType) 
     return result;
 }
 
+/**
+ * @brief Finds potential Path Condition (PC) nodes for a given set of expression nodes.
+ * 
+ * Searches for branch nodes that control the execution of the given expression nodes.
+ * 
+ * @param exprNodes The set of nodes to find PC nodes for.
+ * @param edgeType The type of control dependency edge to traverse (default: CONTROLDEP_BR).
+ * @return A unique_ptr to a QueryResult containing the identified PC nodes.
+ */
 std::unique_ptr<QueryResult> QueryExecutor::findPCNodes(const std::unordered_set<Node*>& exprNodes, EdgeType edgeType) {
     auto result = std::make_unique<NodeSetResult>();
     
@@ -947,6 +974,15 @@ std::unique_ptr<QueryResult> QueryExecutor::findPCNodes(const std::unordered_set
     return result;
 }
 
+/**
+ * @brief Removes nodes that are control-dependent on the specified set of nodes.
+ * 
+ * Filters out nodes from the input set if they have incoming control dependency edges
+ * from other nodes within the same set.
+ * 
+ * @param nodes The set of nodes to filter.
+ * @return A unique_ptr to a QueryResult containing the filtered set of nodes.
+ */
 std::unique_ptr<QueryResult> QueryExecutor::removeControlDeps(const std::unordered_set<Node*>& nodes) {
     auto result = std::make_unique<NodeSetResult>();
     
@@ -971,6 +1007,12 @@ std::unique_ptr<QueryResult> QueryExecutor::removeControlDeps(const std::unorder
     return result;
 }
 
+/**
+ * @brief Finds the return nodes of a specified procedure (function).
+ * 
+ * @param procName The name of the function to look up.
+ * @return A unique_ptr to a QueryResult containing the return instruction nodes of the function.
+ */
 std::unique_ptr<QueryResult> QueryExecutor::returnsOf(const std::string& procName) {
     auto result = std::make_unique<NodeSetResult>();
     
@@ -1012,6 +1054,12 @@ std::unique_ptr<QueryResult> QueryExecutor::formalsOf(const std::string& procNam
     return result;
 }
 
+/**
+ * @brief Finds the entry node of a specified procedure (function).
+ * 
+ * @param procName The name of the function to look up.
+ * @return A unique_ptr to a QueryResult containing the entry node of the function.
+ */
 std::unique_ptr<QueryResult> QueryExecutor::entriesOf(const std::string& procName) {
     auto result = std::make_unique<NodeSetResult>();
     
@@ -1032,6 +1080,16 @@ std::unique_ptr<QueryResult> QueryExecutor::entriesOf(const std::string& procNam
     return result;
 }
 
+/**
+ * @brief Finds all nodes lying on any path between the source and destination nodes.
+ * 
+ * Performs a search to identify nodes that are part of the dependency chains connecting
+ * the 'from' set to the 'to' set.
+ * 
+ * @param from The set of source nodes.
+ * @param to The set of destination nodes.
+ * @return A unique_ptr to a QueryResult containing the intermediate nodes.
+ */
 std::unique_ptr<QueryResult> QueryExecutor::between(const std::unordered_set<Node*>& from, const std::unordered_set<Node*>& to) {
     auto result = std::make_unique<NodeSetResult>();
     
@@ -1065,6 +1123,17 @@ std::unique_ptr<QueryResult> QueryExecutor::between(const std::unordered_set<Nod
     return result;
 }
 
+/**
+ * @brief Checks if declassifiers interrupt the flow from sources to sinks.
+ * 
+ * Determines if there are information flows from sources to sinks that are NOT
+ * mediated by the specified declassifier nodes.
+ * 
+ * @param declassifiers The set of nodes acting as declassifiers.
+ * @param sources The set of information source nodes.
+ * @param sinks The set of information sink nodes.
+ * @return A unique_ptr to a QueryResult containing violating source/sink pairs (simplified).
+ */
 std::unique_ptr<QueryResult> QueryExecutor::declassifies(const std::unordered_set<Node*>& /*declassifiers*/, 
                                                         const std::unordered_set<Node*>& sources, 
                                                         const std::unordered_set<Node*>& sinks) {
@@ -1085,6 +1154,15 @@ std::unique_ptr<QueryResult> QueryExecutor::declassifies(const std::unordered_se
     return result;
 }
 
+/**
+ * @brief Checks for explicit data flows between sources and sinks, ignoring control dependencies.
+ * 
+ * Verifies if there are any purely data-dependent paths from source nodes to sink nodes.
+ * 
+ * @param sources The set of source nodes.
+ * @param sinks The set of sink nodes.
+ * @return A unique_ptr to a QueryResult containing violating source/sink pairs.
+ */
 std::unique_ptr<QueryResult> QueryExecutor::noExplicitFlows(const std::unordered_set<Node*>& sources, 
                                                            const std::unordered_set<Node*>& sinks) {
     // Remove control dependencies and check for data flows
@@ -1139,6 +1217,16 @@ std::unique_ptr<QueryResult> QueryExecutor::flowAccessControlled(const std::unor
     return result;
 }
 
+/**
+ * @brief Checks if sensitive operations are guarded by access control checks.
+ * 
+ * Verifies if the specified sensitive operations are control-dependent on or
+ * reachable from the check nodes.
+ * 
+ * @param checks The set of access control check nodes.
+ * @param sensitiveOps The set of sensitive operation nodes.
+ * @return A unique_ptr to a QueryResult containing violating operations.
+ */
 std::unique_ptr<QueryResult> QueryExecutor::accessControlled(const std::unordered_set<Node*>& checks,
                                                             const std::unordered_set<Node*>& sensitiveOps) {
     // Check if sensitive operations are controlled by checks

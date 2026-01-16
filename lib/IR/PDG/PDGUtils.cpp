@@ -115,6 +115,16 @@ int pdg::pdgutils::getGEPAccessFieldOffset(GetElementPtrInst &gep)
   return INT_MIN;
 }
 
+/**
+ * @brief Checks if the GEP offset matches the debug info offset.
+ * 
+ * Verifies if the field accessed by the GEP instruction corresponds to the
+ * field described by the debug information type.
+ * 
+ * @param dt The debug info type (struct member).
+ * @param gep The GetElementPtr instruction.
+ * @return true if offsets match, false otherwise.
+ */
 bool pdg::pdgutils::isGEPOffsetMatchDIOffset(DIType &dt, GetElementPtrInst &gep)
 {
   StructType *struct_ty = getStructTypeFromGEP(gep);
@@ -145,6 +155,16 @@ bool pdg::pdgutils::isGEPOffsetMatchDIOffset(DIType &dt, GetElementPtrInst &gep)
   return false;
 }
 
+/**
+ * @brief Checks if a node's debug info offset matches a GEP instruction's offset.
+ * 
+ * Compares the offset in bits of the node's associated DIType with the
+ * computed offset of the GEP instruction.
+ * 
+ * @param n The PDG node.
+ * @param gep The GetElementPtr instruction.
+ * @return true if offsets match, false otherwise.
+ */
 bool pdg::pdgutils::isNodeBitOffsetMatchGEPBitOffset(Node &n, GetElementPtrInst &gep)
 {
   StructType *struct_ty = getStructTypeFromGEP(gep);
@@ -173,6 +193,15 @@ Function *pdg::pdgutils::getCalledFunc(CallInst &call_inst)
 }
 
 // check access type
+/**
+ * @brief Checks if a value is read from.
+ * 
+ * Examines users of the value to see if it is used in a LoadInst or as the base
+ * of a GEP (implying potential read/access).
+ * 
+ * @param v The value to check.
+ * @return true if read access is detected.
+ */
 bool pdg::pdgutils::hasReadAccess(Value &v)
 {
   for (auto* user : v.users())
@@ -188,6 +217,14 @@ bool pdg::pdgutils::hasReadAccess(Value &v)
   return false;
 }
 
+/**
+ * @brief Checks if a value is written to.
+ * 
+ * Examines users of the value to see if it is the pointer operand of a StoreInst.
+ * 
+ * @param v The value to check.
+ * @return true if write access is detected.
+ */
 bool pdg::pdgutils::hasWriteAccess(Value &v)
 {
   for (auto* user : v.users())
@@ -201,6 +238,15 @@ bool pdg::pdgutils::hasWriteAccess(Value &v)
   return false;
 }
 
+/**
+ * @brief Checks if a global variable is a static function variable.
+ * 
+ * Heuristic check based on naming convention (e.g., function_name.var_name).
+ * 
+ * @param gv The global variable.
+ * @param M The module.
+ * @return true if it is a static function variable.
+ */
 bool pdg::pdgutils::isStaticFuncVar(GlobalVariable &gv, Module &M)
 {
   auto gv_name = gv.getName().str();
@@ -218,6 +264,12 @@ bool pdg::pdgutils::isStaticFuncVar(GlobalVariable &gv, Module &M)
   return false;
 }
 
+/**
+ * @brief Checks if a global variable has internal linkage (static).
+ * 
+ * @param gv The global variable.
+ * @return true if internal linkage.
+ */
 bool pdg::pdgutils::isStaticGlobalVar(llvm::GlobalVariable &gv)
 {
   return gv.hasInternalLinkage();
@@ -225,6 +277,12 @@ bool pdg::pdgutils::isStaticGlobalVar(llvm::GlobalVariable &gv)
 
 // ==== inst iterator related funcs =====
 
+/**
+ * @brief Gets an instruction iterator for a specific instruction.
+ * 
+ * @param i The instruction.
+ * @return inst_iterator pointing to i, or inst_end if not found.
+ */
 inst_iterator pdg::pdgutils::getInstIter(Instruction &i)
 {
   Function* f = i.getFunction();
@@ -236,6 +294,12 @@ inst_iterator pdg::pdgutils::getInstIter(Instruction &i)
   return inst_end(f);
 }
 
+/**
+ * @brief Returns the set of instructions preceding the given instruction in the function.
+ * 
+ * @param i The reference instruction.
+ * @return Set of preceding instructions.
+ */
 std::set<Instruction *> pdg::pdgutils::getInstructionBeforeInst(Instruction &i)
 {
   Function* f = i.getFunction();
@@ -250,6 +314,12 @@ std::set<Instruction *> pdg::pdgutils::getInstructionBeforeInst(Instruction &i)
   return insts_before;
 }
 
+/**
+ * @brief Returns the set of instructions following the given instruction in the function.
+ * 
+ * @param i The reference instruction.
+ * @return Set of succeeding instructions.
+ */
 std::set<Instruction *> pdg::pdgutils::getInstructionAfterInst(Instruction &i)
 {
   Function* f = i.getFunction();
@@ -265,6 +335,14 @@ std::set<Instruction *> pdg::pdgutils::getInstructionAfterInst(Instruction &i)
   return insts_after;
 }
 
+/**
+ * @brief Computes variables whose addresses are taken by an AllocaInst.
+ * 
+ * Identifies users of the AllocaInst that are LoadInsts (loading the address).
+ * 
+ * @param ai The AllocaInst.
+ * @return Set of values (users) that take the address.
+ */
 std::set<Value *> pdg::pdgutils::computeAddrTakenVarsFromAlloc(AllocaInst &ai)
 {
   std::set<Value *> addr_taken_vars;
@@ -287,6 +365,12 @@ void pdg::pdgutils::printTreeNodesLabel(Node *node, raw_string_ostream &OS, std:
   OS << tree_node_type_str << " | " << tree_node_depth << " | " << field_type_name;
 }
 
+/**
+ * @brief Strips version numbers from function names (e.g., "func.1" -> "func").
+ * 
+ * @param func_name The function name to strip.
+ * @return The base function name.
+ */
 std::string pdg::pdgutils::stripFuncNameVersionNumber(std::string func_name)
 {
   auto deli_pos = func_name.find('.');
@@ -295,6 +379,14 @@ std::string pdg::pdgutils::stripFuncNameVersionNumber(std::string func_name)
   return func_name.substr(0, deli_pos);
 }
 
+/**
+ * @brief Computes a unique ID for a tree node based on debug info.
+ * 
+ * Concatenates parent type name and field name to generate a stable identifier.
+ * 
+ * @param tree_node The TreeNode.
+ * @return The computed ID string.
+ */
 std::string pdg::pdgutils::computeTreeNodeID(TreeNode &tree_node)
 {
   std::string parent_type_name = "";
@@ -393,6 +485,12 @@ std::string pdg::pdgutils::getNodeTypeStr(GraphNodeType node_type)
   return "";
 }
 
+/**
+ * @brief Gets the string representation of an EdgeType.
+ * 
+ * @param edge_type The edge type enum.
+ * @return String representation.
+ */
 std::string pdg::pdgutils::getEdgeTypeStr(EdgeType edge_type)
 {
   switch (edge_type)

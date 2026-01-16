@@ -22,6 +22,15 @@
 
 using namespace llvm;
 
+/**
+ * @brief Builds actual parameter trees for function arguments at a call site.
+ * 
+ * For each argument passed to the function call, this method constructs a corresponding
+ * "ActualIn" and "ActualOut" tree. These trees mirror the structure of the "FormalIn"
+ * trees of the callee function, enabling field-sensitive parameter mapping.
+ * 
+ * @param callee_fw The FunctionWrapper of the function being called.
+ */
 void pdg::CallWrapper::buildActualTreeForArgs(FunctionWrapper &callee_fw)
 {
   Function* called_func = callee_fw.getFunc();
@@ -91,6 +100,12 @@ pdg::Tree *pdg::CallWrapper::getArgActualInTree(Value &actual_arg)
   return _arg_actual_in_tree_map[&actual_arg];
 }
 
+/**
+ * @brief Retrieves the ActualOut tree for a specific argument.
+ * 
+ * @param actual_arg The argument value.
+ * @return A pointer to the Tree structure, or nullptr if not found.
+ */
 pdg::Tree *pdg::CallWrapper::getArgActualOutTree(Value &actual_arg)
 {
   auto iter = _arg_actual_out_tree_map.find(&actual_arg);

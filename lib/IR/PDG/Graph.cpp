@@ -79,6 +79,13 @@ void pdg::GenericGraph::dumpGraph()
 
 // ===== Graph Traversal =====
 // DFS search
+/**
+ * @brief Checks if a path exists between two nodes.
+ * 
+ * @param src The source node.
+ * @param dst The destination node.
+ * @return true if reachable, false otherwise.
+ */
 bool pdg::GenericGraph::canReach(pdg::Node &src, pdg::Node &dst)
 {
   // TODO: prune by call graph rechability, improve traverse efficiency
@@ -87,6 +94,16 @@ bool pdg::GenericGraph::canReach(pdg::Node &src, pdg::Node &dst)
   return false;
 }
 
+/**
+ * @brief Checks if a path exists between two nodes, excluding specific edge types.
+ * 
+ * Performs a DFS traversal avoiding edges of types listed in exclude_edge_types.
+ * 
+ * @param src The source node.
+ * @param dst The destination node.
+ * @param exclude_edge_types Set of edge types to ignore during traversal.
+ * @return true if reachable, false otherwise.
+ */
 bool pdg::GenericGraph::canReach(pdg::Node &src, pdg::Node &dst, std::set<EdgeType> exclude_edge_types)
 {
   std::set<Node *> visited;
@@ -114,6 +131,18 @@ bool pdg::GenericGraph::canReach(pdg::Node &src, pdg::Node &dst, std::set<EdgeTy
 }
 
 // PDG Specific
+/**
+ * @brief Builds the Program Graph from an LLVM Module.
+ * 
+ * Iterates through the module to create nodes for:
+ * - Global variables
+ * - Functions and their instructions
+ * - Formal parameter trees
+ * - Call sites (creating CallWrappers)
+ * - Annotations
+ * 
+ * @param M The LLVM Module to process.
+ */
 void pdg::ProgramGraph::build(Module &M)
 {
   _built_module = &M;
@@ -298,6 +327,15 @@ void pdg::ProgramGraph::bindDITypeToNodes(Module &M)
   }
 }
 
+/**
+ * @brief Computes the DIType for a given node.
+ * 
+ * Infers the DIType based on the node's underlying value (Alloca, Load, GEP, Cast, etc.)
+ * and its relationships to other nodes (e.g., base address of a GEP).
+ * 
+ * @param n The node to compute DIType for.
+ * @return The computed DIType, or nullptr if not determinable.
+ */
 DIType *pdg::ProgramGraph::computeNodeDIType(Node &n)
 {
   // local variable 

@@ -15,6 +15,15 @@ static void trim(std::string &s) {
     if (!s.empty()) s.erase(j + 1);
 }
 
+/**
+ * @brief Parses a quoted string literal.
+ * 
+ * Extracts the content of a string enclosed in double quotes.
+ * 
+ * @param in The input string (e.g., "\"hello\"").
+ * @param out Output parameter to store the unquoted string.
+ * @return true if parsing succeeded, false otherwise.
+ */
 static bool parseQuoted(const std::string &in, std::string &out) {
     if (in.size() >= 2 && in.front() == '"' && in.back() == '"') {
         out = in.substr(1, in.size() - 2);
@@ -23,6 +32,14 @@ static bool parseQuoted(const std::string &in, std::string &out) {
     return false;
 }
 
+/**
+ * @brief Splits a comma-separated argument list string.
+ * 
+ * Handles nested parentheses and quoted strings to ensure correct splitting.
+ * 
+ * @param argsRaw The raw argument string (e.g., "arg1, func(arg2, arg3), \"str,ing\"").
+ * @return A vector of individual argument strings.
+ */
 static std::vector<std::string> splitArgs(const std::string &argsRaw) {
     std::vector<std::string> out;
     std::string cur;
@@ -51,6 +68,13 @@ static std::unique_ptr<ExpressionAST> makeAtomExpr(const std::string &tok) {
 
 static std::unique_ptr<ExpressionAST> parseExpr(const std::string &q);
 
+/**
+ * @brief Parses a function call expression.
+ * 
+ * @param name The name of the function being called.
+ * @param argsRaw The raw string containing arguments.
+ * @return A unique_ptr to the parsed ExpressionAST.
+ */
 static std::unique_ptr<ExpressionAST> parseFuncCall(const std::string &name, const std::string &argsRaw) {
     auto args = splitArgs(argsRaw);
     std::vector<std::unique_ptr<ExpressionAST>> argAsts;
@@ -90,6 +114,14 @@ static std::unique_ptr<ExpressionAST> parseFuncCall(const std::string &name, con
     return std::make_unique<FunctionCallAST>(name, std::move(argAsts));
 }
 
+/**
+ * @brief Parses a 'let' binding expression.
+ * 
+ * Format: let var = value in body
+ * 
+ * @param q The query string starting with "let".
+ * @return A unique_ptr to the parsed LetBindingAST.
+ */
 static std::unique_ptr<ExpressionAST> parseLet(const std::string &q) {
     auto s = q;
     trim(s);
@@ -300,6 +332,15 @@ int QueryParser::evaluate(const std::string& query) {
     return 0;
 }
 
+/**
+ * @brief Evaluates a policy check expression.
+ * 
+ * Checks if a query result matches the expected emptiness condition
+ * (e.g., "expr is empty" or "expr is not empty").
+ * 
+ * @param policy The policy string to evaluate.
+ * @return 0 if policy holds, non-zero if violated or error.
+ */
 int QueryParser::evaluatePolicy(const std::string& policy) {
     std::string s = policy; trim(s);
     bool expectEmpty = true;

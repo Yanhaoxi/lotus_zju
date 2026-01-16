@@ -95,8 +95,10 @@ TEST_F(DyckAATest, NoAlias) {
   for (auto &BB : *F) {
     for (auto &I : BB) {
       if (AllocaInst *AI = dyn_cast<AllocaInst>(&I)) {
-        if (!x) x = AI;
-        else if (!y) y = AI;
+        if (!x)
+          x = AI;
+        else if (!y)
+          y = AI;
       }
     }
   }
@@ -142,13 +144,57 @@ TEST_F(DyckAATest, NullPointer) {
 
   ASSERT_NE(p, nullptr);
 
-  // %p should may be null
   bool mayBeNull = DAA.mayNull(p);
   EXPECT_TRUE(mayBeNull);
+}
+
+TEST_F(DyckAATest, StoreAndLoadAlias) {
+  const char *source = R"(
+    define i32 @test() {
+      %x = alloca i32
+      %p = alloca i32*
+      %q = alloca i32*
+      store i32* %x, i32** %p
+      %l1 = load i32*, i32** %p
+      store i32* %l1, i32** %q
+      %l2 = load i32*, i32** %q
+      ret i32 0
+    }
+  )";
+
+  auto module = parseModule(source);
+  ASSERT_NE(module, nullptr);
+
+  DyckAliasAnalysis DAA;
+  DAA.runOnModule(*module);
+
+  Function *F = module->getFunction("test");
+  ASSERT_NE(F, nullptr);
+
+  Value *x = nullptr;
+  Value *l2 = nullptr;
+  for (auto &BB : *F) {
+    for (auto &I : BB) {
+      if (AllocaInst *AI = dyn_cast<AllocaInst>(&I)) {
+        if (AI->getAllocatedType()->isIntegerTy(32)) {
+          x = AI;
+        }
+      }
+      if (LoadInst *LI = dyn_cast<LoadInst>(&I)) {
+        if (LI->getName() == "l2") {
+          l2 = LI;
+        }
+      }
+    }
+  }
+
+  ASSERT_NE(x, nullptr);
+  ASSERT_NE(l2, nullptr);
+
+  EXPECT_TRUE(DAA.mayAlias(x, l2));
 }
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
-

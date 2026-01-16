@@ -1,3 +1,8 @@
+/**
+ * @file Tree.h
+ * @brief Header for Tree and TreeNode classes
+ */
+
 #pragma once
 #include "IR/PDG/LLVMEssentials.h"
 #include "IR/PDG/DebugInfoUtils.h"
@@ -12,13 +17,28 @@
 namespace pdg
 {
   class Tree;
+
+  /**
+   * @brief Node in a field-sensitive Tree
+   * 
+   * Represents a single node in the tree structure used for field-sensitive analysis.
+   * A TreeNode typically corresponds to a variable or a field within a struct/class.
+   * It extends the base Node class to include tree-specific properties like depth,
+   * parent/child relationships, and debug information.
+   */
   class TreeNode : public Node
   {
     public:
       TreeNode(const TreeNode& tree_node); 
       TreeNode(llvm::DIType *di_type, int depth, TreeNode* parent_node, Tree* tree, GraphNodeType node_type);
       TreeNode(llvm::Function &f, llvm::DIType *di_type, int depth, TreeNode* parent_node, Tree* tree, GraphNodeType node_type);
+      
+      /**
+       * @brief Expand this node to include its children (fields)
+       * @return Number of children added
+       */
       int expandNode(); // build child nodes and connect with them
+
       llvm::DILocalVariable *getDILocalVar() { return _di_local_var; }
       void insertChildNode(TreeNode *new_child_node) { _children.push_back(new_child_node); }
       void setParentTreeNode(TreeNode *parent_node) { _parent_node = parent_node; }
@@ -26,7 +46,9 @@ namespace pdg
       void addAddrVar(llvm::Value &v) { _addr_vars.insert(&v); }
       std::vector<TreeNode *> &getChildNodes() { return _children; }
       std::unordered_set<llvm::Value *> &getAddrVars() { return _addr_vars; }
+      
       void computeDerivedAddrVarsFromParent();
+      
       TreeNode *getParentNode() { return _parent_node; }
       Tree *getTree() { return _tree; }
       int getDepth() { return _depth; }
@@ -47,20 +69,34 @@ namespace pdg
       std::set<AccessTag> _acc_tag_set;
   };
 
+  /**
+   * @brief Tree structure for field-sensitive analysis
+   * 
+   * Represents a hierarchical data structure (like a struct or class instance)
+   * to enable field-sensitive dependency tracking.
+   */
   class Tree
   {
   public:
     Tree() = default;
     Tree(llvm::Value &v) { _base_val = &v; }
     Tree(const Tree &src_tree);
+    
     void setRootNode(TreeNode &root_node) { _root_node = &root_node; }
     void setTreeNodeType(GraphNodeType node_type) { _root_node->setNodeType(node_type); }
     TreeNode *getRootNode() const { return _root_node; }
     int size() { return _size; }
     void setSize(int size) { _size = size; }
     void increaseTreeSize() { _size++; }
+    
     void print();
+    
+    /**
+     * @brief Build the tree structure up to a maximum depth
+     * @param max_tree_depth Maximum depth to expand
+     */
     void build(int max_tree_depth = 5);
+
     llvm::Value *getBaseVal() { return _base_val; }
     void setBaseVal(llvm::Value &v) { _base_val = &v; }
 
