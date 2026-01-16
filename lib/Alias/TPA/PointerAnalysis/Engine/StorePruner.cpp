@@ -50,7 +50,11 @@ StorePruner::ObjectSet StorePruner::getRootSet(const Store& store, const Program
 	for (const auto *argVal: callNode)
 	{
 		const auto *argPtr = ptrManager.getPointer(ctx, argVal);
-		assert(argPtr != nullptr);
+		// argPtr may be nullptr for values not tracked by the pointer manager
+		// (e.g., constants, undef values, or global values not yet registered).
+		// In such cases, we skip them as they don't contribute to the root set.
+		if (argPtr == nullptr)
+			continue;
 
 		auto argSet = env.lookup(argPtr);
 		ret.insert(argSet.begin(), argSet.end());

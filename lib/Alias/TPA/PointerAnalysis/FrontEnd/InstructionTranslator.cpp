@@ -149,11 +149,14 @@ tpa::CFGNode *
 InstructionTranslator::visitGetElementPtrInst(GetElementPtrInst &gepInst) {
   assert(gepInst.getType()->isPointerTy());
 
-  auto *srcVal = gepInst.getPointerOperand()->stripPointerCasts();
+  auto *rawPtr = gepInst.getPointerOperand();
+  auto *srcVal = rawPtr->stripPointerCasts();
+  if (!srcVal->getType()->isPointerTy())
+    srcVal = rawPtr;
 
   // Try to fold constant offset
   auto gepOffset =
-      APInt(dataLayout.getPointerTypeSizeInBits(srcVal->getType()), 0);
+      APInt(dataLayout.getPointerTypeSizeInBits(rawPtr->getType()), 0);
   if (gepInst.accumulateConstantOffset(dataLayout, gepOffset)) {
     auto offset = gepOffset.getSExtValue();
 
@@ -168,15 +171,15 @@ InstructionTranslator::visitGetElementPtrInst(GetElementPtrInst &gepInst) {
         "Found a non-canonicalized GEP. Please run -expand-gep pass first!");
 
   size_t offset = dataLayout.getPointerSize();
-  if (numOps == 2)
-    offset =
-        dataLayout.getTypeAllocSize(srcVal->getType()->getPointerElementType());
-  else {
+  if (numOps == 2) {
+    // Use getSourceElementType() for opaque pointer compatibility (LLVM 15+)
+    offset = dataLayout.getTypeAllocSize(gepInst.getSourceElementType());
+  } else {
     assert(isa<ConstantInt>(gepInst.getOperand(1)) &&
            cast<ConstantInt>(gepInst.getOperand(1))->isZero());
-    auto *elemType =
-        gepInst.getPointerOperand()->getType()->getPointerElementType();
-    offset = dataLayout.getTypeAllocSize(elemType->getPointerElementType());
+    // Use getResultElementType() for opaque pointer compatibility (LLVM 15+)
+    // This gives us the element type after all indexing operations.
+    offset = dataLayout.getTypeAllocSize(gepInst.getResultElementType());
   }
 
   return cfg.create<tpa::OffsetCFGNode>(&gepInst, srcVal, offset, true);

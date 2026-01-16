@@ -135,8 +135,10 @@ void TypeSetBuilder::incorporateType(Type *llvmType) {
     incorporateStructType(stType);
   else if (auto *arrType = dyn_cast<ArrayType>(llvmType))
     incorporateArrayType(arrType);
-  else if (llvmType->isVectorTy())
-    llvm_unreachable("Vector type not supported");
+  else if (auto *vecType = dyn_cast<VectorType>(llvmType))
+    // Treat vectors like arrays: register the element type so pointers inside
+    // vectors are still tracked, without requiring full vector support.
+    incorporateType(vecType->getElementType());
 }
 
 void TypeSetBuilder::collectType() {
