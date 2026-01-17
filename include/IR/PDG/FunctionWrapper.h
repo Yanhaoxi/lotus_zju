@@ -7,8 +7,8 @@
 #define FUNCTIONWRAPPER_H_
 
 #include "IR/PDG/LLVMEssentials.h"
-#include "IR/PDG/Tree.h"
 #include "IR/PDG/PDGUtils.h"
+#include "IR/PDG/Tree.h"
 
 namespace pdg
 {
