@@ -16,6 +16,10 @@ add_library (SeaAnalysis STATIC
 # Suppress deprecation warnings
 target_compile_options(SeaAnalysis PRIVATE -Wno-deprecated-declarations)
 
+target_link_libraries(SeaAnalysis PUBLIC
+  CanaryLLVMUtils
+)
+
 #if (HAVE_CLAM)
 #  target_link_libraries (SeaAnalysis PRIVATE ${CLAM_LIBS})
 #endif()

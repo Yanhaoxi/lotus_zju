@@ -12,13 +12,13 @@
 #include "Analysis/TypeHirarchy/DIBasedTypeHierarchyData.h"
 #include "Analysis/TypeHirarchy/LLVMVFTable.h"
 #include "Utils/General/spdlog/spdlog.h"
+#include "Utils/LLVM/Demangle.h"
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallBitVector.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/BinaryFormat/Dwarf.h"
-#include "llvm/Demangle/Demangle.h"
 #include "llvm/IR/DebugInfo.h"
 #include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/IR/Function.h"
@@ -58,7 +58,7 @@ buildVTables(const llvm::DebugInfoFinder &DIF,
     if (IdxIt == TypeToVertex.end()) [[unlikely]] {
       SPDLOG_WARN("Enclosing type '{}' of virtual function '{}' not found in the current module",
                   Parent->getName().str(),
-                  llvm::demangle(DIFun->getLinkageName().str()));
+                  DemangleUtils::demangle(DIFun->getLinkageName().str()));
 
       continue;
     }
@@ -66,7 +66,7 @@ buildVTables(const llvm::DebugInfoFinder &DIF,
     const auto *Fun = M.getFunction(DIFun->getLinkageName());
     if (!Fun) {
       SPDLOG_WARN("Referenced virtual function '{}' (aka. {}) not declared in the current module",
-                  llvm::demangle(DIFun->getLinkageName().str()),
+                  DemangleUtils::demangle(DIFun->getLinkageName().str()),
                   DIFun->getLinkageName().str());
       continue;
     }

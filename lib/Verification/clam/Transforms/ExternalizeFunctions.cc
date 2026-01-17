@@ -1,6 +1,6 @@
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/Demangle/Demangle.h"
+#include "Utils/LLVM/Demangle.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/GlobalValue.h"
@@ -93,7 +93,7 @@ public:
 	  }
 	}
       }
-      errs() << "EXTERNALIZING " << llvm::demangle(F.getName().str()) << " with "
+      errs() << "EXTERNALIZING " << DemangleUtils::demangle(F.getName().str()) << " with "
 	     << numMemInsts << " memory instructions and ";
       if (skippedFunctions.empty()) {
 	errs() << " no calls\n";

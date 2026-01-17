@@ -6,12 +6,12 @@
 
 #pragma once
 
-#include <string>
-#include <unordered_set>
-#include <unordered_map>
-#include <vector>
-#include <memory>
 #include <llvm/Support/raw_ostream.h>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 
 // Taint specification for a single function argument or return value

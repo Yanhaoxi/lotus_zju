@@ -26,6 +26,7 @@ llvm_map_components_to_libnames(LLVM_LIBS
   )
 
 target_link_libraries(ClamLlvmPasses
+  CanaryLLVMUtils
   SeaDsaAnalysis
   ## Needed if dynamic linking
   ${LLVM_LIBS})

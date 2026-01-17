@@ -198,4 +198,4 @@ namespace taint_config {
     inline std::string normalize_name(const std::string& func_name) {
         return TaintConfigManager::get_normalized_name(func_name);
     }
-}
+} // namespace taint_config

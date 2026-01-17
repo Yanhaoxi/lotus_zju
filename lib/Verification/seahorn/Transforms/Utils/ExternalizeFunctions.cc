@@ -2,7 +2,7 @@
 
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/Demangle/Demangle.h"
+#include "Utils/LLVM/Demangle.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/GlobalValue.h"
@@ -86,7 +86,7 @@ public:
       if (F.isDeclaration() || externalizeFunctions.count(&F) == 0)
         continue;
       LOG("extern",
-          errs() << "EXTERNALIZING " << llvm::demangle(F.getName().str()) << "\n");
+          errs() << "EXTERNALIZING " << DemangleUtils::demangle(F.getName().str()) << "\n");
       Change = true;
 
       if (!RemoveBodies && F.hasLocalLinkage()) {

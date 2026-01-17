@@ -208,6 +208,46 @@ SINK write Arg1 D
 SINK send Arg1 D
 SINK sendto Arg1 D
 
+# C++ stdlib: std::basic_string / std::string
+PIPE std::basic_string::c_str Ret V Arg0 V
+PIPE std::basic_string::data Ret V Arg0 V
+PIPE std::basic_string::operator[] Ret V Arg0 V
+PIPE std::basic_string::at Ret V Arg0 V
+PIPE std::basic_string::front Ret V Arg0 V
+PIPE std::basic_string::back Ret V Arg0 V
+PIPE std::basic_string::operator+= Arg0 D Arg0 V
+PIPE std::basic_string::append Arg0 D Arg0 V
+PIPE std::basic_string::append Arg0 D Arg1 D
+
+# C++ stdlib: std::vector
+PIPE std::vector::operator[] Ret V Arg0 V
+PIPE std::vector::at Ret V Arg0 V
+PIPE std::vector::front Ret V Arg0 V
+PIPE std::vector::back Ret V Arg0 V
+PIPE std::vector::data Ret V Arg0 V
+PIPE std::vector::push_back Arg0 D Arg0 V
+PIPE std::vector::insert Arg0 D Arg1 D
+PIPE std::vector::emplace_back Ret V Arg0 V
+
+# C++ stdlib: std::array
+PIPE std::array::operator[] Ret V Arg0 V
+PIPE std::array::at Ret V Arg0 V
+PIPE std::array::data Ret V Arg0 V
+
+# C++ stdlib: std::deque
+PIPE std::deque::operator[] Ret V Arg0 V
+PIPE std::deque::at Ret V Arg0 V
+PIPE std::deque::front Ret V Arg0 V
+PIPE std::deque::back Ret V Arg0 V
+PIPE std::deque::push_back Arg0 D Arg0 V
+PIPE std::deque::push_front Arg0 D Arg0 V
+
+# C++ stdlib: std::map / std::unordered_map
+PIPE std::map::operator[] Ret V Arg0 V
+PIPE std::unordered_map::operator[] Ret V Arg0 V
+PIPE std::map::at Ret V Arg0 V
+PIPE std::unordered_map::at Ret V Arg0 V
+
 # Sanitizer functions (for future extension)
 # SANITIZE strlen Arg0 D
 # SANITIZE strnlen Arg0 D

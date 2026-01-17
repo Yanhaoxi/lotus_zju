@@ -10,10 +10,10 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Value.h"
 #include "llvm/Pass.h"
+#include "Utils/LLVM/Demangle.h"
 
 #include <boost/algorithm/string/find.hpp>
 #include <boost/algorithm/string/predicate.hpp>
-#include <cxxabi.h>
 
 /*
    #Background about virtual calls in LLVM#
@@ -189,17 +189,6 @@
 namespace seahorn {
 
 using namespace llvm;
-
-static std::string cxx_demangle(const std::string &mangled_name) {
-
-  int status = 0;
-  char *demangled =
-      abi::__cxa_demangle(mangled_name.c_str(), NULL, NULL, &status);
-  std::string result((status == 0 && demangled != NULL) ? demangled
-                                                        : mangled_name);
-  free(demangled);
-  return result;
-}
 
 #if 0
 static Type *getNonPointerType(Type *pointer) {
@@ -467,7 +456,7 @@ void ClassHierarchyAnalysis_Impl::buildVtables(void) {
       continue;
     }
 
-    std::string demangled_gv_name = cxx_demangle(gv.getName().str());
+    std::string demangled_gv_name = DemangleUtils::demangle(gv.getName().str());
     if (demangled_gv_name == "") {
       // the name could not be demangled
       continue;
@@ -513,7 +502,7 @@ void ClassHierarchyAnalysis_Impl::buildVtables(void) {
                  */
                 if (Cast->getOperand(0)->hasName()) {
                   std::string demangled_name(
-                      cxx_demangle(Cast->getOperand(0)->getName().str()));
+                      DemangleUtils::demangle(Cast->getOperand(0)->getName().str()));
                   size_t pos = demangled_name.find_last_of(typeinfo_for_str);
                   if (pos != std::string::npos) {
                     /* here we know that the cast contains the typeinfo_ptr */
@@ -730,11 +719,11 @@ void ClassHierarchyAnalysis_Impl::printVtables(raw_ostream &o) const {
   for (auto &kv : m_vtables) {
     const StructType *class_ty = kv.first;
     auto const &funs = kv.second;
-    o << cxx_demangle(class_ty->getName().str()) << ":\n";
+    o << DemangleUtils::demangle(class_ty->getName().str()) << ":\n";
     for (unsigned i = 0, e = funs.size(); i < e; ++i) {
       if (funs[i]) {
         o << "\t" << i << ": " << funs[i]->getName().str() << "   "
-          << "DEMANGLED NAME=" << cxx_demangle(funs[i]->getName().str())
+          << "DEMANGLED NAME=" << DemangleUtils::demangle(funs[i]->getName().str())
           << "   TYPE=" << *(funs[i]->getType()) << "\n";
       }
     }
@@ -745,10 +734,10 @@ void ClassHierarchyAnalysis_Impl::printClassHierarchy(raw_ostream &o) const {
   for (auto &kv : m_graph) {
     const StructType *node = kv.first;
     auto const &succs = kv.second;
-    o << cxx_demangle(node->getName().str()) << " --> "
+    o << DemangleUtils::demangle(node->getName().str()) << " --> "
       << "{";
     for (auto it = succs.begin(), et = succs.end(); it != et;) {
-      o << cxx_demangle(((*it)->getName().str()));
+      o << DemangleUtils::demangle(((*it)->getName().str()));
       it++;
       if (it != et) {
         o << ",";
@@ -845,7 +834,7 @@ public:
           errs() << "\tpossible callees:\n";
           for (unsigned i = 0, e = callees.size(); i < e; ++i) {
             auto f = callees[i];
-            errs() << "\t\t" << cxx_demangle(f->getName().str()) << " "
+            errs() << "\t\t" << DemangleUtils::demangle(f->getName().str()) << " "
                    << *(f->getType()) << "\n";
           }
         }

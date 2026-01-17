@@ -43,15 +43,13 @@
 #ifndef WPDS_INST_COUNTER_H_
 #define WPDS_INST_COUNTER_H_
 
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 #include <typeinfo>
-#if __GNUG__>=3 && __GNUC_MINOR__>=1
-# include <cxxabi.h>
-#endif /* __GNUG__>=3 && __GNUC_MINOR__>=1 */
 #if PI_STATS_DETAIL
 #include <set>
 #endif /* PI_STATS_DETAIL */
+#include "Utils/LLVM/Demangle.h"
 #include "myallocator.h"
 
 struct InstCounter {
@@ -68,7 +66,7 @@ struct InstCounter {
             std::cout << "Warning: there were " << count
                       << " instances of " << name() 
                       << " that were not deleted."
-                      << std::endl;
+                      << '\n';
         }
     }
     
@@ -114,16 +112,11 @@ struct InstCounter {
     const char *sz;
     const std::type_info* ti;
     const size_t size;
-    const char* name(void) {
+    std::string name(void) const {
         if (sz) {
             return sz;
         } else {
-#if __GNUG__>=3 && __GNUC_MINOR__>=1
-            int status;
-            return abi::__cxa_demangle(ti->name(), 0, 0, &status);
-#else /* __GNUG__>=3 && __GNUC_MINOR__>=1 */
-            return ti->name();
-#endif /* __GNUG__>=3 && __GNUC_MINOR__>=1 */
+            return DemangleUtils::demangle(ti->name());
         } /* if */
     } /* name */
 

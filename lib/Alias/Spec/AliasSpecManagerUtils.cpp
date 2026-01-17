@@ -13,7 +13,6 @@
  */
 
 #include "Alias/Spec/AliasSpecManager.h"
-#include <llvm/Demangle/Demangle.h>
 
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Path.h>

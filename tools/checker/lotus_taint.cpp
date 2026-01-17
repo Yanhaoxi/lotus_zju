@@ -5,15 +5,18 @@
  * A command-line tool for running IFDS/IDE interprocedural dataflow analysis
  */
 
+#include <Alias/AliasAnalysisWrapper/AliasAnalysisWrapper.h>
+#include <Dataflow/IFDS/Clients/IFDSTaintAnalysis.h>
 #include <Dataflow/IFDS/IFDSFramework.h>
 #include <Dataflow/IFDS/IFDSSolvers.h>
-#include <Dataflow/IFDS/Clients/IFDSTaintAnalysis.h>
-#include <Alias/AliasAnalysisWrapper/AliasAnalysisWrapper.h>
+#include <Utils/LLVM/Demangle.h>
+#include "lotus_taint_microbench.h"
 
 #include <llvm/ADT/Statistic.h>
+#include <llvm/IR/InstIterator.h>
 #include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Module.h>
 #include <llvm/IR/LegacyPassManager.h>
+#include <llvm/IR/Module.h>
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/ErrorOr.h>
@@ -24,11 +27,11 @@
 #include <llvm/Support/raw_ostream.h>
 
 //#include <iostream>
-#include <memory>
-#include <string>
-#include <sstream>
-//#include <thread>
 #include <chrono>
+#include <memory>
+#include <sstream>
+#include <string>
+//#include <thread>
 
 using namespace llvm;
 using namespace ifds;
@@ -57,6 +60,14 @@ static cl::opt<std::string> SourceFunctions("sources", cl::desc("Comma-separated
 static cl::opt<std::string> SinkFunctions("sinks", cl::desc("Comma-separated list of sink functions"),
                                           cl::init(""));
 
+static cl::opt<bool> MicroBench("micro-bench",
+                                cl::desc("Enable micro benchmark mode (use source/sink and evaluate precision/recall)"),
+                                cl::init(false));
+
+static cl::opt<std::string> ExpectedFile("expected",
+                                         cl::desc("Path to .expected file for micro benchmark evaluation"),
+                                         cl::init(""));
+
 static cl::opt<bool> PrintStats("print-stats", cl::desc("Print LLVM statistics"),
                                 cl::init(false));
 
@@ -73,6 +84,55 @@ std::vector<std::string> parseFunctionList(const std::string& input) {
         }
     }
     return functions;
+}
+
+static void dumpSourceSinkMatches(const llvm::Module& module,
+                                  const TaintAnalysis& analysis,
+                                  llvm::raw_ostream& OS) {
+    size_t total_calls = 0;
+    size_t source_calls = 0;
+    size_t sink_calls = 0;
+
+    auto demangle_name = [](const std::string& name) {
+        return DemangleUtils::demangle(name);
+    };
+
+    OS << "\nDetected call sites (source/sink tagging):\n";
+    OS << "=========================================\n";
+
+    for (const auto& function : module) {
+        for (const auto& inst : instructions(function)) {
+            const auto* call = llvm::dyn_cast<llvm::CallInst>(&inst);
+            if (!call || !call->getCalledFunction()) continue;
+
+            ++total_calls;
+            bool is_source = analysis.is_source(call);
+            bool is_sink = analysis.is_sink(call);
+            if (is_source) ++source_calls;
+            if (is_sink) ++sink_calls;
+
+            auto raw_name = call->getCalledFunction()->getName().str();
+            auto demangled_name = demangle_name(raw_name);
+            auto line = call->getDebugLoc().getLine();
+
+            OS << "  ";
+            if (is_source) OS << "[source] ";
+            if (is_sink) OS << "[sink] ";
+            if (!is_source && !is_sink) OS << "[ ] ";
+            OS << raw_name;
+            if (demangled_name != raw_name) {
+                OS << " -> " << demangled_name;
+            }
+            if (line > 0) {
+                OS << " @ line " << line;
+            }
+            OS << "\n";
+        }
+    }
+
+    OS << "Summary: " << total_calls << " calls, "
+       << source_calls << " sources, "
+       << sink_calls << " sinks\n";
 }
 
 // Helper function to parse alias analysis type from string
@@ -157,6 +217,11 @@ int main(int argc, char **argv) {
                 auto sources = parseFunctionList(SourceFunctions);
                 auto sinks = parseFunctionList(SinkFunctions);
 
+                if (MicroBench) {
+                    sources.push_back("source");
+                    sinks.push_back("sink");
+                }
+
                 for (const auto& source : sources) {
                     taintAnalysis.add_source_function(source);
                 }
@@ -166,6 +231,10 @@ int main(int argc, char **argv) {
 
                 // Set up alias analysis
                 taintAnalysis.set_alias_analysis(aliasWrapper.get());
+
+                if (Verbose) {
+                    dumpSourceSinkMatches(*M, taintAnalysis, outs());
+                }
 
                 auto analysisStart = std::chrono::high_resolution_clock::now();
 
@@ -188,6 +257,10 @@ int main(int argc, char **argv) {
 
                 if (ShowResults) {
                     taintAnalysis.report_vulnerabilities(solver, outs(), MaxDetailedResults.getValue());
+                }
+
+                if (MicroBench) {
+                    runMicroBenchEvaluation(taintAnalysis, solver, ExpectedFile, Verbose, outs());
                 }
                 break;
             }

@@ -1,6 +1,7 @@
 #include "Checker/KINT/KINTTaintAnalysis.h"
 #include "Checker/KINT/Log.h"
 #include "Checker/KINT/Utils.h"
+#include "Utils/LLVM/Demangle.h"
 
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Function.h>
@@ -11,7 +12,6 @@
 #include <llvm/Support/raw_ostream.h>
 
 #include <algorithm>
-#include <cxxabi.h>
 
 using namespace llvm;
 
@@ -43,12 +43,6 @@ constexpr auto MKINT_SINKS = std::array<std::pair<const char*, size_t>, 19> {{
     std::pair<const char*, size_t>("memcpy", 2)
 }};
 
-std::string TaintAnalysis::demangle(const char* name) {
-    int status = -1;
-    std::unique_ptr<char, void (*)(void*)> res { abi::__cxa_demangle(name, NULL, NULL, &status), std::free };
-    return (status == 0) ? res.get() : std::string(name);
-}
-
 void TaintAnalysis::mark_taint(Instruction& inst, const std::string& taint_name) {
     auto& ctx = inst.getContext();
     auto *md = MDNode::get(ctx, MDString::get(ctx, taint_name));
@@ -56,7 +50,7 @@ void TaintAnalysis::mark_taint(Instruction& inst, const std::string& taint_name)
 }
 
 bool TaintAnalysis::is_taint_src(StringRef sv) {
-    const auto demangled_name = demangle(sv.str().c_str());
+    const auto demangled_name = DemangleUtils::demangle(sv.str());
     const auto name = StringRef(demangled_name);
     return name.startswith("sys_") || name.startswith("__mkint_ann_");
 }
@@ -90,7 +84,7 @@ SmallVector<Function*, 2> TaintAnalysis::get_sink_fns(Instruction* inst) {
     SmallVector<Function*, 2> ret;
     for (auto *user : inst->users()) {
         if (auto *call = dyn_cast<CallInst>(user)) {
-            auto dname = demangle(call->getCalledFunction()->getName().data());
+            auto dname = DemangleUtils::demangle(call->getCalledFunction()->getName().str());
             if (std::find_if(
                     MKINT_SINKS.begin(), MKINT_SINKS.end(), [&dname](const auto& s) { return dname == s.first; })
                 != MKINT_SINKS.end()) {
@@ -242,7 +236,7 @@ void TaintAnalysis::mark_func_sinks(Function& F, SetVector<StringRef>& callback_
                 const char* name = sink_pair.first;
                 size_t idx = sink_pair.second;
                 if (auto *called_fn = call->getCalledFunction()) {
-                    const auto demangled_func_name = demangle(called_fn->getName().str().c_str());
+                    const auto demangled_func_name = DemangleUtils::demangle(called_fn->getName().str());
                     if (demangled_func_name == name) {
                         if (auto *arg = dyn_cast_or_null<Instruction>(call->getArgOperand(idx))) {
                             MKINT_LOG()

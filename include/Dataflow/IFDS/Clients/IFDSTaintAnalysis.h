@@ -133,6 +133,7 @@ public:
 
 private:
     bool kills_fact(const llvm::CallInst* call, const TaintFact& fact) const;
+    bool taint_may_alias(const llvm::Value* v1, const llvm::Value* v2) const;
 
     // Internal helpers that need access to alias analysis utilities
     void handle_source_function_specs(const llvm::CallInst* call, FactSet& result) const;

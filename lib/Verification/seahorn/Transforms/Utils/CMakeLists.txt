@@ -18,3 +18,7 @@ add_library(SeaTransformsUtils STATIC
   SliceFunctions.cc
   DebugVerifier.cc
   )
+
+target_link_libraries(SeaTransformsUtils PUBLIC
+  CanaryLLVMUtils
+)

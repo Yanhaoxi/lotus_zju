@@ -12,7 +12,7 @@
  */
 
 #include "Alias/Spec/AliasSpecManager.h"
-#include <llvm/Demangle/Demangle.h>
+#include "Utils/LLVM/Demangle.h"
 #include <llvm/Support/raw_ostream.h>
 #include <cctype>
 
@@ -128,7 +128,7 @@ std::string AliasSpecManager::demangle(const std::string &mangledName) const {
   if (mangledName.empty() || mangledName[0] != '_')
     return mangledName;
   
-  std::string demangled = llvm::demangle(mangledName);
+  std::string demangled = DemangleUtils::demangle(mangledName);
   return demangled.empty() ? mangledName : demangled;
 }
 

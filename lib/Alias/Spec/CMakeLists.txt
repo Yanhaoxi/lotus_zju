@@ -4,8 +4,9 @@ add_library(AliasSpecManager
   AliasSpecManagerQueries.cpp
 )
 
-# Link against LLVMDemangle since AliasSpecManager.cpp uses llvm::demangle()
+# Link against LLVMDemangle since DemangleUtils uses llvm::demangle()
 target_link_libraries(AliasSpecManager PUBLIC
   LotusAnnotation
+  CanaryLLVMUtils
   LLVMDemangle
 )

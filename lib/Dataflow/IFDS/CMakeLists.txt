@@ -10,6 +10,8 @@ set(IFDS_FRAMEWORK_SOURCES
 # Client analyses
 set(IFDS_CLIENT_SOURCES
   Clients/IFDSTaintAnalysis.cpp
+  Clients/IFDSTaintAnalysisFlows.cpp
+  Clients/IFDSTaintAnalysisReporting.cpp
   Clients/IFDSReachingDefinitions.cpp
   Clients/IDEConstantPropagation.cpp
   Clients/IDETypeState.cpp
@@ -23,4 +25,4 @@ add_library(IFDS STATIC ${IFDS_SOURCES})
 # Allow headers to include .cpp template implementations
 target_include_directories(IFDS PUBLIC ${CMAKE_SOURCE_DIR}/lib)
 
-target_link_libraries(IFDS Annotation CanarySupport)
+target_link_libraries(IFDS Annotation CanarySupport CanaryLLVMUtils)

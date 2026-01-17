@@ -30,7 +30,10 @@ target_link_libraries(lotus-kint PRIVATE
 )
 
 # IFDS Taint Analysis Tool (formerly llvm-ai)
-add_executable(lotus-taint lotus_taint.cpp)
+add_executable(lotus-taint
+  lotus_taint.cpp
+  lotus_taint_microbench.cpp
+)
 target_link_libraries(lotus-taint
   IFDS
   Annotation

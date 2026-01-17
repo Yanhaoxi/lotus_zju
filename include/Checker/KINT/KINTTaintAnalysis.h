@@ -1,12 +1,12 @@
 #pragma once
 
-#include <llvm/IR/Instructions.h>
 #include <llvm/ADT/MapVector.h>
 #include <llvm/ADT/SetVector.h>
 #include <llvm/ADT/StringRef.h>
+#include <llvm/IR/Instructions.h>
 
-#include <vector>
 #include <string>
+#include <vector>
 
 using namespace llvm;
 
@@ -38,7 +38,6 @@ public:
 
 private:
     static void mark_taint(Instruction& inst, const std::string& taint_name = "");
-    static std::string demangle(const char* name);
 };
 
 } // namespace kint
