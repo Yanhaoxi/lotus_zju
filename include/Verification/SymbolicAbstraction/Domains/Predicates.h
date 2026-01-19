@@ -1,3 +1,35 @@
+/**
+ * @file Predicates.h
+ * @brief Predicate abstract domain for SMT formula analysis.
+ *
+ * This header defines the Predicates class, which implements a predicate
+ * abstract domain. For a given predicate `p`, it tracks whether `p` is
+ * always true, always false, may be either, or never occurs.
+ *
+ * Lattice structure (Hasse diagram):
+ *          TOP
+ *        /    \
+ *     TRUE   FALSE
+ *        \    /
+ *        BOTTOM
+ *
+ * States:
+ *   TRUE  - Predicate is true in all concrete executions
+ *   FALSE - Predicate is false in all concrete executions
+ *   TOP   - Predicate may be true or false (unknown)
+ *   BOTTOM - No concrete executions satisfy the predicate (infeasible)
+ *
+ * Use cases:
+ * - Analyzing path conditions
+ * - Testing reachability properties
+ * - Redundant computation elimination (via equality predicates)
+ *
+ * PredicatesWrapper provides template-based integration with parameterization
+ * strategies to automatically construct predicate expressions.
+ *
+ * @see Expression
+ * @see DomainConstructor
+ */
 #pragma once
 
 #include "Verification/SymbolicAbstraction/Core/AbstractValue.h"
@@ -19,19 +51,20 @@ namespace domains {
 using std::unique_ptr;
 
 /**
- *  This class represents a value in the Abstract Domain of predicates, i.e.
- *  for a given predicate `p`, it stores its state in the lattice given by the
- *  following Hasse diagram:
+ * @brief Predicate abstract domain for a boolean expression.
  *
- *           TOP
- *         /    \
- *      TRUE   FALSE
- *         \    /
- *         BOTTOM
+ * For a given predicate `p`, this domain tracks its state in the
+ * following Hasse diagram:
  *
- *  Here, `TRUE` means that `p` is true in every program run, `FALSE` that `p`
- *  is false in every program run, `TOP` that both cases might occur and
- *  `BOTTOM` that none of them occur.
+ *          TOP
+ *        /    \
+ *     TRUE   FALSE
+ *        \    /
+ *        BOTTOM
+ *
+ * Here, `TRUE` means that `p` is true in every program run, `FALSE`
+ * that `p` is false in every program run, `TOP` that both cases
+ * might occur and `BOTTOM` that none of them occur.
  */
 class Predicates : public AbstractValue {
 public:

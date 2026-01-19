@@ -1,3 +1,21 @@
+/**
+ * @file ValueMapping.h
+ * @brief Mapping between LLVM values and their SMT variable representations.
+ *
+ * This header defines the ValueMapping class that provides context-sensitive
+ * mappings from LLVM IR values to their corresponding Z3 expressions. The
+ * mapping is location-aware: it considers the position within a Fragment
+ * to return the correct SMT variable (pre-definition or post-definition).
+ *
+ * Key use cases:
+ * - Generating SMT formulas for program semantics
+ * - Mapping concrete values back to abstract domains
+ * - Handling SSA phi-nodes correctly (using different variables before/after
+ * definitions)
+ *
+ * @see Fragment
+ * @see FunctionContext
+ */
 #pragma once
 
 #include "Verification/SymbolicAbstraction/Core/Fragment.h"
@@ -9,11 +27,16 @@
 
 namespace symbolic_abstraction {
 /**
- * Provides a mapping between LLVM Values and SMT variables.
+ * @brief Provides a mapping between LLVM Values and SMT variables.
  *
- * This mapping depend on the precise location inside a particular fragment. In
- * particular, if the fragment includes the definition of a value, a different
+ * This mapping depends on precise location inside a particular fragment. In
+ * particular, if fragment includes definition of a value, a different
  * ("pre") variable has to be used before the instruction defining it.
+ *
+ * The mapping provides two main query methods:
+ * - `operator[]`: Returns bit-vector representation (for non-pointers)
+ * - `getFullRepresentation()`: Returns appropriately-typed expression (for
+ * pointers)
  */
 class ValueMapping {
 private:

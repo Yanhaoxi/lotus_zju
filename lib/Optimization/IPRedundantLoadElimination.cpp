@@ -1,5 +1,3 @@
-#include "IR/MemorySSA/MemorySSA.h"
-
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Pass.h"
@@ -7,16 +5,33 @@
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include "IR/MemorySSA/MemorySSA.h"
+
+//===----------------------------------------------------------------------===//
+/// @file IPRedundantLoadElimination.cpp
+/// @brief Inter-procedural Redundant Load Elimination pass implementation
+///
+/// This file implements an inter-procedural redundant load elimination pass
+/// that removes repeated loads from the same memory location within a basic
+/// block when it is safe to do so.
+///
+/// The pass uses MemorySSA instrumentation to track memory operations and
+/// identify redundant loads. It is conservative and only performs local
+/// (within-basic-block) redundancy elimination, relying on the MemorySSA
+/// TLVars to encode interprocedural effects.
+///
+///===----------------------------------------------------------------------===//
+
 namespace previrt {
 namespace transforms {
 
 using namespace llvm;
 using namespace analysis;
 
-static cl::opt<bool> OnlySingletonRLE(
-    "ip-rle-only-singleton",
-    cl::desc("IP RLE: consider only singleton memory regions"), cl::Hidden,
-    cl::init(true));
+static cl::opt<bool>
+    OnlySingletonRLE("ip-rle-only-singleton",
+                     cl::desc("IP RLE: consider only singleton memory regions"),
+                     cl::Hidden, cl::init(true));
 
 // Interprocedural redundant load elimination using MemorySSA instrumentation.
 // Conservative: only removes repeated loads within a basic block when the
@@ -33,11 +48,28 @@ static cl::opt<bool> OnlySingletonRLE(
 //         key = (TLVar, stripCasts(L.ptr))
 //         if key in seen: replace L with seen[key], drop L and maybe load call
 //         else: seen[key] = L
+
+/// @brief Inter-procedural Redundant Load Elimination pass
+///
+/// This pass identifies and removes redundant load instructions within basic
+/// blocks. A load is considered redundant if there is an earlier load from
+/// the same pointer with the same MemorySSA version (TLVar) and no intervening
+/// memory writes.
+///
+/// The pass is conservative and operates only within basic blocks to ensure
+/// correctness. Interprocedural effects are handled through MemorySSA's TLVars
+/// which encode memory state across function calls.
 class IPRedundantLoadElimination : public ModulePass {
 public:
+  /// @brief Unique pass identifier
   static char ID;
+
+  /// @brief Default constructor
   IPRedundantLoadElimination() : ModulePass(ID) {}
 
+  /// @brief Run the redundant load elimination pass on a module
+  /// @param M The LLVM module to process
+  /// @return true if any loads were eliminated, false otherwise
   bool runOnModule(Module &M) override {
     if (M.begin() == M.end())
       return false;
@@ -48,8 +80,7 @@ public:
         continue;
       for (BasicBlock &BB : F) {
         // Map from (TLVar, Ptr) to the dominating load instruction.
-        DenseMap<std::pair<const Value *, const Value *>, LoadInst *>
-            SeenLoads;
+        DenseMap<std::pair<const Value *, const Value *>, LoadInst *> SeenLoads;
         auto resetSeen = [&]() { SeenLoads.clear(); };
 
         for (auto It = BB.begin(), Et = BB.end(); It != Et; ++It) {
@@ -103,10 +134,14 @@ public:
     return NumRemoved > 0;
   }
 
+  /// @brief Specify analysis dependencies and preserves
+  /// @param AU Analysis usage information to populate
   void getAnalysisUsage(AnalysisUsage &AU) const override {
     AU.setPreservesCFG();
   }
 
+  /// @brief Get the name of this pass
+  /// @return The pass name as a string reference
   StringRef getPassName() const override {
     return "Interprocedural Redundant Load Elimination";
   }

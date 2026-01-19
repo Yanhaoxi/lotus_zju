@@ -1,3 +1,16 @@
+//===- WriteIR.cpp - LLVM IR writing implementation
+//-------------------------===//
+//
+// This file is distributed under the MIT License. See LICENSE for details.
+//
+//===----------------------------------------------------------------------===//
+/// \file
+/// \brief LLVM IR writing implementation
+///
+/// This file implements the functions declared in WriteIR.h for writing
+/// LLVM modules to files in both text and bitcode formats.
+///===----------------------------------------------------------------------===//
+
 #include "Utils/LLVM/IO/WriteIR.h"
 
 #include <llvm/Bitcode/BitcodeWriter.h>
@@ -7,50 +20,44 @@
 
 using namespace llvm;
 
-namespace util
-{
-namespace io
-{
+namespace util {
+namespace io {
 
 // Writes an LLVM module to a text file.
-void writeModuleToText(const Module& module, const char* fileName)
-{
-	std::error_code ec;
-	ToolOutputFile out(fileName, ec, sys::fs::OF_None);
-	if (ec)
-	{
-		errs() << ec.message() << "\n";
-		std::exit(-3);
-	}
+void writeModuleToText(const Module &module, const char *fileName) {
+  std::error_code ec;
+  ToolOutputFile out(fileName, ec, sys::fs::OF_None);
+  if (ec) {
+    errs() << ec.message() << "\n";
+    std::exit(-3);
+  }
 
-	module.print(out.os(), nullptr);
+  module.print(out.os(), nullptr);
 
-	out.keep();
+  out.keep();
 }
 
 // Writes an LLVM module to a bitcode file.
-void writeModuleToBitCode(const Module& module, const char* fileName)
-{
-	std::error_code ec;
-	ToolOutputFile out(fileName, ec, sys::fs::OF_None);
-	if (ec)
-	{
-		errs() << ec.message() << "\n";
-		std::exit(-3);
-	}
+void writeModuleToBitCode(const Module &module, const char *fileName) {
+  std::error_code ec;
+  ToolOutputFile out(fileName, ec, sys::fs::OF_None);
+  if (ec) {
+    errs() << ec.message() << "\n";
+    std::exit(-3);
+  }
 
-	WriteBitcodeToFile(module, out.os());
+  WriteBitcodeToFile(module, out.os());
 
-	out.keep();
+  out.keep();
 }
 
 // Writes an LLVM module to a file in the specified format.
-void writeModuleToFile(const Module& module, const char* fileName, bool isText)
-{
-	if (isText)
-		writeModuleToText(module, fileName);
-	else
-		writeModuleToBitCode(module, fileName);
+void writeModuleToFile(const Module &module, const char *fileName,
+                       bool isText) {
+  if (isText)
+    writeModuleToText(module, fileName);
+  else
+    writeModuleToBitCode(module, fileName);
 }
 
 } // namespace io

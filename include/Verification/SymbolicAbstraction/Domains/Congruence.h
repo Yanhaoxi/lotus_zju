@@ -1,4 +1,26 @@
-
+/**
+ * @file Congruence.h
+ * @brief Congruence abstract domain for modular arithmetic.
+ *
+ * This header defines the Congruence class, which implements a congruence
+ * abstract domain. It tracks values of the form x ≡ r (mod m) where
+ * values are congruent to a remainder modulo a modulus.
+ *
+ * Representation:
+ *   Modulus_ == 0   => Singleton value {Remainder_}
+ *   Modulus_ > 0    => Set {Remainder_ + k*Modulus_} for all integers k
+ *   Top_ == true    => Unrestricted (any value possible)
+ *
+ * Common use cases:
+ * - Analyzing expressions involving modulo operations
+ * - Loop induction variable analysis
+ * - Detecting divisibility properties
+ *
+ * More precise than intervals for tracking periodic/repeating patterns.
+ *
+ * @see Intervals
+ * @see Affine
+ */
 #pragma once
 
 #include "Verification/SymbolicAbstraction/Core/AbstractValue.h"

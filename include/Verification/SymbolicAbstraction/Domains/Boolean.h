@@ -1,3 +1,30 @@
+/**
+ * @file Boolean.h
+ * @brief Base class for boolean abstract domains.
+ *
+ * This header defines BooleanValue class, which is an abstract base class
+ * for domains that describe truthiness/falsiness of some invariant.
+ * It provides a four-valued lattice structure for tracking boolean
+ * predicates.
+ *
+ * Lattice structure (Hasse diagram):
+ *           TOP
+ *         /    \
+ *      TRUE   FALSE
+ *         \    /
+ *         BOTTOM
+ *
+ * Subclasses must implement `makePredicate()` which generates the Z3
+ * formula whose truthiness the domain describes.
+ *
+ * Common use cases:
+ * - Analyzing boolean expressions
+ * - Tracking path conditions
+ * - Redundant computation detection
+ *
+ * @see Predicates
+ * @see NumRels
+ */
 #pragma once
 
 #include "Verification/SymbolicAbstraction/Core/AbstractValue.h"
@@ -17,7 +44,7 @@ namespace domains {
  *         \    /
  *         BOTTOM
  *
- * For inheriting, the following methods have to be implemented:
+ * For inheriting, following methods have to be implemented:
  *  - mkPredicate
  *  - prettyPrint
  *  - clone

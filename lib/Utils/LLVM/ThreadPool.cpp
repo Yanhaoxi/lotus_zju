@@ -1,7 +1,26 @@
-#include <llvm/Support/CommandLine.h>
-#include <unistd.h>
+//===- ThreadPool.cpp - Multi-threaded task scheduling
+//---------------------===//
+//
+// This file is distributed under the MIT License. See LICENSE for details.
+//
+//===----------------------------------------------------------------------===//
+/// \file
+/// \brief Thread pool implementation for parallel task execution
+///
+/// This file implements the ThreadPool class which manages worker threads
+/// for parallel task execution. Tasks are enqueued and processed by available
+/// workers.
+///
+/// Features:
+/// - Dynamic task enqueueing
+/// - Thread-local storage support
+/// - Wait synchronization for task completion
+///===----------------------------------------------------------------------===//
 
 #include "Utils/LLVM/ThreadPool.h"
+
+#include <llvm/Support/CommandLine.h>
+#include <unistd.h>
 
 using namespace llvm;
 

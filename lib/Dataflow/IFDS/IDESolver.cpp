@@ -15,9 +15,9 @@
 #include "Dataflow/IFDS/IDESolver.h"
 #include "Dataflow/IFDS/IFDSFramework.h"
 
-#include <algorithm>
 #include <llvm/IR/CFG.h>
 #include <llvm/Support/raw_ostream.h>
+#include <algorithm>
 
 namespace ifds {
 

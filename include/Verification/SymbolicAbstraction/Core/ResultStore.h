@@ -1,3 +1,26 @@
+/**
+ * @file ResultStore.h
+ * @brief Persistent storage for abstract analysis results using BerkeleyDB.
+ *
+ * This header defines the ResultStore class which provides persistent storage
+ * for abstract values associated with program locations. It uses BerkeleyDB for
+ * key-value storage and Cereal for serialization of abstract domains.
+ *
+ * Key features:
+ * - Persistent abstract values across analysis runs
+ * - Stores results indexed by program location (function, basic block)
+ * - Supports serialization/deserialization of AbstractValue objects
+ * - Enables dynamic analysis and result caching
+ *
+ * The store is typically used to:
+ * - Cache analysis results for reuse
+ * - Enable incremental/dynamic analysis
+ * - Store computed abstractions for later verification
+ *
+ * @note Requires ENABLE_DYNAMIC compile flag
+ * @see AbstractValue
+ * @see FunctionContext
+ */
 #pragma once
 
 #include "Verification/SymbolicAbstraction/Utils/Utils.h"
@@ -26,9 +49,9 @@ class SerializationTests;
 }
 
 /**
- * A persistent mapping from program locations to abstract values.
+ * @brief A persistent mapping from program locations to abstract values.
  *
- * When constructed with a file name argument, it will open a BerkelyDB
+ * When constructed with a file name argument, it will open a BerkeleyDB
  * database inside this file or create one if the file doesn't exist. The
  * database stores abstract values that can be accessed using get() and placed
  * using put().
@@ -36,7 +59,7 @@ class SerializationTests;
  * Class ResultStore::Key represents a key in the database and is intended to
  * map 1-to-1 to program locations. Internally it uses function and basic block
  * indices which are only unique within the scope of a single module so
- * different module should never use the same database.
+ * different modules should never use the same database.
  */
 class ResultStore {
   friend class testing::SerializationTests;

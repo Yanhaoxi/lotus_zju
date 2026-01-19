@@ -1,5 +1,3 @@
-#include "IR/MemorySSA/MemorySSA.h"
-
 #include "llvm/IR/InstIterator.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
@@ -7,6 +5,22 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
+
+#include "IR/MemorySSA/MemorySSA.h"
+
+//===----------------------------------------------------------------------===//
+/// @file IPStoreSinking.cpp
+/// @brief Inter-procedural Store Sinking pass implementation
+///
+/// This file implements a conservative store sinking pass that moves store
+/// instructions closer to their uses within a basic block while preserving
+/// program semantics.
+///
+/// Store sinking reduces register pressure by moving stores as close as
+/// possible to their first observable use, while ensuring that no side-effect
+/// free instructions are moved past.
+///
+///===----------------------------------------------------------------------===//
 
 namespace previrt {
 namespace transforms {
@@ -27,14 +41,34 @@ static cl::opt<bool> OnlySingletonSink(
 //   for each shadow.mem.store + Store S pair in BB:
 //     find earliest user U of the shadow.mem value inside BB that is after S
 //     if no U: skip
-//     if any instruction between S and U reads/writes memory or is a terminator:
+//     if any instruction between S and U reads/writes memory or is a
+//     terminator:
 //       skip (unsafe)
 //     else move S before U, move shadow.mem.store just before S
+
+/// @brief Inter-procedural Store Sinking pass
+///
+/// This pass moves store instructions closer to their uses within a basic
+/// block. It is conservative and only sinks stores past side-effect-free
+/// instructions to maintain program semantics.
+///
+/// The algorithm works by:
+/// 1. Finding each store instruction with its shadow.mem marker
+/// 2. Locating the first use of the shadow.mem value within the same block
+/// 3. Verifying all instructions between the store and the use are safe to
+/// cross
+/// 4. Moving the store just before its first use
 class IPStoreSinking : public ModulePass {
 public:
+  /// @brief Unique pass identifier
   static char ID;
+
+  /// @brief Default constructor
   IPStoreSinking() : ModulePass(ID) {}
 
+  /// @brief Run the store sinking pass on a module
+  /// @param M The LLVM module to process
+  /// @return true if any stores were sunk, false otherwise
   bool runOnModule(Module &M) override {
     if (M.begin() == M.end())
       return false;
@@ -103,16 +137,23 @@ public:
     return NumSunk > 0;
   }
 
+  /// @brief Specify analysis dependencies and preserves
+  /// @param AU Analysis usage information to populate
   void getAnalysisUsage(AnalysisUsage &AU) const override {
     AU.setPreservesCFG();
   }
 
-  StringRef getPassName() const override { return "Interprocedural Store Sinking"; }
+  /// @brief Get the name of this pass
+  /// @return The pass name as a string reference
+  StringRef getPassName() const override {
+    return "Interprocedural Store Sinking";
+  }
 };
 
 char IPStoreSinking::ID = 0;
 
-static RegisterPass<IPStoreSinking> X("ip-sink", "Interprocedural Store Sinking");
+static RegisterPass<IPStoreSinking> X("ip-sink",
+                                      "Interprocedural Store Sinking");
 
 } // namespace transforms
 } // namespace previrt

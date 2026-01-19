@@ -1,3 +1,32 @@
+/**
+ * @file Octagon.h
+ * @brief Octagon abstract domain for relational analysis.
+ *
+ * This header defines the Octagon class, which implements the Octagon
+ * abstract domain for relational analysis between two LLVM scalar values.
+ * Octagon is more expressive than Zone as it tracks constraints of the
+ * form: ±x ± y ≤ c
+ *
+ * Key concepts:
+ * - Tracks four octagonal constraints: x-y, -x+y, x+y, -x-y
+ * - More precise than Zone (which only tracks x-y)
+ * - Can express absolute value constraints via x+y and x-y bounds
+ *
+ * Mathematical representation:
+ *   c[0]:  +x - y  ≤  c[0]
+ *   c[1]:  -x + y  ≤  c[1]
+ *   c[2]:  +x + y  ≤  c[2]
+ *   c[3]:  -x - y  ≤  c[3]
+ *
+ * Common use cases:
+ * - Analyzing expressions involving absolute values
+ * - Relational analysis with additive combinations
+ * - More precise array index bounds analysis
+ *
+ * @see Zones
+ * @see Affine
+ * @see Intervals
+ */
 #pragma once
 
 #include "Verification/SymbolicAbstraction/Core/AbstractValue.h"

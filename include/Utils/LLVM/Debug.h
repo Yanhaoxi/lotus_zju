@@ -1,4 +1,11 @@
-
+/**
+ * \file Debug.h
+ * \brief Debugging utilities for development and troubleshooting
+ * \author Lotus Team
+ *
+ * This file provides debugging macros and utilities for conditional
+ * logging and debugging output.
+ */
 #ifndef SUPPORT_DEBUG_H
 #define SUPPORT_DEBUG_H
 
@@ -16,7 +23,10 @@
 bool isPopeyeCurrentDebugType(const char *Type);
 
 #define POPEYE_DEBUG_WITH_TYPE(TYPE, X)                                        \
-  do { if (PopeyeDebugFlag && isPopeyeCurrentDebugType(TYPE)) { X; } \
+  do {                                                                         \
+    if (PopeyeDebugFlag && isPopeyeCurrentDebugType(TYPE)) {                   \
+      X;                                                                       \
+    }                                                                          \
   } while (false)
 
 #define POPEYE_DEBUG(X) POPEYE_DEBUG_WITH_TYPE(DEBUG_TYPE, X)
@@ -24,4 +34,4 @@ bool isPopeyeCurrentDebugType(const char *Type);
 extern bool PopeyeDebugFlag;
 /// @}
 
-#endif //SUPPORT_DEBUG_H
+#endif // SUPPORT_DEBUG_H

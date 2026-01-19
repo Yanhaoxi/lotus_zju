@@ -1,46 +1,63 @@
+//===- Statistics.cpp - Module statistics collection
+//------------------------===//
+//
+// This file is distributed under the MIT License. See LICENSE for details.
+//
+//===----------------------------------------------------------------------===//
+/// \file
+/// \brief Module statistics collection implementation
+///
+/// This file implements the Statistics class which analyzes LLVM modules
+/// and reports various statistics such as instruction counts, pointer
+/// usage, and memory access patterns.
+///===----------------------------------------------------------------------===//
+
 #include "Utils/LLVM/Statistics.h"
+
 #include <llvm/IR/InstIterator.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
 
 // Analyzes and prints statistics about the module's instructions.
 void Statistics::run(Module &M) {
-    unsigned NumInstructions = 0;
-    unsigned NumPointerInstructions = 0;
-    unsigned NumDerefInstructions = 0;
-    for (auto &F: M) {
-        if (F.empty()) continue;
-        for (auto &I: instructions(F)) {
-            if (I.isDebugOrPseudoInst()) continue;
-            ++NumInstructions;
-            for (unsigned K = 0; K < I.getNumOperands(); ++K) {
-                if (I.getOperand(K)->getType()->isPointerTy()) {
-                    ++NumPointerInstructions;
-                    break;
-                }
-            }
-
-            if (isa<LoadInst>(I) || isa<StoreInst>(I) || isa<AtomicCmpXchgInst>(I)
-                || isa<AtomicRMWInst>(I) || isa<ExtractValueInst>(I) || isa<InsertValueInst>(I)) {
-                ++NumDerefInstructions;
-            } else if (auto *CI = dyn_cast<CallInst>(&I)) {
-                if (auto *Callee = CI->getCalledFunction()) {
-                    if (Callee->empty()) {
-                        for (unsigned K = 0; K < CI->arg_size(); ++K) {
-                            if (CI->getArgOperand(K)->getType()->isPointerTy()) {
-                                ++NumDerefInstructions;
-                                break;
-                            }
-                        }
-                    }
-                } else {
-                    ++NumDerefInstructions;
-                }
-            }
+  unsigned NumInstructions = 0;
+  unsigned NumPointerInstructions = 0;
+  unsigned NumDerefInstructions = 0;
+  for (auto &F : M) {
+    if (F.empty())
+      continue;
+    for (auto &I : instructions(F)) {
+      if (I.isDebugOrPseudoInst())
+        continue;
+      ++NumInstructions;
+      for (unsigned K = 0; K < I.getNumOperands(); ++K) {
+        if (I.getOperand(K)->getType()->isPointerTy()) {
+          ++NumPointerInstructions;
+          break;
         }
-    }
-    outs() << "# total instructions: " << NumInstructions << ", "
-           << "# ptr instructions: " << NumPointerInstructions << ", "
-           << "# deref instructions: " << NumDerefInstructions << ".\n";
-}
+      }
 
+      if (isa<LoadInst>(I) || isa<StoreInst>(I) || isa<AtomicCmpXchgInst>(I) ||
+          isa<AtomicRMWInst>(I) || isa<ExtractValueInst>(I) ||
+          isa<InsertValueInst>(I)) {
+        ++NumDerefInstructions;
+      } else if (auto *CI = dyn_cast<CallInst>(&I)) {
+        if (auto *Callee = CI->getCalledFunction()) {
+          if (Callee->empty()) {
+            for (unsigned K = 0; K < CI->arg_size(); ++K) {
+              if (CI->getArgOperand(K)->getType()->isPointerTy()) {
+                ++NumDerefInstructions;
+                break;
+              }
+            }
+          }
+        } else {
+          ++NumDerefInstructions;
+        }
+      }
+    }
+  }
+  outs() << "# total instructions: " << NumInstructions << ", "
+         << "# ptr instructions: " << NumPointerInstructions << ", "
+         << "# deref instructions: " << NumDerefInstructions << ".\n";
+}

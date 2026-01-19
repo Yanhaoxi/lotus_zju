@@ -1,3 +1,26 @@
+/**
+ * @file ConcreteState.h
+ * @brief Representation of concrete program states from Z3 models.
+ *
+ * This header defines classes for representing concrete values and complete
+ * program states derived from Z3 solver models. These are used during abstract
+ * interpretation to concretize abstract values for SMT queries and to update
+ * abstract domains with concrete information from counterexamples.
+ *
+ * Key components:
+ * - `ConcreteState::Value`: An optimized representation of concrete values that
+ * can store either Z3 expressions or direct 64-bit integer representations.
+ * - `ConcreteState`: A complete mapping from all represented LLVM values to
+ * their concrete values as determined by a Z3 model.
+ *
+ * The Value class uses a tagged union representation for efficiency:
+ * - For bitvectors <= 64 bits: stores direct integer value
+ * - For larger values or expressions: stores Z3 expression
+ * - Supports implicit conversion to/from z3::expr, uint64_t, and int64_t
+ *
+ * @see FunctionContext
+ * @see ValueMapping
+ */
 #pragma once
 
 #include "Verification/SymbolicAbstraction/Core/FunctionContext.h"
@@ -10,6 +33,19 @@
 #include <z3++.h>
 
 namespace symbolic_abstraction {
+/**
+ * @brief Container for concrete program states derived from Z3 models.
+ *
+ * ConcreteState maps each RepresentedValue to its concrete value as determined
+ * by a Z3 model. It provides array-like access to values and is used to:
+ * - Convert abstract values to concrete for SMT queries
+ * - Extract concrete information from counterexamples
+ * - Update abstract domains with concrete observations
+ *
+ * The state can be constructed from:
+ * - A Z3 model and ValueMapping (typical use case)
+ * - An existing array of Value objects (for efficiency)
+ */
 class ConcreteState {
 public:
   /**
@@ -17,7 +53,7 @@ public:
    *
    * Can be implicitly converted to and from a constant `z3::expr`. Provides
    * additional conversion operators to `uint64_t` and `int64_t` that can
-   * be used if the represented value is a bitvector no bigger than 64 bits.
+   * be used if represented value is a bitvector no bigger than 64 bits.
    *
    * Can exist in an "uninitialized" state. Such instance holds no value and
    * should not be used in any way apart from calling `operator=` to

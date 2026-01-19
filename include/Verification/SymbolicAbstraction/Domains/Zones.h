@@ -1,3 +1,29 @@
+/**
+ * @file Zones.h
+ * @brief Difference-Bound Matrix (Zone) abstract domain for relational
+ * analysis.
+ *
+ * This header defines the Zone class, which implements a Difference-Bound
+ * Matrix (DBM) abstract domain. Zone tracks bounds on the difference
+ * between two scalar LLVM values.
+ *
+ * Key concepts:
+ * - Bounds form: Lower_ <= (Left - Right) <= Upper_
+ * - Tracks relational constraints between two variables
+ * - More precise than independent intervals for each variable
+ *
+ * Common use cases:
+ * - Array index analysis
+ * - Loop invariant inference
+ * - Relational analysis between variables
+ *
+ * Zone is a 2-variable DBM and can be used as a building block
+ * for larger relational domains through Product domain composition.
+ *
+ * @see Octagon
+ * @see Intervals
+ * @see Product
+ */
 #pragma once
 
 #include "Verification/SymbolicAbstraction/Core/AbstractValue.h"

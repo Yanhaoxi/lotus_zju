@@ -24,7 +24,27 @@
          else: warn/ignore
      erase stores still marked removable; tag useless global initializers
      strip all shadow.mem calls
-*/
+ */
+
+//===----------------------------------------------------------------------===//
+/// @file IPDeadStoreElimination.cpp
+/// @brief Inter-procedural Dead Store Elimination pass implementation
+///
+/// This file implements an inter-procedural dead store elimination pass that
+/// removes memory stores that are never read. The pass uses SeaDSA's ShadowMem
+/// instrumentation and MemorySSA to track def-use chains across function
+/// boundaries.
+///
+/// The algorithm works by:
+/// 1. Identifying all store instructions and global initializers
+/// 2. Walking def-use chains backwards from each store
+/// 3. Determining if the store value ever reaches a load
+/// 4. Removing stores that are proven dead
+///
+/// @note This pass requires SeaDSA's ShadowMem pass to be run first to
+///       instrument the code with shadow.mem calls.
+///
+///===----------------------------------------------------------------------===//
 
 #include "llvm/IR/InstIterator.h"
 #include "llvm/IR/Instructions.h"
@@ -62,6 +82,10 @@ namespace transforms {
 using namespace llvm;
 using namespace analysis;
 
+/// @brief Check if a function has a function pointer parameter
+/// @param F The function to check
+/// @return true if the function has a function pointer parameter, false
+/// otherwise
 static bool hasFunctionPtrParam(Function *F) {
   FunctionType *FTy = F->getFunctionType();
   for (unsigned i = 0, e = FTy->getNumParams(); i < e; ++i) {
@@ -76,14 +100,19 @@ static bool hasFunctionPtrParam(Function *F) {
 
 class IPDeadStoreElimination : public ModulePass {
 
+  /// @brief Worklist element for tracking stores during analysis
+  ///
+  /// This structure represents an element in the worklist used by the DSE
+  /// algorithm. It tracks a shadow memory instruction and its associated
+  /// original store instruction or global initializer.
   struct QueueElem {
-    // Last shadow mem instruction related to storeInstOrGvInit
+    /// @brief Last shadow mem instruction related to storeInstOrGvInit
     const Instruction *shadowMemInst;
-    // The original instruction that we want to remove if we can prove
-    // it is redundant.
+    /// @brief The original instruction that we want to remove if we can prove
+    /// it is redundant.
     Value *storeInstOrGvInit;
-    // Number of steps (i.e., shadow mem instructions connect them)
-    // between storeInstOrGvInit and shadowMemInst
+    /// @brief Number of steps (i.e., shadow mem instructions connect them)
+    /// between storeInstOrGvInit and shadowMemInst
     unsigned length;
 
     QueueElem(const Instruction *I, Value *V, unsigned Len)
@@ -160,8 +189,10 @@ class IPDeadStoreElimination : public ModulePass {
   }
 
 public:
+  /// @brief Unique pass identifier
   static char ID;
 
+  /// @brief Constructor that initializes the pass and required SeaDSA passes
   IPDeadStoreElimination() : ModulePass(ID) {
     // Initialize sea-dsa pass
     llvm::PassRegistry &Registry = *llvm::PassRegistry::getPassRegistry();
@@ -169,6 +200,9 @@ public:
     llvm::initializeShadowMemPassPass(Registry);
   }
 
+  /// @brief Run the dead store elimination pass on a module
+  /// @param M The LLVM module to process
+  /// @return true if any stores were eliminated, false otherwise
   virtual bool runOnModule(Module &M) override {
     if (M.begin() == M.end()) {
       return false;
@@ -466,6 +500,8 @@ public:
     return (numUselessStores > 0 || numUselessGvInit > 0);
   }
 
+  /// @brief Specify analysis dependencies and preserves
+  /// @param AU Analysis usage information to populate
   virtual void getAnalysisUsage(AnalysisUsage &AU) const override {
     AU.setPreservesAll();
 
@@ -475,6 +511,8 @@ public:
     AU.addRequired<seadsa::ShadowMemPass>();
   }
 
+  /// @brief Get the name of this pass
+  /// @return The pass name as a string reference
   virtual StringRef getPassName() const override {
     return "Interprocedural Dead Store Elimination";
   }

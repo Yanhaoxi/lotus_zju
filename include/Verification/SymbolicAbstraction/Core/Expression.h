@@ -1,3 +1,27 @@
+/**
+ * @file Expression.h
+ * @brief Type-safe wrapper for symbolic expressions used in abstract domains.
+ *
+ * This header defines a polymorphic expression system that allows abstract
+ * domains to work with symbolic expressions while maintaining type safety. The
+ * Expression class serves as a value type wrapper around ExpressionBase,
+ * enabling efficient copying and passing while hiding implementation details.
+ *
+ * Expressions can be constructed from:
+ * - RepresentedValue (variables in the SMT encoding)
+ * - ConcreteState::Value (concrete values)
+ * - Literal constants (booleans)
+ *
+ * Expressions support:
+ * - Arithmetic operations (addition, subtraction, multiplication)
+ * - Bitwise extensions (zero-extend, sign-extend)
+ * - Comparisons (unsigned less-or-equal, equality)
+ * - Conversion to SMT formulas via toFormula()
+ * - Evaluation against concrete states via eval()
+ *
+ * @see RepresentedValue
+ * @see ConcreteState
+ */
 #pragma once
 #include "Verification/SymbolicAbstraction/Core/ConcreteState.h"
 #include "Verification/SymbolicAbstraction/Core/ResultStore.h"
@@ -5,6 +29,17 @@
 #include "Verification/SymbolicAbstraction/Utils/Utils.h"
 
 namespace symbolic_abstraction {
+/**
+ * @brief Abstract base class for symbolic expressions.
+ *
+ * This interface defines the operations that all expression implementations
+ * must support. Concrete implementations represent different kinds of
+ * expressions (e.g., variables, constants, binary operations).
+ *
+ * All operations are virtual and must be implemented by derived classes.
+ * ExpressionBase objects should not be used directly - use the Expression
+ * wrapper class instead.
+ */
 class ExpressionBase {
 public:
   virtual unsigned bits() const = 0;

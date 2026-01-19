@@ -1,36 +1,40 @@
-/** \brief Rudimentary logging facility for warnings and errors
-
- Prints in color with Warning/Error prefix and file location suffix.
- Usage:
-
-    WARN << message;
-
-  Note that message should not be terminated by newline
-*/
+/**
+ * \file Log.h
+ * \brief Rudimentary logging facility for warnings and errors
+ * \author Lotus Team
+ *
+ * This file provides a logging facility that prints colored messages
+ * with Warning/Error prefixes and file location suffixes.
+ *
+ * Usage:
+ * \code
+ * WARN << "message";
+ * ERR << "error message";
+ * \endcode
+ *
+ * Note that messages should not be terminated by newline.
+ */
 #pragma once
 #include "llvm/Support/Path.h"
 #include "llvm/Support/raw_ostream.h"
 
 #define FLOC(X, Y) llvm::sys::path::filename(X) + ":" + llvm::Twine(Y)
 #define MSG                                                                    \
-  ::warn_ostream(llvm::errs())                                        \
-      .prefix("Info: ")                                                        \
-      .suffix(FLOC(__FILE__, __LINE__))
+  ::warn_ostream(llvm::errs()).prefix("Info: ").suffix(FLOC(__FILE__, __LINE__))
 #define INFO                                                                   \
-  ::warn_ostream(llvm::errs())                                        \
+  ::warn_ostream(llvm::errs())                                                 \
       .color(llvm::raw_ostream::MAGENTA)                                       \
       .prefix("Info: ")                                                        \
       .suffix(FLOC(__FILE__, __LINE__))
 #define WARN                                                                   \
-  ::warn_ostream(llvm::errs())                                        \
+  ::warn_ostream(llvm::errs())                                                 \
       .color(llvm::raw_ostream::YELLOW)                                        \
       .suffix(FLOC(__FILE__, __LINE__))
 #define ERR                                                                    \
-  ::warn_ostream(llvm::errs())                                        \
+  ::warn_ostream(llvm::errs())                                                 \
       .color(llvm::raw_ostream::RED)                                           \
       .prefix("Error: ")                                                       \
       .suffix(FLOC(__FILE__, __LINE__))
-
 
 /// \brief Enables warning log stream
 extern bool SeaWarnEnable;

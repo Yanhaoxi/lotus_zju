@@ -1,11 +1,23 @@
+/**
+ * \file StringUtils.h
+ * \brief String manipulation and formatting utilities
+ * \author Lotus Team
+ *
+ * This file provides various string utilities including:
+ * - Safe formatting functions (similar to sprintf)
+ * - String escaping for HTML/markdown
+ * - Text alignment and output utilities
+ * - Ordinal suffix generation
+ */
 #ifndef UTILS_STRINGUTILS_H
 #define UTILS_STRINGUTILS_H
 
-#include <llvm/ADT/StringRef.h>
-#include <llvm/Support/raw_ostream.h>
 #include <cstdio>
 #include <memory>
 #include <string>
+
+#include <llvm/ADT/StringRef.h>
+#include <llvm/Support/raw_ostream.h>
 
 using namespace llvm;
 

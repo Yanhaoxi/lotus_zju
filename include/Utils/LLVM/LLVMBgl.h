@@ -1,6 +1,20 @@
+/**
+ * \file LLVMBgl.h
+ * \brief BGL (Boost Graph Library) interface to LLVM Control Flow Graph
+ * \author Lotus Team
+ *
+ * This file provides Boost Graph Library interface traits and functions
+ * for LLVM's Function and BasicBlock types, enabling the use of BGL
+ * algorithms on LLVM control flow graphs.
+ *
+ * The following graph concepts are supported:
+ * - Vertex descriptors: BasicBlock*
+ * - Edge descriptors: BBPair (pair of BasicBlock*)
+ * - Directed edges with bidirectional traversal
+ * - Vertex list graph operations
+ */
 #ifndef __LLVM_BGL_HPP_
 #define __LLVM_BGL_HPP_
-/** BGL interface to LLVM CFG */
 
 #include "llvm/IR/CFG.h"
 
