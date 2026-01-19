@@ -1,3 +1,16 @@
+/**
+ * @file Dominator.cpp
+ * @brief Dominator and Post-Dominator Tree Implementation
+ *
+ * This file implements the DominatorSummary class which provides a unified
+ * interface for accessing both dominator and post-dominator information
+ * for LLVM IR functions.
+ *
+ * @author Lotus Analysis Framework
+ * @date 2025
+ * @ingroup CFG
+ */
+
 /*
  * Copyright 2016 - 2024  Angelo Matni, Simone Campanoni
  *
@@ -19,19 +32,27 @@
  OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
  OR OTHER DEALINGS IN THE SOFTWARE.
  */
- #include "Analysis/CFG/Dominator.h"
+#include "Analysis/CFG/Dominator.h"
 
- namespace noelle {
- 
- DominatorSummary::DominatorSummary(DominatorTree &dt, PostDominatorTree &pdt)
-   : DT{ dt },
-     PDT{ pdt } {
-   return;
- }
- 
- DominatorSummary::DominatorSummary(DominatorSummary &ds,
-                                    std::set<BasicBlock *> &bbSubset)
-   : DT{ ds.DT, bbSubset },
-     PDT{ ds.PDT, bbSubset } {}
- 
- } // namespace noelle
+namespace noelle {
+
+/**
+ * @brief Construct a DominatorSummary from full dominator trees
+ * @param dt The dominator tree
+ * @param pdt The post-dominator tree
+ */
+DominatorSummary::DominatorSummary(DominatorTree &dt, PostDominatorTree &pdt)
+    : DT{dt}, PDT{pdt} {
+  return;
+}
+
+/**
+ * @brief Construct a subset DominatorSummary
+ * @param ds The original dominator summary
+ * @param bbSubset The subset of basic blocks to include
+ */
+DominatorSummary::DominatorSummary(DominatorSummary &ds,
+                                   std::set<BasicBlock *> &bbSubset)
+    : DT{ds.DT, bbSubset}, PDT{ds.PDT, bbSubset} {}
+
+} // namespace noelle

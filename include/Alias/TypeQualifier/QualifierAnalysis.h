@@ -1,3 +1,13 @@
+/**
+ * @file QualifierAnalysis.h
+ * @brief Qualifier analysis for uninitialized/undefined data detection
+ *
+ * This analysis performs qualifier inference to detect uninitialized
+ * and undefined data usage in programs. It includes constraint collection,
+ * qualifier inference, and warning generation for potential bugs.
+ *
+ * @author Lotus Analysis Framework
+ */
 
 #ifndef UBIANALYSIS_QUALIFIERANALYSIS_H
 #define UBIANALYSIS_QUALIFIERANALYSIS_H
@@ -35,6 +45,10 @@ typedef std::unordered_map<NodeIndex, NodeSet> AAMap;
 typedef std::unordered_map<const llvm::Instruction *, AAMap> NodeToAAMap;
 enum WarnType { FUNCTION_PTR, NORMAL_PTR, DATA, OTHER };
 
+/// @brief Main qualifier analysis pass
+///
+/// Performs qualifier analysis to detect uninitialized/undefined data usage.
+/// Uses constraint collection and iterative refinement to infer qualifiers.
 class QualifierAnalysis : public IterativeModulePass {
 private:
   const llvm::DataLayout *DL;
@@ -63,9 +77,14 @@ public:
   QualifierAnalysis(GlobalContext *Ctx_)
       : IterativeModulePass(Ctx_, "QualifierAnalysis"), FCounter(0) {}
 
+  /// @brief Run the analysis on a module
+  /// @param M The module to analyze
+  /// @return true if analysis completed successfully
   virtual bool doModulePass(llvm::Module *);
   virtual bool doInitialization(llvm::Module *);
   virtual bool doFinalization(llvm::Module *);
+
+  /// @brief Print statistics about the analysis
   void PrintStatistics();
   void collectRemaining();
   // used for recursive function:
@@ -76,6 +95,7 @@ public:
   void calDepFuncs();
   void finalize();
   void getGlobals();
+  /// @brief Run the full analysis
   void run();
 };
 

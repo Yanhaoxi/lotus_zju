@@ -1,3 +1,22 @@
+/**
+ * @file ThreadAPI.h
+ * @brief Thread API Recognition and Analysis
+ *
+ * This file provides utilities for recognizing and analyzing thread-related
+ * API calls in multithreaded programs. It supports pthread, OpenMP, and
+ * custom threading libraries through a configurable API mapping system.
+ *
+ * Key Features:
+ * - Recognition of thread creation, joining, and termination
+ * - Lock acquisition and release operations
+ * - Condition variable signaling and waiting
+ * - Barrier synchronization support
+ * - Configurable API mapping for different threading libraries
+ *
+ * @author Lotus Analysis Framework
+ * @date 2025
+ * @ingroup Concurrency
+ */
 
 #ifndef THREADAPI_H
 #define THREADAPI_H
@@ -7,45 +26,60 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
 
-/*
- * ThreadAPI class contains interfaces for pthread programs
- */
-
-namespace llvm {
-class CallBase;
-class Value;
-class Instruction;
-} // namespace llvm
-
 using namespace llvm;
 
 typedef unsigned u32_t;
 
+/**
+ * @class ThreadAPI
+ * @brief Provides interfaces for recognizing and analyzing pthread/OpenMP
+ * programs
+ *
+ * ThreadAPI is a singleton class that maps function names to thread API types.
+ * It enables static analysis of multithreaded programs by identifying:
+ * - Thread creation and synchronization points
+ * - Lock acquire and release operations
+ * - Condition variable operations
+ * - Barrier synchronization
+ *
+ * @note Use ThreadAPI::getThreadAPI() to obtain the singleton instance
+ * @note API mappings can be extended via configuration files
+ */
 class ThreadAPI {
 
 public:
+  /**
+   * @enum TD_TYPE
+   * @brief Thread API function types
+   *
+   * Enumeration of all supported thread API operation types.
+   * Used to classify function calls during static analysis.
+   */
   enum TD_TYPE {
-    TD_DUMMY = 0,       /// dummy type
-    TD_FORK,            /// create a new thread
-    TD_JOIN,            /// wait for a thread to join
-    TD_DETACH,          /// detach a thread directly instead wait for it to join
-    TD_ACQUIRE,         /// acquire a lock
-    TD_TRY_ACQUIRE,     /// try to acquire a lock
-    TD_RELEASE,         /// release a lock
-    TD_EXIT,            /// exit/kill a thread
-    TD_CANCEL,          /// cancel a thread by another
-    TD_COND_WAIT,       /// wait a condition
-    TD_COND_SIGNAL,     /// signal a condition
-    TD_COND_BROADCAST,  /// broadcast a condition
-    TD_MUTEX_INI,       /// initial a mutex variable
-    TD_MUTEX_DESTROY,   /// initial a mutex variable
-    TD_CONDVAR_INI,     /// initial a mutex variable
-    TD_CONDVAR_DESTROY, /// initial a mutex variable
-    TD_BAR_INIT,        /// Barrier init
-    TD_BAR_WAIT,        /// Barrier wait
-    HARE_PAR_FOR
+    TD_DUMMY = 0,   ///< Unknown or unrecognized API call
+    TD_FORK,        ///< Create a new thread (e.g., pthread_create)
+    TD_JOIN,        ///< Wait for a thread to join (e.g., pthread_join)
+    TD_DETACH,      ///< Detach a thread (e.g., pthread_detach)
+    TD_ACQUIRE,     ///< Acquire a lock (e.g., pthread_mutex_lock)
+    TD_TRY_ACQUIRE, ///< Try to acquire a lock without blocking (e.g.,
+                    ///< pthread_mutex_trylock)
+    TD_RELEASE,     ///< Release a lock (e.g., pthread_mutex_unlock)
+    TD_EXIT,        ///< Exit/kill a thread (e.g., pthread_exit)
+    TD_CANCEL,      ///< Cancel a thread by another (e.g., pthread_cancel)
+    TD_COND_WAIT,   ///< Wait on a condition variable (e.g., pthread_cond_wait)
+    TD_COND_SIGNAL, ///< Signal a condition variable (e.g., pthread_cond_signal)
+    TD_COND_BROADCAST,  ///< Broadcast a condition variable (e.g.,
+                        ///< pthread_cond_broadcast)
+    TD_MUTEX_INI,       ///< Initialize a mutex
+    TD_MUTEX_DESTROY,   ///< Destroy a mutex
+    TD_CONDVAR_INI,     ///< Initialize a condition variable
+    TD_CONDVAR_DESTROY, ///< Destroy a condition variable
+    TD_BAR_INIT,        ///< Initialize a barrier
+    TD_BAR_WAIT,        ///< Wait on a barrier
+    HARE_PAR_FOR        ///< Hare parallel for loop construct
   };
 
+  /// Map type for API name to TD_TYPE conversion
   typedef llvm::StringMap<TD_TYPE> TDAPIMap;
 
 private:
@@ -323,7 +357,8 @@ public:
   //@{
   /// First argument of pthread_cond_wait/signal/broadcast
   inline const Value *getCondVal(const Instruction *inst) const {
-    assert((isTDCondWait(inst) || isTDCondSignal(inst) || isTDCondBroadcast(inst)) &&
+    assert((isTDCondWait(inst) || isTDCondSignal(inst) ||
+            isTDCondBroadcast(inst)) &&
            "not a condition variable function");
     const CallBase *cb = getLLVMCallSite(inst);
     return cb->getArgOperand(0);

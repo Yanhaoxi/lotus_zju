@@ -1,9 +1,21 @@
+/**
+ * @file FunctionSummary.h
+ * @brief Function summary structures for TypeQualifier analysis
+ *
+ * This file provides data structures for representing function summaries
+ * in the TypeQualifier analysis framework. It includes node factories,
+ * argument information, and points-to graph summaries used for
+ * interprocedural analysis.
+ *
+ * @ingroup TypeQualifier
+ */
+
 #ifndef UBIANALYSIS_FUNCTIONSUMMARY_H
 #define UBIANALYSIS_FUNCTIONSUMMARY_H
-
 #include "Alias/TypeQualifier/Annotation.h"
 #include "Alias/TypeQualifier/Common.h"
 #include "Alias/TypeQualifier/PtsSet.h"
+
 #include <unordered_map>
 
 using namespace llvm;

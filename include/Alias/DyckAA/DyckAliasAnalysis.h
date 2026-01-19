@@ -1,3 +1,15 @@
+/**
+ * @file DyckAliasAnalysis.h
+ * @brief Dyck-CFL alias analysis using unification-based approach
+ *
+ * Canary features a fast unification-based alias analysis for C programs.
+ * This analysis uses Dyck-CFL (Dyck context-free language) reachability
+ * to compute alias sets and provide precise alias information.
+ *
+ * @author Qingkai Shi <qingkaishi@gmail.com>
+ * @author Lotus Analysis Framework
+ */
+
 /*
  *  Canary features a fast unification-based alias analysis for C programs
  *  Copyright (C) 2021 Qingkai Shi <qingkaishi@gmail.com>
@@ -22,6 +34,7 @@
 #include "Alias/DyckAA/DyckCallGraph.h"
 #include "Alias/DyckAA/DyckGraph.h"
 #include "Alias/DyckAA/DyckGraphEdgeLabel.h"
+
 #include <llvm/ADT/SmallPtrSet.h>
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/IR/GetElementPtrTypeIterator.h>
@@ -34,44 +47,63 @@
 
 using namespace llvm;
 
+/// @brief Dyck-CFL based alias analysis
+///
+/// Performs fast unification-based alias analysis using Dyck-CFL
+/// reachability. Provides alias set queries and may-alias checks
+/// for pointer analysis.
 class DyckAliasAnalysis : public ModulePass {
 private:
-    DyckGraph *DyckPTG;
-    DyckCallGraph *DyckCG;
+  DyckGraph *DyckPTG;
+  DyckCallGraph *DyckCG;
 
 public:
-    static char ID;
+  static char ID;
 
-    DyckAliasAnalysis();
+  DyckAliasAnalysis();
 
-    ~DyckAliasAnalysis() override;
+  ~DyckAliasAnalysis() override;
 
-    bool runOnModule(Module &M) override;
+  /// @brief Run the analysis on a module
+  /// @param M The module to analyze
+  /// @return true if analysis completed
+  bool runOnModule(Module &M) override;
 
-    void getAnalysisUsage(AnalysisUsage &AU) const override;
+  void getAnalysisUsage(AnalysisUsage &AU) const override;
 
-    /// get alias set of a pointer \p Ptr
-    const std::set<Value *> *getAliasSet(Value *Ptr) const;
+  /// @brief Get alias set of a pointer
+  /// @param Ptr The pointer to query
+  /// @return Set of aliased values, or nullptr if no alias information
+  const std::set<Value *> *getAliasSet(Value *Ptr) const;
 
-    /// return true if \p V1 is an alias of \p V2
-    bool mayAlias(Value *V1, Value *V2) const;
+  /// @brief Check if two values may alias
+  /// @param V1 First value
+  /// @param V2 Second value
+  /// @return true if V1 may alias V2
+  bool mayAlias(Value *V1, Value *V2) const;
 
-    /// return true if \p V is an alias of nullptr
-    bool mayNull(Value *V) const;
+  /// @brief Check if a value may be null
+  /// @param V The value to check
+  /// @return true if V may alias nullptr
+  bool mayNull(Value *V) const;
 
-    /// get the call graph based on dyck-aa
-    DyckCallGraph *getDyckCallGraph() const;
+  /// @brief Get the Dyck call graph
+  /// @return Pointer to the call graph
+  DyckCallGraph *getDyckCallGraph() const;
 
-    /// get the dyck-cfl graph
-    DyckGraph *getDyckGraph() const;
+  /// @brief Get the Dyck-CFL graph
+  /// @return Pointer to the points-to graph
+  DyckGraph *getDyckGraph() const;
 
 private:
-    /// Three kinds of information will be printed.
-    /// 1. Alias Sets will be printed to the console
-    /// 2. The relation of Alias Sets will be output into "alias_rel.dot"
-    /// 3. The evaluation results will be output into "distribution.log"
-    ///     The summary of the evaluation will be printed to the console
-    void printAliasSetInformation();
+  /// @brief Print alias set information for debugging
+  ///
+  /// Three kinds of information will be printed:
+  /// 1. Alias Sets will be printed to the console
+  /// 2. The relation of Alias Sets will be output into "alias_rel.dot"
+  /// 3. The evaluation results will be output into "distribution.log"
+  ///    The summary of the evaluation will be printed to the console
+  void printAliasSetInformation();
 };
 
 #endif // ALIAS_DYCKAA_DYCKALIASANALYSIS_H

@@ -1,3 +1,14 @@
+/**
+ * @file CRange.h
+ * @brief Constant range utility class for TypeQualifier analysis
+ *
+ * This file provides the CRange class, which extends LLVM's ConstantRange
+ * with additional utility methods for range manipulation. It is used in
+ * value range analysis to track possible integer values during analysis.
+ *
+ * @ingroup TypeQualifier
+ */
+
 #ifndef _CRANGE_H
 #define _CRANGE_H
 

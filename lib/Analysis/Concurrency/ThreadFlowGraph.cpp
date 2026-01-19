@@ -1,6 +1,12 @@
 /**
  * @file ThreadFlowGraph.cpp
  * @brief Implementation of Thread Flow Graph classes
+ *
+ * The Thread Flow Graph (TFG) is a graph representation of the concurrent program.
+ * Nodes represent synchronization events or instructions.
+ * Edges represent:
+ * 1. Intra-thread control flow (program order)
+ * 2. Inter-thread synchronization (fork, join, signal, etc.)
  */
 
 #include "Analysis/Concurrency/ThreadFlowGraph.h"

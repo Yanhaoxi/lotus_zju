@@ -14,6 +14,7 @@
 #include "Checker/GVFA/UseAfterFreeChecker.h"
 #include "Checker/GVFA/UseOfUninitializedVariableChecker.h"
 #include "Checker/Report/BugReportMgr.h"
+#include "Utils/LLVM/RecursiveTimer.h"
 
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IRReader/IRReader.h>
@@ -38,6 +39,7 @@ static cl::opt<bool> UseNPA("use-npa", cl::desc("Use NullCheckAnalysis to improv
 static cl::opt<bool> ContextSensitive("ctx", cl::desc("Use context-sensitive analysis"), cl::init(false));
 static cl::opt<bool> Verbose("verbose", cl::desc("Print detailed vulnerability information"), cl::init(false));
 static cl::opt<bool> DumpStats("dump-stats", cl::desc("Dump analysis statistics"), cl::init(false));
+static cl::opt<bool> ShowProgress("show-progress", cl::desc("Show analysis progress for large-scale detection"), cl::init(false));
 static cl::opt<std::string> JsonOutput("json-output", cl::desc("Output JSON report to file"), cl::init(""));
 static cl::opt<int> MinScore("min-score", cl::desc("Minimum confidence score for reporting"), cl::init(0));
 
@@ -107,9 +109,11 @@ int main(int argc, char **argv) {
     
     // Detect and report vulnerabilities using high-level API
     auto *VChecker = GVFA.getVulnerabilityChecker();
-    int vulnCount = VChecker->detectAndReport(M.get(), &GVFA, ContextSensitive, Verbose);
-    
-    outs() << "Found " << vulnCount << " potential vulnerabilities.\n";
+    {
+        RecursiveTimer Timer("DetectAndReport");
+        int vulnCount = VChecker->detectAndReport(M.get(), &GVFA, ContextSensitive, Verbose);
+        outs() << "Found " << vulnCount << " potential vulnerabilities.\n";
+    }
     
     if (DumpStats) {
         outs() << "\n=== Statistics ===\n"
@@ -124,7 +128,10 @@ int main(int argc, char **argv) {
     // Print bug report summary
     BugReportMgr& bugMgr = BugReportMgr::get_instance();
     outs() << "\n=== Bug Report Summary ===\n";
-    bugMgr.print_summary(outs());
+    {
+        RecursiveTimer Timer("PrintBugReportSummary");
+        bugMgr.print_summary(outs());
+    }
     
     // Generate JSON report if requested
     if (!JsonOutput.empty()) {
@@ -134,7 +141,10 @@ int main(int argc, char **argv) {
             errs() << "Error opening JSON output file: " << EC.message() << "\n";
             return 1;
         }
-        bugMgr.generate_json_report(JsonFile, MinScore);
+        {
+            RecursiveTimer Timer("GenerateJSONReport");
+            bugMgr.generate_json_report(JsonFile, MinScore);
+        }
         outs() << "JSON report written to: " << JsonOutput << "\n";
     }
     

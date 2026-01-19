@@ -1,3 +1,15 @@
+/**
+ * @file Annotation.h
+ * @brief Annotation utilities for TypeQualifier analysis
+ *
+ * This file provides utility functions for working with LLVM metadata
+ * annotations used in the TypeQualifier analysis framework. It includes
+ * functions for extracting annotation information, generating scope names for
+ * values, and identifying allocation functions.
+ *
+ * @ingroup TypeQualifier
+ */
+
 //
 // Created by ubuntu on 12/26/17.
 //

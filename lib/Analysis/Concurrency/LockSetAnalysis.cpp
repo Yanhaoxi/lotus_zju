@@ -1,6 +1,16 @@
 /**
  * @file LockSetAnalysis.cpp
  * @brief Implementation of Lock Set Analysis
+ *
+ * This analysis tracks the set of locks held at each program point.
+ * It computes two sets for each instruction:
+ * 1. May-Lock Set: Locks that MIGHT be held. Used for deadlock detection and reducing false positives.
+ *    - Join operator: Union
+ *    - Try-lock: Assumed successful
+ * 2. Must-Lock Set: Locks that MUST be held. Used for proving mutual exclusion (safety).
+ *    - Join operator: Intersection
+ *    - Try-lock: Assumed failed (safe approximation)
+ *    - Release: Removes all aliasing locks to ensure soundness.
  */
 
 #include "Analysis/Concurrency/LockSetAnalysis.h"
@@ -397,6 +407,14 @@ void LockSetAnalysis::analyzeFunction(Function *func) {
 }
 
 void LockSetAnalysis::computeIntraproceduralLockSets(Function *func) {
+  // Standard forward dataflow analysis using a worklist algorithm.
+  //
+  // Lattice: Sets of LockIDs.
+  // - May-Analysis: Union (Join).
+  //   Effect: Collects all locks that *might* be held on any path to this point.
+  // - Must-Analysis: Intersection (Join).
+  //   Effect: Collects all locks that *must* be held on all paths to this point.
+  
   // Worklist algorithm for dataflow analysis
   std::queue<const Instruction *> worklist;
   std::set<const Instruction *> in_worklist;
@@ -553,6 +571,9 @@ LockSet LockSetAnalysis::transfer(const Instruction *inst,
 
       // Only in must-analysis do we safely drop aliasing locks.
       // In may-analysis this would under-approximate the held set.
+      // For Must-Lock analysis: If we release 'lock', we must also remove any lock 'l'
+      // that *might* be an alias of 'lock'. If we kept 'l', we might falsely believe
+      // we still hold 'l' when we actually released it via 'lock'.
       if (is_must && m_alias_analysis) {
         LockSet to_remove;
         for (const auto *l : out_set) {
@@ -572,13 +593,16 @@ LockSet LockSetAnalysis::transfer(const Instruction *inst,
         call->getCalledFunction() &&
         call->getCalledFunction()->getName().contains("trylock")) {
       if (!is_must) {
-        // May-analysis: assume try-lock may succeed
+        // May-analysis: assume try-lock may succeed.
+        // We want to know if it's *possible* to hold the lock.
         LockID lock = getLockValue(inst);
         if (lock) {
           out_set.insert(lock);
         }
       }
-      // Must-analysis: don't add lock (can't guarantee acquisition)
+      // Must-analysis: don't add lock (can't guarantee acquisition).
+      // We want to know if we *definitely* hold the lock. Since try-lock can fail,
+      // we must assume it failed.
     } else if (!m_thread_api->isTDAcquire(call) && 
                !m_thread_api->isTDRelease(call)) {
       // Handle regular function calls with interprocedural summaries
@@ -780,6 +804,12 @@ void LockSetAnalysis::computeFunctionSummary(Function *func) {
   
   errs() << "Computing summary for function: " << func->getName() << "\n";
   
+  // Computes a summary of lock behaviors for the function to enable interprocedural analysis.
+  // - MayAcquire: Locks that *may* be acquired and held upon return.
+  // - MustAcquire: Locks that *must* be acquired and held upon return.
+  // - Releases: Locks released within the function.
+  // This summary allows callers to update their locksets without re-analyzing the callee inline.
+
   // Run intraprocedural analysis to get flow-sensitive results
   computeIntraproceduralLockSets(func);
   

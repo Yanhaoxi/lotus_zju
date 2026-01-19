@@ -1,6 +1,16 @@
+/**
+ * @file TaintSignature.h
+ * @brief Taint signature management for TypeQualifier analysis
+ *
+ * This file provides the TaintSignature class for managing taint
+ * signatures used to identify sensitive data flow in the TypeQualifier
+ * analysis framework. It uses LLVM's SpecialCaseList for configuration.
+ *
+ * @ingroup TypeQualifier
+ */
+
 #ifndef TAINT_SIGNATURE_H
 #define TAINT_SIGNATURE_H
-
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/SpecialCaseList.h"
 

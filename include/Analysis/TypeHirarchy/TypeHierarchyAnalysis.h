@@ -1,9 +1,18 @@
+/**
+ * @file TypeHierarchyAnalysis.h
+ * @brief Type Hierarchy Analysis for C++ programs
+ *
+ * This analysis performs class hierarchy analysis for C++ programs,
+ * including virtual call resolution and vtable reconstruction.
+ *
+ * @author Lotus Analysis Framework
+ */
+
 #pragma once
 
 #include "llvm/ADT/SmallVector.h"
-#include <memory>
 
-/** Perform Type Hierarchy Analysis for C++ programs **/
+#include <memory>
 
 namespace llvm {
 class Module;
@@ -16,6 +25,10 @@ namespace lotus {
 
 class TypeHierarchyAnalysis_Impl;
 
+/// @brief Type Hierarchy Analysis implementation for C++ programs
+///
+/// Provides virtual call resolution and vtable reconstruction through
+/// class hierarchy analysis.
 class TypeHierarchyAnalysis {
 public:
   using function_vector_t = llvm::SmallVector<const llvm::Function *, 16>;
@@ -24,36 +37,34 @@ public:
 
   ~TypeHierarchyAnalysis();
 
-  /*
-   * Build the class hierarchy graph and reconstruct vtables
-   */
+  /// @brief Build the class hierarchy graph and reconstruct vtables
   void calculate(void);
 
-  /* Return true if the callsite is a virtual call which has been
-     resolved */
+  /// @brief Check if a virtual call has been resolved
+  /// @param CS The callsite to check
+  /// @return true if the callsite is a resolved virtual call
   bool isVCallResolved(const llvm::CallBase &CS) const;
 
-  /* Return all possible callees for the C++ virtual call.
-   *  If CS is not a virtual call then it returns an empty set.
-   */
+  /// @brief Get all possible callees for a C++ virtual call
+  /// @param CS The virtual callsite
+  /// @return Vector of possible callee functions, empty if not a virtual call
   const function_vector_t &getVCallCallees(const llvm::CallBase &CS);
-  /*
-   * Print the class hierarchy graph
-   */
+
+  /// @brief Print the class hierarchy graph
+  /// @param o Output stream for printing
   void printClassHierarchy(llvm::raw_ostream &o) const;
 
-  /*
-   * Print for each class its vtable
-   */
+  /// @brief Print vtables for each class
+  /// @param o Output stream for printing
   void printVtables(llvm::raw_ostream &o) const;
 
-  /*
-   * Print some stats about the analysis
-   */
+  /// @brief Print analysis statistics
+  /// @param o Output stream for printing
   void printStats(llvm::raw_ostream &o) const;
 
 private:
-  std::unique_ptr<TypeHierarchyAnalysis_Impl> m_cha_impl;  
+  std::unique_ptr<TypeHierarchyAnalysis_Impl>
+      m_cha_impl; ///< Internal implementation
 };
 
 } // namespace lotus

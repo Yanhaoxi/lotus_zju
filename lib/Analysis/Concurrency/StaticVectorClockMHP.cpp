@@ -193,6 +193,13 @@ bool StaticVectorClockMHP::transfer(const SyncNode *node) {
   if (!node)
     return false;
 
+  // Vector Clock Update Rule:
+  // 1. Merge (Join) vector clocks from all predecessors (max per thread component).
+  //    VC_in(n) = max(VC_out(p)) for all p in preds(n)
+  // 2. Increment the local thread's clock component for the current event.
+  //    VC_out(n) = VC_in(n); VC_out(n)[tid]++
+  // 3. Update the node's clock. Return true if changed (for fixpoint).
+
   StaticVectorClock incoming = mergePredecessorClocks(node);
 
   // If no predecessors, seed with the static thread's initial clock.
@@ -229,6 +236,8 @@ void StaticVectorClockMHP::computeStaticVectorClocks() {
 
 bool StaticVectorClockMHP::happensBefore(const StaticVectorClock &lhs,
                                          const StaticVectorClock &rhs) const {
+  // Returns true if lhs happens-before rhs (strictly ordered)
+  // Logic: lhs <= rhs AND !(rhs <= lhs)
   return lhs.leq(rhs) && !rhs.leq(lhs);
 }
 

@@ -1,3 +1,14 @@
+/**
+ * @file Helper.h
+ * @brief Helper functions for TypeQualifier analysis
+ *
+ * This file provides utility helper functions used by the TypeQualifier
+ * analysis framework. It includes functions for GEP offset calculation, field
+ * number determination, type compatibility checking, and string utilities.
+ *
+ * @ingroup TypeQualifier
+ */
+
 #ifndef UBIANALYSIS_HELPER_H
 #define UBIANALYSIS_HELPER_H
 

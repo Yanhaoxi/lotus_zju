@@ -3,18 +3,18 @@
 This directory contains various alias analysis implementations and toolkits used in the Phenix project.
 
 
-- SparrowAA: inclusion-based, flow-insensitive, context-insensitive, and context-sensitive pointer analsyis (ci, 1-cfa, 2-cfa)
-- AserPTA: inclusion-based, field-sensitive, flow-insensitive, context-insensitive, and context-sensitive pointer analsyis (ci, 1-cfa, 2-cfa, origin).
+- SparrowAA (the `sparrow-aa` tool): inclusion-based, flow-insensitive, context-insensitive, and context-sensitive pointer analsyis (ci, 1-cfa, 2-cfa)
+- AserPTA (`aser-aa`): inclusion-based, field-sensitive, flow-insensitive, context-insensitive, and context-sensitive pointer analsyis (ci, 1-cfa, 2-cfa, origin).
 - CFLAA: flow-insensitive, context-insensitive pointer analysis (from LLVM).
 - DyckAA: unification-based, flow-insensitive, context-insensitive pointer analysis. 
 - Dynamic: dynamic pointer analysis.
-- FPA: type-based function pointer analysis.
-- LotusAA: inclusion-based,  flow- and context-sensitive pointer analysis.
-- seadsa: unificaiton-based, flow-insensitive, context-sensitive  pointer analysis (with heap cloning, a.k.a., context-sensitive heap).
+- FPA (`fpa`): type-based function pointer analysis.
+- LotusAA (`lotus-aa`): inclusion-based,  flow- and context-sensitive pointer analysis.
+- seadsa (`sea-dsa-dg`, `seadsa-tool`): unificaiton-based, flow-insensitive, context-sensitive  pointer analysis (with heap cloning, a.k.a., context-sensitive heap).
 - SRAA: range-based alias analsyis (flow- and context-insensitive)
 - UnderApproxAA: pattern-based must-alias analysis
 - AllocAA.
-- TPA: Inclusin-based, flow- and context-sensitive analysis (k-limiting)
+- TPA (`tpa`): Inclusin-based, flow- and context-sensitive analysis (k-limiting)
 
 Note: SparrowAA and AserPTA have some redundancies, but are different
 - SparrowAA does not use on-the-fly callgraph construction, while AserPTA uses it by default.

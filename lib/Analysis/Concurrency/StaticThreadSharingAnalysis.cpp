@@ -1,5 +1,14 @@
 /*
 Scalable thread sharing analysis, ICSE 16. Jeff Huang
+
+This analysis identifies memory locations that are accessed by multiple threads.
+It serves as a prerequisite for race detection.
+
+Soundness/Approximations:
+- Shared Data: Considers data shared if accessed by >1 thread, or written by a multi-run thread.
+- Uncollapsed Globals: Uses the accessing pointer as a proxy for the memory location,
+  which is a reasonable approximation when SeaDSA collapses globals.
+- Immutable Data: Distinguishes between reads and writes to ignore immutable shared data.
 */
 #include "Analysis/Concurrency/StaticThreadSharingAnalysis.h"
 #include "Alias/seadsa/DsaAnalysis.hh"
@@ -81,6 +90,10 @@ void StaticThreadSharingAnalysis::visitThread(const Function *ThreadEntry) {
 
 void StaticThreadSharingAnalysis::visitMethod(const Function *F, const Function *ThreadEntry, 
                                               std::set<const Function*> &Visited) {
+  // Traverses the call graph reachable from ThreadEntry.
+  // For each function, it iterates all instructions to find memory accesses (Loads/Stores).
+  // It resolves the memory location using SeaDSA's graph.
+  
   if (!F || F->isDeclaration() || Visited.count(F)) return;
   Visited.insert(F);
   
@@ -143,6 +156,8 @@ void StaticThreadSharingAnalysis::recordAccess(const Instruction *Inst, bool isW
            // we might track them separately here if we rely on Ptr. 
            // Ideally we would iterate N->globals() if SeaDSA exposed it, but it might not be easily accessible.
            // Using the accessing Ptr is a reasonable approximation for uncollapsed globals.
+           // This approximation may miss sharing if the same global is accessed via different aliased pointers
+           // that we fail to resolve to the same GV, but SeaDSA typically handles the aliasing at the Node level.
        }
        return;
    }

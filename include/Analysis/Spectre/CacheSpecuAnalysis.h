@@ -1,3 +1,23 @@
+/**
+ * @file CacheSpecuAnalysis.h
+ * @brief Cache Timing and Speculative Execution Analysis
+ *
+ * This file provides cache modeling and speculative execution analysis to
+ * detect cache-based side channels and speculative execution vulnerabilities
+ * (Spectre-class).
+ *
+ * Key Features:
+ * - Cache hit/miss modeling for memory accesses
+ * - Speculative execution path analysis
+ * - Cache timing side-channel detection
+ * - Multi-branch speculation simulation
+ * - Cache state propagation
+ *
+ * @author Lotus Analysis Framework
+ * @date 2025
+ * @ingroup Spectre
+ */
+
 #ifndef CACHE_SPECU_ANALYSIS_H
 #define CACHE_SPECU_ANALYSIS_H
 
@@ -8,166 +28,123 @@
 #include "llvm/IR/CFG.h"
 #include "llvm/IR/Dominators.h"
 #include "llvm/IR/InstIterator.h"
-#include <llvm/IR/InstVisitor.h>
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Operator.h"
 #include "llvm/IR/Value.h"
 #include "llvm/IR/ValueMap.h"
-#include <llvm/Pass.h>
+
 #include <map>
+
+#include <llvm/IR/InstVisitor.h>
+#include <llvm/Pass.h>
+
+/// Default number of cache lines
 #define CACHE_LINE_NUM 32
+/// Default cache line size in bytes
 #define CACHE_LINE_SIZE 16
-#define ARCH_SIZE 8 // 64-bit
+/// Architecture pointer size (64-bit)
+#define ARCH_SIZE 8
+
 using namespace std;
 using namespace llvm;
 
 namespace spectre {
+
+/**
+ * @struct Var
+ * @brief Represents a variable in the cache model
+ *
+ * Contains information about a variable's memory layout and cache mapping.
+ */
 struct Var {
-  Value *Val;
-  unsigned AddrB, AddrE; // address range, used to calculate set/line number
-  unsigned LineB, LineE; //
-  unsigned AgeSize;      // the number of cache lines this var can occupy
-  unsigned AgeIndex;     // the starting index of <vector> Ages
-  Type *ty;
-  unsigned alignment;
-  //    Var* Pre, Next;    // pointer to other value in the same cache line if
-  //    any
+  Value *Val;            ///< The LLVM value representing this variable
+  unsigned AddrB, AddrE; ///< Address range for set/line number calculation
+  unsigned LineB, LineE; ///< Cache line range
+  unsigned AgeSize;      ///< Number of cache lines this variable occupies
+  unsigned AgeIndex;     ///< Starting index in the Ages vector
+  Type *ty;              ///< LLVM type of the variable
+  unsigned alignment;    ///< Memory alignment requirement
 };
 
+/**
+ * @class CacheModel
+ * @brief Models cache state and access patterns
+ *
+ * This class simulates cache behavior for memory accesses, tracking which
+ * cache lines are occupied and their relative ages (LRU positions).
+ *
+ * @note Supports both must-hit and may-miss analysis modes
+ * @see CacheSpecuAnalysis
+ */
 class CacheModel {
 public:
-  //	unsigned cacheRecord[100000] = {0};
-  std::set<unsigned> cacheRecord;
-  unsigned CacheLineNum;
-  unsigned CacheLineSize;
-  unsigned CacheSetNum;
-  unsigned CacheLinesPerSet;
+  std::set<unsigned> cacheRecord; ///< Set of occupied cache lines
+  unsigned CacheLineNum;          ///< Total number of cache lines
+  unsigned CacheLineSize;         ///< Size of each cache line in bytes
+  unsigned CacheSetNum;           ///< Number of cache sets
+  unsigned CacheLinesPerSet;      ///< Number of lines per set (associativity)
 
-  unsigned MaxAddr;
-  vector<unsigned> Ages;
-  bool MustMod; // true: must-hit analysis; false: may-miss analysis
-  ValueMap<Value *, Var *> Vars;
+  unsigned MaxAddr;      ///< Maximum address seen
+  vector<unsigned> Ages; ///< LRU ages for each cache line
+  bool MustMod;          ///< true: must-hit analysis; false: may-miss analysis
+  ValueMap<Value *, Var *>
+      Vars; ///< Map of values to their cache representation
 
-  // cache hit/miss info
-  unsigned HitCount, MissCount;
-  unsigned SpecuHitCount, SpecuMissCount;
+  // cache hit/miss statistics
+  unsigned HitCount, MissCount;           ///< Actual hit/miss counts
+  unsigned SpecuHitCount, SpecuMissCount; ///< Speculative hit/miss counts
 
-  static unsigned GetTySize(Type *ty) {
-    Type *eleTy;
-    unsigned len;
+  /**
+   * @brief Calculate the size of an LLVM type in bytes
+   * @param ty The LLVM type to measure
+   * @return Size in bytes, 0 if size cannot be determined
+   */
+  static unsigned GetTySize(Type *ty);
 
-    if (ty->isArrayTy()) {
-      ArrayType *arrayTy = dyn_cast<ArrayType>(ty);
-      len = arrayTy->getNumElements();
-      eleTy = arrayTy->getElementType();
-      return len * GetTySize(eleTy);
-    } else if (ty->isPointerTy()) {
-      // PointerType *pointerTy = dyn_cast<PointerType>(ty);
-      // len = 1;
-      //  eleTy = pointerTy->getElementType();
-      // return len*GetTySize(eleTy);
-      return ARCH_SIZE;
-    } else if (ty->isVectorTy()) {
-      VectorType *vectorTy = dyn_cast<VectorType>(ty);
-      len = cast<FixedVectorType>(vectorTy)->getNumElements();
-      eleTy = vectorTy->getElementType();
-      return len * GetTySize(eleTy);
-    } else if (ty->isIntegerTy()) {
-      IntegerType *intTy = dyn_cast<IntegerType>(ty);
-      return (intTy->getBitWidth()) / 8;
-    } else if (ty->isStructTy()) {
-      unsigned size = 0;
-      StructType *stTy = dyn_cast<StructType>(ty);
-      len = stTy->getStructNumElements();
-      while (len--) {
-        size += GetTySize(stTy->getElementType(len));
-      }
-      return size;
-    } else if (ty->isFloatingPointTy()) {
-      if (ty->isHalfTy())
-        return 2;
-      if (ty->isFloatTy())
-        return 4;
-      if (ty->isDoubleTy())
-        return 8;
-      if (ty->isX86_FP80Ty())
-        return 10;
-      if (ty->isFP128Ty() | ty->isPPC_FP128Ty())
-        return 16;
-    }
-    return 0;
-  }
-  static int GEPInstPos(GetElementPtrInst &I, unsigned &from, unsigned &to) {
-    Value *dest = I.getPointerOperand();
-    unsigned size = 0;
-    uint64_t index;
-    Type *ty;
-    from = to = 0;
+  /**
+   * @brief Extract address range from a GEP instruction
+   * @param I The getelementptr instruction
+   * @param from Output: starting address offset
+   * @param to Output: ending address offset
+   * @return 1 if specific location, 0 if range, -1 on error
+   */
+  static int GEPInstPos(GetElementPtrInst &I, unsigned &from, unsigned &to);
 
-    ty = dest->getType();
-    if (ConstantExpr *GEPC = dyn_cast<ConstantExpr>(dest)) {
-      if (dyn_cast<GEPOperator>(GEPC) &&
-          dyn_cast<GEPOperator>(GEPC)->isInBounds()) {
-        GetElementPtrInst *GEP =
-            cast<GetElementPtrInst>(GEPC->getAsInstruction());
-        CacheModel::GEPInstPos(*GEP, from, to);
-        delete (GEP);
-        to = 0;
-      } else
-        return -1;
-    }
-
-    for (unsigned i = 1; i <= I.getNumIndices(); i++) {
-      if (ConstantInt *CI = dyn_cast<ConstantInt>(I.getOperand(i))) {
-        index = CI->getZExtValue();
-      } else {
-        size = CacheModel::GetTySize(ty);
-        to = from + size - 1;
-        return 0; // gep is a range, none determinized location
-      }
-
-      if (ArrayType *arrayTy = dyn_cast<ArrayType>(ty)) {
-        ty = arrayTy->getElementType();
-        size = CacheModel::GetTySize(ty);
-        from += index * size;
-      } else if (PointerType *ptrTy = dyn_cast<PointerType>(ty)) {
-        ty = ptrTy->getPointerElementType();
-        size = CacheModel::GetTySize(ty);
-        from += index * size;
-      } else if (VectorType *vecTy = dyn_cast<VectorType>(ty)) {
-        ty = vecTy->getElementType();
-        size = CacheModel::GetTySize(ty);
-        from += index * size;
-      } else if (StructType *stTy = dyn_cast<StructType>(ty)) {
-        for (unsigned ele = 0; ele < index; ++ele) {
-          size = CacheModel::GetTySize(stTy->getElementType(ele));
-          from += size;
-        }
-      } else {
-        dbgs() << I << "\n\tGep indice " << i
-               << " parse error:" << "\n\ttype is" << *ty;
-        to = from;
-        return -1;
-      }
-    }
-    if (to > 0)
-      to -= 1;
-    return 1; // gep is a specific location
-  }
-
+  /**
+   * @brief Set the maximum address for this model
+   * @param addr The maximum address value
+   */
   void SetMaxAddr(unsigned addr) { this->MaxAddr = addr; }
+
+  /**
+   * @brief Set the LRU ages vector
+   * @param ages Vector of ages for each cache line
+   */
   void SetAges(vector<unsigned> ages);
+
+  /**
+   * @brief Set the variable-to-cache mapping
+   * @param vars Map from values to their cache representation
+   */
   void SetVarsMap(ValueMap<Value *, Var *> &vars);
+
+  /**
+   * @brief Check if two cache models have consistent configuration
+   * @param model The model to compare with
+   * @return true if configurations match
+   */
   bool ConfigConsistent(CacheModel *model) {
-    if (this->CacheLineNum == model->CacheLineNum &&
-        this->CacheLineSize == model->CacheLineSize &&
-        this->CacheLinesPerSet == model->CacheLinesPerSet &&
-        this->CacheSetNum == model->CacheSetNum)
-      return true;
-    else
-      return false;
+    return this->CacheLineNum == model->CacheLineNum &&
+           this->CacheLineSize == model->CacheLineSize &&
+           this->CacheLinesPerSet == model->CacheLinesPerSet &&
+           this->CacheSetNum == model->CacheSetNum;
   }
 
+  /**
+   * @brief Check if a variable spans multiple cache lines
+   * @param var The variable to check
+   * @return true if the variable is partially cached
+   */
   bool isVarPartiallyCached(Var *var) {
     for (int i = var->AgeIndex; i < (var->AgeIndex + var->AgeSize); ++i) {
       if (Ages[i] < CacheLineNum)
@@ -176,6 +153,11 @@ public:
     return false;
   }
 
+  /**
+   * @brief Check if two cache models are consistent
+   * @param model The model to compare with
+   * @return true if models are consistent
+   */
   bool CacheConsistent(CacheModel *model) {
     if (this->Vars.size() != model->Vars.size())
       return false;
@@ -197,45 +179,102 @@ public:
   unsigned GetAge(Value *var, unsigned offset = 0);
   unsigned SetAge(Value *var, unsigned age, unsigned offset = 0);
   unsigned SetAge(Value *var, unsigned age, unsigned b, unsigned e);
+
+  /**
+   * @brief Construct a cache model
+   * @param lineSize Size of each cache line
+   * @param lineNum Total number of cache lines
+   * @param setNum Number of cache sets
+   * @param must True for must-hit analysis, false for may-miss
+   */
   CacheModel(unsigned lineSize, unsigned lineNum, unsigned setNum,
              bool must = true);
+
   unsigned Access(Value *var, unsigned offset = 0);
   unsigned Access(Value *var, bool force);
   unsigned LocateVar(Value *var, unsigned offset);
   unsigned AddVar(Value *var, Type *ty, unsigned alignment = 1);
+
+  /**
+   * @brief Create a fork (copy) of this cache model
+   * @return Pointer to the new cache model
+   */
   CacheModel *fork();
+
+  /**
+   * @brief Check equality with another model
+   * @param model The model to compare
+   * @return true if models are equal
+   */
   bool equal(CacheModel *model);
+
+  /**
+   * @brief Merge another model into this one
+   * @param mod The model to merge
+   * @return Pointer to the merged model
+   */
   CacheModel *merge(CacheModel *mod);
+
+  /**
+   * @brief Print the cache model state
+   * @param verbose Print detailed information
+   */
   void dump(bool verbose = false);
+
+  /**
+   * @brief Check if a variable is in the cache
+   * @param varName Name of the variable
+   * @return true if the variable is cached
+   */
   bool isInCache(string varName);
 };
 
+/**
+ * @struct PointerLocation
+ * @brief Represents the location of a pointer value
+ */
 struct PointerLocation {
-  Value *Dest;
-  unsigned Offset;
+  Value *Dest;     ///< The destination value
+  unsigned Offset; ///< Offset from the base
   PointerLocation(Value *dest, unsigned offset) : Dest(dest), Offset(offset) {};
 };
 
+/**
+ * @class CacheSpecuInfo
+ * @brief Holds speculative execution information for a branch
+ *
+ * Contains the cache models for both branches of a conditional, tracking
+ * which basic blocks are speculatively executed and at what depth.
+ */
 class CacheSpecuInfo {
 public:
-  unsigned Depth;
-  BasicBlock *CauseBB;
-  DominatorTree *DT;
-  bool HasElse;
-  DomTreeNode *DTIf;
-  DomTreeNode *DTElse;
-  BasicBlock *IfEndBB;
-  BasicBlock *ElseEndBB; // bb that specu execution reach depth
-  BasicBlock *MergeBB;   // bb specu state should finally merge
-  DomTreeNode *DTEnd;    // merge bb of two branch in CFG
-  CacheModel *IfModel;
-  CacheModel *ElseModel;
-  unsigned
-      Finished; // 0: unfinished 1: specu sim finished 2: propagate finished
-  unsigned IfDepth, ElseDepth;
-  SmallSet<BasicBlock *, 4> WLIf; // 2 worklists to store the
-  SmallSet<BasicBlock *, 4> WLElse;
+  unsigned Depth;        ///< Maximum speculation depth
+  BasicBlock *CauseBB;   ///< The branch causing speculation
+  DominatorTree *DT;     ///< Dominator tree for the function
+  bool HasElse;          ///< Whether there's an else branch
+  DomTreeNode *DTIf;     ///< Dominator node for if-branch
+  DomTreeNode *DTElse;   ///< Dominator node for else-branch
+  BasicBlock *IfEndBB;   ///< End of if-branch speculation
+  BasicBlock *ElseEndBB; ///< End of else-branch speculation
+  BasicBlock *MergeBB;   ///< Where branches merge
+  DomTreeNode *DTEnd;    ///< Dominator node for merge block
+  CacheModel *IfModel;   ///< Cache model for if-branch
+  CacheModel *ElseModel; ///< Cache model for else-branch
+  unsigned Finished;     ///< 0: unfinished, 1: sim finished, 2: propagated
+  unsigned IfDepth, ElseDepth;    ///< Current speculation depth for each branch
+  SmallSet<BasicBlock *, 4> WLIf; ///< Worklist for if-branch
+  SmallSet<BasicBlock *, 4> WLElse; ///< Worklist for else-branch
 
+  /**
+   * @brief Construct CacheSpecuInfo
+   * @param Cause The causing basic block
+   * @param Dt Dominator tree
+   * @param If Dominator node for if-branch
+   * @param Else Dominator node for else-branch
+   * @param End Dominator node for merge
+   * @param depth Maximum speculation depth
+   * @param hasElse Whether else branch exists
+   */
   CacheSpecuInfo(BasicBlock *Cause, DominatorTree *Dt, DomTreeNode *If,
                  DomTreeNode *Else, DomTreeNode *End, unsigned depth,
                  bool hasElse)
@@ -248,6 +287,9 @@ public:
     WLElse.insert(DTElse->getBlock());
   }
 
+  /**
+   * @brief Reset the speculative info for re-analysis
+   */
   void Reset() {
     Finished = 0;
     IfDepth = ElseDepth = 0;
@@ -257,20 +299,25 @@ public:
     WLElse.insert(DTElse->getBlock());
   }
 
-  // check if bb should be speculatively execute
-  //  ret: 0b01 in if branch specu path
-  //       0b10 in else branch specu path
-  //       0b11 in both specu path
+  /**
+   * @brief Check if a basic block is speculatively executed
+   * @param bb The basic block to check
+   * @return Bitmask: 0b01 for if-branch, 0b10 for else-branch, 0b11 for both
+   */
   unsigned IsSpeculative(BasicBlock *bb) {
     unsigned ret = 0;
     if (this->WLIf.count(bb) && (IfDepth < Depth))
       ret |= 0x1;
-
     if (this->WLElse.count(bb) && (ElseDepth < Depth))
       ret |= 0x2;
-    return ret; // bb is speculatively executed
+    return ret;
   }
 
+  /**
+   * @brief Check if this is a speculation entry point
+   * @param bb The basic block to check
+   * @return 1 for if-entry, 2 for else-entry, 0 for neither
+   */
   int IsSpecuEntry(BasicBlock *bb) {
     if (DTIf->getBlock() == bb)
       return 1;
@@ -279,8 +326,14 @@ public:
     return 0;
   }
 
+  /**
+   * @brief Add a cache model for a branch
+   * @param model The cache model to add
+   * @param If True for if-branch, false for else-branch
+   * @param cacheUpdate Whether to merge with existing model
+   * @return true if maximum depth reached
+   */
   bool AddModel(CacheModel *model, bool If, bool cacheUpdate) {
-    // TODO: make sure depth is not out of bound when call this function
     if (If) {
       if ((IfModel != nullptr) && cacheUpdate)
         IfModel->merge(model);
@@ -297,8 +350,17 @@ public:
       return (ElseDepth >= Depth);
     }
   }
+
+  /**
+   * @brief Check if speculation is finished for both branches
+   * @return true if both branches reached max depth
+   */
   bool IsFinished() { return (IfDepth >= Depth) && (ElseDepth >= Depth); }
 
+  /**
+   * @brief Print the speculative execution info
+   * @param verbose Print detailed information
+   */
   void dump(bool verbose = false) {
     dbgs() << "Specu Execution: ";
     CauseBB->print(dbgs());
@@ -320,28 +382,42 @@ public:
   }
 };
 
+/**
+ * @class CacheSpecuAnalysis
+ * @brief Cache timing and speculative execution analysis pass
+ *
+ * This analysis models cache behavior during speculative execution to detect
+ * potential side channels. It uses dominator analysis to identify speculatively
+ * executed code paths and models cache state propagation through them.
+ *
+ * @note This is an InstVisitor-based analysis
+ * @see CacheModel, CacheSpecuInfo
+ */
 class CacheSpecuAnalysis : public InstVisitor<CacheSpecuAnalysis> {
 private:
   Function *F;
   DominatorTree *DT;
   PostDominatorTree *PDT;
-  ValueMap<BasicBlock *, CacheModel *> cacheTrace;
-  ValueMap<BasicBlock *, CacheModel *> propCacheTrace;
-  ValueMap<Value *, PointerLocation *> AliasMap;
-  AliasAnalysis *AA;
-  SmallVector<std::pair<const BasicBlock *, const BasicBlock *>, 8> backEdges;
-  unsigned loopBound[20];
-  bool runSpecu = false;
-  unsigned HitSpecuDepth = 0, MissSpecuDepth = 0;
-  unsigned MergeOption = 0;
+  ValueMap<BasicBlock *, CacheModel *>
+      cacheTrace; ///< Cache state at each block
+  ValueMap<BasicBlock *, CacheModel *>
+      propCacheTrace;                            ///< Propagated cache state
+  ValueMap<Value *, PointerLocation *> AliasMap; ///< Alias information
+  AliasAnalysis *AA;                             ///< Alias analysis results
+  SmallVector<std::pair<const BasicBlock *, const BasicBlock *>, 8>
+      backEdges;          ///< Loop back edges
+  unsigned loopBound[20]; ///< Loop bounds
+  bool runSpecu = false;  ///< Whether to run speculation
+  unsigned HitSpecuDepth = 0, MissSpecuDepth = 0; ///< Speculation depths
+  unsigned MergeOption = 0;                       ///< Merge strategy
 
   std::map<std::pair<const BasicBlock *, const BasicBlock *>, CacheModel *>
       wideningMap;
   std::map<std::pair<const BasicBlock *, const BasicBlock *>, int>
       wideningMapCount;
-  vector<CacheSpecuInfo *> SpecuInfo;
+  vector<CacheSpecuInfo *> SpecuInfo; ///< Speculative execution info
 
-  std::map<const BasicBlock *, int> result;
+  std::map<const BasicBlock *, int> result; ///< Analysis results
   int missNum;
   bool cacheChanged;
 
@@ -349,15 +425,32 @@ public:
   void dump(int mod);
   bool wideningOp(CacheModel *last, CacheModel *current);
 
-  CacheModel *model; // tmp pointer to current model
+  CacheModel *model; ///< Temporary pointer to current model
+
+  /**
+   * @brief Construct the cache analysis
+   * @param F The function to analyze
+   * @param DT Dominator tree
+   * @param PDT Post-dominator tree
+   * @param AA Alias analysis
+   * @param Various analysis parameters
+   */
   CacheSpecuAnalysis(Function &F, DominatorTree &DT, PostDominatorTree &PDT,
                      AliasAnalysis *AA, unsigned, unsigned, unsigned, unsigned,
                      unsigned);
+
+  /**
+   * @brief Check if an edge is a back edge (loop)
+   * @param from Source basic block
+   * @param to Target basic block
+   * @return true if this is a back edge
+   */
   inline bool IsBackEdge(BasicBlock *from, BasicBlock *to) {
     return (std::find(this->backEdges.begin(), this->backEdges.end(),
                       std::pair<const BasicBlock *, const BasicBlock *>(
                           from, to)) != this->backEdges.end());
   }
+
   bool SpecuSim(BasicBlock *from, BasicBlock *to, CacheModel *init = nullptr);
   unsigned GetSpecuInfo(CacheSpecuInfo *&specuInfo, BasicBlock *bb);
   BasicBlock *SpecuPropagation(BasicBlock *startBB, BasicBlock *termBB,
@@ -372,7 +465,6 @@ public:
   void InitModel();
   void InitModel(GlobalVariable *var, unsigned b, unsigned e);
   void ExtractGEPC(ConstantExpr *source, Value *&target, unsigned &offset);
-  // void taintBBInstructions(BasicBlock *bb);
   void visitAllocaInst(AllocaInst &I);
   void visitLoadInst(LoadInst &I);
   void visitBitCastInst(BitCastInst &I);
@@ -382,11 +474,8 @@ public:
   void visitSelectInst(SelectInst &I);
   void visitIntrinsicInst(IntrinsicInst &I);
   void visitVACopyInst(VACopyInst &I);
-
   void visitBranchInst(BranchInst &I);
-
   void visitGetElementPtrInst(GetElementPtrInst &I);
-  // PointerLocation* aliasGetElementPtrInst(GetElementPtrInst &I);
   void visitInstruction(Instruction &I);
 };
 } // namespace spectre

@@ -2,6 +2,19 @@
  * @file MHPAnalysis.cpp
  * @brief Implementation of May-Happen-in-Parallel Analysis
  *
+ * This analysis constructs a Thread Flow Graph (TFG) to determine which instructions
+ * may execute concurrently.
+ *
+ * Soundness Properties:
+ * - Default Safety: The analysis is conservative (safe) for race detection.
+ *   It assumes two instructions MHP unless a Happens-Before (HB) relation is proven.
+ * - Synchronization:
+ *   - Fork/Join: Precisely models ancestor relationships.
+ *   - Locks: Uses LockSet analysis (if enabled) to rule out parallelism guarded by common locks.
+ *   - Condition Variables: Conservatively assumes a signal may wake any wait.
+ *   - Barriers: Enforces program order across barriers.
+ * - Loop Handling: Detects threads created in loops and treats them as having multiple instances.
+ *
  * Author: rainoftime
  */
 
@@ -649,7 +662,9 @@ void MHPAnalysis::handleCondSignal(const Instruction *signal_inst,
   
   // Add happens-before edges from this signal to all subsequent waits
   // Note: This is conservative - we don't know which specific wait will be woken
-  // A more precise analysis would track the runtime pairing of signals and waits
+  // A more precise analysis would track the runtime pairing of signals and waits.
+  // By assuming a signal triggers ANY potential wait, we might find false MHP pairs,
+  // but we won't miss true ones (sound for MHP).
 }
 
 void MHPAnalysis::handleBarrier(const Instruction *barrier_inst,
@@ -730,8 +745,10 @@ bool MHPAnalysis::mayHappenInParallel(const Instruction *i1,
   if (isPrecomputedMHP(i1, i2))
     return true;
 
-  // Conservative check: if no happens-before relation can be proven,
-  // and no lock-based ordering exists, assume they may be parallel
+  // Soundness: This is the core conservative check.
+  // If we cannot PROVE a happens-before relation, and we cannot PROVE they are
+  // mutually exclusive (via locks), we MUST assume they can run in parallel.
+  // This ensures we don't miss any potential races (over-approximation).
   return !hasHappenBeforeRelation(i1, i2) &&
          !hasHappenBeforeRelation(i2, i1) &&
          !isOrderedByLocks(i1, i2);
@@ -801,6 +818,13 @@ void MHPAnalysis::mapInstructionToThread(const Instruction *inst,
 
 bool MHPAnalysis::hasHappenBeforeRelation(const Instruction *i1,
                                            const Instruction *i2) const {
+  // Checks if there is a guaranteed execution order i1 -> i2.
+  // This is the inverse of MHP: if HB(i1, i2) or HB(i2, i1), they cannot be parallel.
+  // 
+  // Hierarchy of checks:
+  // 1. Intra-thread: Program order (reachability)
+  // 2. Inter-thread: Fork/Join, Signal/Wait, Barriers
+
   // Check various happens-before relations:
   // 1. Same thread, program order (using reachability without back-edges)
   // 2. Fork-join ordering
@@ -1131,6 +1155,16 @@ bool MHPAnalysis::isBackEdge(const BasicBlock *from, const BasicBlock *to,
 
 bool MHPAnalysis::isReachableWithoutBackEdges(const Instruction *from,
                                                const Instruction *to) const {
+  // Checks reachability in the CFG ignoring back-edges (loops).
+  // This essentially checks "program text order" (lexical/topological order).
+  //
+  // Why ignore back-edges? 
+  // - We want to know if 'from' *must* precede 'to' in a single linear execution trace.
+  // - With loops, 'to' might execute before 'from' in a subsequent iteration (cross-iteration), 
+  //   but for defining a "happens-before" relation that rules out parallelism within the 
+  //   same conceptual thread instance, we focus on the acyclic backbone.
+  // - This is a conservative approximation for "program order" to avoid cycles in HB graph.
+
   if (!from || !to)
     return false;
   
