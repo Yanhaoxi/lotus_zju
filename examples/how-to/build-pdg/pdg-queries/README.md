@@ -1,11 +1,11 @@
-# PDG Query Language Examples
+# Cypher Query Language Examples for PDG
 
-This directory contains examples demonstrating the PDG (Program Dependence Graph) query language, which allows you to analyze program dependencies and security properties.
+This directory contains examples demonstrating how to query Program Dependence Graphs (PDG) using Cypher, a graph query language that allows you to analyze program dependencies and security properties.
 
 ## Files
 
 - `test-program.c` - A C program with various patterns for analysis
-- `example-queries.txt` - Example queries and policies
+- `example-queries.txt` - Example Cypher queries and policies
 - `README.md` - This file
 
 ## Building and Running
@@ -29,117 +29,185 @@ This directory contains examples demonstrating the PDG (Program Dependence Graph
    ./build/bin/pdg-query -i test-program.bc
    
    # Single query
-   ./build/bin/pdg-query -q "pgm" test-program.bc
-   
-   # Policy check
-   ./build/bin/pdg-query -p "noExplicitFlows(returnsOf(\"getInput\"), formalsOf(\"printOutput\")) is empty" test-program.bc
+   ./build/bin/pdg-query -q "MATCH (n) RETURN n" test-program.bc
    
    # Batch queries from file
    ./build/bin/pdg-query -f example-queries.txt test-program.bc
    ```
 
-## Query Language Syntax
+## Cypher Query Language Syntax
 
-### Basic Expressions
+The PDG query tool uses Cypher, a declarative graph query language. Here are the basic patterns:
 
-- `pgm` - The entire program dependence graph
-- `forwardSlice(expr)` - Forward slice from expression
-- `backwardSlice(expr)` - Backward slice from expression
-- `shortestPath(expr1, expr2)` - Shortest path between expressions
-- `selectNodes(nodeType)` - Select nodes of specific type
-- `selectEdges(edgeType)` - Select edges of specific type
+### Basic Node Queries
 
-### Function Queries
+- `MATCH (n) RETURN n` - Get all nodes in the PDG
+- `MATCH (n:INST_FUNCALL) RETURN n` - Get all function call nodes
+- `MATCH (n:FUNC_ENTRY) WHERE n.name = 'main' RETURN n` - Get nodes matching a condition
 
-- `returnsOf("functionName")` - Return values of a function
-- `formalsOf("functionName")` - Formal parameters of a function
-- `entriesOf("functionName")` - Entry points of a function
+### Edge Queries
+
+- `MATCH ()-[r:DATA_DEF_USE]->() RETURN r` - Get all data definition-use edges
+- `MATCH (a)-[r]->(b) RETURN a, b` - Get all connected node pairs
+- `MATCH (a)-[r:CONTROLDEP_BR]->(b) RETURN a, b` - Get control dependency edges
+
+### Path Queries
+
+- `MATCH path = (start)-[*]->(end) RETURN path` - Find all paths between nodes
+- `MATCH path = shortestPath((start)-[*]->(end)) RETURN path` - Find shortest path
+- `MATCH (n)-[*]->(m) RETURN DISTINCT m` - Forward slice (all reachable nodes)
+- `MATCH (m)-[*]->(n) RETURN DISTINCT m` - Backward slice (all nodes that can reach)
+
+### Function-Specific Queries
+
+- **Return values of a function:**
+  ```cypher
+  MATCH (n:FUNC_ENTRY)-[:PARAMETER_OUT]->(ret:INST_RET)
+  WHERE n.name = 'main'
+  RETURN ret
+  ```
+
+- **Formal parameters of a function:**
+  ```cypher
+  MATCH (n:FUNC_ENTRY)-[:PARAMETER_IN]->(param:PARAM_FORMALIN)
+  WHERE n.name = 'main'
+  RETURN param
+  ```
+
+- **Function entry points:**
+  ```cypher
+  MATCH (n:FUNC_ENTRY)
+  WHERE n.name = 'main'
+  RETURN n
+  ```
 
 ### Set Operations
 
-- `expr1 U expr2` - Union of two expressions
-- `expr1 ∩ expr2` - Intersection of two expressions
-- `expr1 - expr2` - Difference of two expressions
+- **Union:** Use `UNION` keyword
+  ```cypher
+  MATCH (a) RETURN a
+  UNION
+  MATCH (b) RETURN b
+  ```
 
-### Variable Binding
+- **Intersection:** Use `WHERE EXISTS` subquery
+  ```cypher
+  MATCH (n)
+  WHERE EXISTS {
+    MATCH (m)
+    WHERE n.id = m.id AND m:INST_BR
+  }
+  RETURN n
+  ```
 
-- `let var = expr1 in expr2` - Bind variable in expression
-
-### Policy Checks
-
-- `expr is empty` - Check if expression evaluates to empty set
-- `expr is not empty` - Check if expression is non-empty
+- **Difference:** Use `WHERE NOT`
+  ```cypher
+  MATCH (calls:INST_FUNCALL)
+  WHERE NOT (calls:INST_BR)
+  RETURN calls
+  ```
 
 ## Example Queries
 
 ### Basic Analysis
 
-```bash
+```cypher
 # Get all nodes in the PDG
-pgm
+MATCH (n) RETURN n
 
 # Get all function call nodes
-selectNodes(INST_FUNCALL)
+MATCH (n:INST_FUNCALL) RETURN n
 
 # Get all data dependency edges
-selectEdges(DATA_DEF_USE)
+MATCH ()-[r:DATA_DEF_USE]->() RETURN r
 
 # Get return values of main function
-returnsOf("main")
+MATCH (n:FUNC_ENTRY)-[:PARAMETER_OUT]->(ret:INST_RET)
+WHERE n.name = 'main'
+RETURN ret
 ```
 
 ### Information Flow Analysis
 
-```bash
+```cypher
 # Check for direct flows from input to output
-between(returnsOf("getInput"), formalsOf("printOutput"))
+MATCH path = (input:FUNC_ENTRY)-[:PARAMETER_OUT]->(inputRet:INST_RET)-[*]->(output:FUNC_ENTRY)-[:PARAMETER_IN]->(outputParam:PARAM_FORMALIN)
+WHERE input.name = 'getInput' AND output.name = 'printOutput'
+RETURN path
 
 # Check for flows from secret to network
-between(returnsOf("getSecret"), formalsOf("networkSend"))
+MATCH path = (secret:FUNC_ENTRY)-[:PARAMETER_OUT]->(secretRet:INST_RET)-[*]->(network:FUNC_ENTRY)-[:PARAMETER_IN]->(networkParam:PARAM_FORMALIN)
+WHERE secret.name = 'getSecret' AND network.name = 'networkSend'
+RETURN path
 
 # Forward slice from user input
-forwardSlice(returnsOf("getInput"))
+MATCH (input:FUNC_ENTRY)-[:PARAMETER_OUT]->(inputRet:INST_RET)
+WHERE input.name = 'getInput'
+MATCH (inputRet)-[*]->(n)
+RETURN n
 
 # Backward slice to output
-backwardSlice(formalsOf("printOutput"))
+MATCH (output:FUNC_ENTRY)-[:PARAMETER_IN]->(outputParam:PARAM_FORMALIN)
+WHERE output.name = 'printOutput'
+MATCH (n)-[*]->(outputParam)
+RETURN n
 ```
 
 ### Security Policies
 
-```bash
+```cypher
 # No explicit flows from secret to output
-noExplicitFlows(returnsOf("getSecret"), formalsOf("printOutput")) is empty
+MATCH path = (secret:FUNC_ENTRY)-[:PARAMETER_OUT]->(secretRet:INST_RET)-[*]->(output:FUNC_ENTRY)-[:PARAMETER_IN]->(outputParam:PARAM_FORMALIN)
+WHERE secret.name = 'getSecret' AND output.name = 'printOutput'
+RETURN path
 
 # No flows from input to network without sanitization
-let sources = returnsOf("getInput") in
-let sinks = formalsOf("networkSend") in
-let sanitizers = returnsOf("sanitize") in
-declassifies(sanitizers, sources, sinks) is empty
+MATCH (sources:FUNC_ENTRY)-[:PARAMETER_OUT]->(sourceRet:INST_RET)
+WHERE sources.name = 'getInput'
+MATCH (sinks:FUNC_ENTRY)-[:PARAMETER_IN]->(sinkParam:PARAM_FORMALIN)
+WHERE sinks.name = 'networkSend'
+MATCH (sanitizers:FUNC_ENTRY)-[:PARAMETER_OUT]->(sanitizerRet:INST_RET)
+WHERE sanitizers.name = 'sanitize'
+MATCH path = (sourceRet)-[*]->(sinkParam)
+WHERE NOT EXISTS {
+  MATCH (sourceRet)-[*]->(sanitizerRet)-[*]->(sinkParam)
+}
+RETURN path
 
 # Access control: sensitive operations only when authorized
-let checks = findPCNodes(returnsOf("isAuthorized"), TRUE) in
-let sensitiveOps = selectNodes(INST_FUNCALL) in
-accessControlled(checks, sensitiveOps) is empty
+MATCH (auth:FUNC_ENTRY)-[:PARAMETER_OUT]->(authRet:INST_RET)
+WHERE auth.name = 'isAuthorized'
+MATCH (authRet)-[:CONTROLDEP_BR]->(check)
+MATCH (sensitiveOps:INST_FUNCALL)
+WHERE NOT EXISTS {
+  MATCH (check)-[:CONTROLDEP_BR]->(sensitiveOps)
+}
+RETURN sensitiveOps
 ```
 
 ### Complex Queries
 
-```bash
+```cypher
 # Find all paths from input to output through sanitization
-let input = returnsOf("getInput") in
-let output = formalsOf("printOutput") in
-let sanitized = returnsOf("sanitize") in
-let path1 = between(input, sanitized) in
-let path2 = between(sanitized, output) in
-path1 U path2
+MATCH (input:FUNC_ENTRY)-[:PARAMETER_OUT]->(inputRet:INST_RET)
+WHERE input.name = 'getInput'
+MATCH (output:FUNC_ENTRY)-[:PARAMETER_IN]->(outputParam:PARAM_FORMALIN)
+WHERE output.name = 'printOutput'
+MATCH (sanitized:FUNC_ENTRY)-[:PARAMETER_OUT]->(sanitizedRet:INST_RET)
+WHERE sanitized.name = 'sanitize'
+MATCH path1 = (inputRet)-[*]->(sanitizedRet)
+MATCH path2 = (sanitizedRet)-[*]->(outputParam)
+RETURN path1, path2
 
 # Find nodes that are both data and control dependent
-let dataNodes = selectNodes(INST_FUNCALL) in
-let controlNodes = selectNodes(INST_BR) in
-dataNodes ∩ controlNodes
+MATCH (dataNodes:INST_FUNCALL)
+WHERE EXISTS {
+  MATCH (dataNodes)-[:CONTROLDEP_BR]->()
+}
+RETURN dataNodes
 ```
 
-## Node Types
+## Node Types (Labels)
 
 - `INST_FUNCALL` - Function call instructions
 - `INST_RET` - Return instructions
@@ -153,7 +221,7 @@ dataNodes ∩ controlNodes
 - `FUNC` - Function nodes
 - `CLASS` - Class nodes
 
-## Edge Types
+## Edge Types (Relationship Types)
 
 - `DATA_DEF_USE` - Data definition-use edges
 - `DATA_RAW` - Read-after-write edges
@@ -176,4 +244,4 @@ The test program contains several security-relevant patterns:
 5. **Sensitive Data Logging**: Secret always logged
 6. **Complex Control Flow**: Authorization checks with data processing
 
-Use the query language to detect these patterns and verify security properties.
+Use Cypher queries to detect these patterns and verify security properties.

@@ -489,57 +489,77 @@ Build PDG and Query
 Interactive Queries
 ~~~~~~~~~~~~~~~~~~~
 
-In the interactive mode, try these queries:
+In the interactive mode, try these Cypher queries:
 
 **1. View entire PDG**:
 
-.. code-block:: text
+.. code-block:: cypher
 
-   > pgm
+   > MATCH (n) RETURN n
 
 **2. Find returns of get_secret_data**:
 
-.. code-block:: text
+.. code-block:: cypher
 
-   > returnsOf("get_secret_data")
+   > MATCH (func:FUNC_ENTRY)-[:PARAMETER_OUT]->(ret:INST_RET)
+   > WHERE func.name = 'get_secret_data'
+   > RETURN ret
 
 **3. Find parameters of send_to_network**:
 
-.. code-block:: text
+.. code-block:: cypher
 
-   > formalsOf("send_to_network")
+   > MATCH (func:FUNC_ENTRY)-[:PARAMETER_IN]->(param:PARAM_FORMALIN)
+   > WHERE func.name = 'send_to_network'
+   > RETURN param
 
 **4. Check information flow**:
 
-.. code-block:: text
+.. code-block:: cypher
 
-   > between(returnsOf("get_secret_data"), formalsOf("send_to_network"))
+   > MATCH (secret:FUNC_ENTRY)-[:PARAMETER_OUT]->(secretRet:INST_RET)
+   > WHERE secret.name = 'get_secret_data'
+   > MATCH (network:FUNC_ENTRY)-[:PARAMETER_IN]->(networkParam:PARAM_FORMALIN)
+   > WHERE network.name = 'send_to_network'
+   > MATCH path = (secretRet)-[*]->(networkParam)
+   > RETURN path
 
 **5. Security Policy Check**:
 
-.. code-block:: text
+.. code-block:: cypher
 
-   > let secret = returnsOf("get_secret_data") in
-   > let network = formalsOf("send_to_network") in
-   > let auth = returnsOf("authenticate") in
-   > noExplicitFlows(secret, network) is empty
+   > MATCH (secret:FUNC_ENTRY)-[:PARAMETER_OUT]->(secretRet:INST_RET)
+   > WHERE secret.name = 'get_secret_data'
+   > MATCH (network:FUNC_ENTRY)-[:PARAMETER_IN]->(networkParam:PARAM_FORMALIN)
+   > WHERE network.name = 'send_to_network'
+   > MATCH path = (secretRet)-[*]->(networkParam)
+   > RETURN path
 
 Batch Query File
 ~~~~~~~~~~~~~~~~
 
 Create ``security_policy.txt``:
 
-.. code-block:: text
+.. code-block:: cypher
 
    # Check if secret data flows to network
-   let secret = returnsOf("get_secret_data") in
-   let network = formalsOf("send_to_network") in
-   between(secret, network)
+   MATCH (secret:FUNC_ENTRY)-[:PARAMETER_OUT]->(secretRet:INST_RET)
+   WHERE secret.name = 'get_secret_data'
+   MATCH (network:FUNC_ENTRY)-[:PARAMETER_IN]->(networkParam:PARAM_FORMALIN)
+   WHERE network.name = 'send_to_network'
+   MATCH path = (secretRet)-[*]->(networkParam)
+   RETURN path
    
    # Check if authentication guards sensitive operations
-   let auth = returnsOf("authenticate") in
-   let sensitiveOps = formalsOf("send_to_network") in
-   dependsOn(sensitiveOps, auth)
+   MATCH (auth:FUNC_ENTRY)-[:PARAMETER_OUT]->(authRet:INST_RET)
+   WHERE auth.name = 'authenticate'
+   MATCH (authRet)-[:CONTROLDEP_BR]->(check)
+   MATCH (sensitiveOps:FUNC_ENTRY)-[:PARAMETER_IN]->(opParam:PARAM_FORMALIN)
+   WHERE sensitiveOps.name = 'send_to_network'
+   WHERE EXISTS {
+     MATCH (check)-[:CONTROLDEP_BR]->(opParam)
+   }
+   RETURN opParam
 
 Run batch queries:
 

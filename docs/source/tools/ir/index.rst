@@ -14,7 +14,7 @@ Interactive and batch query engine for the Program Dependence Graph (PDG).
    ./build/bin/pdg-query -i program.bc
 
    # Single query
-   ./build/bin/pdg-query -q "returnsOf(\"main\")" program.bc
+   ./build/bin/pdg-query -q "MATCH (n:FUNC_ENTRY) WHERE n.name = 'main' RETURN n" program.bc
 
    # Batch queries from file
    ./build/bin/pdg-query -f queries.txt program.bc

@@ -253,17 +253,17 @@ Check dependencies:
    std::set<EdgeType> exclude = {EdgeType::CONTROL_DEP};
    bool hasDataPath = pdg->canReach(*srcNode, *dstNode, exclude);
 
-PDG Query Language API
-~~~~~~~~~~~~~~~~~~~~~~
+PDG Cypher Query API
+~~~~~~~~~~~~~~~~~~~~~
 
 Include headers:
 
 .. code-block:: cpp
 
-   #include "IR/PDG/QueryLanguage.h"
-   #include "IR/PDG/QueryParser.h"
+   #include "IR/PDG/CypherQuery.h"
+   #include "IR/PDG/ProgramDependencyGraph.h"
 
-Parse and execute queries:
+Parse and execute Cypher queries:
 
 .. code-block:: cpp
 
@@ -271,40 +271,56 @@ Parse and execute queries:
    
    // Build PDG first
    ProgramDependencyGraph *pdgPass = /* get pass */;
-   ProgramGraph *pdg = pdgPass->getPDG();
+   ProgramGraph &pdg = pdgPass->getPDG();
    
-   // Create query context
-   QueryContext ctx(pdg);
+   // Create Cypher query executor
+   CypherQueryExecutor executor(pdg);
    
-   // Parse query
-   QueryParser parser;
-   std::string query = "returnsOf(\"main\")";
-   std::unique_ptr<QueryExpr> expr = parser.parse(query);
+   // Parse Cypher query
+   CypherParser parser;
+   std::string queryStr = "MATCH (n:FUNC_ENTRY) WHERE n.name = 'main' RETURN n";
+   std::unique_ptr<CypherQuery> query = parser.parse(queryStr);
    
    // Execute query
-   NodeSet result = expr->evaluate(ctx);
+   std::unique_ptr<CypherResult> result = executor.execute(*query);
    
    // Process results
-   for (auto *node : result) {
-       errs() << "Result node: " << *node << "\n";
+   if (result->getType() == CypherResult::ResultType::NODES) {
+       for (auto *node : result->getNodes()) {
+           errs() << "Result node: " << *node << "\n";
+       }
    }
 
-Define custom query expressions:
+Execute queries with error handling:
 
 .. code-block:: cpp
 
-   // Forward slice
-   ForwardSliceExpr fwdSlice(sourceExpr);
-   NodeSet slice = fwdSlice.evaluate(ctx);
+   CypherParser parser;
+   std::string queryStr = "MATCH (n) RETURN n";
+   std::unique_ptr<CypherQuery> query = parser.parse(queryStr);
    
-   // Backward slice
-   BackwardSliceExpr bwdSlice(sinkExpr);
-   NodeSet bwdSlice = bwdSlice.evaluate(ctx);
+   if (parser.hasError()) {
+       errs() << "Parse error: " << parser.getLastError().toString() << "\n";
+       return;
+   }
    
-   // Set operations
-   UnionExpr unionExpr(expr1, expr2);
-   IntersectExpr intersectExpr(expr1, expr2);
-   DiffExpr diffExpr(expr1, expr2);
+   CypherQueryExecutor executor(pdg);
+   std::unique_ptr<CypherResult> result = executor.execute(*query);
+   
+   if (!executor.getLastError().empty()) {
+       errs() << "Execution error: " << executor.getLastError() << "\n";
+       return;
+   }
+
+Query with parameters:
+
+.. code-block:: cpp
+
+   CypherQueryParameters params;
+   params["functionName"] = "main";
+   
+   std::string queryStr = "MATCH (n:FUNC_ENTRY) WHERE n.name = $functionName RETURN n";
+   std::unique_ptr<CypherQuery> query = parser.parse(queryStr, params);
 
 Data Flow Analysis APIs
 -----------------------

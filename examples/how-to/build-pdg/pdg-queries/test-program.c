@@ -1,9 +1,9 @@
 /**
  * @file test-program.c
- * @brief Test program for demonstrating PDG query language
+ * @brief Test program for demonstrating PDG Cypher queries
  *
  * This program contains various patterns that can be analyzed using
- * the PDG query language, including information flows, access control,
+ * Cypher queries on the PDG, including information flows, access control,
  * and data dependencies.
  */
 

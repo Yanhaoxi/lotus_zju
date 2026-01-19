@@ -3,19 +3,37 @@
 
 #include "Utils/LLVM/SystemHeaders.h"
 
+#include <map>
+
 namespace mono {
+
+template <typename ContainerT> class DataFlowResultT {
+public:
+  DataFlowResultT() = default;
+
+  ContainerT &GEN(Instruction *inst) { return gens[inst]; }
+  ContainerT &KILL(Instruction *inst) { return kills[inst]; }
+  ContainerT &IN(Instruction *inst) { return ins[inst]; }
+  ContainerT &OUT(Instruction *inst) { return outs[inst]; }
+
+private:
+  std::map<Instruction *, ContainerT> gens;
+  std::map<Instruction *, ContainerT> kills;
+  std::map<Instruction *, ContainerT> ins;
+  std::map<Instruction *, ContainerT> outs;
+};
 
 class DataFlowResult {
 public:
   /*
    * Methods
    */
-  DataFlowResult();
+  DataFlowResult() = default;
 
-  std::set<Value *> &GEN(Instruction *inst);
-  std::set<Value *> &KILL(Instruction *inst);
-  std::set<Value *> &IN(Instruction *inst);
-  std::set<Value *> &OUT(Instruction *inst);
+  std::set<Value *> &GEN(Instruction *inst) { return gens[inst]; }
+  std::set<Value *> &KILL(Instruction *inst) { return kills[inst]; }
+  std::set<Value *> &IN(Instruction *inst) { return ins[inst]; }
+  std::set<Value *> &OUT(Instruction *inst) { return outs[inst]; }
 
 private:
   std::map<Instruction *, std::set<Value *>> gens;

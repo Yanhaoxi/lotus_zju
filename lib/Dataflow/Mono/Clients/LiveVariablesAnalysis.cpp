@@ -3,70 +3,99 @@
  * Author: rainoftime
 */
 #include "Dataflow/Mono/Clients/LiveVariablesAnalysis.h"
-#include "Dataflow/Mono/DataFlowEngine.h"
+#include "Dataflow/Mono/IntraMonoProblem.h"
+#include "Dataflow/Mono/LLVMAnalysisDomain.h"
+#include "Dataflow/Mono/Solver/IntraMonoSolver.h"
 
 using namespace llvm;
 
 namespace mono {
 
+namespace {
+
+struct LiveVariablesDomain : LLVMMonoAnalysisDomain<std::set<Value *>> {};
+
+class LiveVariablesProblem : public IntraMonoProblem<LiveVariablesDomain> {
+public:
+  explicit LiveVariablesProblem(Function *F)
+      : IntraMonoProblem<LiveVariablesDomain>({F}) {}
+
+  FlowDirection direction() const override { return FlowDirection::Backward; }
+
+  std::set<Value *> normalFlow(Instruction *Inst,
+                               const std::set<Value *> &In) override {
+    std::set<Value *> Out = In;
+
+    if (!Inst->getType()->isVoidTy()) {
+      Out.erase(Inst);
+    }
+
+    for (auto &Op : Inst->operands()) {
+      if (isa<Instruction>(Op) || isa<Argument>(Op)) {
+        Out.insert(Op);
+      }
+    }
+
+    return Out;
+  }
+
+  std::set<Value *> merge(const std::set<Value *> &Lhs,
+                          const std::set<Value *> &Rhs) override {
+    std::set<Value *> Out = Lhs;
+    Out.insert(Rhs.begin(), Rhs.end());
+    return Out;
+  }
+
+  bool equal_to(const std::set<Value *> &Lhs,
+                const std::set<Value *> &Rhs) override {
+    return Lhs == Rhs;
+  }
+
+  std::unordered_map<Instruction *, std::set<Value *>> initialSeeds() override {
+    std::unordered_map<Instruction *, std::set<Value *>> Seeds;
+    auto *F = getEntryPoints().empty() ? nullptr : getEntryPoints().front();
+    if (F == nullptr) {
+      return Seeds;
+    }
+    for (auto &BB : *F) {
+      if (auto *Ret = dyn_cast<ReturnInst>(BB.getTerminator())) {
+        Seeds[Ret] = {};
+      }
+    }
+    return Seeds;
+  }
+};
+
+} // namespace
+
 // SSA register liveness analysis
 std::unique_ptr<DataFlowResult> runLiveVariablesAnalysis(Function *f) {
-  if (f == nullptr) {
+  if (f == nullptr || f->isDeclaration()) {
     return nullptr;
   }
 
-  auto dfa = DataFlowEngine{};
-  
-  // GEN[n] = { v | v is an SSA value used by n }
-  // Simply collect all non-constant operands
-  auto computeGEN = [](Instruction *i, DataFlowResult *df) {
-    for (auto &op : i->operands()) {
-      // Only SSA values (Instructions and Arguments) are tracked
-      // Constants are not "live" in the dataflow sense
-      if (isa<Instruction>(op) || isa<Argument>(op)) {
-        df->GEN(i).insert(op);
+  LiveVariablesProblem Problem(f);
+  IntraMonoSolver<LiveVariablesDomain> Solver(Problem);
+  Solver.solve();
+
+  auto Result = std::make_unique<DataFlowResult>();
+  for (auto &BB : *f) {
+    for (auto &Inst : BB) {
+      auto *I = &Inst;
+      Result->OUT(I) = Solver.getInResultsAt(I);
+      Result->IN(I) = Solver.getOutResultsAt(I);
+      for (auto &Op : I->operands()) {
+        if (isa<Instruction>(Op) || isa<Argument>(Op)) {
+          Result->GEN(I).insert(Op);
+        }
+      }
+      if (!I->getType()->isVoidTy()) {
+        Result->KILL(I).insert(I);
       }
     }
-  };
-  
-  // KILL[n] = { n } if n produces a non-void SSA value
-  // In SSA form, each instruction that produces a value defines exactly one SSA value: itself
-  auto computeKILL = [](Instruction *i, DataFlowResult *df) {
-    if (!i->getType()->isVoidTy()) {
-      df->KILL(i).insert(i);
-    }
-  };
-  
-  // OUT[n] = ⋃ IN[s] for all CFG successors s of n
-  auto computeOUT = [](Instruction * /*inst*/,
-                       Instruction *succ,
-                       std::set<Value *> &OUT,
-                       DataFlowResult *df) {
-    auto &inS = df->IN(succ);
-    OUT.insert(inS.begin(), inS.end());
-  };
-  
-  // IN[n] = (OUT[n] - KILL[n]) ∪ GEN[n]
-  auto computeIN = [](Instruction *inst, 
-                      std::set<Value *> &IN, 
-                      DataFlowResult *df) {
-    auto &gen = df->GEN(inst);
-    auto &kill = df->KILL(inst);
-    auto &out = df->OUT(inst);
-    
-    // Add everything in OUT that's not killed
-    for (auto *v : out) {
-      if (kill.find(v) == kill.end()) {
-        IN.insert(v);
-      }
-    }
-    
-    // Add everything in GEN
-    IN.insert(gen.begin(), gen.end());
-  };
-  
-  return dfa.applyBackward(f, computeGEN, computeKILL, computeIN, computeOUT);
+  }
+
+  return Result;
 }
 
 } // namespace mono
-

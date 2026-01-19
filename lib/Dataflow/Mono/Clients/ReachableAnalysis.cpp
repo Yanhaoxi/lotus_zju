@@ -1,5 +1,9 @@
 #include "Dataflow/Mono/Clients/ReachableAnalysis.h"
-#include "Dataflow/Mono/DataFlowEngine.h"
+#include "Dataflow/Mono/IntraMonoProblem.h"
+#include "Dataflow/Mono/LLVMAnalysisDomain.h"
+#include "Dataflow/Mono/Solver/IntraMonoSolver.h"
+
+using namespace llvm;
 
 namespace mono {
 
@@ -28,62 +32,64 @@ std::unique_ptr<DataFlowResult> runReachableAnalysis(
     Function *f,
     const std::function<bool(Instruction *i)> &filter) {
 
-  if (f == nullptr) {
+  if (f == nullptr || f->isDeclaration()) {
     return nullptr;
   }
 
-  /*
-   * Allocate the engine
-   */
-  auto dfa = DataFlowEngine{};
+  struct ReachableDomain : LLVMMonoAnalysisDomain<std::set<Value *>> {};
+  class ReachableProblem : public IntraMonoProblem<ReachableDomain> {
+  public:
+    ReachableProblem(Function *F, std::function<bool(Instruction *)> Filter)
+        : IntraMonoProblem<ReachableDomain>({F}), Filter(std::move(Filter)) {}
 
-  /*
-   * Define the data-flow equations
-   */
-  auto computeGEN = [filter](Instruction *i, DataFlowResult *df) {
-    /*
-     * Check if the instruction should be considered.
-     */
-    if (!filter(i)) {
-      return;
+    FlowDirection direction() const override { return FlowDirection::Backward; }
+
+    std::set<Value *> normalFlow(Instruction *Inst,
+                                 const std::set<Value *> &In) override {
+      std::set<Value *> Out = In;
+      if (Filter(Inst)) {
+        Out.insert(Inst);
+      }
+      return Out;
     }
 
-    /*
-     * Add the instruction to the GEN set.
-     */
-    auto &gen = df->GEN(i);
-    gen.insert(i);
+    std::set<Value *> merge(const std::set<Value *> &Lhs,
+                            const std::set<Value *> &Rhs) override {
+      std::set<Value *> Out = Lhs;
+      Out.insert(Rhs.begin(), Rhs.end());
+      return Out;
+    }
 
-    return;
+    bool equal_to(const std::set<Value *> &Lhs,
+                  const std::set<Value *> &Rhs) override {
+      return Lhs == Rhs;
+    }
+
+    std::unordered_map<Instruction *, std::set<Value *>> initialSeeds() override {
+      return {};
+    }
+
+  private:
+    std::function<bool(Instruction *)> Filter;
   };
-  auto computeKILL = [](Instruction *, DataFlowResult *) { return; };
-  auto computeOUT = [](Instruction *,
-                       Instruction *succ,
-                       std::set<Value *> &OUT,
-                       DataFlowResult *df) {
-    auto &inS = df->IN(succ);
-    OUT.insert(inS.begin(), inS.end());
-    return;
-  };
-  auto computeIN =
-      [](Instruction *inst, std::set<Value *> &IN, DataFlowResult *df) {
-        auto &genI = df->GEN(inst);
-        auto &outI = df->OUT(inst);
 
-        /*
-         * IN[i] = GEN[i] U OUT[i]
-         */
-        IN.insert(genI.begin(), genI.end());
-        IN.insert(outI.begin(), outI.end());
+  ReachableProblem Problem(f, filter);
+  IntraMonoSolver<ReachableDomain> Solver(Problem);
+  Solver.solve();
 
-        return;
-      };
+  auto Result = std::make_unique<DataFlowResult>();
+  for (auto &BB : *f) {
+    for (auto &Inst : BB) {
+      auto *I = &Inst;
+      Result->OUT(I) = Solver.getInResultsAt(I);
+      Result->IN(I) = Solver.getOutResultsAt(I);
+      if (filter(I)) {
+        Result->GEN(I).insert(I);
+      }
+    }
+  }
 
-  /*
-   * Run the data flow analysis needed to identify the instructions that could
-   * be executed from a given point.
-   */
-  return dfa.applyBackward(f, computeGEN, computeKILL, computeIN, computeOUT);
+  return Result;
 }
 
 std::unique_ptr<DataFlowResult> runReachableAnalysis(Function *f) {
@@ -100,4 +106,3 @@ std::unique_ptr<DataFlowResult> runReachableAnalysis(Function *f) {
 }
 
 } // namespace mono
-

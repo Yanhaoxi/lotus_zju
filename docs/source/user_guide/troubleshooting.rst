@@ -378,23 +378,23 @@ PDG Query Issues
 
 1. Check node names:
 
-.. code-block:: bash
+.. code-block:: cypher
 
    # Function names are case-sensitive
-   returnsOf("Main")  # Wrong
-   returnsOf("main")  # Correct
+   MATCH (n:FUNC_ENTRY) WHERE n.name = 'Main' RETURN n  # Wrong
+   MATCH (n:FUNC_ENTRY) WHERE n.name = 'main' RETURN n  # Correct
 
 2. Verify PDG was built:
 
 .. code-block:: bash
 
-   ./bin/pdg-query -q "pgm" input.bc  # Should show nodes
+   ./bin/pdg-query -q "MATCH (n) RETURN n" input.bc  # Should show nodes
 
 3. Use verbose mode:
 
 .. code-block:: bash
 
-   ./bin/pdg-query -v -q "your_query" input.bc
+   ./bin/pdg-query -v -q "MATCH (n) RETURN n" input.bc
 
 **Problem**: Query parser error.
 
@@ -402,20 +402,20 @@ PDG Query Issues
 
 1. Check query syntax:
 
-.. code-block:: text
+.. code-block:: cypher
 
    # Wrong
-   returnsOf(main)
+   MATCH (n:FUNC_ENTRY) WHERE n.name = main RETURN n
    
    # Correct
-   returnsOf("main")
+   MATCH (n:FUNC_ENTRY) WHERE n.name = 'main' RETURN n
 
 2. Use interactive mode to test:
 
 .. code-block:: bash
 
    ./bin/pdg-query -i input.bc
-   > returnsOf("main")
+   > MATCH (n:FUNC_ENTRY) WHERE n.name = 'main' RETURN n
 
 Taint Analysis Issues
 ~~~~~~~~~~~~~~~~~~~~~

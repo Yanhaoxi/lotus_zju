@@ -1,71 +1,132 @@
-# PDG Query Language Examples
-# This file contains example queries and policies for the PDG query language
+# Cypher Query Language Examples for PDG
+# This file contains example Cypher queries and policies for querying Program Dependence Graphs
 
-# Basic queries
-pgm
-forwardSlice(pgm)
-backwardSlice(pgm)
-pgm.selectNodes(INST_FUNCALL)
-pgm.returnsOf("main")
+# Basic queries - Get all nodes
+MATCH (n) RETURN n
 
-# Node and edge selection
-selectNodes(INST_FUNCALL)
-selectNodes(INST_RET)
-selectNodes(PARAM_FORMALIN)
-selectEdges(DATA_DEF_USE)
-selectEdges(CONTROLDEP_BR)
-selectEdges(DATA_RAW)
-selectNodes(FUNC_ENTRY)
+# Get all nodes with forward dependencies (forward slice)
+MATCH (n)-[*]->(m) RETURN DISTINCT m
 
-# Function-specific queries
-returnsOf("main")
-formalsOf("main")
-entriesOf("main")
+# Get all nodes with backward dependencies (backward slice)
+MATCH (m)-[*]->(n) RETURN DISTINCT m
 
-# Path finding
-between(returnsOf("input"), formalsOf("output"))
-shortestPath(returnsOf("secret"), formalsOf("leak"))
+# Node and edge selection by type
+MATCH (n:INST_FUNCALL) RETURN n
+MATCH (n:INST_RET) RETURN n
+MATCH (n:PARAM_FORMALIN) RETURN n
+MATCH ()-[r:DATA_DEF_USE]->() RETURN r
+MATCH ()-[r:CONTROLDEP_BR]->() RETURN r
+MATCH ()-[r:DATA_RAW]->() RETURN r
+MATCH (n:FUNC_ENTRY) RETURN n
 
-# Set operations
-let sources = returnsOf("input") in
-let sinks = formalsOf("output") in
-sources U sinks
+# Function-specific queries - Get return nodes of a function
+MATCH (n:FUNC_ENTRY)-[:PARAMETER_OUT]->(ret:INST_RET)
+WHERE n.name = 'main'
+RETURN ret
 
-let dataNodes = selectNodes(INST_FUNCALL) in
-let controlNodes = selectNodes(INST_BR) in
-dataNodes ∩ controlNodes
+# Get formal parameters of a function
+MATCH (n:FUNC_ENTRY)-[:PARAMETER_IN]->(param:PARAM_FORMALIN)
+WHERE n.name = 'main'
+RETURN param
+
+# Get function entry nodes
+MATCH (n:FUNC_ENTRY)
+WHERE n.name = 'main'
+RETURN n
+
+# Path finding - Find paths between nodes
+MATCH path = (start)-[*]->(end)
+WHERE start.name = 'input' AND end.name = 'output'
+RETURN path
+
+# Shortest path between nodes
+MATCH path = shortestPath((start)-[*]->(end))
+WHERE start.name = 'secret' AND end.name = 'leak'
+RETURN path
+
+# Set operations using UNION
+MATCH (sources:FUNC_ENTRY)-[:PARAMETER_OUT]->(ret:INST_RET)
+WHERE sources.name = 'input'
+WITH ret AS sources
+MATCH (sinks:FUNC_ENTRY)-[:PARAMETER_IN]->(param:PARAM_FORMALIN)
+WHERE sinks.name = 'output'
+RETURN sources
+UNION
+RETURN param AS sinks
+
+# Intersection using WHERE EXISTS
+MATCH (dataNodes:INST_FUNCALL)
+WHERE EXISTS {
+  MATCH (controlNodes:INST_BR)
+  WHERE dataNodes.id = controlNodes.id
+}
+RETURN dataNodes
 
 # Difference: function calls not control nodes
-let calls = selectNodes(INST_FUNCALL) in
-let pcs = selectNodes(INST_BR) in
-calls - pcs
+MATCH (calls:INST_FUNCALL)
+WHERE NOT (calls:INST_BR)
+RETURN calls
 
-# Complex queries
-let input = returnsOf("getInput") in
-let output = formalsOf("print") in
-forwardSlice(input) ∩ backwardSlice(output)
+# Complex queries - Forward slice from input, backward slice to output
+MATCH (input:FUNC_ENTRY)-[:PARAMETER_OUT]->(inputRet:INST_RET)
+WHERE input.name = 'getInput'
+MATCH (inputRet)-[*]->(n)
+MATCH (output:FUNC_ENTRY)-[:PARAMETER_IN]->(outputParam:PARAM_FORMALIN)
+WHERE output.name = 'print'
+MATCH (m)-[*]->(outputParam)
+WHERE n.id = m.id
+RETURN n
 
-# Chaining examples
-pgm.selectNodes(INST_RET) U returnsOf("main")
-pgm.forwardSlice(returnsOf("getInput"))
+# Forward slice from function return
+MATCH (func:FUNC_ENTRY)-[:PARAMETER_OUT]->(ret:INST_RET)
+WHERE func.name = 'getInput'
+MATCH (ret)-[*]->(n)
+RETURN n
 
-# Policy examples
-noExplicitFlows(returnsOf("secret"), formalsOf("output")) is empty
-between(returnsOf("input"), formalsOf("sink")) is empty
+# Policy examples - Check for paths between sources and sinks
+MATCH path = (secret:FUNC_ENTRY)-[:PARAMETER_OUT]->(secretRet:INST_RET)-[*]->(output:FUNC_ENTRY)-[:PARAMETER_IN]->(outputParam:PARAM_FORMALIN)
+WHERE secret.name = 'secret' AND output.name = 'output'
+RETURN path
 
-# Access control policies
-let checks = findPCNodes(returnsOf("isAuthorized"), CONTROLDEP_BR) in
-let sensitiveOps = selectNodes(INST_FUNCALL) in
-accessControlled(checks, sensitiveOps) is empty
+# Check if path exists between input and sink
+MATCH (input:FUNC_ENTRY)-[:PARAMETER_OUT]->(inputRet:INST_RET)
+WHERE input.name = 'input'
+MATCH (sink:FUNC_ENTRY)-[:PARAMETER_IN]->(sinkParam:PARAM_FORMALIN)
+WHERE sink.name = 'sink'
+MATCH path = (inputRet)-[*]->(sinkParam)
+RETURN path
 
-# Information flow policies
-let sources = returnsOf("userInput") in
-let sinks = formalsOf("networkSend") in
-let sanitizers = returnsOf("sanitize") in
-declassifies(sanitizers, sources, sinks) is empty
+# Access control policies - Find control dependencies from authorization checks
+MATCH (auth:FUNC_ENTRY)-[:PARAMETER_OUT]->(authRet:INST_RET)
+WHERE auth.name = 'isAuthorized'
+MATCH (authRet)-[:CONTROLDEP_BR]->(check)
+MATCH (sensitiveOps:INST_FUNCALL)
+WHERE NOT EXISTS {
+  MATCH (check)-[:CONTROLDEP_BR]->(sensitiveOps)
+}
+RETURN sensitiveOps
 
-# From the paper (adapted): secret does not influence output except by comparison
-let secret = returnsOf("getRandom") in
-let outputs = formalsOf("output") in
-let check = selectNodes(INST_BR) in
-removeControlDeps(check) is empty
+# Information flow policies - Check for sanitization
+MATCH (sources:FUNC_ENTRY)-[:PARAMETER_OUT]->(sourceRet:INST_RET)
+WHERE sources.name = 'userInput'
+MATCH (sinks:FUNC_ENTRY)-[:PARAMETER_IN]->(sinkParam:PARAM_FORMALIN)
+WHERE sinks.name = 'networkSend'
+MATCH (sanitizers:FUNC_ENTRY)-[:PARAMETER_OUT]->(sanitizerRet:INST_RET)
+WHERE sanitizers.name = 'sanitize'
+MATCH path = (sourceRet)-[*]->(sinkParam)
+WHERE NOT EXISTS {
+  MATCH (sourceRet)-[*]->(sanitizerRet)-[*]->(sinkParam)
+}
+RETURN path
+
+# Secret does not influence output except by comparison
+MATCH (secret:FUNC_ENTRY)-[:PARAMETER_OUT]->(secretRet:INST_RET)
+WHERE secret.name = 'getRandom'
+MATCH (outputs:FUNC_ENTRY)-[:PARAMETER_IN]->(outputParam:PARAM_FORMALIN)
+WHERE outputs.name = 'output'
+MATCH (check:INST_BR)
+MATCH path = (secretRet)-[*]->(outputParam)
+WHERE NOT EXISTS {
+  MATCH (secretRet)-[:CONTROLDEP_BR]->(check)
+}
+RETURN path

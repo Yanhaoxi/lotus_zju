@@ -14,8 +14,9 @@ namespace dataflow {
 
 using namespace llvm;
 
-template <unsigned K>
-bool CallStringInterProceduralDataFlowEngine<K>::isCallToDefinedFunction(
+template <unsigned K, typename ContainerT>
+bool CallStringInterProceduralDataFlowEngine<K, ContainerT>::
+    isCallToDefinedFunction(
     Instruction *Inst) {
   auto *Call = dyn_cast<CallBase>(Inst);
   if (Call == nullptr) {
@@ -26,8 +27,9 @@ bool CallStringInterProceduralDataFlowEngine<K>::isCallToDefinedFunction(
   return Callee != nullptr && !Callee->isDeclaration() && !Callee->empty();
 }
 
-template <unsigned K>
-Function *CallStringInterProceduralDataFlowEngine<K>::getDirectCallee(
+template <unsigned K, typename ContainerT>
+Function *CallStringInterProceduralDataFlowEngine<K, ContainerT>::
+    getDirectCallee(
     Instruction *Inst) {
   auto *Call = dyn_cast<CallBase>(Inst);
   if (Call == nullptr) {
@@ -36,9 +38,9 @@ Function *CallStringInterProceduralDataFlowEngine<K>::getDirectCallee(
   return Call->getCalledFunction();
 }
 
-template <unsigned K>
+template <unsigned K, typename ContainerT>
 std::vector<Instruction *>
-CallStringInterProceduralDataFlowEngine<K>::getReturnInstructions(
+CallStringInterProceduralDataFlowEngine<K, ContainerT>::getReturnInstructions(
     Function *F) {
   std::vector<Instruction *> Returns;
   if (F == nullptr) {
@@ -54,9 +56,9 @@ CallStringInterProceduralDataFlowEngine<K>::getReturnInstructions(
   return Returns;
 }
 
-template <unsigned K>
+template <unsigned K, typename ContainerT>
 std::vector<Instruction *>
-CallStringInterProceduralDataFlowEngine<K>::normalSuccessors(
+CallStringInterProceduralDataFlowEngine<K, ContainerT>::normalSuccessors(
     Instruction *Inst) {
   std::vector<Instruction *> Succs;
 
@@ -73,9 +75,9 @@ CallStringInterProceduralDataFlowEngine<K>::normalSuccessors(
   return Succs;
 }
 
-template <unsigned K>
+template <unsigned K, typename ContainerT>
 std::vector<Instruction *>
-CallStringInterProceduralDataFlowEngine<K>::normalPredecessors(
+CallStringInterProceduralDataFlowEngine<K, ContainerT>::normalPredecessors(
     Instruction *Inst) {
   std::vector<Instruction *> Preds;
   auto *BB = Inst->getParent();
@@ -91,9 +93,10 @@ CallStringInterProceduralDataFlowEngine<K>::normalPredecessors(
   return Preds;
 }
 
-template <unsigned K>
+template <unsigned K, typename ContainerT>
 std::vector<Instruction *>
-CallStringInterProceduralDataFlowEngine<K>::continuationInstructions(
+CallStringInterProceduralDataFlowEngine<K, ContainerT>::
+    continuationInstructions(
     Instruction *CallInst) {
   std::vector<Instruction *> Continuations;
 
@@ -109,8 +112,8 @@ CallStringInterProceduralDataFlowEngine<K>::continuationInstructions(
   return Continuations;
 }
 
-template <unsigned K>
-void CallStringInterProceduralDataFlowEngine<K>::computeGenKill(
+template <unsigned K, typename ContainerT>
+void CallStringInterProceduralDataFlowEngine<K, ContainerT>::computeGenKill(
     Module *M, std::function<void(Instruction *, ResultTy *)> computeGEN,
     std::function<void(Instruction *, ResultTy *)> computeKILL, ResultTy *DF) {
 
@@ -127,11 +130,11 @@ void CallStringInterProceduralDataFlowEngine<K>::computeGenKill(
   }
 }
 
-template <unsigned K>
-void CallStringInterProceduralDataFlowEngine<K>::ensureInitialized(
+template <unsigned K, typename ContainerT>
+void CallStringInterProceduralDataFlowEngine<K, ContainerT>::ensureInitialized(
     const ContextKey &Key,
-    std::function<void(Instruction *, std::set<Value *> &)> initializeIN,
-    std::function<void(Instruction *, std::set<Value *> &)> initializeOUT,
+    std::function<void(Instruction *, ContainerT &)> initializeIN,
+    std::function<void(Instruction *, ContainerT &)> initializeOUT,
     ResultTy *DF) {
 
   if (DF->hasContext(Key)) {
@@ -143,9 +146,10 @@ void CallStringInterProceduralDataFlowEngine<K>::ensureInitialized(
   initializeOUT(Key.Inst, OUTSet);
 }
 
-template <unsigned K>
-std::vector<typename CallStringInterProceduralDataFlowEngine<K>::ContextKey>
-CallStringInterProceduralDataFlowEngine<K>::successors(
+template <unsigned K, typename ContainerT>
+std::vector<typename CallStringInterProceduralDataFlowEngine<
+    K, ContainerT>::ContextKey>
+CallStringInterProceduralDataFlowEngine<K, ContainerT>::successors(
     const ContextKey &Key) {
   std::vector<ContextKey> Result;
   auto *Inst = Key.Inst;
@@ -179,9 +183,10 @@ CallStringInterProceduralDataFlowEngine<K>::successors(
   return Result;
 }
 
-template <unsigned K>
-std::vector<typename CallStringInterProceduralDataFlowEngine<K>::ContextKey>
-CallStringInterProceduralDataFlowEngine<K>::predecessors(
+template <unsigned K, typename ContainerT>
+std::vector<typename CallStringInterProceduralDataFlowEngine<
+    K, ContainerT>::ContextKey>
+CallStringInterProceduralDataFlowEngine<K, ContainerT>::predecessors(
     const ContextKey &Key,
     const std::map<Instruction *, std::vector<Instruction *>> &CallToReturns,
     const std::map<Instruction *, std::vector<Instruction *>> &ContinuationToCalls) {
@@ -220,21 +225,21 @@ CallStringInterProceduralDataFlowEngine<K>::predecessors(
   return Result;
 }
 
-template <unsigned K>
-typename CallStringInterProceduralDataFlowEngine<K>::ResultTy *
-CallStringInterProceduralDataFlowEngine<K>::applyForward(
+template <unsigned K, typename ContainerT>
+typename CallStringInterProceduralDataFlowEngine<K, ContainerT>::ResultTy *
+CallStringInterProceduralDataFlowEngine<K, ContainerT>::applyForward(
     Function *Entry,
     std::function<void(Instruction *, ResultTy *)> computeGEN,
     std::function<void(Instruction *, ResultTy *)> computeKILL,
-    std::function<void(Instruction *Inst, std::set<Value *> &IN)> initializeIN,
-    std::function<void(Instruction *Inst, std::set<Value *> &OUT)>
+    std::function<void(Instruction *Inst, ContainerT &IN)> initializeIN,
+    std::function<void(Instruction *Inst, ContainerT &OUT)>
         initializeOUT,
     std::function<void(Instruction *Inst, Instruction *PredInst,
-                       const Context &PredCtx, std::set<Value *> &IN,
+                       const Context &PredCtx, ContainerT &IN,
                        ResultTy *DF)>
         computeIN,
-    std::function<void(Instruction *Inst, const Context &Ctx,
-                       std::set<Value *> &OUT, ResultTy *DF)>
+    std::function<void(Instruction *Inst, const Context &Ctx, ContainerT &OUT,
+                       ResultTy *DF)>
         computeOUT) {
 
   if (Entry == nullptr || Entry->isDeclaration()) {
@@ -292,7 +297,7 @@ CallStringInterProceduralDataFlowEngine<K>::applyForward(
     ensureInitialized(Current, initializeIN, initializeOUT, DF);
 
     auto &InSet = DF->IN(Current);
-    auto OldInSize = InSet.size();
+    auto OldIn = InSet;
 
     for (auto PredKey : predecessors(Current, CallToReturns, ContinuationToCalls)) {
       ensureInitialized(PredKey, initializeIN, initializeOUT, DF);
@@ -300,10 +305,10 @@ CallStringInterProceduralDataFlowEngine<K>::applyForward(
     }
 
     auto &OutSet = DF->OUT(Current);
-    auto OldOutSize = OutSet.size();
+    auto OldOut = OutSet;
     computeOUT(Current.Inst, Current.Ctx, OutSet, DF);
 
-    if (OutSet.size() != OldOutSize || InSet.size() != OldInSize) {
+    if (!(OutSet == OldOut) || !(InSet == OldIn)) {
       for (auto SuccKey : successors(Current)) {
         Enqueue(SuccKey);
       }

@@ -1,12 +1,12 @@
-PDG Query Language
-==================
+PDG Query Language (Cypher)
+============================
 
-The Program Dependence Graph (PDG) Query Language allows you to query dependencies, perform slicing, and verify security policies on program dependence graphs.
+The Program Dependence Graph (PDG) Query Language uses Cypher, a declarative graph query language, to query dependencies, perform slicing, and verify security policies on program dependence graphs.
 
 Overview
 --------
 
-The PDG query language provides a declarative way to:
+Cypher provides a declarative way to:
 
 - Query program dependencies (data and control)
 - Perform forward and backward slicing
@@ -17,11 +17,11 @@ The PDG query language provides a declarative way to:
 
 The language supports:
 
-- Set operations (union, intersection, difference)
-- Node and edge selection
-- Path queries
-- Policy constraints
-- Variable binding
+- Pattern matching (nodes and relationships)
+- WHERE clauses for filtering
+- Path queries with variable-length patterns
+- Set operations (UNION, intersection via WHERE EXISTS)
+- Aggregations and ordering
 
 Getting Started
 ---------------
@@ -48,10 +48,12 @@ Use ``-i`` flag for interactive queries:
 
    ./build/bin/pdg-query -i program.bc
    
-   PDG> returnsOf("main")
+   PDG> MATCH (n:FUNC_ENTRY) WHERE n.name = 'main' RETURN n
    [Results displayed]
    
-   PDG> forwardSlice(returnsOf("getInput"))
+   PDG> MATCH (input:FUNC_ENTRY)-[:PARAMETER_OUT]->(ret:INST_RET)-[*]->(n)
+   PDG> WHERE input.name = 'getInput'
+   PDG> RETURN n
    [Slice displayed]
    
    PDG> exit
@@ -63,7 +65,7 @@ Use ``-q`` flag for single query:
 
 .. code-block:: bash
 
-   ./build/bin/pdg-query -q "returnsOf(\"main\")" program.bc
+   ./build/bin/pdg-query -q "MATCH (n:FUNC_ENTRY) WHERE n.name = 'main' RETURN n" program.bc
 
 Batch Query Mode
 ~~~~~~~~~~~~~~~~
@@ -74,106 +76,35 @@ Use ``-f`` flag to run queries from file:
 
    ./build/bin/pdg-query -f queries.txt program.bc
 
-Policy Check Mode
-~~~~~~~~~~~~~~~~~
-
-Use ``-p`` flag for policy verification:
-
-.. code-block:: bash
-
-   ./build/bin/pdg-query -p "noExplicitFlows(sources, sinks) is empty" program.bc
-
 Language Reference
 ------------------
 
-Basic Expressions
-~~~~~~~~~~~~~~~~~
+Basic Node Queries
+~~~~~~~~~~~~~~~~~~
 
-``pgm``
-^^^^^^^
+Get All Nodes
+^^^^^^^^^^^^^
 
-Returns the entire program dependence graph.
+Returns all nodes in the PDG.
+
+**Syntax**: ``MATCH (n) RETURN n``
 
 **Example**:
 
-.. code-block:: text
+.. code-block:: cypher
 
-   pgm
+   MATCH (n) RETURN n
 
 **Returns**: All nodes in the PDG.
 
-``returnsOf(functionName)``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Query Nodes by Type
+^^^^^^^^^^^^^^^^^^^
 
-Returns the return values of a function.
+Select nodes by their label (type).
 
-**Syntax**: ``returnsOf("functionName")``
+**Syntax**: ``MATCH (n:LABEL) RETURN n``
 
-**Example**:
-
-.. code-block:: text
-
-   returnsOf("main")
-   returnsOf("getInput")
-
-**Returns**: Nodes representing return values of the specified function.
-
-``formalsOf(functionName)``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Returns the formal parameters of a function.
-
-**Syntax**: ``formalsOf("functionName")``
-
-**Example**:
-
-.. code-block:: text
-
-   formalsOf("process_data")
-
-**Returns**: Nodes representing formal input parameters.
-
-``entriesOf(functionName)``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Returns the entry points of a function.
-
-**Syntax**: ``entriesOf("functionName")``
-
-**Example**:
-
-.. code-block:: text
-
-   entriesOf("main")
-
-**Returns**: Function entry nodes.
-
-``actualsOf(callSite)``
-^^^^^^^^^^^^^^^^^^^^^^^
-
-Returns actual parameters at a call site.
-
-**Syntax**: ``actualsOf(callSiteExpr)``
-
-**Example**:
-
-.. code-block:: text
-
-   actualsOf(selectNodes(INST_FUNCALL))
-
-**Returns**: Actual parameter nodes at call sites.
-
-Node Selection
-~~~~~~~~~~~~~~
-
-``selectNodes(nodeType)``
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Select all nodes of a specific type.
-
-**Syntax**: ``selectNodes(TYPE)``
-
-**Node Types**:
+**Node Types (Labels)**:
 
 - ``INST_FUNCALL`` - Function call instructions
 - ``INST_RET`` - Return instructions
@@ -194,22 +125,80 @@ Select all nodes of a specific type.
 
 **Example**:
 
-.. code-block:: text
+.. code-block:: cypher
 
-   selectNodes(INST_FUNCALL)
-   selectNodes(INST_BR)
+   MATCH (n:INST_FUNCALL) RETURN n
+   MATCH (n:INST_BR) RETURN n
 
-Edge Selection
-~~~~~~~~~~~~~~
+Function-Specific Queries
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``selectEdges(edgeType)``
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Return Values of a Function
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Select all edges of a specific type.
+Returns the return values of a function.
 
-**Syntax**: ``selectEdges(TYPE)``
+**Syntax**: ``MATCH (n:FUNC_ENTRY)-[:PARAMETER_OUT]->(ret:INST_RET) WHERE n.name = 'functionName' RETURN ret``
 
-**Edge Types**:
+**Example**:
+
+.. code-block:: cypher
+
+   MATCH (n:FUNC_ENTRY)-[:PARAMETER_OUT]->(ret:INST_RET)
+   WHERE n.name = 'main'
+   RETURN ret
+
+   MATCH (n:FUNC_ENTRY)-[:PARAMETER_OUT]->(ret:INST_RET)
+   WHERE n.name = 'getInput'
+   RETURN ret
+
+**Returns**: Nodes representing return values of the specified function.
+
+Formal Parameters of a Function
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Returns the formal parameters of a function.
+
+**Syntax**: ``MATCH (n:FUNC_ENTRY)-[:PARAMETER_IN]->(param:PARAM_FORMALIN) WHERE n.name = 'functionName' RETURN param``
+
+**Example**:
+
+.. code-block:: cypher
+
+   MATCH (n:FUNC_ENTRY)-[:PARAMETER_IN]->(param:PARAM_FORMALIN)
+   WHERE n.name = 'process_data'
+   RETURN param
+
+**Returns**: Nodes representing formal input parameters.
+
+Function Entry Points
+^^^^^^^^^^^^^^^^^^^^^^
+
+Returns the entry points of a function.
+
+**Syntax**: ``MATCH (n:FUNC_ENTRY) WHERE n.name = 'functionName' RETURN n``
+
+**Example**:
+
+.. code-block:: cypher
+
+   MATCH (n:FUNC_ENTRY)
+   WHERE n.name = 'main'
+   RETURN n
+
+**Returns**: Function entry nodes.
+
+Edge Queries
+~~~~~~~~~~~~
+
+Query Edges by Type
+^^^^^^^^^^^^^^^^^^^
+
+Select edges by their relationship type.
+
+**Syntax**: ``MATCH ()-[r:TYPE]->() RETURN r``
+
+**Edge Types (Relationship Types)**:
 
 - ``DATA_DEF_USE`` - Data definition-use edges
 - ``DATA_RAW`` - Read-after-write edges
@@ -227,377 +216,320 @@ Select all edges of a specific type.
 
 **Example**:
 
-.. code-block:: text
+.. code-block:: cypher
 
-   selectEdges(DATA_DEF_USE)
-   selectEdges(CONTROL_DEP)
+   MATCH ()-[r:DATA_DEF_USE]->() RETURN r
+   MATCH ()-[r:CONTROLDEP_BR]->() RETURN r
+
+Connected Nodes
+^^^^^^^^^^^^^^^
+
+Get nodes connected by edges.
+
+**Syntax**: ``MATCH (a)-[r]->(b) RETURN a, b``
+
+**Example**:
+
+.. code-block:: cypher
+
+   MATCH (a)-[r:DATA_DEF_USE]->(b) RETURN a, b
+   MATCH (a)-[r:CONTROLDEP_BR]->(b) RETURN a, b
 
 Slicing Operations
 ~~~~~~~~~~~~~~~~~~
 
-``forwardSlice(expr)``
-^^^^^^^^^^^^^^^^^^^^^^
+Forward Slice
+^^^^^^^^^^^^^
 
-Compute forward slice from given nodes.
+Compute forward slice from given nodes (all nodes reachable from source).
 
-**Syntax**: ``forwardSlice(nodeExpr)``
+**Syntax**: ``MATCH (source)-[*]->(n) RETURN DISTINCT n``
 
 **Example**:
 
-.. code-block:: text
+.. code-block:: cypher
 
-   forwardSlice(returnsOf("getInput"))
+   MATCH (input:FUNC_ENTRY)-[:PARAMETER_OUT]->(inputRet:INST_RET)
+   WHERE input.name = 'getInput'
+   MATCH (inputRet)-[*]->(n)
+   RETURN DISTINCT n
 
 **Returns**: All nodes reachable from the input nodes.
 
 **Use Case**: Find what program elements are affected by a source.
 
-``backwardSlice(expr)``
-^^^^^^^^^^^^^^^^^^^^^^^
+Backward Slice
+^^^^^^^^^^^^^^
 
-Compute backward slice from given nodes.
+Compute backward slice from given nodes (all nodes that can reach the sink).
 
-**Syntax**: ``backwardSlice(nodeExpr)``
+**Syntax**: ``MATCH (n)-[*]->(sink) RETURN DISTINCT n``
 
 **Example**:
 
-.. code-block:: text
+.. code-block:: cypher
 
-   backwardSlice(formalsOf("printOutput"))
+   MATCH (output:FUNC_ENTRY)-[:PARAMETER_IN]->(outputParam:PARAM_FORMALIN)
+   WHERE output.name = 'printOutput'
+   MATCH (n)-[*]->(outputParam)
+   RETURN DISTINCT n
 
 **Returns**: All nodes that can reach the input nodes.
 
 **Use Case**: Find what program elements influence a sink.
 
-``between(expr1, expr2)``
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Path Between Nodes
+^^^^^^^^^^^^^^^^^^
 
 Find nodes on paths between two sets of nodes.
 
-**Syntax**: ``between(sourceExpr, sinkExpr)``
+**Syntax**: ``MATCH path = (start)-[*]->(end) RETURN path``
 
 **Example**:
 
-.. code-block:: text
+.. code-block:: cypher
 
-   between(returnsOf("getInput"), formalsOf("system"))
+   MATCH (input:FUNC_ENTRY)-[:PARAMETER_OUT]->(inputRet:INST_RET)
+   WHERE input.name = 'getInput'
+   MATCH (output:FUNC_ENTRY)-[:PARAMETER_IN]->(outputParam:PARAM_FORMALIN)
+   WHERE output.name = 'system'
+   MATCH path = (inputRet)-[*]->(outputParam)
+   RETURN path
 
-**Returns**: Nodes on any path from sources to sinks.
+**Returns**: Paths from sources to sinks.
 
 **Use Case**: Information flow analysis.
 
-``shortestPath(expr1, expr2)``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Shortest Path
+^^^^^^^^^^^^^
 
 Find shortest path between two sets of nodes.
 
-**Syntax**: ``shortestPath(sourceExpr, sinkExpr)``
+**Syntax**: ``MATCH path = shortestPath((start)-[*]->(end)) RETURN path``
 
 **Example**:
 
-.. code-block:: text
+.. code-block:: cypher
 
-   shortestPath(returnsOf("malloc"), formalsOf("free"))
+   MATCH (malloc:FUNC_ENTRY)-[:PARAMETER_OUT]->(mallocRet:INST_RET)
+   WHERE malloc.name = 'malloc'
+   MATCH (free:FUNC_ENTRY)-[:PARAMETER_IN]->(freeParam:PARAM_FORMALIN)
+   WHERE free.name = 'free'
+   MATCH path = shortestPath((mallocRet)-[*]->(freeParam))
+   RETURN path
 
-**Returns**: Nodes on shortest path.
+**Returns**: Shortest path between nodes.
 
 Set Operations
-~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
 
-Union (``U``)
-^^^^^^^^^^^^^
+Union
+^^^^^
 
-Union of two sets.
+Union of two sets using ``UNION`` keyword.
 
-**Syntax**: ``expr1 U expr2``
+**Syntax**: ``MATCH ... RETURN ... UNION MATCH ... RETURN ...``
 
 **Example**:
 
-.. code-block:: text
+.. code-block:: cypher
 
-   returnsOf("func1") U returnsOf("func2")
-   selectNodes(INST_LOAD) U selectNodes(INST_STORE)
+   MATCH (func1:FUNC_ENTRY)-[:PARAMETER_OUT]->(ret1:INST_RET)
+   WHERE func1.name = 'func1'
+   RETURN ret1
+   UNION
+   MATCH (func2:FUNC_ENTRY)-[:PARAMETER_OUT]->(ret2:INST_RET)
+   WHERE func2.name = 'func2'
+   RETURN ret2
 
 **Returns**: All nodes in either set.
 
-Intersection (``∩`` or ``^``)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Intersection
+^^^^^^^^^^^^
 
-Intersection of two sets.
+Intersection using ``WHERE EXISTS`` subquery.
 
-**Syntax**: ``expr1 ∩ expr2`` or ``expr1 ^ expr2``
+**Syntax**: ``MATCH (n) WHERE EXISTS { MATCH (m) WHERE ... } RETURN n``
 
 **Example**:
 
-.. code-block:: text
+.. code-block:: cypher
 
-   forwardSlice(sources) ∩ backwardSlice(sinks)
+   MATCH (dataNodes:INST_FUNCALL)
+   WHERE EXISTS {
+     MATCH (controlNodes:INST_BR)
+     WHERE dataNodes.id = controlNodes.id
+   }
+   RETURN dataNodes
 
 **Returns**: Nodes in both sets.
 
-**Use Case**: Find nodes that are both sources and sinks.
+**Use Case**: Find nodes that are both data and control dependent.
 
-Difference (``-``)
+Difference
+^^^^^^^^^^
+
+Set difference using ``WHERE NOT``.
+
+**Syntax**: ``MATCH (n) WHERE NOT (condition) RETURN n``
+
+**Example**:
+
+.. code-block:: cypher
+
+   MATCH (calls:INST_FUNCALL)
+   WHERE NOT (calls:INST_BR)
+   RETURN calls
+
+**Returns**: Nodes in first set but not matching condition.
+
+Filtering with WHERE
+~~~~~~~~~~~~~~~~~~~~
+
+Property Filtering
 ^^^^^^^^^^^^^^^^^^
 
-Set difference.
+Filter nodes by properties.
 
-**Syntax**: ``expr1 - expr2``
-
-**Example**:
-
-.. code-block:: text
-
-   pgm - returnsOf("main")
-
-**Returns**: Nodes in first set but not in second.
-
-Variable Binding
-~~~~~~~~~~~~~~~~
-
-``let var = expr1 in expr2``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Bind a subexpression to a variable.
-
-**Syntax**: ``let varName = expr1 in expr2``
+**Syntax**: ``MATCH (n) WHERE n.property = value RETURN n``
 
 **Example**:
 
-.. code-block:: text
+.. code-block:: cypher
 
-   let sources = returnsOf("getInput") in
-   let sinks = formalsOf("system") in
-   between(sources, sinks)
+   MATCH (n:FUNC_ENTRY)
+   WHERE n.name = 'main'
+   RETURN n
 
-**Use Case**: Improve readability and reuse subexpressions.
+   MATCH (n)
+   WHERE n.line > 100 AND n.line < 200
+   RETURN n
 
-Policy Checks
-~~~~~~~~~~~~~
+Multiple Conditions
+^^^^^^^^^^^^^^^^^^^
 
-``expr is empty``
-^^^^^^^^^^^^^^^^^
+Combine conditions with AND, OR, NOT.
 
-Check if expression evaluates to empty set.
-
-**Syntax**: ``expr is empty``
-
-**Example**:
-
-.. code-block:: text
-
-   between(secret, public) is empty
-
-**Returns**: True if set is empty, false otherwise.
-
-**Use Case**: Verify that no path exists (security policy).
-
-``expr is not empty``
-^^^^^^^^^^^^^^^^^^^^^
-
-Check if expression evaluates to non-empty set.
-
-**Syntax**: ``expr is not empty``
+**Syntax**: ``MATCH (n) WHERE condition1 AND condition2 RETURN n``
 
 **Example**:
 
-.. code-block:: text
+.. code-block:: cypher
 
-   forwardSlice(input) is not empty
+   MATCH (n:INST_FUNCALL)
+   WHERE n.name = 'malloc' OR n.name = 'calloc'
+   RETURN n
 
-**Returns**: True if set is non-empty, false otherwise.
+Security Analysis Examples
+--------------------------
 
-Security Analysis Functions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-``noExplicitFlows(sources, sinks)``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Check for explicit information flows from sources to sinks.
-
-**Syntax**: ``noExplicitFlows(sourceExpr, sinkExpr)``
-
-**Example**:
-
-.. code-block:: text
-
-   noExplicitFlows(returnsOf("getSecret"), formalsOf("printf"))
-
-**Returns**: Paths from sources to sinks (empty if no flows).
-
-**Use Case**: Confidentiality policy - secrets should not flow to public outputs.
-
-``declassifies(sanitizers, sources, sinks)``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Check if all flows from sources to sinks go through sanitizers.
-
-**Syntax**: ``declassifies(sanitizerExpr, sourceExpr, sinkExpr)``
-
-**Example**:
-
-.. code-block:: text
-
-   let input = returnsOf("scanf")
-   let sanitize = returnsOf("sanitize_input")
-   let output = formalsOf("system")
-   declassifies(sanitize, input, output)
-
-**Returns**: Flows that bypass sanitizers.
-
-**Use Case**: Verify sanitization policies.
-
-``accessControlled(checks, operations)``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Check if sensitive operations are guarded by authorization checks.
-
-**Syntax**: ``accessControlled(checkExpr, operationExpr)``
-
-**Example**:
-
-.. code-block:: text
-
-   let authChecks = returnsOf("isAuthorized")
-   let sensitiveOps = selectNodes(INST_FUNCALL)
-   accessControlled(authChecks, sensitiveOps)
-
-**Returns**: Unguarded operations.
-
-**Use Case**: Access control policy verification.
-
-Examples
---------
-
-Example 1: Basic Dependency Query
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Find what depends on user input:
-
-.. code-block:: text
-
-   let input = returnsOf("scanf")
-   forwardSlice(input)
-
-Example 2: Information Flow Analysis
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Information Flow Analysis
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Check if secret data flows to network:
 
-.. code-block:: text
+.. code-block:: cypher
 
-   let secret = returnsOf("getPassword")
-   let network = formalsOf("sendToNetwork")
-   between(secret, network)
+   MATCH (secret:FUNC_ENTRY)-[:PARAMETER_OUT]->(secretRet:INST_RET)
+   WHERE secret.name = 'getPassword'
+   MATCH (network:FUNC_ENTRY)-[:PARAMETER_IN]->(networkParam:PARAM_FORMALIN)
+   WHERE network.name = 'sendToNetwork'
+   MATCH path = (secretRet)-[*]->(networkParam)
+   RETURN path
 
 If result is non-empty, there's a potential information leak.
 
-Example 3: Sanitization Verification
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Sanitization Verification
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Verify all user inputs are sanitized before use in SQL:
 
-.. code-block:: text
+.. code-block:: cypher
 
-   let sources = returnsOf("getUserInput")
-   let sanitizers = returnsOf("sanitizeSQL")
-   let sinks = formalsOf("executeSQL")
-   declassifies(sanitizers, sources, sinks) is empty
+   MATCH (sources:FUNC_ENTRY)-[:PARAMETER_OUT]->(sourceRet:INST_RET)
+   WHERE sources.name = 'getUserInput'
+   MATCH (sanitizers:FUNC_ENTRY)-[:PARAMETER_OUT]->(sanitizerRet:INST_RET)
+   WHERE sanitizers.name = 'sanitizeSQL'
+   MATCH (sinks:FUNC_ENTRY)-[:PARAMETER_IN]->(sinkParam:PARAM_FORMALIN)
+   WHERE sinks.name = 'executeSQL'
+   MATCH path = (sourceRet)-[*]->(sinkParam)
+   WHERE NOT EXISTS {
+     MATCH (sourceRet)-[*]->(sanitizerRet)-[*]->(sinkParam)
+   }
+   RETURN path
 
-If result is true, all flows are sanitized.
+If result is empty, all flows are sanitized.
 
-Example 4: Access Control Policy
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Access Control Policy
+~~~~~~~~~~~~~~~~~~~~~~
 
 Verify sensitive file operations require authorization:
 
-.. code-block:: text
+.. code-block:: cypher
 
-   let authCheck = returnsOf("checkPermission")
-   let fileOps = formalsOf("openFile") U formalsOf("writeFile")
-   accessControlled(authCheck, fileOps) is empty
+   MATCH (auth:FUNC_ENTRY)-[:PARAMETER_OUT]->(authRet:INST_RET)
+   WHERE auth.name = 'checkPermission'
+   MATCH (authRet)-[:CONTROLDEP_BR]->(check)
+   MATCH (fileOps:FUNC_ENTRY)-[:PARAMETER_IN]->(fileParam:PARAM_FORMALIN)
+   WHERE fileOps.name = 'openFile' OR fileOps.name = 'writeFile'
+   WHERE NOT EXISTS {
+     MATCH (check)-[:CONTROLDEP_BR]->(fileParam)
+   }
+   RETURN fileParam
 
-Example 5: Null Pointer Analysis
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Null Pointer Analysis
+~~~~~~~~~~~~~~~~~~~~~
 
 Find potential null dereferences:
 
-.. code-block:: text
+.. code-block:: cypher
 
-   let nullReturns = returnsOf("malloc") U returnsOf("fopen")
-   let dereferences = selectNodes(INST_LOAD) U selectNodes(INST_STORE)
-   forwardSlice(nullReturns) ∩ dereferences
+   MATCH (nullRet:INST_RET)
+   WHERE nullRet.function = 'malloc' OR nullRet.function = 'fopen'
+   MATCH (nullRet)-[*]->(deref)
+   WHERE deref:INST_LOAD OR deref:INST_STORE
+   RETURN deref
 
-Example 6: Control Flow Analysis
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Control Flow Analysis
+~~~~~~~~~~~~~~~~~~~~~
 
 Find which conditionals affect a computation:
 
-.. code-block:: text
+.. code-block:: cypher
 
-   let branches = selectNodes(INST_BR)
-   let computation = formalsOf("compute")
-   backwardSlice(computation) ∩ branches
+   MATCH (branches:INST_BR)
+   MATCH (computation:FUNC_ENTRY)-[:PARAMETER_IN]->(compParam:PARAM_FORMALIN)
+   WHERE computation.name = 'compute'
+   MATCH (branches)-[*]->(compParam)
+   RETURN branches
 
-Example 7: Parameter Dependency
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Parameter Dependency
+~~~~~~~~~~~~~~~~~~~~
 
 Find dependencies between function parameters:
 
-.. code-block:: text
+.. code-block:: cypher
 
-   let inputs = formalsOf("processData")
-   let outputs = returnsOf("processData")
-   between(inputs, outputs)
+   MATCH (inputs:FUNC_ENTRY)-[:PARAMETER_IN]->(inputParam:PARAM_FORMALIN)
+   WHERE inputs.name = 'processData'
+   MATCH (outputs:FUNC_ENTRY)-[:PARAMETER_OUT]->(outputRet:INST_RET)
+   WHERE outputs.name = 'processData'
+   MATCH path = (inputParam)-[*]->(outputRet)
+   RETURN path
 
-Example 8: Taint Analysis
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Taint Analysis
+~~~~~~~~~~~~~~
 
 Complete taint analysis from sources to sinks:
 
-.. code-block:: text
+.. code-block:: cypher
 
-   let sources = returnsOf("read") U returnsOf("recv") U returnsOf("scanf")
-   let sinks = formalsOf("system") U formalsOf("exec") U formalsOf("popen")
-   let flows = between(sources, sinks)
-   flows is not empty
-
-Example 9: Multi-hop Flows
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Find flows that go through an intermediate function:
-
-.. code-block:: text
-
-   let source = returnsOf("getInput")
-   let intermediate = formalsOf("process")
-   let sink = formalsOf("output")
-   let path1 = between(source, intermediate)
-   let path2 = between(intermediate, sink)
-   (path1 ∩ path2) is not empty
-
-Example 10: Complex Policy
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Verify that:
-1. User input is sanitized
-2. Authorization is checked
-3. Then operation is performed
-
-.. code-block:: text
-
-   let input = returnsOf("getUserInput")
-   let sanitize = returnsOf("sanitize")
-   let authCheck = returnsOf("authorize")
-   let operation = formalsOf("performOperation")
-   
-   let sanitizedInput = between(input, sanitize)
-   let authorizedOp = between(authCheck, operation)
-   let sanitizedToOp = between(sanitize, operation)
-   
-   (sanitizedInput is not empty) and
-   (authorizedOp is not empty) and
-   (sanitizedToOp is not empty)
+   MATCH (sources:FUNC_ENTRY)-[:PARAMETER_OUT]->(sourceRet:INST_RET)
+   WHERE sources.name = 'read' OR sources.name = 'recv' OR sources.name = 'scanf'
+   MATCH (sinks:FUNC_ENTRY)-[:PARAMETER_IN]->(sinkParam:PARAM_FORMALIN)
+   WHERE sinks.name = 'system' OR sinks.name = 'exec' OR sinks.name = 'popen'
+   MATCH path = (sourceRet)-[*]->(sinkParam)
+   RETURN path
 
 Query File Format
 -----------------
@@ -606,28 +538,32 @@ Batch query files support:
 
 - Comments (``#`` prefix)
 - Multiple queries (one per line or separated by ``;``)
-- Variable definitions
-- Policy checks
+- Multi-line queries
 
 Example query file (``security_policy.txt``):
 
-.. code-block:: text
+.. code-block:: cypher
 
    # Security Policy Verification
    
-   # Define sources
-   let sources = returnsOf("read") U returnsOf("recv")
+   # Check for direct flows from sources to sinks
+   MATCH (sources:FUNC_ENTRY)-[:PARAMETER_OUT]->(sourceRet:INST_RET)
+   WHERE sources.name = 'read' OR sources.name = 'recv'
+   MATCH (sinks:FUNC_ENTRY)-[:PARAMETER_IN]->(sinkParam:PARAM_FORMALIN)
+   WHERE sinks.name = 'system' OR sinks.name = 'exec'
+   MATCH path = (sourceRet)-[*]->(sinkParam)
+   RETURN path
    
-   # Define sinks
-   let sinks = formalsOf("system") U formalsOf("exec")
-   
-   # Check 1: No direct flows from sources to sinks
-   between(sources, sinks) is empty
-   
-   # Check 2: All sensitive operations are authorized
-   let authChecks = returnsOf("checkAuth")
-   let sensitiveOps = formalsOf("deleteFile") U formalsOf("changePassword")
-   accessControlled(authChecks, sensitiveOps) is empty
+   # Check sensitive operations are authorized
+   MATCH (auth:FUNC_ENTRY)-[:PARAMETER_OUT]->(authRet:INST_RET)
+   WHERE auth.name = 'checkAuth'
+   MATCH (authRet)-[:CONTROLDEP_BR]->(check)
+   MATCH (sensitiveOps:FUNC_ENTRY)-[:PARAMETER_IN]->(opParam:PARAM_FORMALIN)
+   WHERE sensitiveOps.name = 'deleteFile' OR sensitiveOps.name = 'changePassword'
+   WHERE NOT EXISTS {
+     MATCH (check)-[:CONTROLDEP_BR]->(opParam)
+   }
+   RETURN opParam
 
 Run with:
 
@@ -635,97 +571,82 @@ Run with:
 
    ./build/bin/pdg-query -f security_policy.txt program.bc
 
-Visualization
--------------
-
-Generate DOT File
-~~~~~~~~~~~~~~~~~
-
-.. code-block:: bash
-
-   ./build/bin/pdg-query -dump-dot program.bc
-
-This creates ``pdg.dot`` file.
-
-Convert to PDF
-~~~~~~~~~~~~~~
-
-.. code-block:: bash
-
-   dot -Tpdf pdg.dot -o pdg.pdf
-
-Visualize Query Results
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: bash
-
-   ./build/bin/pdg-query -q "forwardSlice(returnsOf(\"main\"))" \
-                          -dump-subgraph=result.dot \
-                          program.bc
-   dot -Tpdf result.dot -o result.pdf
-
 Best Practices
 --------------
 
 1. **Use Descriptive Variable Names**:
 
-   .. code-block:: text
+   .. code-block:: cypher
 
       # Good
-      let userInputs = returnsOf("scanf")
+      MATCH (userInput:FUNC_ENTRY)-[:PARAMETER_OUT]->(inputRet:INST_RET)
+      WHERE userInput.name = 'scanf'
       
       # Bad
-      let x = returnsOf("scanf")
+      MATCH (x:FUNC_ENTRY)-[:PARAMETER_OUT]->(y:INST_RET)
+      WHERE x.name = 'scanf'
 
 2. **Break Complex Queries**:
 
-   .. code-block:: text
+   Use multiple MATCH clauses for clarity:
 
-      # Good
-      let sources = returnsOf("getInput")
-      let sanitizers = returnsOf("sanitize")
-      let sinks = formalsOf("output")
-      declassifies(sanitizers, sources, sinks)
-      
-      # Bad
-      declassifies(returnsOf("sanitize"), returnsOf("getInput"), formalsOf("output"))
+   .. code-block:: cypher
+
+      MATCH (sources:FUNC_ENTRY)-[:PARAMETER_OUT]->(sourceRet:INST_RET)
+      WHERE sources.name = 'getInput'
+      MATCH (sanitizers:FUNC_ENTRY)-[:PARAMETER_OUT]->(sanitizerRet:INST_RET)
+      WHERE sanitizers.name = 'sanitize'
+      MATCH (sinks:FUNC_ENTRY)-[:PARAMETER_IN]->(sinkParam:PARAM_FORMALIN)
+      WHERE sinks.name = 'output'
+      MATCH path = (sourceRet)-[*]->(sinkParam)
+      WHERE NOT EXISTS {
+        MATCH (sourceRet)-[*]->(sanitizerRet)-[*]->(sinkParam)
+      }
+      RETURN path
 
 3. **Comment Your Policies**:
 
-   .. code-block:: text
+   .. code-block:: cypher
 
       # Policy: User input must be sanitized before database queries
-      let input = returnsOf("getUserInput")
-      let sanitize = returnsOf("sanitizeSQL")
-      let dbQuery = formalsOf("executeQuery")
-      declassifies(sanitize, input, dbQuery) is empty
+      MATCH (input:FUNC_ENTRY)-[:PARAMETER_OUT]->(inputRet:INST_RET)
+      WHERE input.name = 'getUserInput'
+      MATCH (sanitize:FUNC_ENTRY)-[:PARAMETER_OUT]->(sanitizerRet:INST_RET)
+      WHERE sanitize.name = 'sanitizeSQL'
+      MATCH (dbQuery:FUNC_ENTRY)-[:PARAMETER_IN]->(queryParam:PARAM_FORMALIN)
+      WHERE dbQuery.name = 'executeQuery'
+      MATCH path = (inputRet)-[*]->(queryParam)
+      WHERE NOT EXISTS {
+        MATCH (inputRet)-[*]->(sanitizerRet)-[*]->(queryParam)
+      }
+      RETURN path
 
 4. **Test Incrementally**:
 
    Start with simple queries and build up:
 
-   .. code-block:: text
+   .. code-block:: cypher
 
       # Step 1: Verify sources exist
-      returnsOf("getInput")
+      MATCH (n:FUNC_ENTRY) WHERE n.name = 'getInput' RETURN n
       
       # Step 2: Verify sinks exist
-      formalsOf("system")
+      MATCH (n:FUNC_ENTRY) WHERE n.name = 'system' RETURN n
       
       # Step 3: Check flows
-      between(returnsOf("getInput"), formalsOf("system"))
+      MATCH (input:FUNC_ENTRY)-[:PARAMETER_OUT]->(inputRet:INST_RET)
+      WHERE input.name = 'getInput'
+      MATCH (output:FUNC_ENTRY)-[:PARAMETER_IN]->(outputParam:PARAM_FORMALIN)
+      WHERE output.name = 'system'
+      MATCH path = (inputRet)-[*]->(outputParam)
+      RETURN path
 
-5. **Use Set Operations Efficiently**:
+5. **Use DISTINCT for Slices**:
 
-   .. code-block:: text
+   .. code-block:: cypher
 
-      # Efficient: Compute once
-      let allCalls = selectNodes(INST_FUNCALL)
-      forwardSlice(allCalls)
-      
-      # Inefficient: Compute multiple times
-      forwardSlice(selectNodes(INST_FUNCALL))
-      backwardSlice(selectNodes(INST_FUNCALL))
+      MATCH (start)-[*]->(n)
+      RETURN DISTINCT n
 
 Limitations
 -----------
@@ -740,79 +661,44 @@ Limitations
 
 5. **Pointer Analysis**: Depends on underlying pointer analysis precision.
 
-Advanced Topics
+Performance Tips
 ---------------
 
-Custom Predicates
-~~~~~~~~~~~~~~~~~
+1. **Limit Path Length**: Use bounded variable-length patterns when possible:
 
-You can define custom node predicates (requires code changes):
+   .. code-block:: cypher
 
-.. code-block:: cpp
+      MATCH (start)-[*1..5]->(end)
+      RETURN path
 
-   // In PDG query implementation
-   bool customPredicate(Node* n) {
-       // Custom logic
-       return /* condition */;
-   }
-   
-   // Use in queries
-   selectNodes(CUSTOM_PREDICATE)
+2. **Use Specific Labels**: Always specify node labels when possible:
 
-Extending the Query Language
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   .. code-block:: cypher
 
-See :doc:`../developer/developer_guide` for how to add new query operations.
-
-Integration with Other Tools
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-PDG query results can be exported and used in other analyses:
-
-.. code-block:: bash
-
-   # Export to JSON
-   ./build/bin/pdg-query -q "query" -output-json=results.json program.bc
-   
-   # Process with Python
-   python analyze_results.py results.json
-
-Performance Tips
-----------------
-
-1. **Precompute Common Subexpressions**:
-
-   Use ``let`` to avoid recomputation.
-
-2. **Limit Scope**:
-
-   Query specific functions rather than entire program:
-
-   .. code-block:: text
-
-      # Instead of
-      forwardSlice(pgm)
+      # Good
+      MATCH (n:INST_FUNCALL) RETURN n
       
-      # Do
-      forwardSlice(returnsOf("specificFunction"))
+      # Less efficient
+      MATCH (n) WHERE n:INST_FUNCALL RETURN n
 
-3. **Use Appropriate Edge Types**:
+3. **Filter Early**: Apply WHERE clauses as early as possible:
 
-   Select only relevant edge types to reduce graph size:
+   .. code-block:: cypher
 
-   .. code-block:: text
-
-      selectEdges(DATA_DEF_USE)  # Only data dependencies
+      MATCH (n:FUNC_ENTRY)
+      WHERE n.name = 'main'
+      MATCH (n)-[:PARAMETER_OUT]->(ret:INST_RET)
+      RETURN ret
 
 Troubleshooting
 ---------------
 
 Query Returns Empty Set
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 1. Check function names are correct (case-sensitive)
 2. Verify PDG was built successfully
-3. Try simpler queries first (``returnsOf("main")``)
+3. Try simpler queries first (``MATCH (n:FUNC_ENTRY) WHERE n.name = 'main' RETURN n``)
 4. Use ``-v`` verbose flag
 
 Query Too Slow
@@ -820,20 +706,21 @@ Query Too Slow
 
 1. Reduce scope of query
 2. Use more specific node/edge selection
-3. Analyze smaller program subset
+3. Limit path length with ``[*1..10]``
+4. Analyze smaller program subset
 
 Syntax Errors
 ~~~~~~~~~~~~~
 
-1. Check quotes around function names: ``returnsOf("func")``
-2. Ensure operators are correct: ``U`` for union, ``∩`` for intersection
-3. Balance parentheses
+1. Check quotes around string values: ``WHERE n.name = 'main'``
+2. Ensure proper Cypher syntax
+3. Balance parentheses and brackets
+4. Check relationship types are correct
 
 See Also
 --------
 
-- :doc:`ir/intermediate_representations` - PDG construction details
+- :doc:`ir/pdg` - PDG construction details
 - :doc:`tutorials` - PDG usage examples
 - :doc:`../developer/api_reference` - Programmatic PDG access
-- ``examples/pdg-queries/`` - More example queries
-
+- ``examples/how-to/build-pdg/pdg-queries/`` - More example queries
