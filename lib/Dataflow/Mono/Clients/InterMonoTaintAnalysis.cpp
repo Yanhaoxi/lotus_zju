@@ -52,7 +52,7 @@ public:
       return Out;
     }
 
-    auto ArgIt = Callee->arg_begin();
+    auto *ArgIt = Callee->arg_begin();
     for (auto &Arg : Call->args()) {
       if (ArgIt == Callee->arg_end()) {
         break;
