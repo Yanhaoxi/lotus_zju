@@ -198,8 +198,65 @@ static void mergeGraphInto(const CFLGraph &Src, CFLGraph &Dst) {
   }
 }
 
-/// Wire direct call edges (actuals -> formals, returns -> call site).
-static void addDirectCallEdges(Module &M, CFLGraph &G) {
+/// Check if a function signature matches a call site's signature.
+static bool matchesFunctionSignature(CallBase &CB, Function &F) {
+  // Skip declarations and intrinsics
+  if (F.isDeclaration() || F.isIntrinsic())
+    return false;
+
+  // Skip vararg functions for simplicity
+  if (F.isVarArg())
+    return false;
+
+  // Check argument count
+  if (F.arg_size() != CB.arg_size())
+    return false;
+
+  // Check return type
+  if (F.getReturnType() != CB.getType())
+    return false;
+
+  // Check argument types
+  auto *AI = CB.arg_begin();
+  for (Function::arg_iterator FI = F.arg_begin(), FE = F.arg_end();
+       FI != FE; ++FI, ++AI) {
+    if (FI->getType() != (*AI)->getType())
+      return false;
+  }
+
+  return true;
+}
+
+/// Get all possible target functions for an indirect call.
+static void getIndirectCallTargets(CallBase &CB, Module &M,
+                                   SmallVectorImpl<Function *> &Targets) {
+  Type *CalledTy = CB.getCalledOperand()->getType();
+  if (!CalledTy->isPointerTy())
+    return;
+
+  // Verify it's a function pointer type
+  if (!isa<FunctionType>(CalledTy->getPointerElementType()))
+    return;
+
+  // Iterate through all functions in the module to find matching signatures
+  for (Function &F : M) {
+    // For indirect calls, we conservatively consider all functions with matching
+    // signatures. Functions without address taken could still be called indirectly
+    // in some cases (e.g., through casts), but requiring hasAddressTaken() is a
+    // common heuristic to reduce false positives.
+    // 
+    // For now, we'll be conservative and check all matching functions.
+    // Users can refine this by adding: if (!F.hasAddressTaken()) continue;
+
+    // Check if function signature matches
+    if (matchesFunctionSignature(CB, F))
+      Targets.push_back(&F);
+  }
+}
+
+/// Wire call edges (actuals -> formals, returns -> call site).
+/// Handles both direct and indirect calls.
+static void addCallEdges(Module &M, CFLGraph &G) {
   for (Function &F : M) {
     for (BasicBlock &BB : F) {
       for (Instruction &I : BB) {
@@ -207,35 +264,50 @@ static void addDirectCallEdges(Module &M, CFLGraph &G) {
         if (!CB)
           continue;
 
-        Function *Callee = CB->getCalledFunction();
-        if (!Callee || Callee->isDeclaration())
-          continue;
+        SmallVector<Function *, 4> Callees;
 
-        unsigned ArgNo = 0;
-        for (auto AI = Callee->arg_begin(), AE = Callee->arg_end();
-             AI != AE && ArgNo < CB->arg_size(); ++AI, ++ArgNo) {
-          Value *Actual = CB->getArgOperand(ArgNo);
-          Argument &Formal = *AI;
-          if (!Actual->getType()->isPointerTy() || !Formal.getType()->isPointerTy())
-            continue;
-
-          G.addNode(InstantiatedValue{Actual, 0});
-          G.addNode(InstantiatedValue{&Formal, 0},
-                    getGlobalOrArgAttrFromValue(Formal));
-          G.addEdge(InstantiatedValue{Actual, 0}, InstantiatedValue{&Formal, 0});
+        // Handle direct calls
+        Function *DirectCallee = CB->getCalledFunction();
+        if (DirectCallee && !DirectCallee->isDeclaration()) {
+          Callees.push_back(DirectCallee);
+        } else {
+          // Handle indirect calls: find all possible targets
+          getIndirectCallTargets(*CB, M, Callees);
         }
 
-        if (CB->getType()->isPointerTy()) {
-          for (BasicBlock &CalBB : *Callee) {
-            auto *RI = dyn_cast<ReturnInst>(CalBB.getTerminator());
-            if (!RI)
+        // Process each possible callee
+        for (Function *Callee : Callees) {
+          if (!Callee || Callee->isDeclaration())
+            continue;
+
+          // Add argument edges: actuals -> formals
+          unsigned ArgNo = 0;
+          for (auto AI = Callee->arg_begin(), AE = Callee->arg_end();
+               AI != AE && ArgNo < CB->arg_size(); ++AI, ++ArgNo) {
+            Value *Actual = CB->getArgOperand(ArgNo);
+            Argument &Formal = *AI;
+            if (!Actual->getType()->isPointerTy() || !Formal.getType()->isPointerTy())
               continue;
-            Value *RetV = RI->getReturnValue();
-            if (!RetV || !RetV->getType()->isPointerTy())
-              continue;
-            G.addNode(InstantiatedValue{RetV, 0});
-            G.addNode(InstantiatedValue{CB, 0});
-            G.addEdge(InstantiatedValue{RetV, 0}, InstantiatedValue{CB, 0});
+
+            G.addNode(InstantiatedValue{Actual, 0});
+            G.addNode(InstantiatedValue{&Formal, 0},
+                      getGlobalOrArgAttrFromValue(Formal));
+            G.addEdge(InstantiatedValue{Actual, 0}, InstantiatedValue{&Formal, 0});
+          }
+
+          // Add return edges: returns -> call site
+          if (CB->getType()->isPointerTy()) {
+            for (BasicBlock &CalBB : *Callee) {
+              auto *RI = dyn_cast<ReturnInst>(CalBB.getTerminator());
+              if (!RI)
+                continue;
+              Value *RetV = RI->getReturnValue();
+              if (!RetV || !RetV->getType()->isPointerTy())
+                continue;
+              G.addNode(InstantiatedValue{RetV, 0});
+              G.addNode(InstantiatedValue{CB, 0});
+              G.addEdge(InstantiatedValue{RetV, 0}, InstantiatedValue{CB, 0});
+            }
           }
         }
       }
@@ -520,7 +592,7 @@ bool CFLModuleAA::runOnModule(Module &M) {
     mergeGraphInto(Builder.getCFLGraph(), GlobalGraph);
   }
 
-  addDirectCallEdges(M, GlobalGraph);
+  addCallEdges(M, GlobalGraph);
 
   if (Result.Algorithm == CFLModuleAAAlgorithm::Steens) {
     // Steens-style: Build StratifiedSets directly
