@@ -1,6 +1,13 @@
-//
-// Created by peiming on 1/22/20.
-//
+/**
+ * @file LoweringMemCpyPass.cpp
+ * @brief Lower memcpy/memmove calls into explicit load/store operations.
+ *
+ * This pass replaces memcpy and memmove function calls with explicit GEP,
+ * load, and store operations. This makes memory operations explicit in the
+ * IR, which helps pointer analysis track memory flows more precisely.
+ *
+ * @author peiming
+ */
 #include "Alias/AserPTA/PreProcessing/Passes/LoweringMemCpyPass.h"
 #include "Alias/AserPTA/Util/Log.h"
 
@@ -18,6 +25,19 @@ using namespace std;
 using namespace aser;
 using namespace llvm;
 
+/**
+ * @brief Recursively lower memcpy for a specific type.
+ *
+ * Recursively processes struct and array types to generate GEP, load, and
+ * store operations that copy the data. For pointer types, generates a
+ * single load/store pair.
+ *
+ * @param type The type to lower memcpy for
+ * @param src Source pointer value
+ * @param dst Destination pointer value
+ * @param idx Current GEP indices (modified during recursion)
+ * @param builder IRBuilder for creating instructions
+ */
 void LoweringMemCpyPass::lowerMemCpyForType(Type *type, Value *src, Value *dst, SmallVector<Value *, 5> &idx,
                                             IRBuilder<NoFolder> &builder) {
     switch (type->getTypeID()) {

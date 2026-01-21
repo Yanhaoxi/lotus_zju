@@ -1,6 +1,13 @@
-//
-// Created by peiming on 2/26/20.
-//
+/**
+ * @file PreProcPassManagerBuilder.cpp
+ * @brief Pass manager builder for IR preprocessing.
+ *
+ * Configures and builds the sequence of LLVM passes used to preprocess IR
+ * before pointer analysis. Includes instruction combining, alias analysis,
+ * function simplification, and custom preprocessing passes.
+ *
+ * @author peiming
+ */
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 //#include "llvm-c/Transforms/PassManagerBuilder.h"
 #include "llvm/ADT/SmallVector.h"
@@ -46,16 +53,35 @@
 using namespace aser;
 using namespace llvm;
 
+/**
+ * @brief Construct a PreProcPassManagerBuilder with default settings.
+ *
+ * Initializes all flags to their default values (most optimizations disabled).
+ */
 PreProcPassManagerBuilder::PreProcPassManagerBuilder()
         : useCFL(UseCFLAA::None) ,
           runInstCombine(false),
           enableLoopUnswitch(false),
           enableSimpleLoopUnswitch(false) {}
 
+/**
+ * @brief Add instruction combining pass to the pass manager.
+ *
+ * @param PM The pass manager to add the pass to
+ */
 static inline void addInstructionCombiningPass(llvm::legacy::PassManagerBase &PM) {
     PM.add(createInstructionCombiningPass(true));
 }
 
+/**
+ * @brief Add initial alias analysis passes to the pass manager.
+ *
+ * Adds CFL-based alias analysis (Steensgaard/Andersen) and type-based alias
+ * analysis passes based on configuration.
+ *
+ * @param PM The pass manager to add passes to
+ * @param useCFL Which CFL alias analysis to use (if any)
+ */
 static void addInitialAliasAnalysisPasses(legacy::PassManagerBase &PM, UseCFLAA useCFL) {
     // we might want it later
     switch (useCFL) {
@@ -80,6 +106,15 @@ static void addInitialAliasAnalysisPasses(legacy::PassManagerBase &PM, UseCFLAA 
     PM.add(createScopedNoAliasAAWrapperPass());
 }
 
+/**
+ * @brief Add function simplification passes to the pass manager.
+ *
+ * Adds a sequence of passes for simplifying and optimizing functions, including
+ * SROA, early CSE, value propagation, CFG simplification, and optionally
+ * instruction combining and loop unswitching.
+ *
+ * @param MPM The module pass manager to add passes to
+ */
 void PreProcPassManagerBuilder::addFunctionSimplificationPasses(
         legacy::PassManagerBase &MPM) {
     // Start of function pass.

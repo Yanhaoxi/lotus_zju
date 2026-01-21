@@ -1,10 +1,17 @@
-/*
- * FIXME: It seems that the analysis does not use on-the-fly callgraph *
- * construction, but uses a lightweight address-taken analysis to get * the
- * callee list. See the implementation of void Andersen::addConstraintForCall
- * for details.
+/**
+ * @file ConstraintCollect.cpp
+ * @brief Constraint collection phase of Andersen's pointer analysis.
+ *
+ * This file implements the constraint collection phase that scans the program
+ * and generates pointer constraints. It processes global variables, functions,
+ * and instructions to build the constraint set that will be solved in later phases.
+ *
+ * FIXME: The analysis does not use on-the-fly callgraph construction, but uses
+ * a lightweight address-taken analysis to get the callee list. See the
+ * implementation of Andersen::addConstraintForCall for details.
+ *
+ * @author rainoftime
  */
-
 #include "Alias/SparrowAA/Andersen.h"
 #include "Alias/SparrowAA/Log.h"
 
@@ -37,10 +44,16 @@ STATISTIC(NumCallSites, "Number of call sites processed");
 STATISTIC(NumFunctions, "Number of functions analyzed");
 STATISTIC(NumPointerInstructions, "Number of pointer instructions processed");
 
-// CollectConstraints - This stage scans the program, adding a constraint to the
-// Constraints list for each instruction in the program that induces a
-// constraint, and setting up the initial points-to graph.
-
+/**
+ * @brief Collect constraints from the entire module.
+ *
+ * This stage scans the program, adding a constraint to the constraints list
+ * for each instruction that induces a constraint, and setting up the initial
+ * points-to graph. Initializes universal and null pointer constraints, then
+ * processes globals and all functions.
+ *
+ * @param M The module to collect constraints from
+ */
 void Andersen::collectConstraints(const Module &M) {
   LOG_INFO("collectConstraints: Starting, nodeFactory has {} nodes",
            nodeFactory.getNumNodes());
@@ -80,6 +93,16 @@ void Andersen::collectConstraints(const Module &M) {
   }
 }
 
+/**
+ * @brief Collect constraints for a single function in a given context.
+ *
+ * Creates function-scoped nodes (return, vararg, arguments) and processes
+ * all instructions in the function to generate constraints. Uses a visited
+ * set to avoid reprocessing the same function-context pair.
+ *
+ * @param f The function to process
+ * @param ctx The context key for this function instance
+ */
 void Andersen::collectConstraintsForFunction(const Function *f,
                                              AndersNodeFactory::CtxKey ctx) {
   FunctionContextKey key{f, ctx};
@@ -121,6 +144,16 @@ void Andersen::collectConstraintsForFunction(const Function *f,
   }
 }
 
+/**
+ * @brief Collect constraints for global variables and address-taken functions.
+ *
+ * Creates value and object nodes for each global variable and generates
+ * ADDR_OF constraints. Also handles address-taken functions by creating
+ * function pointer nodes.
+ *
+ * @param M The module containing the globals
+ * @param ctx The context key for global processing
+ */
 void Andersen::collectConstraintsForGlobals(const Module &M,
                                             AndersNodeFactory::CtxKey ctx) {
   // Create a pointer and an object for each global variable
@@ -210,6 +243,15 @@ void Andersen::addGlobalInitializerConstraints(NodeIndex objNode,
   }
 }
 
+/**
+ * @brief Collect constraints for a single instruction.
+ *
+ * Dispatches to instruction-specific constraint collectors based on opcode.
+ * Handles Alloca, Load, Store, GEP, BitCast, PHI, Select, and Call instructions.
+ *
+ * @param inst The instruction to process
+ * @param ctx The context key for this instruction
+ */
 void Andersen::collectConstraintsForInstruction(const Instruction *inst,
                                                 AndersNodeFactory::CtxKey ctx) {
   switch (inst->getOpcode()) {
@@ -513,6 +555,16 @@ void Andersen::collectConstraintsForInstruction(const Instruction *inst,
 // There are two types of constraints to add for a function call:
 // - ValueNode(callsite) = ReturnNode(call target)
 // - ValueNode(formal arg) = ValueNode(actual arg)
+/**
+ * @brief Add constraints for a function call instruction.
+ *
+ * Handles both direct and indirect calls. For direct calls, processes the
+ * called function. For indirect calls, uses address-taken analysis to find
+ * potential callees. Spawns new contexts for context-sensitive analysis.
+ *
+ * @param cs The call site instruction
+ * @param callerCtx The context of the calling function
+ */
 void Andersen::addConstraintForCall(const llvm::CallBase *cs,
                                     AndersNodeFactory::CtxKey callerCtx) {
   if (const Function *f = cs->getCalledFunction()) // Direct call

@@ -1,6 +1,13 @@
-//
-// Created by peiming on 4/15/20.
-//
+/**
+ * @file RemoveASMInstPass.cpp
+ * @brief Remove inline assembly instructions from functions.
+ *
+ * This pass removes inline assembly (asm) instructions from functions by
+ * replacing their uses with undef values. This simplifies the IR for pointer
+ * analysis, which cannot analyze assembly code.
+ *
+ * @author peiming
+ */
 #include "Alias/AserPTA/PreProcessing/Passes/RemoveASMInstPass.h"
 
 #include <llvm/IR/Instructions.h>
@@ -11,6 +18,16 @@
 using namespace aser;
 using namespace llvm;
 
+/**
+ * @brief Remove all inline assembly instructions from a function.
+ *
+ * Finds all call instructions that call inline assembly and replaces their
+ * uses with undef values, then erases the instructions.
+ *
+ * @param F The function to process
+ * @param builder IRBuilder for creating instructions (unused)
+ * @return true if any ASM instructions were removed, false otherwise
+ */
 static bool destroyASMInst(Function &F, IRBuilder<NoFolder> &builder) {
     std::vector<Instruction *> removeThese;
     for (auto &BB : F) {
@@ -31,6 +48,12 @@ static bool destroyASMInst(Function &F, IRBuilder<NoFolder> &builder) {
     return !removeThese.empty();
 }
 
+/**
+ * @brief Run the RemoveASMInstPass on a function.
+ *
+ * @param F The function to process
+ * @return true if any changes were made, false otherwise
+ */
 bool RemoveASMInstPass::runOnFunction(llvm::Function &F) {
     IRBuilder<NoFolder> builder(F.getContext());
 

@@ -1,6 +1,14 @@
-//
-// Created by peiming on 1/6/20.
-//
+/**
+ * @file CanonicalizeGEPPass.cpp
+ * @brief Canonicalize GetElementPtr instructions for pointer analysis.
+ *
+ * This pass transforms GEP instructions into a canonical form that is easier
+ * for pointer analysis to handle. It expands nested GEPs (using ConstantExpr
+ * operands) and splits GEPs that mix constant and variable indices into
+ * separate instructions.
+ *
+ * @author peiming
+ */
 #include "Alias/AserPTA/PreProcessing/Passes/CanonicalizeGEPPass.h"
 #include "Alias/AserPTA/Util/Log.h"
 
@@ -19,6 +27,16 @@
 using namespace llvm;
 using namespace aser;
 
+/**
+ * @brief Expand nested GEP instructions that use ConstantExpr operands.
+ *
+ * Replaces ConstantExpr operands in instructions with actual instructions.
+ * Uses a fixpoint algorithm because ConstantExprs can be recursive.
+ *
+ * @param F The function to process
+ * @param builder IRBuilder for creating new instructions
+ * @return true if any changes were made, false otherwise
+ */
 static bool expandNestedGEP(Function &F, IRBuilder<NoFolder> &builder) {
     bool fixPoint;
     bool changed = false;  // whether we changed IR
@@ -49,6 +67,17 @@ static bool expandNestedGEP(Function &F, IRBuilder<NoFolder> &builder) {
     return changed;
 }
 
+/**
+ * @brief Split GEP instructions that mix constant and variable indices.
+ *
+ * Transforms GEPs with mixed constant/variable indices into a sequence of
+ * simpler GEPs: first handling constant indices, then variable indices.
+ * This canonicalization makes pointer analysis more precise.
+ *
+ * @param F The function to process
+ * @param builder IRBuilder for creating new instructions
+ * @return true if any changes were made, false otherwise
+ */
 static bool splitVariableGEP(Function &F, IRBuilder<NoFolder> &builder) {
     bool changed = false;
     // the queue that stores all the constant indices

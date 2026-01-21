@@ -16,7 +16,16 @@
 namespace symbolic_abstraction {
 namespace {
 /**
- * Collect optimization objectives from interval-style leaves.
+ * @brief Collect optimization objectives from interval-style leaves in an abstract value.
+ *
+ * Traverses the flattened subcomponents of the abstract value and extracts
+ * interval domain components. For each interval that has an associated variable,
+ * adds the corresponding Z3 expression to the objectives vector (avoiding duplicates).
+ *
+ * @param value The abstract value to traverse for interval components
+ * @param vmap Value mapping to convert LLVM values to Z3 expressions
+ * @param[out] objectives Vector to collect Z3 expressions for optimization objectives
+ * @param[in,out] seen Set to track already-seen variables to avoid duplicates
  */
 void collectIntervalObjectives(const AbstractValue *value,
                                const ValueMapping &vmap,
@@ -38,6 +47,22 @@ void collectIntervalObjectives(const AbstractValue *value,
 }
 } // namespace
 
+/**
+ * @brief Run an optimization query to find the maximum or minimum value of an objective.
+ *
+ * Uses Z3's optimize solver with "box" priority to find an optimal solution for
+ * the given objective expression subject to the constraint formula phi. Updates
+ * the target abstract value with the concrete state from the optimal model if
+ * satisfiable.
+ *
+ * @param objective The Z3 expression to optimize (typically a variable from vmap)
+ * @param phi The constraint formula that must be satisfied
+ * @param vmap Value mapping for converting models to concrete states
+ * @param[out] target Abstract value to update with the optimal concrete state
+ * @param maximize If true, maximize the objective; otherwise minimize
+ * @param timeout_ms Timeout in milliseconds (0 means no timeout)
+ * @return OptimizeStatus indicating whether the optimization succeeded, failed, or timed out
+ */
 OMTAnalyzer::OptimizeStatus
 OMTAnalyzer::runOptimize(const z3::expr &objective, const z3::expr &phi,
                          const ValueMapping &vmap, AbstractValue *target,
@@ -69,6 +94,19 @@ OMTAnalyzer::runOptimize(const z3::expr &objective, const z3::expr &phi,
   return OptimizeStatus::Unknown;
 }
 
+/**
+ * @brief Fallback enumeration-based strongest consequence computation.
+ *
+ * When OMT optimization fails or times out, this method falls back to a
+ * model enumeration approach similar to UnilateralAnalyzer. Iteratively
+ * finds counterexample models that violate the current abstract value,
+ * joins them in, and applies widening periodically to ensure termination.
+ *
+ * @param[in,out] result The abstract value to refine (updated in place)
+ * @param vmap Value mapping for converting models to concrete states
+ * @param phi The constraint formula representing the concrete semantics
+ * @return true if the abstract value was changed, false otherwise
+ */
 bool OMTAnalyzer::fallbackEnumerate(AbstractValue *result,
                                     const ValueMapping &vmap,
                                     const z3::expr &phi) const {
@@ -105,6 +143,23 @@ bool OMTAnalyzer::fallbackEnumerate(AbstractValue *result,
   return changed;
 }
 
+/**
+ * @brief Compute the strongest abstract consequence using OMT optimization.
+ *
+ * This is the main entry point for computing strongest consequences in OMTAnalyzer.
+ * The algorithm:
+ * 1. Checks feasibility of phi
+ * 2. If infeasible, sets result to bottom
+ * 3. Collects interval objectives from the abstract value
+ * 4. For each objective, optimizes both max and min to find tight bounds
+ * 5. Joins all optimal solutions into the result
+ * 6. Falls back to enumeration if optimization fails or times out
+ *
+ * @param[in,out] result The abstract value to refine (updated in place)
+ * @param phi The constraint formula representing the concrete semantics
+ * @param vmap Value mapping for converting models to concrete states
+ * @return true if the abstract value was changed, false otherwise
+ */
 bool OMTAnalyzer::strongestConsequence(AbstractValue *result, z3::expr phi,
                                        const ValueMapping &vmap) const {
   z3::context &ctx = phi.ctx();

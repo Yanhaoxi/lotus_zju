@@ -1,3 +1,14 @@
+/**
+ * @file InstructionSemantics.cpp
+ * @brief Implementation of SMT encoding for LLVM instruction semantics.
+ *
+ * InstructionSemantics translates LLVM IR instructions into Z3 SMT formulas
+ * that encode their semantics. It handles arithmetic operations, memory operations,
+ * control flow, floating-point operations, and various LLVM-specific constructs.
+ * The visitor pattern is used to dispatch to instruction-specific encoders.
+ *
+ * @author rainoftime
+ */
 #include "Verification/SymbolicAbstraction/Core/InstructionSemantics.h"
 
 #include "Verification/SymbolicAbstraction/Core/FloatingPointModel.h"
@@ -18,8 +29,16 @@
 namespace // anonymous
 {
 /**
- * Construct a condition that is true iff `_shr(in0, in1)` shifts out set
- * bits of in0.
+ * @brief Construct a condition that is true iff a right shift is exact (no bits shifted out).
+ *
+ * For a right shift `_shr(in0, in1)`, this checks that all bits that would be
+ * shifted out are zero. This is used to encode the "exact" flag on LLVM shift
+ * instructions.
+ *
+ * @param ctx Z3 context for creating expressions
+ * @param in0 The value being shifted
+ * @param in1 The shift amount
+ * @return Z3 expression that is true iff the shift is exact
  */
 z3::expr getShrExactCondition(z3::context *const ctx, const z3::expr in0,
                               const z3::expr in1) {
@@ -37,10 +56,25 @@ z3::expr getShrExactCondition(z3::context *const ctx, const z3::expr in0,
 } // namespace
 
 namespace symbolic_abstraction {
+/**
+ * @brief Construct an InstructionSemantics visitor for a fragment.
+ *
+ * @param fctx Function context providing Z3 context and memory/floating-point models
+ * @param frag Fragment containing the instructions to encode
+ */
 InstructionSemantics::InstructionSemantics(const FunctionContext &fctx,
                                            const Fragment &frag)
     : FunctionContext_(fctx), Fragment_(frag), Z3Context_(&fctx.getZ3()) {}
 
+/**
+ * @brief Check if a value's type is supported for SMT encoding.
+ *
+ * Supports integer types, pointer types, and floating-point types (if the
+ * floating-point model supports them). Vector types are not supported.
+ *
+ * @param val The LLVM value to check
+ * @return true if the type is supported, false otherwise
+ */
 bool InstructionSemantics::hasSupportedType(llvm::Value *val) {
   llvm::Type *tp = val->getType();
 
@@ -51,6 +85,16 @@ bool InstructionSemantics::hasSupportedType(llvm::Value *val) {
   return !tp->isVectorTy();
 }
 
+/**
+ * @brief Check if an instruction has valid operands for SMT encoding.
+ *
+ * Validates that both the instruction itself and all its operands have
+ * supported types. Used to filter out unsupported instructions before
+ * attempting to encode them.
+ *
+ * @param instr The instruction to validate
+ * @return true if all operands are valid, false otherwise
+ */
 bool InstructionSemantics::hasValidOperands(llvm::Instruction &instr) {
   if (!hasSupportedType(&instr)) {
     vout << "Instruction " << repr(instr) << " has unsupported type." << '\n';
@@ -68,6 +112,20 @@ bool InstructionSemantics::hasValidOperands(llvm::Instruction &instr) {
   return true;
 }
 
+/**
+ * @brief Get the Z3 expression representing the r-value (read value) of an LLVM value.
+ *
+ * Handles multiple cases:
+ * - Represented variables: returns their SMT variable from ValueMapping
+ * - Constant integers: converts to Z3 bitvector constant
+ * - Constant floating-point: converts using FloatingPointModel
+ * - Constant pointer null: returns nullptr from MemoryModel
+ * - Constant expressions: recursively encodes as instructions
+ * - Other values: creates a fresh unconstrained variable
+ *
+ * @param value The LLVM value to encode
+ * @return Z3 expression representing the value
+ */
 z3::expr InstructionSemantics::rValue(llvm::Value *value) {
   // represented variable
   if (FunctionContext_.isRepresentedValue(value)) {
@@ -141,6 +199,15 @@ z3::expr InstructionSemantics::rValue(llvm::Value *value) {
                               FunctionContext_.sortForType(value->getType()));
 }
 
+/**
+ * @brief Get the Z3 expression representing the l-value (write target) of the current instruction.
+ *
+ * Returns the SMT variable that the current instruction writes to. For temporary
+ * instructions (e.g., from ConstantExpr), uses the instruction's name directly.
+ * Otherwise, uses ValueMapping to get the primed version of the instruction's result.
+ *
+ * @return Z3 expression representing the l-value (must be called while visiting an instruction)
+ */
 z3::expr InstructionSemantics::lValue() {
   if (Instruction_->getParent() == nullptr) {
     // Happens for temporary instructions created for ConstantExprs. See

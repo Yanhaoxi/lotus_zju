@@ -1,23 +1,16 @@
-//===- ExpandConstantExpr.cpp - Convert ConstantExprs to Instructions------===//
-//
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
-//
-//===----------------------------------------------------------------------===//
-//
-// This pass expands out ConstantExprs into Instructions.
-//
-// Note that this only converts ConstantExprs that are referenced by
-// Instructions.  It does not convert ConstantExprs that are used as
-// initializers for global variables.
-//
-// This simplifies the language so that the later analyses do not
-// need to handle ConstantExprs when scanning through instructions
-//
-//===----------------------------------------------------------------------===//
-
+/**
+ * @file ExpandConstantExpr.cpp
+ * @brief Convert ConstantExprs to Instructions.
+ *
+ * This pass expands out ConstantExprs into Instructions. Note that this only
+ * converts ConstantExprs that are referenced by Instructions. It does not
+ * convert ConstantExprs that are used as initializers for global variables.
+ *
+ * This simplifies the IR so that later analyses don't need to handle
+ * ConstantExprs when scanning through instructions.
+ *
+ * @author rainoftime
+ */
 #include "Alias/TPA/Transforms/ExpandConstantExpr.h"
 
 #include "llvm/IR/Constants.h"
@@ -30,6 +23,17 @@ namespace transform {
 
 static bool expandInstruction(Instruction *inst);
 
+/**
+ * @brief Expand a ConstantExpr into an Instruction.
+ *
+ * Converts the ConstantExpr to an instruction, inserts it before the given
+ * insertion point, and recursively expands any ConstantExprs in the new
+ * instruction's operands.
+ *
+ * @param insertPt Where to insert the new instruction
+ * @param expr The ConstantExpr to expand
+ * @return The new instruction (as a Value*)
+ */
 static Value *expandConstantExpr(Instruction *insertPt, ConstantExpr *expr) {
   Instruction *newInst = expr->getAsInstruction();
   newInst->insertBefore(insertPt);
@@ -38,6 +42,15 @@ static Value *expandConstantExpr(Instruction *insertPt, ConstantExpr *expr) {
   return newInst;
 }
 
+/**
+ * @brief Expand all ConstantExpr operands in an instruction.
+ *
+ * Recursively expands any ConstantExpr operands of the instruction into
+ * instructions. LandingPadInst is skipped as it can only accept ConstantExprs.
+ *
+ * @param inst The instruction to expand
+ * @return true if any operands were expanded, false otherwise
+ */
 static bool expandInstruction(Instruction *inst) {
   // A landingpad can only accept ConstantExprs, so it should remain
   // unmodified.
@@ -55,6 +68,16 @@ static bool expandInstruction(Instruction *inst) {
   return modified;
 }
 
+/**
+ * @brief Run the ExpandConstantExprPass on a function.
+ *
+ * Scans all instructions in the function and expands any ConstantExpr operands
+ * into instructions.
+ *
+ * @param F The function to transform
+ * @param analysisManager Function analysis manager (unused)
+ * @return PreservedAnalyses::none() if modified, PreservedAnalyses::all() otherwise
+ */
 PreservedAnalyses
 ExpandConstantExprPass::run(Function &F,
                             FunctionAnalysisManager &analysisManager) {

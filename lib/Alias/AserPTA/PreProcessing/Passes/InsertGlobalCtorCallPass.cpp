@@ -1,6 +1,14 @@
-//
-// Created by peiming on 3/14/20.
-//
+/**
+ * @file InsertGlobalCtorCallPass.cpp
+ * @brief Insert calls to global constructors at the beginning of main.
+ *
+ * This pass processes the @llvm.global_ctors array and inserts calls to
+ * all constructor functions at the beginning of the main function (or
+ * cr_main). This ensures global constructors are executed before main,
+ * making the IR more explicit for pointer analysis.
+ *
+ * @author peiming
+ */
 #include "Alias/AserPTA/PreProcessing/Passes/InsertGlobalCtorCallPass.h"
 
 #include <llvm/IR/Constants.h>
@@ -12,6 +20,15 @@ using namespace llvm;
 
 #define INIT_FUNC_INDEX 1
 
+/**
+ * @brief Run the InsertGlobalCtorCallPass on a module.
+ *
+ * Extracts constructor functions from @llvm.global_ctors and inserts calls
+ * to them at the beginning of the main function (or cr_main).
+ *
+ * @param M The module to process
+ * @return false (this pass doesn't modify the module structure, only adds calls)
+ */
 bool InsertGlobalCtorCallPass::runOnModule(llvm::Module &M) {
     auto *ctors = M.getGlobalVariable("llvm.global_ctors");
     if (ctors == nullptr) {

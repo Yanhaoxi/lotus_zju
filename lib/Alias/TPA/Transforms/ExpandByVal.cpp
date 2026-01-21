@@ -1,21 +1,16 @@
-//===- ExpandByVal.cpp - Expand out use of "byval" and "sret" attributes---===//
-//
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
-//
-//===----------------------------------------------------------------------===//
-//
-// This pass expands out by-value passing of structs as arguments and
-// return values.  In LLVM IR terms, it expands out "byval" and
-// "sret" function argument attributes.
-//
-// NOTE: This is a simplified version for LLVM 14 migration.
-// Full implementation would need to handle actual copying of byval arguments.
-//
-//===----------------------------------------------------------------------===//
-
+/**
+ * @file ExpandByVal.cpp
+ * @brief Expand out use of "byval" and "sret" attributes.
+ *
+ * This pass expands out by-value passing of structs as arguments and
+ * return values. In LLVM IR terms, it expands out "byval" and "sret"
+ * function argument attributes.
+ *
+ * NOTE: This is a simplified version for LLVM 14 migration.
+ * Full implementation would need to handle actual copying of byval arguments.
+ *
+ * @author rainoftime
+ */
 #include "Alias/TPA/Transforms/ExpandByVal.h"
 
 #include "llvm/IR/Attributes.h"
@@ -28,6 +23,16 @@ using namespace llvm;
 
 namespace transform {
 
+/**
+ * @brief Run the ExpandByValPass on a module.
+ *
+ * Removes byval and sret attributes from all functions in the module.
+ * This simplifies the IR by eliminating these special calling conventions.
+ *
+ * @param M The module to transform
+ * @param analysisManager Module analysis manager (unused)
+ * @return PreservedAnalyses::none() if modified, PreservedAnalyses::all() otherwise
+ */
 PreservedAnalyses ExpandByValPass::run(Module &M,
                                        ModuleAnalysisManager &analysisManager) {
   bool modified = false;

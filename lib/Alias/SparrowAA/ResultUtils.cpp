@@ -1,10 +1,13 @@
-/*
- * Result Utilities for Sparrow-AA
- * 
+/**
+ * @file ResultUtils.cpp
+ * @brief Result utilities for Sparrow-AA.
+ *
  * This file provides utility functions for printing and querying Andersen's
  * pointer analysis results, including points-to sets and alias relationships.
+ * Useful for debugging and result inspection.
+ *
+ * @author rainoftime
  */
-
 #include "Alias/SparrowAA/ResultUtils.h"
 #include "Alias/SparrowAA/Andersen.h"
 #include "Alias/SparrowAA/AndersenAA.h"
@@ -19,11 +22,28 @@ using namespace llvm;
 
 namespace sparrow_aa {
 
+/**
+ * @brief Print a value's name or representation to an output stream.
+ *
+ * @param V The value to print
+ * @param OS The output stream
+ */
 static void printValue(const Value *V, raw_ostream &OS) {
     if (V->hasName()) OS << V->getName();
     else V->printAsOperand(OS, false);
 }
 
+/**
+ * @brief Print the points-to set for a value.
+ *
+ * Retrieves and prints all objects that the given pointer value may point to,
+ * including annotations for global variables, stack allocations, heap allocations,
+ * and function pointers.
+ *
+ * @param V The pointer value to query
+ * @param Anders The Andersen analysis instance
+ * @param OS The output stream
+ */
 void printPointsToSet(const Value *V, Andersen &Anders, raw_ostream &OS) {
     if (!V->getType()->isPointerTy()) return;
     
@@ -55,6 +75,16 @@ void printPointsToSet(const Value *V, Andersen &Anders, raw_ostream &OS) {
     }
 }
 
+/**
+ * @brief Perform alias queries for all pointer pairs in a module.
+ *
+ * Queries the alias relationship between all pairs of pointers (up to a limit)
+ * and prints the results along with a summary of alias statistics.
+ *
+ * @param M The module to analyze
+ * @param AAResult The alias analysis result
+ * @param OS The output stream
+ */
 void performAliasQueries(Module &M, AndersenAAResult &AAResult, raw_ostream &OS) {
     OS << "\n=== Alias Query Results ===\n\n";
     

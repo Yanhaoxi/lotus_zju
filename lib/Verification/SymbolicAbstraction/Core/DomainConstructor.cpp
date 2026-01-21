@@ -1,3 +1,14 @@
+/**
+ * @file DomainConstructor.cpp
+ * @brief Implementation of DomainConstructor for building abstract domains from configuration.
+ *
+ * DomainConstructor provides a factory pattern for creating abstract values. It supports
+ * parsing domain specifications from configuration files, parameterization strategies,
+ * and combining multiple domains into products. The configparser namespace contains
+ * a specialization for parsing domain configurations from .conf files.
+ *
+ * @author rainoftime
+ */
 #include "Verification/SymbolicAbstraction/Core/DomainConstructor.h"
 
 #include "Verification/SymbolicAbstraction/Core/AbstractValue.h"
@@ -17,8 +28,24 @@
 namespace symbolic_abstraction {
 namespace configparser {
 
-// Specialization of Config::get for DomainConstructor that understands
-// AbstractDomain and ParamStrategy.* entries from the plain-text .conf files.
+/**
+ * @brief Specialization of Config::get for DomainConstructor.
+ *
+ * Parses domain specifications from configuration files. Understands:
+ * - Comma-separated domain lists (e.g., "Intervals, Zones")
+ * - ParamStrategy entries for parameterizing domains (e.g., "ParamStrategy.NumRels.Signed = NonPointerPairs(symmetric=true)")
+ * - Domain names that must match registered domains
+ *
+ * The parser supports ParamStrategy syntax:
+ * - NonPointerPairs(symmetric=true|false)
+ * - NonPointers
+ * - AllValuePairs(symmetric=true|false)
+ *
+ * @param module Configuration module name (typically "AbstractDomain")
+ * @param key Configuration key (typically "Variant")
+ * @param default_value Default domain to return if not found in config
+ * @return DomainConstructor parsed from configuration or default value
+ */
 template <>
 DomainConstructor Config::get(const char *module, const char *key,
                               DomainConstructor default_value) const {
@@ -190,6 +217,14 @@ DomainConstructor Config::get(const char *module, const char *key,
 } // namespace configparser
 std::vector<DomainConstructor> *DomainConstructor::KnownDomains_;
 
+/**
+ * @brief Construct a DomainConstructor from a configuration object.
+ *
+ * Reads the domain specification from the configuration using the key
+ * "AbstractDomain.Variant" and initializes this DomainConstructor accordingly.
+ *
+ * @param config Configuration object containing domain specifications
+ */
 DomainConstructor::DomainConstructor(const configparser::Config &config) {
   *this = config.get<DomainConstructor>("AbstractDomain", "Variant",
                                         DomainConstructor());
@@ -197,12 +232,32 @@ DomainConstructor::DomainConstructor(const configparser::Config &config) {
   assert(!isInvalid()); // default value is never used in config.get
 }
 
+/**
+ * @brief Create a bottom abstract value using the factory function with given arguments.
+ *
+ * Automatically parameterizes the domain to arity 0 (no parameters) before creating
+ * the value. This is the generic version that accepts a full args structure.
+ *
+ * @param args Arguments structure containing function context, location, and parameters
+ * @return Unique pointer to a bottom abstract value
+ */
 unique_ptr<AbstractValue>
 DomainConstructor::makeBottom(const DomainConstructor::args &args) const {
   DomainConstructor dc = autoParameterize(0);
   return dc.FactoryFunc_(args);
 }
 
+/**
+ * @brief Create a bottom abstract value for a specific basic block location.
+ *
+ * Convenience wrapper that constructs the args structure from individual parameters.
+ * Automatically parameterizes the domain to arity 0 before creating the value.
+ *
+ * @param fctx Function context for the abstract value
+ * @param loc Basic block location for the abstract value
+ * @param after If true, create value for after the block; if false, for before
+ * @return Unique pointer to a bottom abstract value
+ */
 unique_ptr<AbstractValue>
 DomainConstructor::makeBottom(const FunctionContext &fctx,
                               llvm::BasicBlock *loc, bool after) const {
@@ -214,6 +269,16 @@ DomainConstructor::makeBottom(const FunctionContext &fctx,
   return dc.FactoryFunc_(args);
 }
 
+/**
+ * @brief Automatically parameterize the domain to a desired arity.
+ *
+ * Reduces the domain's arity to the desired value by applying default
+ * parameterization strategies. If the domain needs to be reduced by 2 or more
+ * parameters, uses AllValuePairs(); otherwise uses AllValues().
+ *
+ * @param desired_arity Target arity (must be <= current arity and >= 0)
+ * @return New DomainConstructor with the desired arity
+ */
 DomainConstructor DomainConstructor::autoParameterize(int desired_arity) const {
   assert(Arity_ >= desired_arity && desired_arity >= 0);
   DomainConstructor dc = *this;
@@ -229,6 +294,16 @@ DomainConstructor DomainConstructor::autoParameterize(int desired_arity) const {
   return dc;
 }
 
+/**
+ * @brief Parameterize the domain using a parameterization strategy.
+ *
+ * Creates a new DomainConstructor that wraps the current domain in a Product
+ * domain, instantiating the base domain for each parameter set generated by
+ * the strategy. The resulting domain has arity reduced by pstrategy.arity().
+ *
+ * @param pstrategy Parameterization strategy that determines how to instantiate the domain
+ * @return New DomainConstructor with reduced arity, wrapping the parameterized domain
+ */
 DomainConstructor
 DomainConstructor::parameterize(const ParamStrategy &pstrategy) {
   factory_func_t factory_func = FactoryFunc_;
@@ -256,6 +331,17 @@ DomainConstructor::parameterize(const ParamStrategy &pstrategy) {
   return DomainConstructor(Name_, Description_, new_arity, f);
 }
 
+/**
+ * @brief Create a product domain from multiple domain constructors.
+ *
+ * Combines multiple domains into a single Product domain. All component domains
+ * are automatically parameterized to the minimum arity among them to ensure
+ * compatibility. The resulting domain creates Product abstract values containing
+ * instances of all component domains.
+ *
+ * @param doms Vector of domain constructors to combine (must be non-empty)
+ * @return DomainConstructor for the product domain
+ */
 DomainConstructor
 DomainConstructor::product(std::vector<DomainConstructor> doms) {
   assert(doms.size() > 0);

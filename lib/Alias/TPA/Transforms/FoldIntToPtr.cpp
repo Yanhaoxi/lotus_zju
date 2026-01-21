@@ -1,3 +1,17 @@
+/**
+ * @file FoldIntToPtr.cpp
+ * @brief Folds inttoptr instructions into simpler pointer operations.
+ *
+ * This pass recognizes common patterns in inttoptr instructions and replaces
+ * them with more direct pointer operations:
+ * - inttoptr(ptrtoint(X)) -> X (pointer copy)
+ * - inttoptr(ptrtoint(X) + offset) -> gep(X, offset) (pointer arithmetic)
+ *
+ * This simplifies the IR and makes pointer analysis more accurate by eliminating
+ * unnecessary integer conversions.
+ *
+ * @author rainoftime
+ */
 #include "Alias/TPA/Transforms/FoldIntToPtr.h"
 
 #include <llvm/IR/BasicBlock.h>
@@ -10,6 +24,16 @@ using namespace llvm::PatternMatch;
 
 namespace transform {
 
+/**
+ * @brief Attempt to fold an inttoptr instruction into simpler operations.
+ *
+ * Recognizes two patterns:
+ * 1. inttoptr(ptrtoint(X)) -> X (with type cast if needed)
+ * 2. inttoptr(ptrtoint(X) + offset) -> gep(X, offset) (with type/offset casts if needed)
+ *
+ * @param inst The inttoptr instruction to fold
+ * @return true if the instruction was folded and removed, false otherwise
+ */
 static bool foldInstruction(IntToPtrInst *inst) {
   auto *op = inst->getOperand(0)->stripPointerCasts();
 
@@ -51,6 +75,16 @@ static bool foldInstruction(IntToPtrInst *inst) {
   return false;
 }
 
+/**
+ * @brief Run the FoldIntToPtrPass on a function.
+ *
+ * Scans all instructions in the function for inttoptr instructions and attempts
+ * to fold them into simpler pointer operations.
+ *
+ * @param F The function to transform
+ * @param analysisManager Function analysis manager (unused)
+ * @return PreservedAnalyses::none() if modified, PreservedAnalyses::all() otherwise
+ */
 PreservedAnalyses
 FoldIntToPtrPass::run(llvm::Function &F,
                       FunctionAnalysisManager &analysisManager) {

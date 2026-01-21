@@ -1,3 +1,14 @@
+/**
+ * @file ResultStore.cpp
+ * @brief Implementation of ResultStore for persisting and retrieving abstract analysis results.
+ *
+ * ResultStore provides a database-backed storage mechanism for abstract interpretation
+ * results. It allows storing and retrieving AbstractValue instances associated with
+ * specific function/location keys, enabling reuse of analysis results across runs or
+ * integration with dynamic analysis results. Uses Berkeley DB when ENABLE_DYNAMIC is defined.
+ *
+ * @author rainoftime
+ */
 #include "Verification/SymbolicAbstraction/Core/ResultStore.h"
 
 #include "Verification/SymbolicAbstraction/Core/AbstractValue.h"
@@ -16,17 +27,41 @@ using namespace cereal;
 #define ID_WIDTH 32
 
 namespace symbolic_abstraction {
+/**
+ * @brief Prepare the Berkeley DB DBT structure for key operations.
+ *
+ * Initializes the DBT (database tuple) structure used by Berkeley DB
+ * to point to the key's ID data.
+ */
 void ResultStore::Key::prepareDBT() {
   memset(&DBT_, 0, sizeof(DBT));
   DBT_.data = &ID_;
   DBT_.size = sizeof(ID_);
 }
 
+/**
+ * @brief Construct a ResultStore::Key from a raw ID.
+ *
+ * @param id The raw identifier (must not exceed ID_WIDTH-1 bits)
+ */
 ResultStore::Key::Key(uint32_t id) : ID_(id) {
   assert(!(id & (1 << (ID_WIDTH - 1))) && "ID range exceeded!");
   prepareDBT();
 }
 
+/**
+ * @brief Construct a ResultStore::Key from a function and location.
+ *
+ * Computes a unique ID by:
+ * 1. Counting all basic blocks in functions before the target function
+ * 2. Adding 1 for Fragment::EXIT slot
+ * 3. Counting basic blocks in the target function up to the location
+ * 4. Setting the high bit if sound=true
+ *
+ * @param function The function containing the location
+ * @param location The basic block location (nullptr for Fragment::EXIT)
+ * @param sound Whether this is a sound (true) or unsound (false) result
+ */
 ResultStore::Key::Key(const llvm::Function &function,
                       llvm::BasicBlock *location, bool sound) {
   const llvm::Module *module = function.getParent();

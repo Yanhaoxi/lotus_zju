@@ -1,31 +1,23 @@
-//===- ExpandGetElementPtr.cpp - Expand GetElementPtr------===//
-//
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
-//
-//===----------------------------------------------------------------------===//
-//
-// This pass break down complex GetElementPtr instructions into smaller ones
-//
-// By "complex" I mean those GEPs that perform both constant-offset pointer
-// arithmetic and variable-offset (reference an array with a variable index)
-// pointer arithmetic.
-//
-// After this pass, all GEPs in the IR are guaranteed to be in one of the
-// following forms:
-//
-// - A constant-offset GEP, whose offset can be retrieved easily using
-// GetPointerBaseWithConstantOffset(). (e.g. y = getelementptr x, 1, 2, 3, 4)
-// - A variable-offset GEP with one index argument, which is a variable. (e.g. y
-// = getelementptr x, i)
-// - A variable-offset GEP with two index argument, where the first index
-// argument is 0 and the second one is a variable. (e.g. y = getelementptr x, 0,
-// i)
-//
-//===----------------------------------------------------------------------===//
-
+/**
+ * @file ExpandGetElementPtr.cpp
+ * @brief Expand complex GetElementPtr instructions into simpler ones.
+ *
+ * This pass breaks down complex GetElementPtr instructions into smaller ones.
+ * By "complex" we mean those GEPs that perform both constant-offset pointer
+ * arithmetic and variable-offset (reference an array with a variable index)
+ * pointer arithmetic.
+ *
+ * After this pass, all GEPs in the IR are guaranteed to be in one of the
+ * following forms:
+ * - A constant-offset GEP, whose offset can be retrieved easily using
+ *   GetPointerBaseWithConstantOffset() (e.g., y = getelementptr x, 1, 2, 3, 4)
+ * - A variable-offset GEP with one index argument, which is a variable
+ *   (e.g., y = getelementptr x, i)
+ * - A variable-offset GEP with two index arguments, where the first index
+ *   argument is 0 and the second one is a variable (e.g., y = getelementptr x, 0, i)
+ *
+ * @author rainoftime
+ */
 #include "Alias/TPA/Transforms/ExpandGetElementPtr.h"
 
 #include "llvm/Analysis/ValueTracking.h"
@@ -39,12 +31,29 @@ using namespace llvm;
 
 namespace transform {
 
+/**
+ * @brief Check if a value is a zero constant integer.
+ *
+ * @param V The value to check
+ * @return true if V is a ConstantInt with value zero, false otherwise
+ */
 static bool isZeroIndex(Value *V) {
   if (auto *CI = dyn_cast<ConstantInt>(V))
     return CI->isZero();
   return false;
 }
 
+/**
+ * @brief Expand a complex GEP instruction into simpler GEPs.
+ *
+ * If the GEP is already a simple constant-offset or variable-offset GEP,
+ * returns false. Otherwise, splits it into multiple simpler GEPs.
+ *
+ * @param gepInst The GEP instruction to expand
+ * @param dataLayout Data layout for computing offsets
+ * @param ptrType Pointer type for the result
+ * @return true if the GEP was expanded, false if it was already simple
+ */
 static bool expandGEP(GetElementPtrInst *gepInst, const DataLayout &dataLayout,
                       Type *ptrType) {
   int64_t offset = 0;
@@ -172,6 +181,16 @@ static bool expandGEP(GetElementPtrInst *gepInst, const DataLayout &dataLayout,
   return true;
 }
 
+/**
+ * @brief Run the ExpandGetElementPtrPass on a function.
+ *
+ * Scans all GEP instructions in the function and expands complex ones into
+ * simpler GEPs that are easier for pointer analysis to handle.
+ *
+ * @param F The function to transform
+ * @param analysisManager Function analysis manager (unused)
+ * @return PreservedAnalyses::none() if modified, PreservedAnalyses::all() otherwise
+ */
 PreservedAnalyses
 ExpandGetElementPtrPass::run(llvm::Function &F,
                              FunctionAnalysisManager &analysisManager) {

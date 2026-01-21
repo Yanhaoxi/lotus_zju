@@ -1,3 +1,14 @@
+/**
+ * @file Expression.cpp
+ * @brief Implementation of Expression hierarchy for representing program expressions.
+ *
+ * Expressions represent program values and operations that can be evaluated in both
+ * abstract (as Z3 formulas) and concrete (as ConcreteState values) contexts. The
+ * hierarchy includes RVExpression (for represented values), ConstantExpression (for
+ * constants), and various arithmetic/logical operation expressions.
+ *
+ * @author rainoftime
+ */
 #include "Verification/SymbolicAbstraction/Core/Expression.h"
 
 #include "Verification/SymbolicAbstraction/Core/RepresentedValue.h"
@@ -8,6 +19,12 @@
 
 namespace symbolic_abstraction {
 namespace {
+/**
+ * @brief Expression representing a RepresentedValue (LLVM value).
+ *
+ * This is the base case for expressions - it represents a single LLVM value
+ * that is tracked by the abstract interpreter.
+ */
 class RVExpression : public ExpressionBase {
 public:
   RepresentedValue RV_; // public for Expression::bits(FunctionContext&)

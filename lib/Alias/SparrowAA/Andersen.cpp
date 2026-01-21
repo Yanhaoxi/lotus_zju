@@ -1,4 +1,15 @@
-
+/**
+ * @file Andersen.cpp
+ * @brief Main implementation of Andersen's flow-insensitive pointer analysis.
+ *
+ * This file implements the core Andersen pointer analysis algorithm with
+ * support for context sensitivity (k-callsite). It orchestrates the three
+ * main phases: constraint collection, constraint optimization (HVN/HU), and
+ * constraint solving. Also provides command-line options for configuring
+ * the analysis behavior.
+ *
+ * @author rainoftime
+ */
 #include "Alias/SparrowAA/Andersen.h"
 
 #include "Alias/AserPTA/PointerAnalysis/Context/CtxTrait.h"

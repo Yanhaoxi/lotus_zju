@@ -1,4 +1,14 @@
-
+/**
+ * @file ExternalLibrary.cpp
+ * @brief Handling of external library function calls in constraint collection.
+ *
+ * This file provides support for modeling the effects of external library
+ * functions (malloc, memcpy, etc.) by adding appropriate constraints based
+ * on function specifications. Uses AliasSpecManager to determine function
+ * categories and effects.
+ *
+ * @author rainoftime
+ */
 #include <llvm/ADT/STLExtras.h>
 #include <llvm/Analysis/ValueTracking.h>
 #include <llvm/IR/InstrTypes.h>  // For CallBase
@@ -25,10 +35,21 @@ bool isEmptyModRef(const lotus::alias::ModRefInfo &mr) {
 }
 } // namespace
 
-// This function identifies if the external callsite is a library function call,
-// and add constraint correspondingly If this is a call to a "known" function,
-// add the constraints and return true. If this is a call to an unknown
-// function, return false.
+/**
+ * @brief Add constraints for an external library function call.
+ *
+ * Identifies if the external call site is a library function call and adds
+ * constraints accordingly. Handles allocators, memory copy functions, and
+ * other known library functions based on specifications.
+ *
+ * If this is a call to a "known" function, adds the constraints and returns
+ * true. If this is a call to an unknown function, returns false.
+ *
+ * @param cs The call site instruction
+ * @param f The called external function
+ * @param callerCtx The context of the calling function
+ * @return true if the function was handled, false if unknown
+ */
 bool Andersen::addConstraintForExternalLibrary(const CallBase *cs,
                                                const Function *f,
                                                AndersNodeFactory::CtxKey callerCtx) {

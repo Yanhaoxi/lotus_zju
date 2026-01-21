@@ -1,3 +1,15 @@
+/**
+ * @file ValueMapping.cpp
+ * @brief Implementation of ValueMapping for mapping LLVM values to Z3 expressions.
+ *
+ * ValueMapping provides a context-sensitive mapping from LLVM values to Z3 SMT
+ * expressions at specific program points within a fragment. It handles the SSA-like
+ * encoding where values may be "primed" (after definition) or "unprimed" (before
+ * definition) depending on their position relative to the mapping point. Also
+ * manages memory state variables that change at memory-modifying instructions.
+ *
+ * @author rainoftime
+ */
 #include "Verification/SymbolicAbstraction/Core/ValueMapping.h"
 
 #include "Verification/SymbolicAbstraction/Core/FloatingPointModel.h"
@@ -6,6 +18,16 @@
 #include <sstream>
 
 namespace symbolic_abstraction {
+/**
+ * @brief Index operator to get the Z3 expression for an LLVM value.
+ *
+ * Returns the Z3 expression representing the value at this mapping point.
+ * For pointer values, extracts the pointer value from the memory model.
+ * For other values, returns the full representation directly.
+ *
+ * @param value The LLVM value to look up
+ * @return Z3 expression representing the value
+ */
 z3::expr ValueMapping::operator[](llvm::Value *value) const {
   z3::expr res = this->getFullRepresentation(value);
   if (value->getType()->isPointerTy())
@@ -14,6 +36,21 @@ z3::expr ValueMapping::operator[](llvm::Value *value) const {
     return res;
 }
 
+/**
+ * @brief Get the full Z3 representation of a value, determining primed/unprimed status.
+ *
+ * Determines whether a value should be represented as primed (_1) or unprimed (_0)
+ * based on:
+ * - AtBeginning: always unprimed
+ * - AtEnd: always primed
+ * - At a point: primed if the value is defined in the fragment and reachable before the point
+ * - Otherwise: unprimed
+ *
+ * Arguments are never primed as they don't change within a function.
+ *
+ * @param value The LLVM value to represent
+ * @return Z3 expression (constant) representing the value with appropriate naming
+ */
 z3::expr ValueMapping::getFullRepresentation(llvm::Value *value) const {
   bool primed;
 
@@ -42,6 +79,15 @@ z3::expr ValueMapping::getFullRepresentation(llvm::Value *value) const {
                                            FunctionContext_.sortForType(type));
 }
 
+/**
+ * @brief Get the Z3 expression representing memory state at this mapping point.
+ *
+ * Memory state changes at memory-modifying instructions (alloca, store, call).
+ * This method counts such instructions up to the current point and creates a
+ * uniquely named memory variable. The name format is "mem_<bb>_<count>".
+ *
+ * @return Z3 expression (constant) representing the memory state variable
+ */
 z3::expr ValueMapping::memory() const {
   llvm::BasicBlock *bb;
   int mem_ops = 0;
@@ -86,6 +132,17 @@ z3::expr ValueMapping::memory() const {
   return FunctionContext_.getZ3().constant(name.str().c_str(), sort);
 }
 
+/**
+ * @brief Create a ValueMapping at the beginning of a basic block (after PHIs).
+ *
+ * Finds the first non-PHI instruction in the block and creates a mapping
+ * before that instruction. Special case: if bb is EXIT, returns atEnd mapping.
+ *
+ * @param fctx Function context for the mapping
+ * @param frag Fragment containing the basic block
+ * @param bb Basic block to create mapping for
+ * @return ValueMapping positioned at the start of the block's non-PHI instructions
+ */
 ValueMapping ValueMapping::atLocation(const FunctionContext &fctx,
                                       const Fragment &frag,
                                       llvm::BasicBlock *bb) {
@@ -108,6 +165,16 @@ ValueMapping ValueMapping::atLocation(const FunctionContext &fctx,
   return ValueMapping::before(fctx, frag, point);
 }
 
+/**
+ * @brief Create a ValueMapping at the beginning of a fragment.
+ *
+ * All values are unprimed at the fragment start, representing their state
+ * before any fragment instructions execute.
+ *
+ * @param fctx Function context for the mapping
+ * @param frag Fragment to create mapping for
+ * @return ValueMapping at the fragment beginning
+ */
 ValueMapping ValueMapping::atBeginning(const FunctionContext &fctx,
                                        const Fragment &frag) {
   ValueMapping result(fctx, frag, nullptr);
@@ -115,6 +182,16 @@ ValueMapping ValueMapping::atBeginning(const FunctionContext &fctx,
   return result;
 }
 
+/**
+ * @brief Create a ValueMapping at the end of a fragment.
+ *
+ * All values defined in the fragment are primed at the fragment end,
+ * representing their state after all fragment instructions execute.
+ *
+ * @param fctx Function context for the mapping
+ * @param frag Fragment to create mapping for
+ * @return ValueMapping at the fragment end
+ */
 ValueMapping ValueMapping::atEnd(const FunctionContext &fctx,
                                  const Fragment &frag) {
   ValueMapping result(fctx, frag, nullptr);
@@ -122,6 +199,17 @@ ValueMapping ValueMapping::atEnd(const FunctionContext &fctx,
   return result;
 }
 
+/**
+ * @brief Create a ValueMapping immediately before an instruction.
+ *
+ * Creates a mapping point just before the given instruction. If the instruction
+ * is the first non-PHI in the fragment start block, returns atBeginning instead.
+ *
+ * @param fctx Function context for the mapping
+ * @param frag Fragment containing the instruction
+ * @param inst Instruction to create mapping before
+ * @return ValueMapping positioned before the instruction
+ */
 ValueMapping ValueMapping::before(const FunctionContext &fctx,
                                   const Fragment &frag,
                                   llvm::Instruction *inst) {
@@ -138,6 +226,18 @@ ValueMapping ValueMapping::before(const FunctionContext &fctx,
   return ValueMapping(fctx, frag, inst);
 }
 
+/**
+ * @brief Create a ValueMapping immediately after an instruction.
+ *
+ * Creates a mapping point just after the given instruction. Handles special
+ * cases for self-looping fragments (Start == End) where the last PHI in the
+ * end block maps to atEnd. The instruction must not be a terminator.
+ *
+ * @param fctx Function context for the mapping
+ * @param frag Fragment containing the instruction
+ * @param inst Instruction to create mapping after (must not be a terminator)
+ * @return ValueMapping positioned after the instruction
+ */
 ValueMapping ValueMapping::after(const FunctionContext &fctx,
                                  const Fragment &frag,
                                  llvm::Instruction *inst) {

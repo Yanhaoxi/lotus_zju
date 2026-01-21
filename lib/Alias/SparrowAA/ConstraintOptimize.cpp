@@ -1,3 +1,14 @@
+/**
+ * @file ConstraintOptimize.cpp
+ * @brief Constraint optimization phase using HVN and HU algorithms.
+ *
+ * This file implements constraint optimization algorithms (HVN: Hash-based Value
+ * Numbering, and HU: HVN with deReference and Union) that reduce the number of
+ * constraints by merging equivalent nodes and eliminating redundant constraints.
+ * These optimizations significantly speed up the constraint solving phase.
+ *
+ * @author rainoftime
+ */
 #include <llvm/ADT/DenseMap.h>
 #include <llvm/ADT/DenseSet.h>
 #include <llvm/ADT/SparseBitVector.h>

@@ -1,7 +1,14 @@
-//
-// Created by peiming on 2/10/20.
-//
-
+/**
+ * @file WrapperFunIdentifyPass.cpp
+ * @brief Identify and inline heap allocation wrapper functions.
+ *
+ * This pass identifies wrapper functions around heap allocation APIs and
+ * inlines them to expose the underlying allocation calls to pointer analysis.
+ * Uses heuristics based on instruction count, load/store patterns, and call
+ * patterns to identify simple wrapper functions.
+ *
+ * @author peiming
+ */
 #include "Alias/AserPTA/PreProcessing/Passes/WrapperFunIdentifyPass.h"
 #include "Alias/AserPTA/Util/Log.h"
 
@@ -29,12 +36,28 @@
 using namespace std;
 using namespace llvm;
 
+/**
+ * @brief Check if a mangled name uses Itanium encoding.
+ *
+ * @param MangledName The mangled function name
+ * @return true if it's Itanium encoding, false otherwise
+ */
 static bool isItaniumEncoding(const StringRef &MangledName) {
     size_t Pos = MangledName.find_first_not_of('_');
     // A valid Itanium encoding requires 1-4 leading underscores, followed by 'Z'.
     return Pos > 0 && Pos <= 4 && MangledName[Pos] == 'Z';
 }
 
+/**
+ * @brief Push non-recursive PHI users onto a use chain.
+ *
+ * Traverses PHI node users while avoiding cycles. Used to track value flow
+ * through PHI nodes when analyzing wrapper functions.
+ *
+ * @param use The value whose PHI users to track
+ * @param useChain Vector to append PHI users to
+ * @return true if PHI users were added, false if cycle detected or no users
+ */
 static bool pushNonRecursivePhi(Value *use, SmallVector<Value *, 16>& useChain) {
     for (User *phiUser : use->users()) {
         // we might have loop here! skip recursion
@@ -49,6 +72,17 @@ static bool pushNonRecursivePhi(Value *use, SmallVector<Value *, 16>& useChain) 
     return true;
 }
 
+/**
+ * @brief Inline heap wrapper APIs identified in the module.
+ *
+ * Uses heuristics to identify wrapper functions around heap allocations and
+ * inlines them. Works iteratively: when a wrapper is inlined, it may expose
+ * other wrappers that can also be inlined.
+ *
+ * @param M The module to process
+ * @param HeapAPIs Set of known heap API names
+ * @return true if any wrappers were inlined, false otherwise
+ */
 static bool inlineHeapWrapperAPIs(Module &M, set<StringRef> &HeapAPIs) {
     ItaniumPartialDemangler demangler;
     SmallVector<StringRef, 16> workList;

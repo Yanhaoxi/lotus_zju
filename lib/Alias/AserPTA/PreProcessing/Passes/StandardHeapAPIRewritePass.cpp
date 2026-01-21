@@ -1,10 +1,14 @@
-//
-// Created by peiming on 3/9/20.
-//
-
-//
-// Created by peiming on 2/10/20.
-//
+/**
+ * @file StandardHeapAPIRewritePass.cpp
+ * @brief Rewrite standard heap API calls and identify overridden allocators.
+ *
+ * This pass identifies and rewrites standard heap allocation APIs (malloc,
+ * calloc, etc.) and handles functions with allocsize attributes. It also
+ * identifies C++ overridden heap APIs using name demangling and rewrites
+ * them to use standard allocation functions.
+ *
+ * @author peiming
+ */
 #include <set>
 #include <string>
 
@@ -21,12 +25,33 @@
 using namespace std;
 using namespace llvm;
 
+/**
+ * @brief Check if a mangled name uses Itanium encoding.
+ *
+ * Validates that the name has 1-4 leading underscores followed by 'Z',
+ * which indicates Itanium C++ ABI name mangling.
+ *
+ * @param MangledName The mangled function name
+ * @return true if it's Itanium encoding, false otherwise
+ */
 static bool isItaniumEncoding(const StringRef &MangledName) {
     size_t Pos = MangledName.find_first_not_of('_');
     // A valid Itanium encoding requires 1-4 leading underscores, followed by 'Z'.
     return Pos > 0 && Pos <= 4 && MangledName[Pos] == 'Z';
 }
 
+/**
+ * @brief Identify and rewrite overridden heap APIs in the module.
+ *
+ * Scans the module for functions with allocsize attributes or C++ overridden
+ * heap allocation operators and rewrites them to use standard allocation
+ * functions (calloc). Functions with allocsize are rewritten to call calloc
+ * directly.
+ *
+ * @param M The module to process
+ * @param HeapAPIs Set of known heap API names (updated with found APIs)
+ * @return true if any changes were made, false otherwise
+ */
 static bool identifyOverridenHeapAPIs(Module &M, set<StringRef> &HeapAPIs) {
     ItaniumPartialDemangler demangler;
     LLVMContext &C = M.getContext();

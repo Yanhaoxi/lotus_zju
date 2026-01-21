@@ -21,6 +21,7 @@
 #include "Alias/TPA/PointerAnalysis/MemoryModel/PointerManager.h"
 #include "Alias/TPA/PointerAnalysis/Precision/TrackerGlobalState.h"
 #include "Alias/TPA/PointerAnalysis/Precision/ValueDependenceTracker.h"
+#include "Alias/TPA/PointerAnalysis/Program/CFG/CFGNode.h"
 #include "Alias/TPA/PointerAnalysis/Program/SemiSparseProgram.h"
 
 #include <llvm/IR/Argument.h>
@@ -176,12 +177,80 @@ void ImprecisionTracker::checkCalleeDependencies(const ProgramPoint &pp,
   }
 }
 
+// Checks dependencies at a function entry (tracking back from parameter to caller arguments).
+// If individual callers pass more precise argument sets than the merged parameter set
+// (which is the union of all caller arguments), then merging causes precision loss.
 void ImprecisionTracker::checkCallerDependencies(const ProgramPoint &pp,
                                                  ProgramPointSet &deps) {
-  (void)pp;
-  (void)deps;
-  // TODO: Implement logic to check if parameter merging from multiple call sites
-  // causes precision loss at function entry.
+  assert(pp.getCFGNode()->isEntryNode());
+  const auto *entryNode = static_cast<const EntryCFGNode *>(pp.getCFGNode());
+  const auto &func = entryNode->getFunction();
+  const auto *funcCtx = pp.getContext();
+
+  // Check each pointer-typed parameter of the function
+  unsigned paramIdx = 0;
+  for (const auto &arg : func.args()) {
+    if (!arg.getType()->isPointerTy())
+      continue;
+
+    // Get the merged parameter points-to set (union of all caller arguments)
+    const auto *paramPtr = globalState.getPointerManager().getPointer(funcCtx, &arg);
+    if (paramPtr == nullptr)
+      continue;
+
+    const auto paramSet = getPtsSet(funcCtx, &arg);
+    if (paramSet.empty())
+      continue;
+
+    ProgramPointSet newSet;
+    bool needPrecision = false;
+
+    // Check each caller's argument precision
+    for (auto const &callerPP : deps) {
+      assert(callerPP.getCFGNode()->isCallNode());
+      const auto *callNode = static_cast<const CallCFGNode *>(callerPP.getCFGNode());
+      
+      // Find the corresponding argument at this call site
+      // We need to match parameter index to argument index (skipping non-pointer args)
+      unsigned argIdx = 0;
+      unsigned pointerArgIdx = 0;
+      for (auto argItr = callNode->begin(); argItr != callNode->end(); ++argItr, ++argIdx) {
+        const auto *argVal = *argItr;
+        if (!argVal->getType()->isPointerTy())
+          continue;
+        
+        if (pointerArgIdx == paramIdx) {
+          // This is the argument corresponding to the parameter we're checking
+          const auto *argPtr = globalState.getPointerManager().getPointer(
+              callerPP.getContext(), argVal);
+          if (argPtr != nullptr) {
+            const auto argSet = getPtsSet(callerPP.getContext(), argVal);
+            if (!argSet.empty()) {
+              // If this caller's argument is more precise than the merged parameter,
+              // then merging causes precision loss
+              if (morePrecise(argSet, paramSet))
+                needPrecision = true;
+              else
+                newSet.insert(callerPP);
+            }
+          }
+          break;
+        }
+        ++pointerArgIdx;
+      }
+    }
+
+    // If we detected precision loss for this parameter, mark the entry point as imprecision source
+    if (needPrecision) {
+      globalState.addImprecisionSource(pp);
+      // Focus tracking on the imprecise callers (the ones that are NOT more precise)
+      deps.swap(newSet);
+      // Only check the first parameter that shows precision loss to avoid redundant checks
+      break;
+    }
+
+    ++paramIdx;
+  }
 }
 
 } // namespace

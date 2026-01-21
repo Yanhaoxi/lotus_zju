@@ -1,18 +1,17 @@
-//===- GlobalCleanup.cpp - Cleanup global symbols post-bitcode-link -------===//
-//
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
-//
-// ===---------------------------------------------------------------------===//
-//
-// TPA input file should have no external symbols or aliases. These passes
-// internalize (or otherwise remove/resolve) GlobalValues and resolve all
-// GlobalAliases.
-//
-//===----------------------------------------------------------------------===//
-
+/**
+ * @file GlobalCleanup.cpp
+ * @brief Cleanup global symbols post-bitcode-link for TPA analysis.
+ *
+ * TPA input files should have no external symbols or aliases. These passes
+ * internalize (or otherwise remove/resolve) GlobalValues and resolve all
+ * GlobalAliases. Specifically:
+ * - Removes @llvm.compiler.used and @llvm.used globals
+ * - Converts ExternalWeakLinkage to null and removes the symbol
+ * - Converts WeakAnyLinkage to InternalLinkage
+ * - Resolves all GlobalAliases by replacing uses with their aliasee
+ *
+ * @author rainoftime
+ */
 #include "Alias/TPA/Transforms/GlobalCleanup.h"
 
 #include "llvm/IR/Constants.h"
@@ -23,6 +22,15 @@ using namespace llvm;
 
 namespace transform {
 
+/**
+ * @brief Clean up linkage types for a global value.
+ *
+ * Handles ExternalWeakLinkage (replace with null and remove) and WeakAnyLinkage
+ * (convert to InternalLinkage). Other linkage types are left unchanged.
+ *
+ * @param gv The global value to clean up
+ * @return true if the value was modified, false otherwise
+ */
 static bool cleanUpLinkage(GlobalValue *gv) {
   // TODO: handle the rest of the linkage types as necessary without
   // running afoul of the IR verifier or breaking the native link
@@ -44,6 +52,16 @@ static bool cleanUpLinkage(GlobalValue *gv) {
   return false;
 }
 
+/**
+ * @brief Run the GlobalCleanup pass on a module.
+ *
+ * Removes @llvm.compiler.used and @llvm.used globals, then cleans up linkage
+ * for all global variables and functions.
+ *
+ * @param M The module to transform
+ * @param analysisManager Module analysis manager (unused)
+ * @return PreservedAnalyses::none() if modified, PreservedAnalyses::all() otherwise
+ */
 PreservedAnalyses GlobalCleanup::run(Module &M,
                                      ModuleAnalysisManager &analysisManager) {
   bool modified = false;
@@ -66,6 +84,16 @@ PreservedAnalyses GlobalCleanup::run(Module &M,
   return modified ? PreservedAnalyses::none() : PreservedAnalyses::all();
 }
 
+/**
+ * @brief Run the ResolveAliases pass on a module.
+ *
+ * Replaces all uses of GlobalAliases with their aliasee values, then removes
+ * the alias declarations. This simplifies the IR by eliminating alias indirection.
+ *
+ * @param M The module to transform
+ * @param analysisManager Module analysis manager (unused)
+ * @return PreservedAnalyses::none() if modified, PreservedAnalyses::all() otherwise
+ */
 PreservedAnalyses ResolveAliases::run(Module &M,
                                       ModuleAnalysisManager &analysisManager) {
   bool modified = false;

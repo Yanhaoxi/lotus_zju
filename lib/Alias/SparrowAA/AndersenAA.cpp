@@ -1,3 +1,13 @@
+/**
+ * @file AndersenAA.cpp
+ * @brief LLVM AliasAnalysis interface implementation for Andersen's pointer analysis.
+ *
+ * This file implements the AliasAnalysis interface that LLVM uses to query
+ * alias information. It wraps the underlying Andersen pointer analysis engine
+ * and provides alias queries, points-to queries, and constant memory detection.
+ *
+ * @author rainoftime
+ */
 #include "Alias/SparrowAA/AndersenAA.h"
 
 #include <vector>
@@ -6,10 +16,28 @@
 
 using namespace llvm;
 
+/**
+ * @brief Check if a points-to set contains only a single specific node.
+ *
+ * @param set The points-to set to check
+ * @param i The node index to check for
+ * @return true if the set contains exactly one element and it equals i
+ */
 static inline bool isSetContainingOnly(const AndersPtsSet &set, NodeIndex i) {
   return (set.getSize() == 1) && (*set.begin() == i);
 }
 
+/**
+ * @brief Determine the alias relationship between two LLVM values using Andersen's analysis.
+ *
+ * First checks if the values are merged to the same node (MustAlias).
+ * Then retrieves points-to sets and checks for null pointers (NoAlias).
+ * Finally compares points-to sets for intersection (MayAlias/MustAlias/NoAlias).
+ *
+ * @param v1 First value to check
+ * @param v2 Second value to check
+ * @return AliasResult indicating the alias relationship
+ */
 AliasResult AndersenAAResult::andersenAlias(const Value *v1, const Value *v2) {
   std::vector<NodeIndex> n1List, n2List;
   (anders.nodeFactory).getValueNodesFor(v1, n1List);
@@ -43,6 +71,16 @@ AliasResult AndersenAAResult::andersenAlias(const Value *v1, const Value *v2) {
   return AliasResult::NoAlias;
 }
 
+/**
+ * @brief Determine the alias relationship between two memory locations.
+ *
+ * Implements the AliasAnalysis interface. Handles zero-sized locations,
+ * strips pointer casts, and delegates to andersenAlias for the actual analysis.
+ *
+ * @param l1 First memory location
+ * @param l2 Second memory location
+ * @return AliasResult indicating the alias relationship
+ */
 AliasResult AndersenAAResult::alias(const MemoryLocation &l1,
                                     const MemoryLocation &l2) {
   if (l1.Size == 0 || l2.Size == 0)
@@ -60,6 +98,17 @@ AliasResult AndersenAAResult::alias(const MemoryLocation &l1,
   return andersenAlias(v1, v2);
 }
 
+/**
+ * @brief Check if a memory location points to constant memory.
+ *
+ * Retrieves the points-to set and verifies that all targets are constant
+ * global variables or the null object. Used by LLVM optimizations that
+ * can assume memory is immutable.
+ *
+ * @param loc The memory location to check
+ * @param orLocal If true, also consider local constant memory (unused)
+ * @return true if all points-to targets are constant, false otherwise
+ */
 bool AndersenAAResult::pointsToConstantMemory(const MemoryLocation &loc,
                                               bool orLocal) {
   AndersPtsSet ptsSet;
@@ -80,18 +129,42 @@ bool AndersenAAResult::pointsToConstantMemory(const MemoryLocation &loc,
   return true;
 }
 
+/**
+ * @brief Construct an AndersenAAResult with default context policy.
+ *
+ * @param m The module to analyze
+ */
 AndersenAAResult::AndersenAAResult(const Module &m)
     : anders(m, getSelectedAndersenContextPolicy()) {}
 
+/**
+ * @brief Construct an AndersenAAResult with a specific context policy.
+ *
+ * @param m The module to analyze
+ * @param policy The context sensitivity policy to use
+ */
 AndersenAAResult::AndersenAAResult(const Module &m, ContextPolicy policy)
     : anders(m, policy) {}
 
+/**
+ * @brief Construct an AndersenAAResult with k-callsite context sensitivity.
+ *
+ * @param m The module to analyze
+ * @param kCallSite The k value for k-callsite context sensitivity (0/1/2)
+ */
 AndersenAAResult::AndersenAAResult(const Module &m, unsigned kCallSite)
     : anders(m, makeContextPolicy(kCallSite)) {}
 
 // New Pass Manager implementation
 AnalysisKey AndersenAA::Key;
 
+/**
+ * @brief Run the AndersenAA analysis pass on a module.
+ *
+ * @param M The module to analyze
+ * @param ModuleAnalysisManager The analysis manager (unused)
+ * @return AndersenAAResult containing the analysis results
+ */
 AndersenAAResult AndersenAA::run(Module &M, ModuleAnalysisManager &) {
   return AndersenAAResult(M);
 }

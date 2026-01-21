@@ -1,27 +1,19 @@
-//===- ExpandIndirectBr.cpp - Expand out indirectbr and blockaddress-------===//
-//
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
-//
-//===----------------------------------------------------------------------===//
-//
-// This pass expands out indirectbr instructions and blockaddress
-// ConstantExprs. Indirectbr is used to implement computed gotos (a GNU
-// extension to C).  This pass replaces indirectbr instructions with
-// switch instructions, so that later analysis passes does not have
-// to worry about indirectbr instruction and blockaddress constexpr
-//
-// The resulting use of switches might not be as fast as the original
-// indirectbrs.  If you are compiling a program that has a
-// compile-time option for using computed gotos, it's possible that
-// the program will run faster with the option turned off than with
-// using computed gotos + ExpandIndirectBr (for example, if the
-// program does extra work to take advantage of computed gotos).
-//
-//===----------------------------------------------------------------------===//
-
+/**
+ * @file ExpandIndirectBr.cpp
+ * @brief Expand out indirectbr instructions and blockaddress ConstantExprs.
+ *
+ * Indirectbr is used to implement computed gotos (a GNU extension to C).
+ * This pass replaces indirectbr instructions with switch instructions, so that
+ * later analysis passes don't have to worry about indirectbr instructions and
+ * blockaddress ConstantExprs.
+ *
+ * The resulting switches might not be as fast as the original indirectbrs.
+ * If you are compiling a program that has a compile-time option for using
+ * computed gotos, it's possible that the program will run faster with the
+ * option turned off than with using computed gotos + ExpandIndirectBr.
+ *
+ * @author rainoftime
+ */
 #include "Alias/TPA/Transforms/ExpandIndirectBr.h"
 
 #include <llvm/ADT/DenseSet.h>
@@ -33,6 +25,16 @@ using namespace llvm;
 
 namespace transform {
 
+/**
+ * @brief Convert all indirectbr instructions in a function to switches.
+ *
+ * For each indirectbr, creates a switch instruction that maps block addresses
+ * to integer labels. Also replaces all blockaddress ConstantExprs with integer
+ * constants. Unused blockaddresses are replaced with dummy values.
+ *
+ * @param func The function to convert
+ * @return true if any changes were made, false otherwise
+ */
 static bool convertFunction(Function *func) {
   bool isChanged = false;
   IntegerType *i32 = Type::getInt32Ty(func->getContext());
@@ -121,6 +123,15 @@ static bool convertFunction(Function *func) {
   return isChanged;
 }
 
+/**
+ * @brief Run the ExpandIndirectBr pass on a module.
+ *
+ * Processes all functions in the module to expand indirectbr instructions.
+ *
+ * @param M The module to transform
+ * @param analysisManager Module analysis manager (unused)
+ * @return PreservedAnalyses::none() if modified, PreservedAnalyses::all() otherwise
+ */
 PreservedAnalyses
 ExpandIndirectBr::run(Module &M, ModuleAnalysisManager &analysisManager) {
   bool modified = false;

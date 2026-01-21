@@ -1,7 +1,14 @@
-//
-// Created by peiming on 10/23/19.
-//
-
+/**
+ * @file PointsToSet.cpp
+ * @brief Points-to set implementations and configuration for AserPTA.
+ *
+ * Provides implementations of points-to sets using different backends:
+ * - BitVectorPTS: Sparse bit vector implementation
+ * - BDDPts: BDD-backed implementation for scalability
+ * - PointedByPts: Reverse points-to sets (pointed-by sets)
+ *
+ * @author peiming
+ */
 #include "Alias/AserPTA/PointerAnalysis/Solver/PointsTo/BitVectorPTS.h"
 #include "Alias/AserPTA/PointerAnalysis/Solver/PointsTo/BDDPts.h"
 #include "Alias/AserPTA/PointerAnalysis/Solver/PointsTo/PointedByPts.h"

@@ -1,6 +1,13 @@
-//
-// Created by peiming on 1/16/20.
-//
+/**
+ * @file DefaultHeapModel.cpp
+ * @brief Default heap model for inferring types of heap-allocated objects.
+ *
+ * Provides type inference for heap allocation functions (malloc, calloc, etc.)
+ * by analyzing subsequent bitcast operations and allocation sizes. This helps
+ * create more precise object types for pointer analysis.
+ *
+ * @author peiming
+ */
 #include "Alias/AserPTA/PointerAnalysis/Models/DefaultHeapModel.h"
 #include "Alias/AserPTA/Util/Util.h"
 
@@ -10,6 +17,16 @@
 using namespace llvm;
 using namespace aser;
 
+/**
+ * @brief Get the destination type of a bitcast following an allocation.
+ *
+ * Checks if the instruction immediately following an allocation site is a
+ * bitcast, and if so, returns the destination type. This helps infer the
+ * intended type of heap-allocated objects.
+ *
+ * @param allocSite The allocation instruction (call/invoke)
+ * @return The destination type of the bitcast, or nullptr if not found
+ */
 static Type *getNextBitCastDestType(const Instruction *allocSite) {
     // a call instruction
     const Instruction *nextInst = nullptr;
@@ -31,7 +48,19 @@ static Type *getNextBitCastDestType(const Instruction *allocSite) {
     return nullptr;
 }
 
-// the signature of calloc is void *calloc(size_t elementNum, size_t elementSize);
+/**
+ * @brief Infer the type of an object allocated by calloc.
+ *
+ * Analyzes the calloc call site and subsequent bitcast to infer the element
+ * type and array size. The signature of calloc is:
+ * `void *calloc(size_t elementNum, size_t elementSize)`
+ *
+ * @param fun The function containing the allocation
+ * @param allocSite The calloc call instruction
+ * @param numArgNo Argument number for element count
+ * @param sizeArgNo Argument number for element size
+ * @return Inferred array type, or nullptr if inference fails
+ */
 Type *DefaultHeapModel::inferCallocType(const Function *fun, const Instruction *allocSite,
                                         int numArgNo, int sizeArgNo) {
     if (auto* elemType = getNextBitCastDestType(allocSite)) {
@@ -58,7 +87,21 @@ Type *DefaultHeapModel::inferCallocType(const Function *fun, const Instruction *
     return nullptr;
 }
 
-// the signature of malloc is void *malloc(size_t elementSize);
+/**
+ * @brief Infer the type of an object allocated by malloc.
+ *
+ * Analyzes the malloc call site and subsequent bitcast to infer the allocated
+ * type. If the size is known and matches the element type size, returns that
+ * type. If the size is a multiple, returns a bounded array. Otherwise returns
+ * an unbounded array or nullptr.
+ *
+ * The signature of malloc is: `void *malloc(size_t elementSize)`
+ *
+ * @param fun The function containing the allocation
+ * @param allocSite The malloc call instruction
+ * @param sizeArgNo Argument number for size (-1 to treat as unbounded array)
+ * @return Inferred type, or nullptr if inference fails
+ */
 Type *DefaultHeapModel::inferMallocType(const Function *fun, const Instruction *allocSite,
                                         int sizeArgNo) {
 

@@ -1,3 +1,15 @@
+/**
+ * @file Fragment.cpp
+ * @brief Implementation of Fragment, representing an acyclic control-flow subgraph.
+ *
+ * A Fragment represents a subgraph of the control-flow graph between two abstraction
+ * points (basic blocks). Fragments are used to decompose the CFG for analysis, allowing
+ * the analyzer to compute transformers for manageable pieces. This file implements
+ * queries about fragment structure: loop detection, reachability, value definitions,
+ * and edge traversal.
+ *
+ * @author rainoftime
+ */
 #include "Verification/SymbolicAbstraction/Core/Fragment.h"
 
 #include "Verification/SymbolicAbstraction/Core/repr.h"
@@ -14,8 +26,17 @@ using namespace llvm;
 llvm::BasicBlock *Fragment::EXIT = nullptr;
 
 namespace {
-// recursive DFS to find loops. EXIT node can be ignored as it cannot be
-// contained in a loop.
+/**
+ * @brief Recursive DFS helper to detect loops in a fragment.
+ *
+ * Performs depth-first search through the fragment's edges to detect cycles.
+ * The EXIT node can be ignored as it cannot be contained in a loop.
+ *
+ * @param edges Set of edges defining the fragment
+ * @param[in,out] seen Set of visited basic blocks (cleared if loop found)
+ * @param bb Current basic block being explored
+ * @return true if a loop is detected, false otherwise
+ */
 bool findLoop(std::set<Fragment::edge> &edges,
               std::unordered_set<llvm::BasicBlock *> &seen,
               llvm::BasicBlock *bb) {
@@ -43,16 +64,30 @@ bool findLoop(std::set<Fragment::edge> &edges,
 } // namespace
 
 /**
- * Decide for a set of edges and a set of starting nodes whether any of
- * the starting nodes has a path to a loop (only using the given edges)
+ * @brief Check whether the fragment contains any loops.
  *
- * \returns   true iff there exists a loop.
+ * Determines if there exists a path from the start node to a loop using only
+ * the edges in this fragment. Fragments should typically be acyclic for proper
+ * analysis, but self-loops (Start == End) are allowed.
+ *
+ * @return true if the fragment contains a loop, false otherwise
  */
 bool Fragment::hasLoops() {
   std::unordered_set<llvm::BasicBlock *> seen;
   return findLoop(Edges_, seen, Start_);
 }
 
+/**
+ * @brief Output stream operator for Fragment.
+ *
+ * Prints a human-readable representation of the fragment showing the start
+ * and end basic blocks. Format: "start-->end" or "start-->EXIT". If the
+ * fragment includes the end body, appends a "+" suffix.
+ *
+ * @param out Output stream to write to
+ * @param frag The fragment to print
+ * @return Reference to the output stream
+ */
 std::ostream &operator<<(std::ostream &out, const Fragment &frag) {
   assert(frag.getStart() != nullptr);
   out << repr(frag.getStart()) << "-->";
@@ -68,6 +103,16 @@ std::ostream &operator<<(std::ostream &out, const Fragment &frag) {
   return out;
 }
 
+/**
+ * @brief Get all outgoing edges from a location within the fragment.
+ *
+ * Returns all edges in this fragment that originate from the given basic block.
+ * Includes the virtual edge to EXIT if the location has no successors and
+ * the fragment includes that edge.
+ *
+ * @param location Basic block to get outgoing edges from (must be in fragment)
+ * @return Vector of edges (source, destination) pairs
+ */
 std::vector<Fragment::edge> Fragment::edgesFrom(BasicBlock *location) const {
   assert(locations().find(location) != locations().end());
   std::vector<edge> result;
@@ -92,6 +137,14 @@ std::vector<Fragment::edge> Fragment::edgesFrom(BasicBlock *location) const {
   return result;
 }
 
+/**
+ * @brief Get all incoming edges to a location within the fragment.
+ *
+ * Returns all edges in this fragment that terminate at the given basic block.
+ *
+ * @param location Basic block to get incoming edges to (must be in fragment)
+ * @return Vector of edges (source, destination) pairs
+ */
 std::vector<Fragment::edge> Fragment::edgesTo(BasicBlock *location) const {
   assert(locations().find(location) != locations().end());
   std::vector<edge> result;
@@ -104,10 +157,32 @@ std::vector<Fragment::edge> Fragment::edgesTo(BasicBlock *location) const {
   return result;
 }
 
+/**
+ * @brief Check if this fragment is a predecessor of another fragment.
+ *
+ * A fragment is a predecessor if its start block equals the other fragment's
+ * end block, meaning control flow can transition directly from this fragment
+ * to the other.
+ *
+ * @param frag The fragment to check against
+ * @return true if this fragment's start equals frag's end, false otherwise
+ */
 bool Fragment::isPredecessor(const Fragment &frag) const {
   return getStart() == frag.getEnd();
 }
 
+/**
+ * @brief Check if the fragment defines a given LLVM value.
+ *
+ * A value is defined by a fragment if:
+ * - For PHI nodes: at least one incoming edge (pred->bb) is in the fragment
+ * - For regular instructions: the instruction's basic block has an outgoing edge
+ *   in the fragment, OR the fragment includes the end body and the instruction
+ *   is in the end block
+ *
+ * @param value The LLVM value to check (must be an Instruction)
+ * @return true if the fragment defines the value, false otherwise
+ */
 bool Fragment::defines(llvm::Value *value) const {
   auto *inst = dyn_cast<llvm::Instruction>(value);
 
@@ -149,6 +224,19 @@ bool Fragment::defines(llvm::Value *value) const {
   }
 }
 
+/**
+ * @brief Check if instruction b is reachable from instruction a within the fragment.
+ *
+ * Performs a BFS traversal from a's basic block to determine if b's basic block
+ * is reachable using only edges in the fragment. Handles special cases for:
+ * - Instructions in the same basic block (uses instruction order)
+ * - Self-looping fragments (Start == End) with PHI ordering
+ * - PHI nodes at the start block
+ *
+ * @param a Source instruction (must be defined by the fragment)
+ * @param b Target instruction
+ * @return true if b is reachable from a within the fragment, false otherwise
+ */
 bool Fragment::reachable(Instruction *a, Instruction *b) const {
   assert(defines(a));
 

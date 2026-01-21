@@ -1,4 +1,14 @@
-// SymbolicAbstraction check helpers: assertion and memory-safety reporting
+/**
+ * @file Checks.cpp
+ * @brief Assertion and memory-safety checking helpers for SymbolicAbstraction.
+ *
+ * Provides functions to check for assertion violations and memory safety issues
+ * using abstract interpretation results. These checks analyze the abstract states
+ * at program points to determine if assertions can be violated or if memory safety
+ * properties are violated.
+ *
+ * @author rainoftime
+ */
 #include "Verification/SymbolicAbstraction/Core/Checks.h"
 
 #include "Verification/SymbolicAbstraction/Analyzers/Analyzer.h"
@@ -15,6 +25,18 @@
 using namespace llvm;
 using namespace symbolic_abstraction;
 
+/**
+ * @brief Check for assertion violations in a function using abstract interpretation results.
+ *
+ * Scans all call instructions in the function for assertion calls (e.g., __assert_fail,
+ * __assert_rtn, or functions with "assert" in the name that don't return). For each
+ * assertion call, checks if the abstract state at that point is bottom (unreachable).
+ * If not bottom, the assertion may be violated and a violation is reported.
+ *
+ * @param analyzer The analyzer containing abstract interpretation results
+ * @param targetFunc The function to check for assertion violations
+ * @return Number of assertion violations found
+ */
 int runAssertionCheck(Analyzer *analyzer, Function *targetFunc) {
   int numViolations = 0;
   int numAssertCalls = 0;

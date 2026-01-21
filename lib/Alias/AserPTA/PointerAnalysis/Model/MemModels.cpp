@@ -1,6 +1,13 @@
-//
-// Created by peiming on 11/7/19.
-//
+/**
+ * @file MemModels.cpp
+ * @brief Memory model implementations for field-sensitive and field-insensitive analysis.
+ *
+ * Provides canonicalizers for stripping pointer casts and offsets in both
+ * field-sensitive and field-insensitive memory models. These help normalize
+ * pointer values for pointer analysis.
+ *
+ * @author peiming
+ */
 #include <llvm/ADT/SmallPtrSet.h>
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/GetElementPtrTypeIterator.h>
@@ -19,6 +26,16 @@
 using namespace aser;
 using namespace llvm;
 
+/**
+ * @brief Strip null and undefined values, converting them to canonical forms.
+ *
+ * Converts null pointers to ConstantPointerNull and undefined values to
+ * UndefValue with int8ptr type. Also handles inttoptr by converting to
+ * universal pointer (undef).
+ *
+ * @param V The value to strip
+ * @return Canonicalized value
+ */
 static const Value *stripNullOrUnDef(const Value *V) {
     // TODO: handle (inttoptr (ptrtoint %ptr)) pattern
     if (Operator::getOpcode(V) == Instruction::IntToPtr) {
@@ -40,7 +57,16 @@ static const Value *stripNullOrUnDef(const Value *V) {
     return V;
 }
 
-// modified from llvm::stripPointerCastsAndOffsets
+/**
+ * @brief Strip pointer casts and offsets for field-insensitive analysis.
+ *
+ * Modified from llvm::stripPointerCastsAndOffsets. Strips GEPs, bitcasts,
+ * addrspace casts, and global aliases. Also handles intrinsic functions
+ * like launder_invariant_group. Uses cycle detection to avoid infinite loops.
+ *
+ * @param V The value to strip
+ * @return The base pointer value after stripping casts and offsets
+ */
 const Value *FICanonicalizer::stripPointerCastsAndOffsets(const Value *V) {
     // Even though we don't look through PHI nodes, we could be called on an
     // instruction in an unreachable block, which may be on a cycle.

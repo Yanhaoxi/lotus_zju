@@ -1,7 +1,13 @@
-//
-// Created by peiming on 1/10/20.
-//
-
+/**
+ * @file CMDOptions.cpp
+ * @brief Command-line options for AserPTA pointer analysis.
+ *
+ * Defines global command-line options that control the behavior of the pointer
+ * analysis, including debugging output, call graph construction, and points-to
+ * set dumping.
+ *
+ * @author peiming
+ */
 #include <llvm/Support/CommandLine.h>
 
 using namespace llvm;

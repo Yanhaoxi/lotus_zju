@@ -1,3 +1,14 @@
+/**
+ * @file ConstraintSolving.cpp
+ * @brief Constraint solving phase using worklist-based propagation.
+ *
+ * This file implements the constraint solving algorithm that propagates points-to
+ * information through the constraint graph. Uses a worklist algorithm with
+ * cycle detection (HCD: Hybrid Cycle Detection, LCD: Lazy Cycle Detection)
+ * to handle strongly connected components efficiently.
+ *
+ * @author rainoftime
+ */
 #include <llvm/ADT/DenseMap.h>
 #include <llvm/ADT/DenseSet.h>
 #include <llvm/ADT/SmallSet.h>

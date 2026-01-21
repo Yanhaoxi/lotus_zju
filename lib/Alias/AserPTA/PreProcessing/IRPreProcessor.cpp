@@ -1,7 +1,13 @@
-//
-// Created by peiming on 2/26/20.
-// Updated for modern LLVM compatibility
-//
+/**
+ * @file IRPreProcessor.cpp
+ * @brief IR preprocessing pass manager for AserPTA.
+ *
+ * Runs a sequence of LLVM passes to prepare the IR for pointer analysis.
+ * Sets up target information and executes function-level and module-level
+ * preprocessing passes configured by PreProcPassManagerBuilder.
+ *
+ * @author peiming
+ */
 #include <llvm/ADT/Triple.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/MC/TargetRegistry.h>
@@ -16,6 +22,18 @@
 using namespace llvm;
 using namespace aser;
 
+/**
+ * @brief Get a TargetMachine for the given triple.
+ *
+ * Looks up the target in the LLVM target registry and creates a TargetMachine
+ * instance. Returns nullptr if the target is not found or not specified.
+ *
+ * @param TheTriple The target triple
+ * @param CPUStr CPU string (empty for default)
+ * @param FeaturesStr Features string (empty for default)
+ * @param Options Target options
+ * @return TargetMachine pointer or nullptr if not found
+ */
 static TargetMachine* GetTargetMachine(Triple TheTriple, StringRef CPUStr,
                                        StringRef FeaturesStr,
                                        const TargetOptions &Options) {
@@ -30,6 +48,14 @@ static TargetMachine* GetTargetMachine(Triple TheTriple, StringRef CPUStr,
 }
 
 
+/**
+ * @brief Run preprocessing passes on a module.
+ *
+ * Sets up target information, creates pass managers, and runs function-level
+ * and module-level preprocessing passes to prepare the IR for pointer analysis.
+ *
+ * @param M The module to preprocess
+ */
 void IRPreProcessor::runOnModule(llvm::Module &M) {
     // TODO: Do we really need to know the target machine information?
     Triple ModuleTriple(M.getTargetTriple());

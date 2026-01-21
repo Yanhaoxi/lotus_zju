@@ -1,6 +1,12 @@
-//
-// Created by peiming on 11/5/19.
-
+/**
+ * @file Program.cpp
+ * @brief Program representation and call site resolution for AserPTA.
+ *
+ * Provides utilities for working with LLVM programs in the context of pointer
+ * analysis, including call site target resolution and indirect call handling.
+ *
+ * @author peiming
+ */
 #include <llvm/Support/CommandLine.h>
 #include <set>
 
@@ -14,6 +20,16 @@ llvm::cl::opt<size_t> MaxIndirectTarget("max-indirect-target",
                                   llvm::cl::init(std::numeric_limits<size_t>::max()),  // by default no limitation
                                   llvm::cl::desc("max number of indirect call target that can be resolved by indirect call"));
 
+/**
+ * @brief Resolve the target function from a called value.
+ *
+ * Attempts to resolve the target function for direct calls by handling
+ * bitcasts and global aliases. For indirect calls, this will fail and
+ * trigger an assertion.
+ *
+ * @param calledValue The value being called (function pointer or function)
+ * @return The resolved Function pointer, or nullptr if resolution fails
+ */
 const Function* aser::CallSite::resolveTargetFunction(const Value* calledValue) {
     // TODO: In this case, a constant expression/global aliases, which can be
     // resolved directly

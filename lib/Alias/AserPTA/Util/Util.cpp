@@ -1,12 +1,27 @@
-//
-// Created by peiming on 8/14/19.
-//
+/**
+ * @file Util.cpp
+ * @brief Utility functions for AserPTA.
+ *
+ * Provides utility functions for pretty printing functions and checking
+ * call compatibility for indirect calls.
+ *
+ * @author peiming
+ */
 #include "Alias/AserPTA/Util/Util.h"
 #include "Alias/AserPTA/PointerAnalysis/Program/CallSite.h"
 
 using namespace llvm;
 using namespace aser;
 
+/**
+ * @brief Pretty print a function signature.
+ *
+ * Prints the function's return type, name, and parameter list in a readable
+ * format, including varargs notation if applicable.
+ *
+ * @param func The function to print
+ * @param os The output stream
+ */
 void aser::prettyFunctionPrinter(const Function *func, raw_ostream &os) {
     os << *func->getReturnType() << " @" << func->getName() << "(";
     auto *funcType = func->getFunctionType();
@@ -21,8 +36,18 @@ void aser::prettyFunctionPrinter(const Function *func, raw_ostream &os) {
     os << ")";
 }
 
-// simple type check fails when cases like
-// call void (...) %ptr()
+/**
+ * @brief Check if an indirect call is compatible with a target function.
+ *
+ * Performs type compatibility checking between an indirect call site and a
+ * potential target function. Handles varargs functions and ensures parameter
+ * types match. Note: simple type checking fails for cases like
+ * `call void (...) %ptr()`.
+ *
+ * @param indirectCall The indirect call instruction
+ * @param target The potential target function
+ * @return true if the call is compatible with the target, false otherwise
+ */
 bool aser::isCompatibleCall(const llvm::Instruction *indirectCall, const llvm::Function *target) {
     aser::CallSite CS(indirectCall);
     assert(CS.isIndirectCall());

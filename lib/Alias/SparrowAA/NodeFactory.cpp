@@ -1,3 +1,13 @@
+/**
+ * @file NodeFactory.cpp
+ * @brief Node factory for creating and managing pointer analysis nodes.
+ *
+ * This file implements the node factory that creates and manages value nodes,
+ * object nodes, and special nodes (return, vararg, etc.) for Andersen's pointer
+ * analysis. Nodes are context-sensitive and can be merged during optimization.
+ *
+ * @author rainoftime
+ */
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/Analysis/ValueTracking.h>
 #include <llvm/IR/Constants.h>
@@ -19,6 +29,18 @@ const unsigned AndersNodeFactory::InvalidIndex =
 // Limit diagnostic spam for invalid node index queries.
 static unsigned InvalidMergeTargetWarnings = 0;
 
+/**
+ * @brief Construct the node factory with initial special nodes.
+ *
+ * Initializes the factory with four special nodes:
+ * - Node #0: Universal pointer (unknown pointer)
+ * - Node #1: Universal object (unknown object)
+ * - Node #2: Null pointer
+ * - Node #3: Null object
+ *
+ * Note: We can't use std::vector::emplace_back() here because AndersNode's
+ * constructors are private, hence std::vector cannot see them.
+ */
 AndersNodeFactory::AndersNodeFactory() {
   // Note that we can't use std::vector::emplace_back() here because
   // AndersNode's constructors are private hence std::vector cannot see it
@@ -41,6 +63,16 @@ static constexpr AndersNodeFactory::CtxKey ctxKeyOrNull(AndersNodeFactory::CtxKe
   return ctx;
 }
 
+/**
+ * @brief Create a value node for an LLVM value in a given context.
+ *
+ * Value nodes represent pointer values. If a node already exists for this
+ * value-context pair, returns the existing node index.
+ *
+ * @param val The LLVM value (nullptr for temporary nodes)
+ * @param ctx The context key
+ * @return NodeIndex of the created or existing node
+ */
 NodeIndex AndersNodeFactory::createValueNode(const Value *val, CtxKey ctx) {
   if (val != nullptr) {
     auto &bucket = valueNodeMap[ctxKeyOrNull(ctx)];
@@ -62,6 +94,16 @@ NodeIndex AndersNodeFactory::createValueNode(const Value *val, CtxKey ctx) {
   return nextIdx;
 }
 
+/**
+ * @brief Create an object node for an LLVM value in a given context.
+ *
+ * Object nodes represent memory objects that pointers can point to. If a node
+ * already exists for this value-context pair, returns the existing node index.
+ *
+ * @param val The LLVM value (nullptr for temporary objects)
+ * @param ctx The context key
+ * @return NodeIndex of the created or existing node
+ */
 NodeIndex AndersNodeFactory::createObjectNode(const Value *val, CtxKey ctx) {
   if (val != nullptr) {
     auto &bucket = objNodeMap[ctxKeyOrNull(ctx)];
@@ -82,6 +124,17 @@ NodeIndex AndersNodeFactory::createObjectNode(const Value *val, CtxKey ctx) {
   return nextIdx;
 }
 
+/**
+ * @brief Create a return node for a function in a given context.
+ *
+ * Return nodes represent the return value of a function. Used for functions
+ * that return pointers. If a node already exists for this function-context
+ * pair, returns the existing node index.
+ *
+ * @param f The function
+ * @param ctx The context key
+ * @return NodeIndex of the created or existing return node
+ */
 NodeIndex AndersNodeFactory::createReturnNode(const llvm::Function *f,
                                               CtxKey ctx) {
   auto &bucket = returnMap[ctxKeyOrNull(ctx)];
