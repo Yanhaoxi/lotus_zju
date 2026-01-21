@@ -83,24 +83,63 @@ void MKintPass::reportBug(interr bug_type, const Instruction* inst, const std::v
     
     // Create bug report
     BugReport* report = new BugReport(bug_type_id);
+    int trace_level = 0;
     
     // Add path trace if available
     if (!path.empty()) {
         for (const auto& point : path) {
             if (point.inst) {
-                report->append_step(const_cast<Instruction*>(point.inst), point.description);
+                std::vector<NodeTag> tags;
+                if (isa<CallInst>(point.inst)) {
+                    tags.push_back(NodeTag::CALL_SITE);
+                    trace_level++;
+                } else if (isa<ReturnInst>(point.inst)) {
+                    tags.push_back(NodeTag::RETURN_SITE);
+                }
+                report->append_step(const_cast<Instruction*>(point.inst), 
+                                   point.description, trace_level, tags, "path");
             }
         }
     }
     
     // Add the bug instruction as the final step
-    report->append_step(const_cast<Instruction*>(inst), main_desc);
+    std::vector<NodeTag> bug_tags;
+    if (isa<CallInst>(inst)) {
+        bug_tags.push_back(NodeTag::CALL_SITE);
+    }
+    report->append_step(const_cast<Instruction*>(inst), main_desc, 
+                        trace_level, bug_tags, "bug");
     
     // Set confidence score (SMT-based results are high confidence)
     report->set_conf_score(85);
     
+    // Add suggestions based on bug type
+    switch (bug_type) {
+        case interr::INT_OVERFLOW:
+            report->set_suggestion("Check for integer overflow before arithmetic operations");
+            break;
+        case interr::DIV_BY_ZERO:
+            report->set_suggestion("Add a check to ensure divisor is not zero");
+            break;
+        case interr::BAD_SHIFT:
+            report->set_suggestion("Ensure shift amount is within valid range");
+            break;
+        case interr::ARRAY_OOB:
+            report->set_suggestion("Add bounds checking before array access");
+            break;
+        case interr::DEAD_TRUE_BR:
+        case interr::DEAD_FALSE_BR:
+            report->set_suggestion("Review the condition logic - this branch may be unreachable");
+            break;
+        default:
+            break;
+    }
+    
+    report->add_metadata("checker", "MKintPass");
+    report->add_metadata("analysis", "SMT-based");
+    
     // Report to manager
-    BugReportMgr::get_instance().insert_report(bug_type_id, report);
+    BugReportMgr::get_instance().insert_report(bug_type_id, report, true);
 }
 
 } // namespace kint

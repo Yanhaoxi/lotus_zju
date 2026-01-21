@@ -1,12 +1,12 @@
 #ifndef SARIF_H
 #define SARIF_H
 
-#include <string>
-#include <vector>
+#include "Utils/General/cJSON.h"
 #include <llvm/IR/DebugLoc.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/Support/raw_ostream.h>
-#include "Utils/General/cJSON.h"
+#include <string>
+#include <vector>
 
 namespace sarif {
 
@@ -107,7 +107,7 @@ namespace utils {
     Location createLocationFromInstruction(const llvm::Instruction* instruction);
     std::string levelToString(Level level);
     Level stringToLevel(const std::string& level);
-}
+} // namespace utils
 
 // Simple builder for common use cases
 class SarifBuilder {

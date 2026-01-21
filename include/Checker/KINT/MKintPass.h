@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Checker/KINT/RangeAnalysis.h"
-#include "Checker/KINT/KINTTaintAnalysis.h"
 #include "Checker/KINT/BugDetection.h"
+#include "Checker/KINT/KINTTaintAnalysis.h"
 #include "Checker/Report/BugReport.h"
 #include "Checker/Report/BugReportMgr.h"
 
@@ -10,18 +10,18 @@
 namespace kint {
     struct crange;
     using bbrange_t = DenseMap<const BasicBlock*, DenseMap<const Value*, crange>>;
-}
+} // namespace kint
 
-#include <llvm/IR/PassManager.h>
 #include <llvm/ADT/DenseMap.h>
 #include <llvm/ADT/MapVector.h>
 #include <llvm/ADT/SetVector.h>
 #include <llvm/IR/Module.h>
+#include <llvm/IR/PassManager.h>
 #include <z3++.h>
 
+#include <chrono>
 #include <map>
 #include <set>
-#include <chrono>
 
 using namespace llvm;
 

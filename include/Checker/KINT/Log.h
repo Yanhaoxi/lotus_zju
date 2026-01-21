@@ -139,7 +139,7 @@ namespace detail {
         bool m_abort_at_deconstruct = false;
         bool m_stop = false;
     }; // class log_wrapper
-}
+} // namespace detail
 
 detail::log_wrapper log();
 detail::log_wrapper debug();

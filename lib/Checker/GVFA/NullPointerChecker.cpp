@@ -120,21 +120,33 @@ void NullPointerChecker::reportVulnerability(
     const std::set<const Value *> *SinkInsts) {
     
     BugReport* report = new BugReport(bugTypeId);
+    int trace_level = 0;
     
+    // Source step
     if (auto *SourceInst = dyn_cast<Instruction>(Source)) {
+        std::vector<NodeTag> tags;
+        if (isa<CallInst>(SourceInst)) {
+            tags.push_back(NodeTag::CALL_SITE);
+        } else if (isa<StoreInst>(SourceInst)) {
+            tags.push_back(NodeTag::NONE); // Store operation
+        }
         report->append_step(const_cast<Instruction*>(SourceInst), 
-                           "Null value originates here");
+                           "Null value originates here", trace_level, tags, "source");
+        trace_level++;
     } else {
         if (SinkInsts && !SinkInsts->empty()) {
             if (auto *FirstSinkInst = dyn_cast<Instruction>(*SinkInsts->begin())) {
                 std::string sourceDesc = "Null value source: ";
                 llvm::raw_string_ostream OS(sourceDesc);
                 Source->print(OS);
-                report->append_step(const_cast<Instruction*>(FirstSinkInst), OS.str());
+                report->append_step(const_cast<Instruction*>(FirstSinkInst), 
+                                   OS.str(), trace_level, {}, "source");
+                trace_level++;
             }
         }
     }
     
+    // Propagation path
     if (GVFA && Sink) {
         try {
             std::vector<const Value *> witnessPath = GVFA->getWitnessPath(Source, Sink);
@@ -146,44 +158,74 @@ void NullPointerChecker::reportVulnerability(
                     if (!I) continue;
                     
                     std::string desc;
+                    std::string access;
+                    std::vector<NodeTag> tags;
+                    
                     if (isa<StoreInst>(I)) {
                         desc = "Null value stored to memory";
+                        access = "store";
                     } else if (isa<LoadInst>(I)) {
                         desc = "Potentially null value loaded from memory";
+                        access = "load";
                     } else if (isa<CallInst>(I)) {
                         desc = "Potentially null value passed in function call";
+                        access = "call";
+                        tags.push_back(NodeTag::CALL_SITE);
+                        trace_level++;
                     } else if (isa<ReturnInst>(I)) {
                         desc = "Potentially null value returned";
+                        access = "return";
+                        tags.push_back(NodeTag::RETURN_SITE);
                     } else if (isa<PHINode>(I)) {
                         desc = "Potentially null value from control flow merge";
+                        access = "phi";
                     } else if (isa<GetElementPtrInst>(I)) {
                         desc = "Pointer arithmetic on potentially null value";
+                        access = "gep";
                     } else {
                         desc = "Value propagates through here";
+                        access = "propagation";
                     }
-                    report->append_step(const_cast<Instruction*>(I), desc);
+                    report->append_step(const_cast<Instruction*>(I), desc, 
+                                       trace_level, tags, access);
                 }
             }
         } catch (...) {}
     }
     
+    // Sink step
     if (SinkInsts) {
         for (const Value *SI : *SinkInsts) {
             if (auto *SinkInst = dyn_cast<Instruction>(SI)) {
                 std::string sinkDesc = "Potential null pointer dereference";
+                std::string access = "dereference";
+                std::vector<NodeTag> tags;
+                
                 if (isa<LoadInst>(SinkInst)) {
                     sinkDesc = "Load from potentially null pointer";
+                    access = "load";
                 } else if (isa<StoreInst>(SinkInst)) {
                     sinkDesc = "Store to potentially null pointer";
+                    access = "store";
                 } else if (isa<GetElementPtrInst>(SinkInst)) {
                     sinkDesc = "GEP on potentially null pointer";
+                    access = "gep";
+                } else if (isa<CallInst>(SinkInst)) {
+                    sinkDesc = "Call with potentially null pointer argument";
+                    access = "call";
+                    tags.push_back(NodeTag::CALL_SITE);
                 }
-                report->append_step(const_cast<Instruction*>(SinkInst), sinkDesc);
+                report->append_step(const_cast<Instruction*>(SinkInst), sinkDesc, 
+                                   trace_level, tags, access);
             }
         }
     }
     
     int confidence = (NCA || CSNCA) ? 85 : 70;
     report->set_conf_score(confidence);
-    BugReportMgr::get_instance().insert_report(bugTypeId, report);
+    report->set_suggestion("Add null check before dereferencing the pointer");
+    report->add_metadata("checker", "NullPointerChecker");
+    report->add_metadata("cwe", "CWE-476, CWE-690");
+    report->add_metadata("has_null_check_analysis", (NCA || CSNCA) ? "true" : "false");
+    BugReportMgr::get_instance().insert_report(bugTypeId, report, true);
 }

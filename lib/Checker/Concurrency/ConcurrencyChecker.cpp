@@ -152,19 +152,49 @@ void ConcurrencyChecker::reportBug(const ConcurrencyBugReport& bug_report, int b
     BugReport* report = new BugReport(bug_type_id);
     
     // Add diagnostic steps showing the concurrency bug trace
-    // Note: append_step automatically extracts all debug info (file, line, column, 
-    // function name, variable name, type, source code) using DebugInfoAnalysis
-    for (const auto& step : bug_report.steps) {
+    // Enhanced with Infer-inspired features: trace levels, node tags, and access info
+    int trace_level = 0;
+    for (size_t i = 0; i < bug_report.steps.size(); ++i) {
+        const auto& step = bug_report.steps[i];
         if (step.instruction) {
-            report->append_step(const_cast<Instruction*>(step.instruction), step.description);
+            std::vector<NodeTag> tags;
+            
+            // Infer node tags based on instruction type
+            if (isa<CallInst>(step.instruction)) {
+                tags.push_back(NodeTag::CALL_SITE);
+            }
+            
+            // Determine access type
+            std::string access = "step";
+            if (isa<LoadInst>(step.instruction)) {
+                access = "load";
+            } else if (isa<StoreInst>(step.instruction)) {
+                access = "store";
+            } else if (isa<CallInst>(step.instruction)) {
+                access = "call";
+            }
+            
+            // Use enhanced append_step with trace level, tags, and access info
+            report->append_step(const_cast<Instruction*>(step.instruction), 
+                               step.description, trace_level, tags, access);
+            
+            // Increment trace level for nested calls
+            if (isa<CallInst>(step.instruction)) {
+                trace_level++;
+            }
         }
     }
     
     // Set confidence score based on importance
     report->set_conf_score(bug_report.importance == BugDescription::BI_HIGH ? 90 : 70);
     
-    // Report to the manager
-    BugReportMgr::get_instance().insert_report(bug_type_id, report);
+    // Add metadata (Infer-inspired feature)
+    report->add_metadata("checker", "ConcurrencyChecker");
+    report->add_metadata("importance", 
+                        bug_report.importance == BugDescription::BI_HIGH ? "HIGH" : "MEDIUM");
+    
+    // Report to the manager with deduplication enabled
+    BugReportMgr::get_instance().insert_report(bug_type_id, report, true);
 }
 
 } // namespace concurrency

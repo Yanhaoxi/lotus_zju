@@ -1,7 +1,7 @@
 #pragma once
 
-#include <llvm/IR/Instructions.h>
 #include <llvm/ADT/DenseMap.h>
+#include <llvm/IR/Instructions.h>
 #include <z3++.h>
 
 #include <map>
@@ -13,7 +13,7 @@ using namespace llvm;
 // Forward declaration
 namespace kint {
     struct crange;
-}
+} // namespace kint
 
 namespace kint {
 

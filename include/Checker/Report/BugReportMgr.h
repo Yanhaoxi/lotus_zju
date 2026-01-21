@@ -6,9 +6,9 @@
 #include <llvm/ADT/StringMap.h>
 #include <llvm/Support/raw_ostream.h>
 #include <map>
+#include <string>
 #include <unordered_map>
 #include <vector>
-#include <string>
 
 /**
  * BugReportMgr - Centralized manager for all bug reports.
@@ -69,7 +69,13 @@ public:
     const BugType& get_bug_type_info(int ty_id) const;
     
     /**
-     * Insert a bug report
+     * Insert a bug report with deduplication
+     * Returns true if the report was added, false if it was a duplicate
+     */
+    bool insert_report(int ty_id, BugReport* report, bool deduplicate_by_trace = false);
+    
+    /**
+     * Insert a bug report (legacy method, calls insert_report with deduplication disabled)
      */
     void insert_report(int ty_id, BugReport* report);
     
@@ -77,6 +83,12 @@ public:
      * Get all reports for a specific bug type
      */
     const std::vector<BugReport*>* get_reports_for_type(int ty_id) const;
+    
+    /**
+     * Deduplicate reports based on location or trace
+     * Inspired by Infer's deduplication logic
+     */
+    void deduplicate_reports(bool use_trace = false);
     
     /**
      * Generate JSON report file
@@ -112,7 +124,13 @@ private:
     llvm::StringMap<int> src_file_ids;
     std::vector<std::string> src_files;
     
+    // Deduplication tracking (maps hash to report)
+    std::unordered_map<size_t, BugReport*> report_hashes;
+    
     int get_src_file_id(llvm::StringRef src_file);
+    
+    // Helper to check if a report is a duplicate
+    bool is_duplicate(int ty_id, const BugReport* report, bool use_trace) const;
 };
 
 #endif // CHECKER_REPORT_BUGREPORTMGR_H

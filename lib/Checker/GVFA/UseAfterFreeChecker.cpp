@@ -92,12 +92,20 @@ void UseAfterFreeChecker::reportVulnerability(
     const std::set<const Value *> *SinkInsts) {
     
     BugReport* report = new BugReport(bugTypeId);
+    int trace_level = 0;
     
+    // Source step
     if (auto *SourceInst = dyn_cast<Instruction>(Source)) {
+        std::vector<NodeTag> tags;
+        if (isa<CallInst>(SourceInst)) {
+            tags.push_back(NodeTag::CALL_SITE);
+        }
         report->append_step(const_cast<Instruction*>(SourceInst), 
-                           "Memory freed here");
+                           "Memory freed here", trace_level, tags, "free");
+        trace_level++;
     }
     
+    // Propagation path
     if (GVFA && Sink) {
         try {
             std::vector<const Value *> witnessPath = GVFA->getWitnessPath(Source, Sink);
@@ -109,45 +117,72 @@ void UseAfterFreeChecker::reportVulnerability(
                     if (!I) continue;
                     
                     std::string desc;
+                    std::string access;
+                    std::vector<NodeTag> tags;
+                    
                     if (isa<StoreInst>(I)) {
                         desc = "Freed pointer stored to memory";
+                        access = "store";
                     } else if (isa<LoadInst>(I)) {
                         desc = "Freed pointer loaded from memory";
+                        access = "load";
                     } else if (isa<CallInst>(I)) {
                         desc = "Freed pointer passed in function call";
+                        access = "call";
+                        tags.push_back(NodeTag::CALL_SITE);
+                        trace_level++;
                     } else if (isa<ReturnInst>(I)) {
                         desc = "Freed pointer returned";
+                        access = "return";
+                        tags.push_back(NodeTag::RETURN_SITE);
                     } else if (isa<PHINode>(I)) {
                         desc = "Freed pointer from control flow merge";
+                        access = "phi";
                     } else if (isa<GetElementPtrInst>(I)) {
                         desc = "Pointer arithmetic on freed pointer";
+                        access = "gep";
                     } else {
                         desc = "Freed pointer propagates through here";
+                        access = "propagation";
                     }
-                    report->append_step(const_cast<Instruction*>(I), desc);
+                    report->append_step(const_cast<Instruction*>(I), desc, 
+                                       trace_level, tags, access);
                 }
             }
         } catch (...) {}
     }
     
+    // Sink step
     if (SinkInsts) {
         for (const Value *SI : *SinkInsts) {
             if (auto *SinkInst = dyn_cast<Instruction>(SI)) {
                 std::string sinkDesc = "Use of freed memory";
+                std::string access = "use";
+                std::vector<NodeTag> tags;
+                
                 if (isa<LoadInst>(SinkInst)) {
                     sinkDesc = "Load from freed memory";
+                    access = "load";
                 } else if (isa<StoreInst>(SinkInst)) {
                     sinkDesc = "Store to freed memory";
+                    access = "store";
                 } else if (isa<GetElementPtrInst>(SinkInst)) {
                     sinkDesc = "GEP on freed memory";
+                    access = "gep";
                 } else if (isa<CallInst>(SinkInst)) {
                     sinkDesc = "Function call with freed memory";
+                    access = "call";
+                    tags.push_back(NodeTag::CALL_SITE);
                 }
-                report->append_step(const_cast<Instruction*>(SinkInst), sinkDesc);
+                report->append_step(const_cast<Instruction*>(SinkInst), sinkDesc, 
+                                   trace_level, tags, access);
             }
         }
     }
     
     report->set_conf_score(75);
-    BugReportMgr::get_instance().insert_report(bugTypeId, report);
+    report->set_suggestion("Ensure memory is not used after being freed, or use a memory-safe language feature");
+    report->add_metadata("checker", "UseAfterFreeChecker");
+    report->add_metadata("cwe", "CWE-416");
+    BugReportMgr::get_instance().insert_report(bugTypeId, report, true);
 }

@@ -112,17 +112,27 @@ void UseOfUninitializedVariableChecker::reportVulnerability(
     const std::set<const Value *> *SinkInsts) {
     
     BugReport* report = new BugReport(bugTypeId);
+    int trace_level = 0;
     
+    // Source step
     if (auto *SourceInst = dyn_cast<Instruction>(Source)) {
         std::string desc = "Uninitialized value originates here";
+        std::string access = "source";
+        std::vector<NodeTag> tags;
+        
         if (isa<AllocaInst>(SourceInst)) {
             desc = "Local variable allocated without initialization";
+            access = "alloca";
         } else if (isa<LoadInst>(SourceInst)) {
             desc = "Load from uninitialized memory";
+            access = "load";
         }
-        report->append_step(const_cast<Instruction*>(SourceInst), desc);
+        report->append_step(const_cast<Instruction*>(SourceInst), desc, 
+                           trace_level, tags, access);
+        trace_level++;
     }
     
+    // Propagation path
     if (GVFA && Sink) {
         try {
             std::vector<const Value *> witnessPath = GVFA->getWitnessPath(Source, Sink);
@@ -131,29 +141,49 @@ void UseOfUninitializedVariableChecker::reportVulnerability(
                     const Value *V = witnessPath[i];
                     if (!V || !isa<Instruction>(V)) continue;
                     const Instruction *I = cast<Instruction>(V);
+                    
+                    std::vector<NodeTag> tags;
+                    if (isa<CallInst>(I)) {
+                        tags.push_back(NodeTag::CALL_SITE);
+                        trace_level++;
+                    }
                     report->append_step(const_cast<Instruction*>(I), 
-                                       "Potentially uninitialized value propagates");
+                                       "Potentially uninitialized value propagates",
+                                       trace_level, tags, "propagation");
                 }
             }
         } catch (...) {}
     }
     
+    // Sink step
     if (SinkInsts) {
         for (const Value *SI : *SinkInsts) {
             if (auto *SinkInst = dyn_cast<Instruction>(SI)) {
                 std::string desc = "Use of potentially uninitialized value";
+                std::string access = "use";
+                std::vector<NodeTag> tags;
+                
                 if (isa<ReturnInst>(SinkInst)) {
                     desc = "Return of potentially uninitialized value";
+                    access = "return";
+                    tags.push_back(NodeTag::RETURN_SITE);
                 } else if (isa<CallInst>(SinkInst)) {
                     desc = "Potentially uninitialized value passed to function";
+                    access = "call";
+                    tags.push_back(NodeTag::CALL_SITE);
                 } else if (isa<StoreInst>(SinkInst)) {
                     desc = "Store of potentially uninitialized value";
+                    access = "store";
                 }
-                report->append_step(const_cast<Instruction*>(SinkInst), desc);
+                report->append_step(const_cast<Instruction*>(SinkInst), desc, 
+                                   trace_level, tags, access);
             }
         }
     }
     
     report->set_conf_score(75);
-    BugReportMgr::get_instance().insert_report(bugTypeId, report);
+    report->set_suggestion("Initialize the variable before use");
+    report->add_metadata("checker", "UseOfUninitializedVariableChecker");
+    report->add_metadata("cwe", "CWE-457");
+    BugReportMgr::get_instance().insert_report(bugTypeId, report, true);
 }

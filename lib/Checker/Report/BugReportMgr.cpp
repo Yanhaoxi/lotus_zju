@@ -1,5 +1,7 @@
 #include "Checker/Report/BugReportMgr.h"
 #include <llvm/Support/ManagedStatic.h>
+#include <algorithm>
+#include <unordered_set>
 
 static llvm::ManagedStatic<BugReportMgr> global_bug_report_mgr;
 
@@ -49,9 +51,81 @@ const BugReportMgr::BugType& BugReportMgr::get_bug_type_info(int ty_id) const {
     return bug_types[ty_id];
 }
 
-void BugReportMgr::insert_report(int ty_id, BugReport* report) {
+bool BugReportMgr::insert_report(int ty_id, BugReport* report, bool deduplicate_by_trace) {
     assert(ty_id >= 0 && ty_id < (int)bug_types.size() && "Invalid bug type ID");
+    
+    if (deduplicate_by_trace && is_duplicate(ty_id, report, deduplicate_by_trace)) {
+        // Duplicate found, delete the new report
+        delete report;
+        return false;
+    }
+    
     reports[ty_id].push_back(report);
+    
+    // Track hash for future deduplication
+    if (deduplicate_by_trace) {
+        size_t hash = report->compute_hash(deduplicate_by_trace);
+        report_hashes[hash] = report;
+    }
+    
+    return true;
+}
+
+void BugReportMgr::insert_report(int ty_id, BugReport* report) {
+    // Default to deduplication enabled (trace-based)
+    insert_report(ty_id, report, true);
+}
+
+bool BugReportMgr::is_duplicate(int ty_id, const BugReport* report, bool use_trace) const {
+    size_t hash = report->compute_hash(use_trace);
+    
+    // Check if we've seen this hash before
+    auto it = report_hashes.find(hash);
+    if (it != report_hashes.end()) {
+        return true;
+    }
+    
+    // Also check existing reports of the same type
+    auto reports_it = reports.find(ty_id);
+    if (reports_it != reports.end()) {
+        for (const BugReport* existing : reports_it->second) {
+            size_t existing_hash = existing->compute_hash(use_trace);
+            if (existing_hash == hash) {
+                return true;
+            }
+        }
+    }
+    
+    return false;
+}
+
+void BugReportMgr::deduplicate_reports(bool use_trace) {
+    // Clear existing hash map
+    report_hashes.clear();
+    
+    // Rebuild with deduplication
+    for (auto& pair : reports) {
+        int ty_id = pair.first;
+        std::vector<BugReport*>& report_list = pair.second;
+        
+        std::unordered_set<size_t> seen_hashes;
+        std::vector<BugReport*> deduplicated;
+        
+        for (BugReport* report : report_list) {
+            size_t hash = report->compute_hash(use_trace);
+            
+            if (seen_hashes.find(hash) == seen_hashes.end()) {
+                seen_hashes.insert(hash);
+                deduplicated.push_back(report);
+                report_hashes[hash] = report;
+            } else {
+                // Duplicate found, delete it
+                delete report;
+            }
+        }
+        
+        report_list = std::move(deduplicated);
+    }
 }
 
 const std::vector<BugReport*>* BugReportMgr::get_reports_for_type(int ty_id) const {

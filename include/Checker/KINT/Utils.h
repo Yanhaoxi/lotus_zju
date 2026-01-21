@@ -1,8 +1,8 @@
 #pragma once
 
+#include <llvm/ADT/StringRef.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/Support/raw_ostream.h>
-#include <llvm/ADT/StringRef.h>
 
 namespace kint {
 
