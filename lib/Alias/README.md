@@ -2,22 +2,49 @@
 
 This directory contains various alias analysis implementations and toolkits used in the Phenix project.
 
+## Analysis Comparison Table
 
-- SparrowAA (the `sparrow-aa` tool): inclusion-based, flow-insensitive, context-insensitive, and context-sensitive pointer analsyis (ci, 1-cfa, 2-cfa)
-- AserPTA (`aser-aa`): inclusion-based, field-sensitive, flow-insensitive, context-insensitive, and context-sensitive pointer analsyis (ci, 1-cfa, 2-cfa, origin).
-- CFLAA: flow-insensitive, context-insensitive pointer analysis (from LLVM).
-- DyckAA: unification-based, flow-insensitive, context-insensitive pointer analysis. 
-- Dynamic: dynamic pointer analysis.
-- FPA (`fpa`): type-based function pointer analysis.
-- LotusAA (`lotus-aa`): inclusion-based,  flow- and context-sensitive pointer analysis.
-- seadsa (`sea-dsa-dg`, `seadsa-tool`): unificaiton-based, flow-insensitive, context-sensitive  pointer analysis (with heap cloning, a.k.a., context-sensitive heap).
-- SRAA: range-based alias analsyis (flow- and context-insensitive)
-- UnderApproxAA: pattern-based must-alias analysis
-- AllocAA.
-- TPA (`tpa`): Inclusin-based, flow- and context-sensitive analysis (k-limiting)
+| Analysis | Tool/Command | Analysis Type | Flow-Sensitive | Context-Sensitive | Field-Sensitive | Notes |
+|----------|--------------|---------------|----------------|-------------------|-----------------|-------|
+| **SparrowAA** | `sparrow-aa` | Inclusion-based | ❌ No | ✅ Yes (CI, 1-CFA, 2-CFA) | ❌ No | More graph simplification algorithms; no on-the-fly callgraph construction |
+| **AserPTA** | `aser-aa` | Inclusion-based | ❌ No | ✅ Yes (CI, 1-CFA, 2-CFA, Origin) | ✅ Yes | On-the-fly callgraph construction; supports both field-insensitive and field-sensitive modes |
+| **CFLAA** | - | - | ❌ No | ❌ No | - | From LLVM |
+| **DyckAA** | - | Unification-based | ❌ No | ❌ No | - | - |
+| **Dynamic** | - | Dynamic | - | - | - | Runtime analysis |
+| **FPA** | `fpa` | Type-based | - | - | - | Function pointer analysis |
+| **LotusAA** | `lotus-aa` | Inclusion-based | ✅ Yes | ✅ Yes | - | Flow- and context-sensitive |
+| **seadsa** | `sea-dsa-dg`, `seadsa-tool` | Unification-based | ❌ No | ✅ Yes | - | Context-sensitive heap (heap cloning) |
+| **SRAA** | - | Range-based | ❌ No | ❌ No | - | Flow- and context-insensitive |
+| **UnderApproxAA** | - | Pattern-based | - | - | - | Must-alias analysis |
+| **AllocAA** | - | - | - | - | - | - |
+| **TPA** | `tpa` | Inclusion-based | ✅ Yes | ✅ Yes (k-limiting) | - | Flow- and context-sensitive with k-limiting |
 
-Note: SparrowAA and AserPTA have some redundancies, but are different
-- SparrowAA does not use on-the-fly callgraph construction, while AserPTA uses it by default.
-- SparrowAA integrates more graph simplification algorithms
-- SparrowAA is filed-insensitive (ConstraintCollect.cpp, NodeFactory.cpp). AserPTA supports both filed-insensitive and filed-sensitive mode.
-- SparrowAA supports CI, 1-CFA, 2-CFA, whereas AserPTA has one more "orgin-sensitive" variant
+## Context Sensitivity Variants
+
+| Analysis | Context Variants Supported |
+|----------|---------------------------|
+| **SparrowAA** | CI (context-insensitive), 1-CFA, 2-CFA |
+| **AserPTA** | CI, 1-CFA, 2-CFA, Origin-sensitive |
+| **LotusAA** | Context-sensitive (details not specified) |
+| **seadsa** | Context-sensitive with heap cloning |
+| **TPA** | Context-sensitive with k-limiting |
+
+## Key Differences: SparrowAA vs AserPTA
+
+| Feature | SparrowAA | AserPTA |
+|---------|-----------|---------|
+| **Callgraph Construction** | No on-the-fly construction | On-the-fly construction (default) |
+| **Graph Simplification** | More algorithms integrated | Standard |
+| **Field Sensitivity** | Field-insensitive only | Both field-insensitive and field-sensitive modes |
+| **Context Variants** | CI, 1-CFA, 2-CFA | CI, 1-CFA, 2-CFA, Origin-sensitive |
+
+## Analysis Characteristics Summary
+
+| Characteristic | Analyses |
+|----------------|----------|
+| **Inclusion-based** | SparrowAA, AserPTA, LotusAA, TPA |
+| **Unification-based** | DyckAA, seadsa |
+| **Flow-sensitive** | LotusAA, TPA |
+| **Context-sensitive** | SparrowAA, AserPTA, LotusAA, seadsa, TPA |
+| **Field-sensitive** | AserPTA (optional) |
+| **Specialized** | FPA (function pointers), UnderApproxAA (must-alias), Dynamic (runtime), SRAA (range-based) |

@@ -1,0 +1,82 @@
+# LotusAA: Native Lotus Alias Analysis Engine
+
+LotusAA is the **native alias analysis framework** of Lotus. It provides a modular engine with **interprocedural**, **flow-sensitive**, and **field-sensitive** reasoning, designed to integrate tightly with other Lotus analyses.
+
+## Key Features
+
+- **Flow-sensitivity**: Respects program order and control flow
+- **Context-sensitivity**: Function summaries provide calling context
+- **Field-sensitivity**: Tracks memory objects at the field/element level
+- **On-the-fly call graph construction**: Alternates between pointer analysis and call graph refinement
+- **Points-to graph representation**: Nodes represent memory objects and SSA values; edges represent points-to, load, store, and field relations
+
+## Architecture
+
+```
+Module → Global Initialization → Bottom-Up Function Analysis → Call Graph Construction → Fixpoint Iteration → Points-to Graph
+```
+
+The analysis alternates between:
+1. Analyzing functions bottom-up using current call graph
+2. Resolving indirect calls using pointer analysis results
+3. Updating call graph with newly discovered edges
+4. Reanalyzing affected functions
+5. Repeating until fixpoint
+
+## Directory Structure
+
+- **`Engine/`**: Analysis engines
+  - `InterProceduralPass`: Top-level LLVM ModulePass (`LotusAA`)
+  - `IntraProceduralAnalysis`: Per-function analysis (`IntraLotusAA`)
+  - `TransferFunctions/`: Instruction transfer functions
+    - `BasicOps`: Alloca, Arguments, Globals, Constants
+    - `PointerInstructions`: Load, Store, PHI, Select, GEP, Casts
+    - `CallHandling`: Function calls and summary application
+    - `CallGraphSolver`: Indirect call resolution
+    - `SummaryBuilder`: Function summary collection
+
+- **`MemoryModel/`**: Points-to graph and memory modeling
+  - `PointsToGraph`: Base graph representation
+  - `MemObject`: Memory object representation
+  - `ObjectLocator`: Memory object location tracking
+
+- **`Support/`**: Configuration and utilities
+  - `CallGraphState`: Call graph state management
+  - `FunctionPointerResults`: Indirect call target tracking
+  - `LotusConfig`: Configuration parameters
+
+## Usage
+
+LotusAA is typically not run as a standalone tool. Instead, it is selected via configuration:
+
+- Clam / Lotus front-ends can choose LotusAA as the primary AA engine
+- YAML configurations and command-line flags control whether LotusAA is enabled
+- When enabled, LotusAA registers itself with the AA wrapper so that all AA queries go through its results
+
+### Standalone Tool
+
+```bash
+lotus-aa [options] <input bitcode file>
+```
+
+### Configuration Options
+
+- `lotus_restrict_inline_depth`: Max inter-procedural inlining depth (default: 2)
+- `lotus_restrict_cg_size`: Max indirect call targets (default: 5)
+- `lotus_restrict_inline_size`: Max summary size (default: 100)
+- `lotus_restrict_ap_level`: Max access path depth (default: 2)
+
+## Analysis Characteristics
+
+| Characteristic | Value |
+|----------------|-------|
+| **Analysis Type** | Inclusion-based |
+| **Flow-Sensitive** | ✅ Yes |
+| **Context-Sensitive** | ✅ Yes (function summaries) |
+| **Field-Sensitive** | ✅ Yes |
+| **Representation** | Points-to graph |
+
+## See Also
+
+- Parent README: `lib/Alias/README.md`
+- Documentation: `docs/source/alias/lotusaa.rst`
