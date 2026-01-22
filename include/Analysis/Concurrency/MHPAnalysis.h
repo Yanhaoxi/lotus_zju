@@ -14,7 +14,7 @@
  * - Efficient query interface
  * - Comprehensive debugging support
  * 
- * @author Lotus Analysis Framework
+ * @author rainoftime
  * @date 2025
  */
 
@@ -24,6 +24,8 @@
 #include "Analysis/Concurrency/LockSetAnalysis.h"
 #include "Analysis/Concurrency/ThreadAPI.h"
 #include "Analysis/Concurrency/ThreadFlowGraph.h"
+#include "Analysis/Concurrency/Cpp11Atomics.h"
+#include "Alias/AliasAnalysisWrapper/AliasAnalysisWrapper.h"
 
 #include <llvm/ADT/DenseMap.h>
 #include <llvm/ADT/DenseSet.h>
@@ -32,6 +34,7 @@
 #include <llvm/IR/Dominators.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instruction.h>
+#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Module.h>
 #include <llvm/Support/raw_ostream.h>
 
@@ -273,8 +276,16 @@ private:
   std::set<std::pair<const llvm::Instruction *, const llvm::Instruction *>>
       m_mhp_pairs;
 
+  // Atomics-based happens-before cache
+  std::vector<const llvm::Instruction *> m_atomic_instructions;
+  std::set<std::pair<const llvm::Instruction *, const llvm::Instruction *>>
+      m_atomic_hb_pairs;
+
   // Instruction to thread mapping
   std::unordered_map<const llvm::Instruction *, ThreadID> m_inst_to_thread;
+
+  // Alias Analysis
+  std::unique_ptr<lotus::AliasAnalysisWrapper> m_alias_analysis;
 
   // Thread ID allocation
   ThreadID m_next_thread_id = 1; // 0 is reserved for main thread
@@ -353,6 +364,13 @@ private:
    */
   void computeMHPPairs();
 
+  /**
+   * @brief Phase 5: Compute atomic happens-before
+   *
+   * Finds happens-before relationships created by C++11 atomics.
+   */
+  void computeAtomicHappensBefore();
+
   // ========================================================================
   // Helper Methods
   // ========================================================================
@@ -385,12 +403,11 @@ private:
                       const llvm::Instruction *i2) const;
   bool isOrderedByLocks(const llvm::Instruction *i1,
                         const llvm::Instruction *i2) const;
-  bool isOrderedByForkJoin(const llvm::Instruction *i1,
-                           const llvm::Instruction *i2) const;
-  bool isOrderedByCondVar(const llvm::Instruction *i1,
-                          const llvm::Instruction *i2) const;
-  bool isOrderedByBarrier(const llvm::Instruction *i1,
-                          const llvm::Instruction *i2) const;
+
+
+  // Alias analysis helper
+
+  
   
   // Fork-join helper methods
   bool isAncestorThread(ThreadID ancestor, ThreadID descendant) const;
