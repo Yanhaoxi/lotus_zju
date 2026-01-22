@@ -1,7 +1,7 @@
-#include <clam/config.h>
+#include "wrapped_intervals.hh"
 #include <clam/CrabDomain.hh>
 #include <clam/RegisterAnalysis.hh>
-#include "wrapped_intervals.hh"
+#include <clam/config.h>
 
 namespace clam {
 #ifdef INCLUDE_ALL_DOMAINS

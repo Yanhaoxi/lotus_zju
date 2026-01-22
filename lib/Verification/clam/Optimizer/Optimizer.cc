@@ -1,5 +1,5 @@
-#include "llvm/ADT/Statistic.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/Statistic.h"
 #include "llvm/Analysis/CallGraph.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/IR/CFG.h"
@@ -17,14 +17,14 @@
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
 
-#include "clam/config.h"
 #include "clam/CfgBuilder.hh"
 #include "clam/Clam.hh"
 #include "clam/Transforms/Optimizer.hh"
+#include "clam/config.h"
 
 #include "crab/analysis/abs_transformer.hpp"
-#include "crab/numbers/wrapint.hpp"
 #include "crab/config.h"
+#include "crab/numbers/wrapint.hpp"
 #include "crab/support/debug.hpp"
 
 #include <type_traits>

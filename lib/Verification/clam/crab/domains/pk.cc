@@ -1,8 +1,8 @@
-#include <clam/config.h>
+#include "pk.hh"
 #include <clam/CrabDomain.hh>
 #include <clam/RegisterAnalysis.hh>
+#include <clam/config.h>
 #include <crab/config.h>
-#include "pk.hh"
 
 namespace clam {
 #ifdef INCLUDE_ALL_DOMAINS

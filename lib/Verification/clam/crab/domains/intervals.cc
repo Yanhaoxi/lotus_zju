@@ -1,7 +1,7 @@
-#include <clam/config.h>
+#include "intervals.hh"
 #include <clam/CrabDomain.hh>
 #include <clam/RegisterAnalysis.hh>
-#include "intervals.hh"
+#include <clam/config.h>
 
 
 namespace clam {

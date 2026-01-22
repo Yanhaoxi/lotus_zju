@@ -1,7 +1,7 @@
 #pragma once
 
-#include <crab/domains/intervals.hpp>
 #include "crab_defs.hh"
+#include <crab/domains/intervals.hpp>
 
 namespace clam {
 using BASE(interval_domain_t) = ikos::interval_domain<number_t, region_subdom_varname_t>;

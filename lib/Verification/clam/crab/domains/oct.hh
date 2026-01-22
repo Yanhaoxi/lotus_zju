@@ -1,8 +1,8 @@
 #pragma once
 
+#include "crab_defs.hh"
 #include <crab/domains/apron_domains.hpp>
 #include <crab/domains/elina_domains.hpp>
-#include "crab_defs.hh"
 
 namespace clam {
 #ifdef HAVE_APRON

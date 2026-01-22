@@ -16,15 +16,15 @@
 #include <llvm/Transforms/IPO/AlwaysInliner.h>
 
 #include "Alias/AserPTA/PointerAnalysis/Context/KCallSite.h"
+#include "Alias/AserPTA/PTADriver.h"
 #include "Alias/AserPTA/PointerAnalysis/Context/KOrigin.h"
 #include "Alias/AserPTA/PointerAnalysis/Context/NoCtx.h"
 #include "Alias/AserPTA/PointerAnalysis/Models/LanguageModel/DefaultLangModel/DefaultLangModel.h"
-#include "Alias/AserPTA/PointerAnalysis/Models/MemoryModel/FieldSensitive/FSMemModel.h"
 #include "Alias/AserPTA/PointerAnalysis/Models/MemoryModel/FieldInsensitive/FIMemModel.h"
+#include "Alias/AserPTA/PointerAnalysis/Models/MemoryModel/FieldSensitive/FSMemModel.h"
+#include "Alias/AserPTA/PointerAnalysis/Solver/DeepPropagation.h"
 #include "Alias/AserPTA/PointerAnalysis/Solver/PartialUpdateSolver.h"
 #include "Alias/AserPTA/PointerAnalysis/Solver/WavePropagation.h"
-#include "Alias/AserPTA/PointerAnalysis/Solver/DeepPropagation.h"
-#include "Alias/AserPTA/PTADriver.h"
 #include "Alias/Spec/AliasSpecManager.h"
 
 using namespace aser;

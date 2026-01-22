@@ -7,9 +7,9 @@
 
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <string>
 #include <unordered_map>
-#include <memory>
 
 namespace crab {  
 template <> class variable_name_traits<std::string> {

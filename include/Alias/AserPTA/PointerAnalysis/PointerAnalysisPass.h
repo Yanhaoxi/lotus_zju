@@ -12,6 +12,8 @@
 #include <llvm/ADT/StringRef.h>
 #include <llvm/Pass.h>
 
+#include "Alias/AserPTA/Util/Log.h"
+
 /// @brief LLVM module pass that runs pointer analysis using a specified solver.
 /// @tparam Solver The pointer analysis solver type to use.
 template <typename Solver>

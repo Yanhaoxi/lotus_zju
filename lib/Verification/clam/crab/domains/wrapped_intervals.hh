@@ -1,7 +1,7 @@
 #pragma once
 
-#include <crab/domains/wrapped_interval_domain.hpp>
 #include "crab_defs.hh"
+#include <crab/domains/wrapped_interval_domain.hpp>
 
 namespace clam {
 using BASE(wrapped_interval_domain_t) =

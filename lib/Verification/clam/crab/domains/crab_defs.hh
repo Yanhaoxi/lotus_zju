@@ -7,8 +7,8 @@
 // AG: Something is wrong. Formatting breaks compilation
 // clang-format off
 
-#include <crab/config.h>
 #include <clam/crab/crab_lang.hh>
+#include <crab/config.h>
 
 #include <crab/domains/array_adaptive.hpp>
 #include <crab/domains/flat_boolean_domain.hpp>

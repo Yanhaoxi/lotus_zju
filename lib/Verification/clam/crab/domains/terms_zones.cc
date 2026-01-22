@@ -1,7 +1,7 @@
-#include <clam/config.h>
+#include "terms_zones.hh"
 #include <clam/CrabDomain.hh>
 #include <clam/RegisterAnalysis.hh>
-#include "terms_zones.hh"
+#include <clam/config.h>
 
 namespace clam {
 #ifdef INCLUDE_ALL_DOMAINS

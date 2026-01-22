@@ -1,7 +1,7 @@
 #pragma once
 
-#include <crab/domains/apron_domains.hpp>
 #include "crab_defs.hh"
+#include <crab/domains/apron_domains.hpp>
 
 namespace clam {
 using BASE(pk_pplite_domain_t) =
