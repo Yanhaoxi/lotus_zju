@@ -8,7 +8,7 @@
  * NOTE: This is a compatibility layer. New code should use AliasAnalysisWrapper directly.
  *
  * Usage:
- *   PDGAliasWrapper wrapper(module, pdg::AAType::Andersen);
+ *   PDGAliasWrapper wrapper(module, pdg::AAConfig::SparrowAA_NoCtx());
  *   AliasResult result = wrapper.query(v1, v2);
  */
 
@@ -24,8 +24,8 @@
 namespace pdg
 {
 
-// Re-export AAType from lotus namespace for backward compatibility
-using AAType = lotus::AAType;
+// Re-export AAConfig from lotus namespace for backward compatibility
+using AAConfig = lotus::AAConfig;
 
 /**
  * @class PDGAliasWrapper
@@ -40,12 +40,12 @@ class PDGAliasWrapper
 {
 public:
   /**
-   * @brief Construct an alias wrapper with specified analysis type
+   * @brief Construct an alias wrapper with specified analysis configuration
    * @param M The LLVM module to analyze
-   * @param type The type of alias analysis to use
+   * @param config The alias analysis configuration to use
    */
-  PDGAliasWrapper(llvm::Module &M, AAType type = AAType::Andersen)
-    : _wrapper(std::make_unique<lotus::AliasAnalysisWrapper>(M, type)) {}
+  PDGAliasWrapper(llvm::Module &M, const AAConfig &config = AAConfig::SparrowAA_NoCtx())
+    : _wrapper(std::make_unique<lotus::AliasAnalysisWrapper>(M, config)) {}
 
   /**
    * @brief Destructor
@@ -105,9 +105,9 @@ public:
   }
 
   /**
-   * @brief Get the type of alias analysis being used
+   * @brief Get the configuration of alias analysis being used
    */
-  AAType getType() const { return _wrapper->getType(); }
+  const AAConfig& getConfig() const { return _wrapper->getConfig(); }
 
   /**
    * @brief Check if the wrapper is initialized and ready to use
@@ -129,24 +129,24 @@ class PDGAliasFactory
 {
 public:
   /**
-   * @brief Create an alias wrapper with the specified type
+   * @brief Create an alias wrapper with the specified configuration
    */
-  static std::unique_ptr<PDGAliasWrapper> create(llvm::Module &M, AAType type) {
-    return std::make_unique<PDGAliasWrapper>(M, type);
+  static std::unique_ptr<PDGAliasWrapper> create(llvm::Module &M, const AAConfig &config) {
+    return std::make_unique<PDGAliasWrapper>(M, config);
   }
 
   /**
    * @brief Create an alias wrapper with auto-selected analysis
    */
   static std::unique_ptr<PDGAliasWrapper> createAuto(llvm::Module &M) {
-    return std::make_unique<PDGAliasWrapper>(M, AAType::Andersen);
+    return std::make_unique<PDGAliasWrapper>(M, AAConfig::SparrowAA_NoCtx());
   }
 
   /**
-   * @brief Get a human-readable name for an AAType
+   * @brief Get a human-readable name for an AAConfig
    */
-  static const char *getTypeName(AAType type) {
-    return lotus::AliasAnalysisFactory::getTypeName(type);
+  static std::string getTypeName(const AAConfig &config) {
+    return lotus::AliasAnalysisFactory::getTypeName(config);
   }
 };
 

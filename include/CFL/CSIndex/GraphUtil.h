@@ -1,8 +1,10 @@
 #ifndef _GRAPH_UTIL_H_
 #define _GRAPH_UTIL_H_
 
-#include <sys/time.h>
 #include "CFL/CSIndex/Graph.h"
+
+#include <sys/time.h>
+
 
 class GraphUtil {
 	public:

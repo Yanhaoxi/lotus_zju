@@ -150,11 +150,11 @@ class PathtreeQuery: public Query {
 		
 		~PathtreeQuery() {
 			delete out_uncover;
-			cout << "average ingates size=" << (1.0*totalingates)/(qnum*1.0) << endl;
-			cout << "average checkougates size=" << (1.0*checkoutgates)/(qnum*1.0) << endl;
-			cout << "average comparenum=" << (1.0*comparenum)/(1.0*qnum) << endl;
-			cout << "average invisit=" << (1.0*invisit)/(1.0*qnum) << endl;
-			cout << "average outvisit=" << (1.0*outvisit)/(1.0*qnum) << endl;
+			cout << "average ingates size=" << (1.0*totalingates)/(qnum*1.0) << '\n';
+			cout << "average checkougates size=" << (1.0*checkoutgates)/(qnum*1.0) << '\n';
+			cout << "average comparenum=" << (1.0*comparenum)/(1.0*qnum) << '\n';
+			cout << "average invisit=" << (1.0*invisit)/(1.0*qnum) << '\n';
+			cout << "average outvisit=" << (1.0*outvisit)/(1.0*qnum) << '\n';
 		}
 		
 		void labelconversion() {
@@ -200,7 +200,7 @@ class PathtreeQuery: public Query {
 		void displayInfor(int vid, ostream& out) {
 			if (materialized->get(vid)) {
 				if (inneigs[vid]==NULL) {
-					cout << "Error: " << vid << " is NULL" << endl;
+					cout << "Error: " << vid << " is NULL" << '\n';
 					return;
 				}
 				out << "Inneigs[" << vid << "]: ";
@@ -211,7 +211,7 @@ class PathtreeQuery: public Query {
 						count++;
 						if (count>200) { out << "too long"; break; }
 					}
-				out << endl;
+				out << '\n';
 			}
 			out << "InOutGates[" << vid << "]: ";
 			vector<int>::iterator vit;
@@ -228,19 +228,19 @@ class PathtreeQuery: public Query {
 				for (vit = inoutgates[vid][1].begin(); vit != inoutgates[vid][1].end(); vit++)
 					out << *vit << "(" << topoid[*vit] << ")" << " ";
 			}
-			out << "#" << endl;
+			out << "#" << '\n';
 		}
 		
 		void displayLabelsByNode(int vid, ostream& out) {
 			vector<int>::iterator vit;
 			if (gates->get(vid))
-				out << vid << ": [" << labels[vid][0] << "," << labels[vid][1] << "," << labels[vid][2] << "]" << endl;
+				out << vid << ": [" << labels[vid][0] << "," << labels[vid][1] << "," << labels[vid][2] << "]" << '\n';
 			else
-				out << vid << ": NULL" << endl;
+				out << vid << ": NULL" << '\n';
 			cout << "Lout[" << vid << "]: ";
 			for (vit = lout[vid].begin(); vit != lout[vid].end(); vit++)
 				cout << *vit << "(" << labels[vid][2] << ") ";
-			cout << endl;
+			cout << '\n';
 			if (ismaterialized)	displayInfor(vid, out);
 		}
 		

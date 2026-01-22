@@ -3,9 +3,9 @@
 
 
 #include <cstdint>
-#include <iostream>
-#include <cstring>
 #include <cstdlib>
+#include <cstring>
+#include <iostream>
 
 
 using namespace std;
@@ -48,13 +48,13 @@ void bit_vector::reset()
 inline
 void bit_vector::print() const
 {
-	cout << "_num_bits=" << _num_bits << endl;
+	cout << "_num_bits=" << _num_bits << '\n';
 	for (int64_t i = _num_bits-1; i >= 0; i--) {
 		cout << get(i);
 		if (i % 8 == 0)
 			cout << " ";
 	}
-	cout << endl;
+	cout << '\n';
 }
 
 inline

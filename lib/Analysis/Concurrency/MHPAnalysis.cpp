@@ -330,7 +330,7 @@ void ThreadRegionAnalysis::print(raw_ostream &os) const {
 MHPAnalysis::MHPAnalysis(Module &module)
     : m_module(module), m_thread_api(ThreadAPI::getThreadAPI()) {
   m_tfg = std::make_unique<ThreadFlowGraph>();
-  m_alias_analysis = lotus::AliasAnalysisFactory::create(m_module, lotus::AAType::Andersen);
+  m_alias_analysis = lotus::AliasAnalysisFactory::create(m_module, lotus::AAConfig::SparrowAA_NoCtx());
 }
 
 void MHPAnalysis::analyze() {

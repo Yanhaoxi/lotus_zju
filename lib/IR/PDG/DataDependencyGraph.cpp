@@ -64,41 +64,16 @@ static opt<std::string> PdgAliasUnderOpt(
          "(underapprox|none)"),
     init("underapprox"));
 
-// Map a user-facing string to an AAType. Defaults to the provided fallback when
+// Map a user-facing string to an AAConfig. Defaults to the provided fallback when
 // the string is unknown.
-static pdg::AAType parseAAType(const std::string &aa, pdg::AAType fallback) {
-  std::string lower = aa;
-  std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
-
-  if (lower == "andersen" || lower == "andersen-nocontext" ||
-      lower == "andersen-noctx" || lower == "nocx" || lower == "noctx" ||
-      lower == "andersen0" || lower == "0cfa")
-    return pdg::AAType::Andersen;
-  if (lower == "andersen-1cfa" || lower == "andersen1" || lower == "1cfa")
-    return pdg::AAType::Andersen1CFA;
-  if (lower == "andersen-2cfa" || lower == "andersen2" || lower == "2cfa")
-    return pdg::AAType::Andersen2CFA;
-  if (lower == "dyck" || lower == "dyckaa")
-    return pdg::AAType::DyckAA;
-  if (lower == "cfl-anders" || lower == "cflanders")
-    return pdg::AAType::CFLAnders;
-  if (lower == "cfl-steens" || lower == "cflsteens")
-    return pdg::AAType::CFLSteens;
-  if (lower == "combined")
-    return pdg::AAType::Combined;
-  if (lower == "underapprox")
-    return pdg::AAType::UnderApprox;
-
-  if (!lower.empty())
-    llvm::errs() << "pdg: unknown alias analysis '" << aa
-                 << "', using default\n";
-  return fallback;
+static pdg::AAConfig parseAAConfig(const std::string &aa, const pdg::AAConfig &fallback) {
+  return lotus::parseAAConfigFromString(aa, fallback);
 }
 
 // Helper that builds an alias wrapper or returns nullptr when disabled/failed.
 static std::unique_ptr<pdg::PDGAliasWrapper>
 buildAliasWrapper(llvm::Module &M, const std::string &userChoice,
-                  pdg::AAType fallback, const char *label) {
+                  const pdg::AAConfig &fallback, const char *label) {
   std::string lower = userChoice;
   std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
 
@@ -107,17 +82,17 @@ buildAliasWrapper(llvm::Module &M, const std::string &userChoice,
     return nullptr;
   }
 
-  auto aaType = parseAAType(userChoice, fallback);
-  auto wrapper = pdg::PDGAliasFactory::create(M, aaType);
+  auto config = parseAAConfig(userChoice, fallback);
+  auto wrapper = pdg::PDGAliasFactory::create(M, config);
 
   if (!wrapper || !wrapper->isInitialized()) {
     llvm::errs() << "pdg: failed to initialize " << label << " alias analysis: "
-                 << pdg::PDGAliasFactory::getTypeName(aaType) << "\n";
+                 << pdg::PDGAliasFactory::getTypeName(config) << "\n";
     return nullptr;
   }
 
   if (pdg::DEBUG)
-    llvm::errs() << "pdg: using " << pdg::PDGAliasFactory::getTypeName(aaType)
+    llvm::errs() << "pdg: using " << pdg::PDGAliasFactory::getTypeName(config)
                  << " for " << label << " alias queries\n";
 
   return wrapper;
@@ -138,9 +113,9 @@ bool pdg::DataDependencyGraph::runOnModule(Module &M) {
 
   // Initialize alias analysis wrappers based on command-line choices.
   _alias_wrapper_over = buildAliasWrapper(M, PdgAliasOverOpt.getValue(),
-                                          AAType::Andersen, "over-approximate");
+                                          pdg::AAConfig::SparrowAA_NoCtx(), "over-approximate");
   _alias_wrapper_under = buildAliasWrapper(
-      M, PdgAliasUnderOpt.getValue(), AAType::UnderApprox, "under-approximate");
+      M, PdgAliasUnderOpt.getValue(), pdg::AAConfig::UnderApprox(), "under-approximate");
 
   for (auto &F : M) {
     if (F.isDeclaration() || F.empty())

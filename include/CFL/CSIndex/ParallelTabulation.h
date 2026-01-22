@@ -2,11 +2,11 @@
 #ifndef _PARALLEL_TABULATION_H
 #define _PARALLEL_TABULATION_H
 
-#include <set>
-#include <memory>
-#include <vector>
 #include <future>
+#include <memory>
 #include <mutex>
+#include <set>
+#include <vector>
 
 #include "CFL/CSIndex/AbstractQuery.h"
 #include "CFL/CSIndex/Graph.h"

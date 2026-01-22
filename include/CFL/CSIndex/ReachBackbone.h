@@ -1,8 +1,10 @@
 #ifndef _REACH_BACKBONE_H_
 #define _REACH_BACKBONE_H_
 
-#include <fstream>
 #include "CFL/CSIndex/GraphUtil.h"
+
+#include <fstream>
+
 
 //#define RBDEBUG
 //#define RBDEBUG1

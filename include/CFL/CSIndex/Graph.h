@@ -1,20 +1,20 @@
 #ifndef _GRAPH_H
 #define _GRAPH_H
 
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <vector>
-#include <set>
-#include <map>
-#include <list>
-#include <deque>
 #include <algorithm>
-#include <utility>
-#include <cmath>
-#include <string>
 #include <cassert>
+#include <cmath>
+#include <deque>
+#include <fstream>
+#include <iostream>
+#include <list>
+#include <map>
+#include <set>
+#include <sstream>
+#include <string>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include "CFL/CSIndex/BitVector.h"
 

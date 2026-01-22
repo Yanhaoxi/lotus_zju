@@ -38,8 +38,8 @@
 #define __CSProgressBar_HPP
 
 #include <iostream>
-#include <string>
 #include <stdexcept>
+#include <string>
 
 class CSProgressBar {
 

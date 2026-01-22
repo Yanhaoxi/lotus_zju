@@ -5,6 +5,7 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Value.h>
 #include <memory>
+#include <string>
 
 class AndersenAAResult;
 class DyckAliasAnalysis;
@@ -13,39 +14,235 @@ class AllocAA;
 namespace llvm { class CFLAndersAAResult; class CFLSteensAAResult; }
 namespace seadsa { class SeaDsaAAResult; }
 namespace UnderApprox { class UnderApproxAA; }
+namespace tpa { class SemiSparsePointerAnalysis; class SemiSparseProgram; }
 
 namespace lotus {
 
-
-enum class AAType {
-  Andersen, 
-  DyckAA, 
-  // The alias analyses inside LLVM: TBAA, GlobalsAA, SCEVAA
-  BasicAA, 
-  TBAA, 
-  GlobalsAA, 
-  SCEVAA,
-  // Taken from LLVM 14.x
-  CFLAnders, 
-  CFLSteens, 
-  // Stric relation based alias analysis
-  SRAA, 
-  // Sea-DSA: unificaiton-based, flow-insensitive, context-sensitive pointer analysis.
-  SeaDsa, 
-  // AllocAA: simple heuristic-based allocation tracking.
-  AllocAA, 
-  // Combined: combination of multiple alias analyses.
-  Combined, 
-  // UnderApprox: under-approximate alias analysis.
-  UnderApprox,
-  // SparrowAA Andersen context-sensitivity variants (fixed policies).
-  Andersen1CFA,
-  Andersen2CFA
+/**
+ * @brief Configuration for alias analysis implementation
+ * 
+ * This struct provides a type-safe, extensible way to configure which
+ * alias analysis to use and how it should behave. It replaces the old
+ * flat enum approach with a structured configuration.
+ */
+struct AAConfig {
+  /**
+   * @brief Alias analysis implementation/algorithm
+   */
+  enum class Implementation {
+    // SparrowAA: Andersen-style inclusion-based analysis
+    SparrowAA,
+    
+    // AserPTA: High-performance pointer analysis with multiple solvers
+    AserPTA,
+    
+    // TPA: Flow- and context-sensitive semi-sparse pointer analysis
+    TPA,
+    
+    // DyckAA: Dyck-CFL reachability based alias analysis
+    DyckAA,
+    
+    // CFL-reachability based analyses (from LLVM)
+    CFLAnders,
+    CFLSteens,
+    
+    // Sea-DSA: Unification-based, flow-insensitive, context-sensitive
+    SeaDsa,
+    
+    // AllocAA: Simple heuristic-based allocation tracking
+    AllocAA,
+    
+    // UnderApprox: Under-approximate alias analysis
+    UnderApprox,
+    
+    // Combined: Multiple backends merged together
+    Combined,
+    
+    // LLVM built-in analyses
+    BasicAA,
+    TBAA,
+    GlobalsAA,
+    SCEVAA,
+    SRAA,
+  };
+  
+  Implementation impl;
+  
+  /**
+   * @brief Context sensitivity mode
+   */
+  enum class ContextSensitivity {
+    None,         // Context-insensitive
+    KCallSite,    // k-call-site sensitive (k-CFA)
+    KOrigin,      // k-origin sensitive (AserPTA only)
+    Adaptive,     // Adaptive context sensitivity (TPA only)
+  };
+  
+  ContextSensitivity ctxSens;
+  
+  /**
+   * @brief k-limit for k-CFA analysis (0 = context-insensitive)
+   * 
+   * For KCallSite mode: k=0 means CI, k=1 means 1-CFA, k=2 means 2-CFA, etc.
+   * For TPA: k-limit controls maximum call string depth
+   */
+  unsigned kLimit;
+  
+  /**
+   * @brief Field sensitivity (for implementations that support it)
+   * 
+   * true: Track individual struct fields separately
+   * false: Treat entire objects as single entities
+   */
+  bool fieldSensitive;
+  
+  /**
+   * @brief Solver algorithm (for AserPTA)
+   */
+  enum class Solver {
+    Default,      // Use default solver for the implementation
+    Wave,         // WavePropagation solver (AserPTA)
+    Deep,         // DeepPropagation solver (AserPTA)
+    Basic,        // Basic/PartialUpdate solver (AserPTA)
+  };
+  
+  Solver solver;
+  
+  // Default constructor: SparrowAA, context-insensitive
+  AAConfig()
+    : impl(Implementation::SparrowAA),
+      ctxSens(ContextSensitivity::None),
+      kLimit(0),
+      fieldSensitive(true),
+      solver(Solver::Default) {}
+  
+  // Constructor with explicit parameters
+  AAConfig(Implementation i, ContextSensitivity cs, unsigned k, bool fs, Solver s)
+    : impl(i), ctxSens(cs), kLimit(k), fieldSensitive(fs), solver(s) {}
+  
+  // Factory methods for common configurations
+  
+  // SparrowAA variants
+  static AAConfig SparrowAA_NoCtx() {
+    return {Implementation::SparrowAA, ContextSensitivity::None, 0, true, Solver::Default};
+  }
+  
+  static AAConfig SparrowAA_1CFA() {
+    return {Implementation::SparrowAA, ContextSensitivity::KCallSite, 1, true, Solver::Default};
+  }
+  
+  static AAConfig SparrowAA_2CFA() {
+    return {Implementation::SparrowAA, ContextSensitivity::KCallSite, 2, true, Solver::Default};
+  }
+  
+  // AserPTA variants
+  static AAConfig AserPTA_NoCtx(Solver s = Solver::Wave) {
+    return {Implementation::AserPTA, ContextSensitivity::None, 0, true, s};
+  }
+  
+  static AAConfig AserPTA_1CFA(Solver s = Solver::Wave) {
+    return {Implementation::AserPTA, ContextSensitivity::KCallSite, 1, true, s};
+  }
+  
+  static AAConfig AserPTA_2CFA(Solver s = Solver::Wave) {
+    return {Implementation::AserPTA, ContextSensitivity::KCallSite, 2, true, s};
+  }
+  
+  static AAConfig AserPTA_Origin(Solver s = Solver::Wave) {
+    return {Implementation::AserPTA, ContextSensitivity::KOrigin, 1, true, s};
+  }
+  
+  // TPA variants
+  static AAConfig TPA_NoCtx() {
+    return {Implementation::TPA, ContextSensitivity::None, 0, true, Solver::Default};
+  }
+  
+  static AAConfig TPA_1CFA() {
+    return {Implementation::TPA, ContextSensitivity::KCallSite, 1, true, Solver::Default};
+  }
+  
+  static AAConfig TPA_2CFA() {
+    return {Implementation::TPA, ContextSensitivity::KCallSite, 2, true, Solver::Default};
+  }
+  
+  static AAConfig TPA_3CFA() {
+    return {Implementation::TPA, ContextSensitivity::KCallSite, 3, true, Solver::Default};
+  }
+  
+  static AAConfig TPA_KCFA(unsigned k) {
+    return {Implementation::TPA, ContextSensitivity::KCallSite, k, true, Solver::Default};
+  }
+  
+  // Other analyses (no context sensitivity)
+  static AAConfig DyckAA() {
+    return {Implementation::DyckAA, ContextSensitivity::None, 0, true, Solver::Default};
+  }
+  
+  static AAConfig CFLAnders() {
+    return {Implementation::CFLAnders, ContextSensitivity::None, 0, true, Solver::Default};
+  }
+  
+  static AAConfig CFLSteens() {
+    return {Implementation::CFLSteens, ContextSensitivity::None, 0, true, Solver::Default};
+  }
+  
+  static AAConfig SeaDsa() {
+    return {Implementation::SeaDsa, ContextSensitivity::None, 0, true, Solver::Default};
+  }
+  
+  static AAConfig AllocAA() {
+    return {Implementation::AllocAA, ContextSensitivity::None, 0, true, Solver::Default};
+  }
+  
+  static AAConfig UnderApprox() {
+    return {Implementation::UnderApprox, ContextSensitivity::None, 0, true, Solver::Default};
+  }
+  
+  static AAConfig Combined() {
+    return {Implementation::Combined, ContextSensitivity::None, 0, true, Solver::Default};
+  }
+  
+  // LLVM built-ins
+  static AAConfig BasicAA() {
+    return {Implementation::BasicAA, ContextSensitivity::None, 0, true, Solver::Default};
+  }
+  
+  static AAConfig TBAA() {
+    return {Implementation::TBAA, ContextSensitivity::None, 0, true, Solver::Default};
+  }
+  
+  static AAConfig GlobalsAA() {
+    return {Implementation::GlobalsAA, ContextSensitivity::None, 0, true, Solver::Default};
+  }
+  
+  static AAConfig SCEVAA() {
+    return {Implementation::SCEVAA, ContextSensitivity::None, 0, true, Solver::Default};
+  }
+  
+  static AAConfig SRAA() {
+    return {Implementation::SRAA, ContextSensitivity::None, 0, true, Solver::Default};
+  }
+  
+  // Comparison operators
+  bool operator==(const AAConfig &other) const {
+    return impl == other.impl &&
+           ctxSens == other.ctxSens &&
+           kLimit == other.kLimit &&
+           fieldSensitive == other.fieldSensitive &&
+           solver == other.solver;
+  }
+  
+  bool operator!=(const AAConfig &other) const {
+    return !(*this == other);
+  }
+  
+  // Get human-readable name
+  std::string getName() const;
 };
 
 class AliasAnalysisWrapper {
 public:
-  AliasAnalysisWrapper(llvm::Module &M, AAType type = AAType::Andersen);
+  AliasAnalysisWrapper(llvm::Module &M, const AAConfig &config = AAConfig::SparrowAA_NoCtx());
   ~AliasAnalysisWrapper();
 
   llvm::AliasResult query(const llvm::Value *v1, const llvm::Value *v2);
@@ -58,7 +255,29 @@ public:
   bool getPointsToSet(const llvm::Value *ptr, std::vector<const llvm::Value *> &ptsSet);
   bool getAliasSet(const llvm::Value *v, std::vector<const llvm::Value *> &aliasSet);
   
-  AAType getType() const { return _aa_type; }
+  /**
+   * @brief Get the configuration used by this wrapper
+   * 
+   * Returns a const reference to the AAConfig that was used to initialize
+   * this wrapper. This allows clients to inspect the configuration settings
+   * (implementation, context sensitivity, k-limit, etc.).
+   * 
+   * @return Const reference to the configuration
+   */
+  const AAConfig& getConfig() const { return _config; }
+  
+  /**
+   * @brief Check if the wrapper is initialized and ready for queries
+   * 
+   * Returns true if the alias analysis backend was successfully initialized,
+   * false otherwise. If false, all queries will return conservative (MayAlias)
+   * results.
+   * 
+   * @return true if initialized and ready, false otherwise
+   * 
+   * @note Always check this before performing expensive operations that
+   *       depend on alias analysis results
+   */
   bool isInitialized() const { return _initialized; }
 
 private:
@@ -66,7 +285,7 @@ private:
   llvm::AliasResult queryBackend(const llvm::Value *v1, const llvm::Value *v2);
   bool isValidPointerQuery(const llvm::Value *v1, const llvm::Value *v2) const;
 
-  AAType _aa_type;
+  AAConfig _config;
   llvm::Module *_module;
   bool _initialized;
 
@@ -76,6 +295,8 @@ private:
   std::unique_ptr<llvm::CFLAndersAAResult> _cflanders_aa;
   std::unique_ptr<llvm::CFLSteensAAResult> _cflsteens_aa;
   std::unique_ptr<AllocAA> _alloc_aa;
+  std::unique_ptr<tpa::SemiSparsePointerAnalysis> _tpa_aa;
+  std::unique_ptr<tpa::SemiSparseProgram> _tpa_program;
   
   llvm::AAResults *_llvm_aa;
   seadsa::SeaDsaAAResult *_seadsa_aa;
@@ -84,10 +305,43 @@ private:
 
 class AliasAnalysisFactory {
 public:
-  static std::unique_ptr<AliasAnalysisWrapper> create(llvm::Module &M, AAType type);
+  static std::unique_ptr<AliasAnalysisWrapper> create(llvm::Module &M, const AAConfig &config);
   static std::unique_ptr<AliasAnalysisWrapper> createAuto(llvm::Module &M);
-  static const char *getTypeName(AAType type);
+  static std::string getTypeName(const AAConfig &config);
+  
+  // Convenience methods for common configurations
+  static std::unique_ptr<AliasAnalysisWrapper> createSparrowAA(llvm::Module &M, unsigned kCFA = 0);
+  static std::unique_ptr<AliasAnalysisWrapper> createAserPTA(llvm::Module &M, unsigned kCFA = 0);
+  static std::unique_ptr<AliasAnalysisWrapper> createTPA(llvm::Module &M, unsigned kCFA = 0);
 };
 
-} // namespace lotus
+// ===== Utility Functions =====
 
+/**
+ * @brief Parse a string to AAConfig
+ * 
+ * Parses common string representations of alias analysis configurations
+ * and returns the corresponding AAConfig. Supports:
+ * - "andersen", "sparrow-aa", "sparrowaa" -> SparrowAA_NoCtx
+ * - "andersen-1cfa", "sparrow-aa-1cfa", "1cfa" -> SparrowAA_1CFA
+ * - "andersen-2cfa", "sparrow-aa-2cfa", "2cfa" -> SparrowAA_2CFA
+ * - "aser-pta", "aserpta" -> AserPTA_NoCtx
+ * - "aser-pta-1cfa" -> AserPTA_1CFA
+ * - "tpa", "tpa-0cfa" -> TPA_NoCtx
+ * - "tpa-1cfa" -> TPA_1CFA
+ * - "tpa-2cfa" -> TPA_2CFA
+ * - "dyck", "dyckaa" -> DyckAA
+ * - "cfl-anders", "cflanders" -> CFLAnders
+ * - "cfl-steens", "cflsteens" -> CFLSteens
+ * - "seadsa" -> SeaDsa
+ * - "allocaa", "alloc" -> AllocAA
+ * - "combined" -> Combined
+ * - "underapprox" -> UnderApprox
+ * 
+ * @param str String representation of the alias analysis
+ * @param fallback Default config to return if string is unknown
+ * @return AAConfig corresponding to the string, or fallback if unknown
+ */
+AAConfig parseAAConfigFromString(const std::string &str, const AAConfig &fallback = AAConfig::SparrowAA_NoCtx());
+
+} // namespace lotus

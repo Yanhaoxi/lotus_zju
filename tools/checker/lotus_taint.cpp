@@ -135,36 +135,9 @@ static void dumpSourceSinkMatches(const llvm::Module& module,
        << sink_calls << " sinks\n";
 }
 
-// Helper function to parse alias analysis type from string
-lotus::AAType parseAliasAnalysisType(const std::string& aaTypeStr) {
-    std::string lowerStr = aaTypeStr;
-    std::transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(), ::tolower);
-    
-    if (lowerStr == "andersen") return lotus::AAType::Andersen;
-    if (lowerStr == "andersen-nocontext" || lowerStr == "andersen-noctx" ||
-        lowerStr == "andersen-0cfa" || lowerStr == "andersen0" ||
-        lowerStr == "nocx" || lowerStr == "noctx") return lotus::AAType::Andersen;
-    if (lowerStr == "andersen-1cfa" || lowerStr == "andersen1" ||
-        lowerStr == "1cfa") return lotus::AAType::Andersen1CFA;
-    if (lowerStr == "andersen-2cfa" || lowerStr == "andersen2" ||
-        lowerStr == "2cfa") return lotus::AAType::Andersen2CFA;
-    if (lowerStr == "dyck" || lowerStr == "dyckaa") return lotus::AAType::DyckAA;
-    if (lowerStr == "cfl-anders" || lowerStr == "cflanders") return lotus::AAType::CFLAnders;
-    if (lowerStr == "cfl-steens" || lowerStr == "cflsteens") return lotus::AAType::CFLSteens;
-    if (lowerStr == "seadsa") return lotus::AAType::SeaDsa;
-    if (lowerStr == "allocaa" || lowerStr == "alloc") return lotus::AAType::AllocAA;
-    if (lowerStr == "basic" || lowerStr == "basicaa") return lotus::AAType::BasicAA;
-    if (lowerStr == "tbaa") return lotus::AAType::TBAA;
-    if (lowerStr == "globals" || lowerStr == "globalsaa") return lotus::AAType::GlobalsAA;
-    if (lowerStr == "scevaa" || lowerStr == "scev") return lotus::AAType::SCEVAA;
-    if (lowerStr == "sraa") return lotus::AAType::SRAA;
-    if (lowerStr == "combined") return lotus::AAType::Combined;
-    if (lowerStr == "underapprox") return lotus::AAType::UnderApprox;
-    
-    // Default to DyckAA
-    errs() << "Warning: Unknown alias analysis type '" << aaTypeStr 
-           << "', defaulting to DyckAA\n";
-    return lotus::AAType::DyckAA;
+// Helper function to parse alias analysis configuration from string
+lotus::AAConfig parseAliasAnalysisConfig(const std::string& aaTypeStr) {
+    return lotus::parseAAConfigFromString(aaTypeStr, lotus::AAConfig::DyckAA());
 }
 
 int main(int argc, char **argv) {
@@ -194,11 +167,11 @@ int main(int argc, char **argv) {
     }
     
     // Set up alias analysis wrapper
-    lotus::AAType aaType = parseAliasAnalysisType(AliasAnalysisType.getValue());
-    auto aliasWrapper = std::make_unique<lotus::AliasAnalysisWrapper>(*M, aaType);
+    lotus::AAConfig aaConfig = parseAliasAnalysisConfig(AliasAnalysisType.getValue());
+    auto aliasWrapper = std::make_unique<lotus::AliasAnalysisWrapper>(*M, aaConfig);
     
     if (Verbose) {
-        outs() << "Using alias analysis: " << lotus::AliasAnalysisFactory::getTypeName(aaType) << "\n";
+        outs() << "Using alias analysis: " << lotus::AliasAnalysisFactory::getTypeName(aaConfig) << "\n";
     }
     
     if (!aliasWrapper->isInitialized()) {

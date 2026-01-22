@@ -1,12 +1,12 @@
 #ifndef _DATA_COMPRESSION_H
 #define _DATA_COMPRESSION_H
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <map>
+#include <set>
 #include <sstream>
 #include <vector>
-#include <set>
-#include <map>
 //#include <list>
 //#include <deque>
 #include <algorithm>

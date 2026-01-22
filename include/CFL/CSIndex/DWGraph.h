@@ -1,13 +1,13 @@
 #ifndef _DWGRAPH_H
 #define _DWGRAPH_H
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <list>
+#include <map>
+#include <set>
 #include <sstream>
 #include <vector>
-#include <set>
-#include <map>
-#include <list>
 //#include <algorithm>
 #include <utility>
 //#include <cmath>

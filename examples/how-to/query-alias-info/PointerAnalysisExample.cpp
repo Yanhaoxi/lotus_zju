@@ -134,21 +134,21 @@ int main(int argc, char **argv) {
   // Define analyses to compare (module-level analyses only)
   // Note: CFLAnders/CFLSteens are function-scoped and can't compare cross-function pointers
   // Note: SRAA, SeaDSA, AllocAA require additional pass manager setup
-  std::vector<AAType> analysisTypes = {
-    AAType::Andersen,
-    AAType::DyckAA,
-    AAType::UnderApprox
+  std::vector<lotus::AAConfig> analysisConfigs = {
+    lotus::AAConfig::SparrowAA_NoCtx(),
+    lotus::AAConfig::DyckAA(),
+    lotus::AAConfig::UnderApprox()
   };
 
   // Run all analyses
   errs() << "Running analyses...\n";
   std::vector<AnalysisStats> results;
-  for (AAType aaType : analysisTypes) {
-    std::string name = AliasAnalysisFactory::getTypeName(aaType);
+  for (const auto &aaConfig : analysisConfigs) {
+    std::string name = AliasAnalysisFactory::getTypeName(aaConfig);
     errs() << "  " << name << "... ";
     errs().flush();
     
-    AliasAnalysisWrapper analysis(*M, aaType);
+    AliasAnalysisWrapper analysis(*M, aaConfig);
     AnalysisStats stats = runAnalysis(name, analysis, allPointers);
     results.push_back(stats);
     

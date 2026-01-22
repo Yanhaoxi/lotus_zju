@@ -7,8 +7,8 @@ or their institutions liable under any circumstances.
 #ifndef _EXCEPTION_LIST_H
 #define _EXCEPTION_LIST_H
 
-#include <unordered_set>
 #include <iostream>
+#include <unordered_set>
 
 using namespace std;
 
@@ -38,7 +38,7 @@ class ExceptionList {
 			cout << node << " :";
 			for(siter=lists[node].begin(); siter!=lists[node].end();siter++)
 				cout << " " << *siter;
-		cout << endl;
+		cout << '\n';
 		}
 	}
 
@@ -60,7 +60,7 @@ class ExceptionList {
 		for(i=0;i<size;i++){
 			count += lists[i].size();
 		}
-		cout << " Total Number of Exceptions : " << count << endl;
+		cout << " Total Number of Exceptions : " << count << '\n';
 	}
 
 	int Size(){
