@@ -19,5 +19,6 @@ add_library(CanaryPDG STATIC
   ProgramDependencyGraph.cpp
   CypherQuery.cpp
   Slicing.cpp
+  ThinSlicing.cpp
   Tree.cpp
 ) 
