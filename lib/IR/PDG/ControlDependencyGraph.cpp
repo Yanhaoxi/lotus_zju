@@ -23,20 +23,18 @@
 char pdg::ControlDependencyGraph::ID = 0;
 
 using namespace llvm;
-bool pdg::ControlDependencyGraph::runOnFunction(Function &F)
-{
+bool pdg::ControlDependencyGraph::runOnFunction(Function &F) {
   _PDT = &getAnalysis<PostDominatorTreeWrapperPass>().getPostDomTree();
   addControlDepFromEntryNodeToInsts(F);
   addControlDepFromDominatedBlockToDominator(F);
   return false;
 }
 
-void pdg::ControlDependencyGraph::addControlDepFromNodeToBB(Node &n, BasicBlock &BB, EdgeType edge_type)
-{
+void pdg::ControlDependencyGraph::addControlDepFromNodeToBB(
+    Node &n, BasicBlock &BB, EdgeType edge_type) {
   ProgramGraph &g = ProgramGraph::getInstance();
-  for (auto &inst : BB)
-  {
-    Node* inst_node = g.getNode(inst);
+  for (auto &inst : BB) {
+    Node *inst_node = g.getNode(inst);
     // TODO: a special case when gep is used as a operand in load. Fix later
     if (inst_node != nullptr)
       n.addNeighbor(*inst_node, edge_type);
@@ -44,23 +42,22 @@ void pdg::ControlDependencyGraph::addControlDepFromNodeToBB(Node &n, BasicBlock 
   }
 }
 
-void pdg::ControlDependencyGraph::addControlDepFromEntryNodeToInsts(Function &F)
-{
+void pdg::ControlDependencyGraph::addControlDepFromEntryNodeToInsts(
+    Function &F) {
   ProgramGraph &g = ProgramGraph::getInstance();
-  FunctionWrapper* func_w = g.getFuncWrapperMap()[&F];
+  FunctionWrapper *func_w = g.getFuncWrapperMap()[&F];
   if (!func_w)
     return;
-  for (auto &BB : F)
-  {
-    addControlDepFromNodeToBB(*func_w->getEntryNode(), BB, EdgeType::CONTROLDEP_ENTRY);
+  for (auto &BB : F) {
+    addControlDepFromNodeToBB(*func_w->getEntryNode(), BB,
+                              EdgeType::CONTROLDEP_ENTRY);
   }
 }
 
-void pdg::ControlDependencyGraph::addControlDepFromDominatedBlockToDominator(Function &F)
-{
+void pdg::ControlDependencyGraph::addControlDepFromDominatedBlockToDominator(
+    Function &F) {
   ProgramGraph &g = ProgramGraph::getInstance();
-  for (auto &BB : F)
-  {
+  for (auto &BB : F) {
     Instruction *terminator = BB.getTerminator();
     if (!terminator)
       continue;
@@ -70,27 +67,28 @@ void pdg::ControlDependencyGraph::addControlDepFromDominatedBlockToDominator(Fun
     if (terminator_node == nullptr)
       continue;
 
-    for (auto succ_iter = succ_begin(&BB); succ_iter != succ_end(&BB); succ_iter++)
-    {
+    for (auto succ_iter = succ_begin(&BB); succ_iter != succ_end(&BB);
+         succ_iter++) {
       BasicBlock *succ_bb = *succ_iter;
-      if (&BB == &*succ_bb || !_PDT->dominates(&*succ_bb, &BB))
-      {
-        BasicBlock *nearestCommonDominator = _PDT->findNearestCommonDominator(&BB, succ_bb);
+      if (&BB == &*succ_bb || !_PDT->dominates(&*succ_bb, &BB)) {
+        BasicBlock *nearestCommonDominator =
+            _PDT->findNearestCommonDominator(&BB, succ_bb);
         if (nearestCommonDominator == &BB)
-          addControlDepFromNodeToBB(*terminator_node, *succ_bb, EdgeType::CONTROLDEP_BR);
+          addControlDepFromNodeToBB(*terminator_node, *succ_bb,
+                                    EdgeType::CONTROLDEP_BR);
 
         auto *nearest_node = _PDT->getNode(nearestCommonDominator);
-        for (auto *cur = _PDT->getNode(&*succ_bb); cur && cur != nearest_node; cur = cur->getIDom())
-        {
-          addControlDepFromNodeToBB(*terminator_node, *cur->getBlock(), EdgeType::CONTROLDEP_BR);
+        for (auto *cur = _PDT->getNode(&*succ_bb); cur && cur != nearest_node;
+             cur = cur->getIDom()) {
+          addControlDepFromNodeToBB(*terminator_node, *cur->getBlock(),
+                                    EdgeType::CONTROLDEP_BR);
         }
       }
     }
   }
 }
 
-void pdg::ControlDependencyGraph::getAnalysisUsage(AnalysisUsage &AU) const
-{
+void pdg::ControlDependencyGraph::getAnalysisUsage(AnalysisUsage &AU) const {
   AU.addRequired<PostDominatorTreeWrapperPass>();
   AU.setPreservesAll();
 }

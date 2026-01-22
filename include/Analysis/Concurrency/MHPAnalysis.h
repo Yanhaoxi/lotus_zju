@@ -368,6 +368,9 @@ private:
   void handleThreadFork(const llvm::Instruction *fork_inst, SyncNode *node);
   void handleThreadJoin(const llvm::Instruction *join_inst, SyncNode *node);
 
+  // Value-tracing helper for pthread_t
+  const llvm::Value *tracePthreadT(const llvm::Value *val) const;
+
   // Synchronization analysis
   void handleLockAcquire(const llvm::Instruction *lock_inst, SyncNode *node);
   void handleLockRelease(const llvm::Instruction *unlock_inst, SyncNode *node);

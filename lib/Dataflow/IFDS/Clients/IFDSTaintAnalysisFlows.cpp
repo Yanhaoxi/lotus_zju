@@ -32,18 +32,35 @@ std::string strip_signature(const std::string& demangled) {
 // TaintAnalysis Implementation (Flow)
 // ============================================================================
 
-TaintAnalysis::TaintAnalysis() {
+TaintAnalysis::TaintAnalysis() : TaintAnalysis(Config{}) {}
+
+TaintAnalysis::TaintAnalysis(const Config& config) : m_config(config) {
     if (!taint_config::load_default_config()) {
         llvm::errs() << "Error: Could not load taint configuration\n";
         return;
     }
     
-    auto& config = TaintConfigManager::getInstance();
-    auto sources = config.get_all_source_functions();
-    auto sinks = config.get_all_sink_functions();
+    auto& taint_cfg = TaintConfigManager::getInstance();
+    auto sources = taint_cfg.get_all_source_functions();
+    auto sinks = taint_cfg.get_all_sink_functions();
     
     m_source_functions.insert(sources.begin(), sources.end());
     m_sink_functions.insert(sinks.begin(), sinks.end());
+    
+    // Default sanitizers (can be extended via config file)
+    if (m_config.use_sanitizers) {
+        m_sanitizer_functions.insert("strlen");
+        m_sanitizer_functions.insert("strcmp");
+        m_sanitizer_functions.insert("strncmp");
+        m_sanitizer_functions.insert("isdigit");
+        m_sanitizer_functions.insert("isalpha");
+        m_sanitizer_functions.insert("isalnum");
+        m_sanitizer_functions.insert("isspace");
+        m_sanitizer_functions.insert("atoi");  // Partial sanitizer (validates numeric)
+        m_sanitizer_functions.insert("atol");
+        m_sanitizer_functions.insert("strtol");
+        m_sanitizer_functions.insert("strtoul");
+    }
     
     llvm::outs() << "Loaded " << sources.size() << " sources and " << sinks.size() << " sinks from configuration\n";
 }
@@ -76,12 +93,43 @@ TaintAnalysis::FactSet TaintAnalysis::normal_flow(const llvm::Instruction* stmt,
     // Helper to propagate existing facts
     auto propagate_fact = [&result, &fact]() { result.insert(fact); };
     
+    // Helper to check if a value matches a tainted fact
+    auto matches_tainted_value = [this, &fact](const llvm::Value* v) -> bool {
+        if (fact.is_tainted_var() && fact.get_value() == v) return true;
+        if (fact.is_tainted_global()) {
+            if (auto* gv = llvm::dyn_cast<llvm::GlobalVariable>(v)) {
+                return fact.get_value() == gv;
+            }
+        }
+        if (fact.is_tainted_implicit() && fact.get_value() == v) return true;
+        return false;
+    };
+    
     if (auto* store = llvm::dyn_cast<llvm::StoreInst>(stmt)) {
         const llvm::Value* value = store->getValueOperand();
         const llvm::Value* ptr = store->getPointerOperand();
         
-        if (fact.is_tainted_var() && fact.get_value() == value) {
+        if (matches_tainted_value(value)) {
             result.insert(TaintFact::tainted_memory(ptr, fact.get_source()));
+            
+            // Track global variable stores
+            if (m_config.track_globals) {
+                if (auto* gv = llvm::dyn_cast<llvm::GlobalVariable>(ptr)) {
+                    result.insert(TaintFact::tainted_global(gv, fact.get_source()));
+                }
+            }
+        }
+        
+        // Field-sensitive store handling
+        if (m_config.field_sensitive) {
+            if (auto* gep = llvm::dyn_cast<llvm::GetElementPtrInst>(ptr)) {
+                if (matches_tainted_value(value) && gep->getNumIndices() >= 2) {
+                    if (auto* idx = llvm::dyn_cast<llvm::ConstantInt>(gep->getOperand(2))) {
+                        result.insert(TaintFact::tainted_field(
+                            gep->getPointerOperand(), idx->getSExtValue(), fact.get_source()));
+                    }
+                }
+            }
         }
         
         propagate_fact();
@@ -92,6 +140,29 @@ TaintAnalysis::FactSet TaintAnalysis::normal_flow(const llvm::Instruction* stmt,
         if ((fact.is_tainted_memory() && taint_may_alias(fact.get_memory_location(), ptr)) ||
             (fact.is_tainted_var() && fact.get_value() == ptr)) {
             result.insert(TaintFact::tainted_var(load, fact.get_source()));
+        }
+        
+        // Handle global variable loads
+        if (m_config.track_globals && fact.is_tainted_global()) {
+            if (auto* gv = llvm::dyn_cast<llvm::GlobalVariable>(ptr)) {
+                if (fact.get_value() == gv) {
+                    result.insert(TaintFact::tainted_var(load, fact.get_source()));
+                }
+            }
+        }
+        
+        // Field-sensitive load handling
+        if (m_config.field_sensitive && fact.is_tainted_field()) {
+            if (auto* gep = llvm::dyn_cast<llvm::GetElementPtrInst>(ptr)) {
+                if (gep->getNumIndices() >= 2) {
+                    if (auto* idx = llvm::dyn_cast<llvm::ConstantInt>(gep->getOperand(2))) {
+                        if (fact.get_value() == gep->getPointerOperand() &&
+                            fact.get_field_index() == idx->getSExtValue()) {
+                            result.insert(TaintFact::tainted_var(load, fact.get_source()));
+                        }
+                    }
+                }
+            }
         }
         
         propagate_fact();
@@ -227,6 +298,27 @@ TaintAnalysis::FactSet TaintAnalysis::normal_flow(const llvm::Instruction* stmt,
         
         propagate_fact();
         
+    } else if (auto* br = llvm::dyn_cast<llvm::BranchInst>(stmt)) {
+        // Handle implicit flows from tainted branch conditions
+        if (m_config.track_implicit_flows && br->isConditional()) {
+            const llvm::Value* cond = br->getCondition();
+            if (fact.is_tainted_var() && fact.get_value() == cond) {
+                // Mark both branch targets as having implicit taint
+                result.insert(TaintFact::tainted_implicit(cond, fact.get_source()));
+            }
+        }
+        propagate_fact();
+        
+    } else if (auto* sw = llvm::dyn_cast<llvm::SwitchInst>(stmt)) {
+        // Handle implicit flows from tainted switch conditions
+        if (m_config.track_implicit_flows) {
+            const llvm::Value* cond = sw->getCondition();
+            if (fact.is_tainted_var() && fact.get_value() == cond) {
+                result.insert(TaintFact::tainted_implicit(cond, fact.get_source()));
+            }
+        }
+        propagate_fact();
+        
     } else {
         propagate_fact();
     }
@@ -278,6 +370,19 @@ TaintAnalysis::FactSet TaintAnalysis::call_flow(const llvm::CallInst* call, cons
                 result.insert(TaintFact::tainted_memory(&*param_it, fact.get_source()));
             }
         }
+        
+        // Pass field-sensitive taint through parameters
+        if (m_config.field_sensitive && fact.is_tainted_field()) {
+            if (arg->getType() && arg->getType()->isPointerTy() &&
+                taint_may_alias(arg, fact.get_value())) {
+                result.insert(TaintFact::tainted_field(&*param_it, fact.get_field_index(), fact.get_source()));
+            }
+        }
+    }
+    
+    // Propagate global variable taint across call boundaries
+    if (m_config.track_globals && fact.is_tainted_global()) {
+        result.insert(fact);
     }
     
     return result;
@@ -444,17 +549,49 @@ void TaintAnalysis::add_sink_function(const std::string& func_name) {
     m_sink_functions.insert(func_name);
 }
 
+void TaintAnalysis::add_sanitizer_function(const std::string& func_name) {
+    m_sanitizer_functions.insert(func_name);
+}
+
+bool TaintAnalysis::is_sanitizer(const llvm::Instruction* inst) const {
+    if (!m_config.use_sanitizers) return false;
+    
+    auto* call = llvm::dyn_cast<llvm::CallInst>(inst);
+    if (!call || !call->getCalledFunction()) return false;
+    
+    auto raw_name = call->getCalledFunction()->getName().str();
+    std::string func_name = taint_config::normalize_name(raw_name);
+    
+    return m_sanitizer_functions.count(func_name) > 0;
+}
+
 bool TaintAnalysis::kills_fact(const llvm::CallInst* call, const TaintFact& fact) const {
     const llvm::Function* callee = call->getCalledFunction();
-    if (!callee || !fact.is_tainted_var()) return false;
+    if (!callee) return false;
     
-    static const std::unordered_set<std::string> sanitizers = {
-        "strlen", "strcmp", "strncmp", "isdigit", "isalpha"
-    };
+    // Check if this is a sanitizer that kills the taint
+    if (!m_config.use_sanitizers) return false;
     
-    if (sanitizers.count(callee->getName().str())) {
+    std::string func_name = taint_config::normalize_name(callee->getName().str());
+    
+    // Only kill if this is a recognized sanitizer
+    if (m_sanitizer_functions.count(func_name) == 0) return false;
+    
+    // For strict sanitization, only kill facts that directly match operands
+    if (fact.is_tainted_var()) {
         for (unsigned i = 0; i < call->getNumOperands() - 1; ++i) {
             if (call->getOperand(i) == fact.get_value()) {
+                return true;
+            }
+        }
+    }
+    
+    // Memory taint can be sanitized if the pointer is passed to sanitizer
+    if (fact.is_tainted_memory()) {
+        for (unsigned i = 0; i < call->getNumOperands() - 1; ++i) {
+            const llvm::Value* arg = call->getOperand(i);
+            if (arg && arg->getType()->isPointerTy() &&
+                taint_may_alias(arg, fact.get_memory_location())) {
                 return true;
             }
         }

@@ -539,6 +539,56 @@ void MHPAnalysis::handleThreadFork(const Instruction *fork_inst,
   }
 }
 
+
+#include <deque>
+#include <set>
+
+// ============================================================================
+// Value Tracing Helpers
+// ============================================================================
+const Value *MHPAnalysis::tracePthreadT(const Value *val) const {
+  // Use a worklist to trace back through the def-use chain of the value.
+  std::deque<const Value *> worklist;
+  worklist.push_back(val);
+  std::set<const Value *> visited;
+
+  while (!worklist.empty()) {
+    const Value *v = worklist.front();
+    worklist.pop_front();
+
+    if (visited.count(v)) {
+      continue;
+    }
+    visited.insert(v);
+
+    // Base case 1: We found the allocation site of the pthread_t variable.
+    if (isa<AllocaInst>(v)) {
+      return v;
+    }
+
+    // Base case 2: We found a value that is already directly mapped to a thread ID.
+    if (m_pthread_value_to_thread.count(v)) {
+      return v;
+    }
+
+    // Recursive step: add operands to the worklist.
+    if (const LoadInst *load = dyn_cast<LoadInst>(v)) {
+      worklist.push_back(load->getPointerOperand());
+    } else if (const BitCastInst *cast = dyn_cast<BitCastInst>(v)) {
+      worklist.push_back(cast->getOperand(0));
+    } else if (const GetElementPtrInst *gep = dyn_cast<GetElementPtrInst>(v)) {
+      worklist.push_back(gep->getPointerOperand());
+    } else if (const Instruction *inst = dyn_cast<Instruction>(v)) {
+      // General case for other instructions, trace all operands.
+      for (const Use &use : inst->operands()) {
+        worklist.push_back(use.get());
+      }
+    }
+  }
+
+  return nullptr; // Could not trace back to a known origin.
+}
+
 void MHPAnalysis::handleThreadJoin(const Instruction *join_inst,
                                     SyncNode *node) {
   // Track which thread is being joined using value analysis
@@ -547,35 +597,19 @@ void MHPAnalysis::handleThreadJoin(const Instruction *join_inst,
   const Value *joined_thread_val = m_thread_api->getJoinedThread(join_inst);
   ThreadID joined_tid = 0;
   bool found_thread = false;
-  
+
   if (joined_thread_val) {
-    // Case 1: Direct match - the value is the pthread_t pointer we tracked
-    auto it = m_pthread_value_to_thread.find(joined_thread_val);
-    if (it != m_pthread_value_to_thread.end()) {
-      joined_tid = it->second;
-      found_thread = true;
-    } else {
-      // Case 2: Value comes from a load instruction
-      // Track back through loads to find the original pthread_t pointer
-      if (const LoadInst *load = dyn_cast<LoadInst>(joined_thread_val)) {
-        const Value *loaded_from = load->getPointerOperand();
-        auto it2 = m_pthread_value_to_thread.find(loaded_from);
-        if (it2 != m_pthread_value_to_thread.end()) {
-          joined_tid = it2->second;
-          found_thread = true;
-          // Update our tracking to include this load
-          m_pthread_value_to_thread[joined_thread_val] = joined_tid;
-        }
-      }
-      
-      // Case 3: Check if it's a bitcast or other simple transformation
-      const Value *stripped = joined_thread_val->stripPointerCasts();
-      if (stripped != joined_thread_val) {
-        auto it3 = m_pthread_value_to_thread.find(stripped);
-        if (it3 != m_pthread_value_to_thread.end()) {
-          joined_tid = it3->second;
-          found_thread = true;
-          m_pthread_value_to_thread[joined_thread_val] = joined_tid;
+    // Use the improved tracing function to find the origin of the pthread_t value.
+    const Value *pthread_t_origin = tracePthreadT(joined_thread_val);
+
+    if (pthread_t_origin) {
+      auto it = m_pthread_value_to_thread.find(pthread_t_origin);
+      if (it != m_pthread_value_to_thread.end()) {
+        joined_tid = it->second;
+        found_thread = true;
+        // Cache the result for the original value to speed up future lookups.
+        if (pthread_t_origin != joined_thread_val) {
+            m_pthread_value_to_thread[joined_thread_val] = joined_tid;
         }
       }
     }

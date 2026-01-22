@@ -2,9 +2,10 @@
  * @file DataDependencyGraph.cpp
  * @brief Implementation of the data dependency analysis for the PDG
  *
- * This file implements the DataDependencyGraph pass, which analyzes data dependencies
- * between program elements. Data dependencies occur when one instruction defines a value
- * that is used by another instruction (def-use chains).
+ * This file implements the DataDependencyGraph pass, which analyzes data
+ * dependencies between program elements. Data dependencies occur when one
+ * instruction defines a value that is used by another instruction (def-use
+ * chains).
  *
  * Key features:
  * - Analysis of def-use chains in LLVM IR
@@ -19,6 +20,7 @@
  */
 
 #include "IR/PDG/DataDependencyGraph.h"
+
 #include "IR/PDG/PDGAliasWrapper.h"
 #include "IR/PDG/PDGCommandLineOptions.h"
 
@@ -46,17 +48,20 @@ static bool isAliasRelevantInst(const llvm::Instruction &I) {
 }
 
 // Command-line knobs to choose alias analyses for data dependence construction.
-// -pdg-aa : over-approximate (sound) AA used to add alias edges (default: Andersen).
-// -pdg-aa-under : under-approximate AA used to confirm must-alias edges (default: UnderApprox, use "none" to disable).
+// -pdg-aa : over-approximate (sound) AA used to add alias edges (default:
+// Andersen). -pdg-aa-under : under-approximate AA used to confirm must-alias
+// edges (default: UnderApprox, use "none" to disable).
 static opt<std::string> PdgAliasOverOpt(
-    "pdg-aa", desc("Alias analysis used for PDG data deps "
-                   "(andersen, andersen-1cfa, andersen-2cfa, dyck, cfl-anders, "
-                   "cfl-steens, combined, underapprox)"),
+    "pdg-aa",
+    desc("Alias analysis used for PDG data deps "
+         "(andersen, andersen-1cfa, andersen-2cfa, dyck, cfl-anders, "
+         "cfl-steens, combined, underapprox)"),
     init("andersen"));
 
 static opt<std::string> PdgAliasUnderOpt(
-    "pdg-aa-under", desc("Under-approximate alias analysis for must-alias pruning "
-                         "(underapprox|none)"),
+    "pdg-aa-under",
+    desc("Under-approximate alias analysis for must-alias pruning "
+         "(underapprox|none)"),
     init("underapprox"));
 
 // Map a user-facing string to an AAType. Defaults to the provided fallback when
@@ -65,8 +70,9 @@ static pdg::AAType parseAAType(const std::string &aa, pdg::AAType fallback) {
   std::string lower = aa;
   std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
 
-  if (lower == "andersen" || lower == "andersen-nocontext" || lower == "andersen-noctx" ||
-      lower == "nocx" || lower == "noctx" || lower == "andersen0" || lower == "0cfa")
+  if (lower == "andersen" || lower == "andersen-nocontext" ||
+      lower == "andersen-noctx" || lower == "nocx" || lower == "noctx" ||
+      lower == "andersen0" || lower == "0cfa")
     return pdg::AAType::Andersen;
   if (lower == "andersen-1cfa" || lower == "andersen1" || lower == "1cfa")
     return pdg::AAType::Andersen1CFA;
@@ -84,20 +90,19 @@ static pdg::AAType parseAAType(const std::string &aa, pdg::AAType fallback) {
     return pdg::AAType::UnderApprox;
 
   if (!lower.empty())
-    llvm::errs() << "pdg: unknown alias analysis '" << aa << "', using default\n";
+    llvm::errs() << "pdg: unknown alias analysis '" << aa
+                 << "', using default\n";
   return fallback;
 }
 
 // Helper that builds an alias wrapper or returns nullptr when disabled/failed.
-static std::unique_ptr<pdg::PDGAliasWrapper> buildAliasWrapper(llvm::Module &M,
-                                                               const std::string &userChoice,
-                                                               pdg::AAType fallback,
-                                                               const char *label) {
+static std::unique_ptr<pdg::PDGAliasWrapper>
+buildAliasWrapper(llvm::Module &M, const std::string &userChoice,
+                  pdg::AAType fallback, const char *label) {
   std::string lower = userChoice;
   std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
 
-  if (lower == "none" || lower == "off" || lower == "disable")
-  {
+  if (lower == "none" || lower == "off" || lower == "disable") {
     llvm::errs() << "pdg: " << label << " alias analysis disabled by flag\n";
     return nullptr;
   }
@@ -105,8 +110,7 @@ static std::unique_ptr<pdg::PDGAliasWrapper> buildAliasWrapper(llvm::Module &M,
   auto aaType = parseAAType(userChoice, fallback);
   auto wrapper = pdg::PDGAliasFactory::create(M, aaType);
 
-  if (!wrapper || !wrapper->isInitialized())
-  {
+  if (!wrapper || !wrapper->isInitialized()) {
     llvm::errs() << "pdg: failed to initialize " << label << " alias analysis: "
                  << pdg::PDGAliasFactory::getTypeName(aaType) << "\n";
     return nullptr;
@@ -124,28 +128,27 @@ char pdg::DataDependencyGraph::ID = 0;
 
 using namespace llvm;
 
-bool pdg::DataDependencyGraph::runOnModule(Module &M)
-{
+bool pdg::DataDependencyGraph::runOnModule(Module &M) {
   ProgramGraph &g = ProgramGraph::getInstance();
-  if (!g.isBuiltForModule(M))
-  {
+  if (!g.isBuiltForModule(M)) {
     g.reset();
     g.build(M);
     g.bindDITypeToNodes(M);
   }
-  
+
   // Initialize alias analysis wrappers based on command-line choices.
-  _alias_wrapper_over = buildAliasWrapper(M, PdgAliasOverOpt.getValue(), AAType::Andersen, "over-approximate");
-  _alias_wrapper_under = buildAliasWrapper(M, PdgAliasUnderOpt.getValue(), AAType::UnderApprox, "under-approximate");
-  
-  for (auto &F : M)
-  {
+  _alias_wrapper_over = buildAliasWrapper(M, PdgAliasOverOpt.getValue(),
+                                          AAType::Andersen, "over-approximate");
+  _alias_wrapper_under = buildAliasWrapper(
+      M, PdgAliasUnderOpt.getValue(), AAType::UnderApprox, "under-approximate");
+
+  for (auto &F : M) {
     if (F.isDeclaration() || F.empty())
       continue;
     _mem_dep_res = &getAnalysis<MemoryDependenceWrapperPass>(F).getMemDep();
     // setup alias query interface for each function
-    for (auto inst_iter = inst_begin(F); inst_iter != inst_end(F); inst_iter++)
-    {
+    for (auto inst_iter = inst_begin(F); inst_iter != inst_end(F);
+         inst_iter++) {
       addDefUseEdges(*inst_iter);
       addRAWEdges(*inst_iter);
       addAliasEdges(*inst_iter);
@@ -154,18 +157,17 @@ bool pdg::DataDependencyGraph::runOnModule(Module &M)
   return false;
 }
 
-void pdg::DataDependencyGraph::addAliasEdges(Instruction &inst)
-{
+void pdg::DataDependencyGraph::addAliasEdges(Instruction &inst) {
   ProgramGraph &g = ProgramGraph::getInstance();
-  Function* func = inst.getFunction();
-  Node* src = g.getNode(inst);
+  Function *func = inst.getFunction();
+  Node *src = g.getNode(inst);
   if (src == nullptr)
     return;
   if (!isAliasRelevantInst(inst))
     return;
 
-  for (auto inst_iter = inst_begin(func); inst_iter != inst_end(func); inst_iter++)
-  {
+  for (auto inst_iter = inst_begin(func); inst_iter != inst_end(func);
+       inst_iter++) {
     if (&inst == &*inst_iter)
       continue;
     if (!isAliasRelevantInst(*inst_iter))
@@ -173,10 +175,11 @@ void pdg::DataDependencyGraph::addAliasEdges(Instruction &inst)
 
     auto under_result = queryAliasUnderApproximate(inst, *inst_iter);
     auto over_result = queryAliasOverApproximate(inst, *inst_iter);
-    if (under_result == llvm::AliasResult::NoAlias && over_result == llvm::AliasResult::NoAlias)
+    if (under_result == llvm::AliasResult::NoAlias &&
+        over_result == llvm::AliasResult::NoAlias)
       continue;
 
-    Node* dst = g.getNode(*inst_iter);
+    Node *dst = g.getNode(*inst_iter);
     if (dst == nullptr)
       continue;
 
@@ -186,11 +189,9 @@ void pdg::DataDependencyGraph::addAliasEdges(Instruction &inst)
   }
 }
 
-void pdg::DataDependencyGraph::addDefUseEdges(Instruction &inst)
-{
+void pdg::DataDependencyGraph::addDefUseEdges(Instruction &inst) {
   ProgramGraph &g = ProgramGraph::getInstance();
-  for (auto* user : inst.users())
-  {
+  for (auto *user : inst.users()) {
     Node *src = g.getNode(inst);
     Node *dst = g.getNode(*user);
     if (src == nullptr || dst == nullptr)
@@ -204,17 +205,15 @@ void pdg::DataDependencyGraph::addDefUseEdges(Instruction &inst)
   }
 }
 
-void pdg::DataDependencyGraph::addRAWEdges(Instruction &inst)
-{
+void pdg::DataDependencyGraph::addRAWEdges(Instruction &inst) {
   if (!isa<LoadInst>(&inst))
     return;
 
   ProgramGraph &g = ProgramGraph::getInstance();
   auto dep_res = _mem_dep_res->getDependency(&inst);
-  auto* dep_inst = dep_res.getInst();
+  auto *dep_inst = dep_res.getInst();
 
-  if (dep_inst && dep_inst != &inst && dep_inst->mayWriteToMemory())
-  {
+  if (dep_inst && dep_inst != &inst && dep_inst->mayWriteToMemory()) {
     Node *src = g.getNode(inst);
     Node *dst = g.getNode(*dep_inst);
     if (src != nullptr && dst != nullptr)
@@ -224,8 +223,7 @@ void pdg::DataDependencyGraph::addRAWEdges(Instruction &inst)
   // Non-local dependencies: walk defs/clobbers in other blocks.
   llvm::SmallVector<llvm::NonLocalDepResult, 8> non_local_deps;
   _mem_dep_res->getNonLocalPointerDependency(&inst, non_local_deps);
-  for (auto &dep : non_local_deps)
-  {
+  for (auto &dep : non_local_deps) {
     auto res = dep.getResult();
     if (!res.isDef() && !res.isClobber())
       continue;
@@ -239,40 +237,39 @@ void pdg::DataDependencyGraph::addRAWEdges(Instruction &inst)
   }
 }
 
-llvm::AliasResult pdg::DataDependencyGraph::queryAliasUnderApproximate(llvm::Value &v1, llvm::Value &v2)
-{
+llvm::AliasResult
+pdg::DataDependencyGraph::queryAliasUnderApproximate(llvm::Value &v1,
+                                                     llvm::Value &v2) {
   // Use the under-approximation wrapper (syntactic pattern matching)
   // This only returns MustAlias for clear syntactic patterns, otherwise NoAlias
-  if (_alias_wrapper_under && _alias_wrapper_under->isInitialized())
-  {
+  if (_alias_wrapper_under && _alias_wrapper_under->isInitialized()) {
     return _alias_wrapper_under->query(&v1, &v2);
   }
-  
+
   // Fall back to simple check if wrapper is not available
   if (!v1.getType()->isPointerTy() || !v2.getType()->isPointerTy())
     return llvm::AliasResult::NoAlias;
-  
+
   return llvm::AliasResult::NoAlias;
 }
 
-llvm::AliasResult pdg::DataDependencyGraph::queryAliasOverApproximate(llvm::Value &v1, llvm::Value &v2)
-{
+llvm::AliasResult
+pdg::DataDependencyGraph::queryAliasOverApproximate(llvm::Value &v1,
+                                                    llvm::Value &v2) {
   // Use the over-approximation wrapper (Andersen's analysis)
   // This integrates precise pointer analysis from lib/Alias/SparrowAA
-  if (_alias_wrapper_over && _alias_wrapper_over->isInitialized())
-  {
+  if (_alias_wrapper_over && _alias_wrapper_over->isInitialized()) {
     return _alias_wrapper_over->query(&v1, &v2);
   }
-  
+
   // Wrapper disabled or failed to initialize: stay conservative.
   return llvm::AliasResult::MayAlias;
 }
 
-  void pdg::DataDependencyGraph::getAnalysisUsage(AnalysisUsage & AU) const
-  {
-    AU.addRequired<MemoryDependenceWrapperPass>();
-    AU.setPreservesAll();
-  }
+void pdg::DataDependencyGraph::getAnalysisUsage(AnalysisUsage &AU) const {
+  AU.addRequired<MemoryDependenceWrapperPass>();
+  AU.setPreservesAll();
+}
 
-  static RegisterPass<pdg::DataDependencyGraph>
-      DDG("ddg", "Data Dependency Graph Construction", false, true);
+static RegisterPass<pdg::DataDependencyGraph>
+    DDG("ddg", "Data Dependency Graph Construction", false, true);

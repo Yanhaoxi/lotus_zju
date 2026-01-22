@@ -1,44 +1,49 @@
 /**
  * @file Tree.cpp
- * @brief Implementation of tree structures for field-sensitive analysis in the PDG
+ * @brief Implementation of tree structures for field-sensitive analysis in the
+ * PDG
  *
- * This file implements tree data structures that enable field-sensitive analysis
- * of complex data types like structs and arrays in the PDG system. Trees represent
- * the hierarchical structure of data, with each node corresponding to a field or element.
+ * This file implements tree data structures that enable field-sensitive
+ * analysis of complex data types like structs and arrays in the PDG system.
+ * Trees represent the hierarchical structure of data, with each node
+ * corresponding to a field or element.
  *
  * Key features:
  * - Field-sensitive representation of struct and array types
  * - Support for parameter passing in function calls
- * - Tracking of "in" trees (for parameters before function calls) and 
+ * - Tracking of "in" trees (for parameters before function calls) and
  *   "out" trees (for potentially modified values after function calls)
  * - Management of tree node access types (read/write)
  * - Tree traversal and manipulation operations
  *
- * Trees are particularly important for inter-procedural analysis, where they model
- * how data flows through function parameters and return values.
+ * Trees are particularly important for inter-procedural analysis, where they
+ * model how data flows through function parameters and return values.
  */
 
 #include "IR/PDG/Tree.h"
 
 using namespace llvm;
 
-pdg::TreeNode::TreeNode(const TreeNode &tree_node) : Node(tree_node.getNodeType())
-{
+pdg::TreeNode::TreeNode(const TreeNode &tree_node)
+    : Node(tree_node.getNodeType()) {
   _func = tree_node.getFunc();
   _node_di_type = tree_node.getDIType();
   _node_type = tree_node.getNodeType();
 }
 
-pdg::TreeNode::TreeNode(DIType *di_type, int depth, TreeNode *parent_node, Tree *tree, GraphNodeType node_type) : Node(node_type)
-{
+pdg::TreeNode::TreeNode(DIType *di_type, int depth, TreeNode *parent_node,
+                        Tree *tree, GraphNodeType node_type)
+    : Node(node_type) {
   _node_di_type = di_type;
   _depth = depth;
   _parent_node = parent_node;
   _tree = tree;
 }
 
-pdg::TreeNode::TreeNode(Function &f, DIType *di_type, int depth, TreeNode *parent_node, Tree *tree, GraphNodeType node_type) : Node(node_type)
-{
+pdg::TreeNode::TreeNode(Function &f, DIType *di_type, int depth,
+                        TreeNode *parent_node, Tree *tree,
+                        GraphNodeType node_type)
+    : Node(node_type) {
   _node_di_type = di_type;
   _depth = depth;
   _parent_node = parent_node;
@@ -48,44 +53,41 @@ pdg::TreeNode::TreeNode(Function &f, DIType *di_type, int depth, TreeNode *paren
 
 /**
  * @brief Expands the current tree node based on its debug information type.
- * 
- * If the node represents an aggregate type (struct/class) or a pointer/reference,
- * this method creates child nodes for fields or pointed-to objects.
- * 
+ *
+ * If the node represents an aggregate type (struct/class) or a
+ * pointer/reference, this method creates child nodes for fields or pointed-to
+ * objects.
+ *
  * @return The number of child nodes created.
  */
-int pdg::TreeNode::expandNode()
-{
+int pdg::TreeNode::expandNode() {
   // expand debugging information here
   if (_node_di_type == nullptr)
     return 0;
-  DIType* dt = dbgutils::stripAttributes(*_node_di_type);
+  DIType *dt = dbgutils::stripAttributes(*_node_di_type);
   dt = dbgutils::stripMemberTag(*dt);
   // iterate through all the child nodes, build a tree node for each of them.
-  if (!dbgutils::isReferenceType(*dt) 
-      && !dbgutils::isPointerType(*dt) 
-      && !dbgutils::isStructType(*dt) 
-      && !dbgutils::isClassType(*dt))
-      return 0;
+  if (!dbgutils::isReferenceType(*dt) && !dbgutils::isPointerType(*dt) &&
+      !dbgutils::isStructType(*dt) && !dbgutils::isClassType(*dt))
+    return 0;
 
   // expand the referenced object type
-  if (dbgutils::isPointerType(*dt) || dbgutils::isReferenceType(*dt))
-  {
-    DIType* pointed_obj_dt = dbgutils::getLowestDIType(*dt);
-    TreeNode *new_child_node = new TreeNode(*_func, pointed_obj_dt, _depth + 1, this, _tree, getNodeType());
+  if (dbgutils::isPointerType(*dt) || dbgutils::isReferenceType(*dt)) {
+    DIType *pointed_obj_dt = dbgutils::getLowestDIType(*dt);
+    TreeNode *new_child_node = new TreeNode(*_func, pointed_obj_dt, _depth + 1,
+                                            this, _tree, getNodeType());
     new_child_node->computeDerivedAddrVarsFromParent();
     _children.push_back(new_child_node);
     this->addNeighbor(*new_child_node, EdgeType::PARAMETER_FIELD);
     return 1;
   }
   // TODO: should change to aggregate type later
-  if (dbgutils::isStructType(*dt) || dbgutils::isClassType(*dt))
-  {
+  if (dbgutils::isStructType(*dt) || dbgutils::isClassType(*dt)) {
     auto di_node_arr = dyn_cast<DICompositeType>(dt)->getElements();
-    for (unsigned i = 0; i < di_node_arr.size(); i++)
-    {
+    for (unsigned i = 0; i < di_node_arr.size(); i++) {
       DIType *field_di_type = dyn_cast<DIType>(di_node_arr[i]);
-      TreeNode *new_child_node = new TreeNode(*_func, field_di_type, _depth + 1, this, _tree, getNodeType());
+      TreeNode *new_child_node = new TreeNode(*_func, field_di_type, _depth + 1,
+                                              this, _tree, getNodeType());
       new_child_node->computeDerivedAddrVarsFromParent();
       _children.push_back(new_child_node);
       this->addNeighbor(*new_child_node, EdgeType::PARAMETER_FIELD);
@@ -96,40 +98,38 @@ int pdg::TreeNode::expandNode()
   return 0;
 }
 
-void pdg::TreeNode::computeDerivedAddrVarsFromParent()
-{
+void pdg::TreeNode::computeDerivedAddrVarsFromParent() {
   if (!_parent_node)
     return;
   if (!_node_di_type)
     return;
   std::unordered_set<llvm::Value *> base_node_addr_vars;
   // handle struct pointer
-  auto* grand_parent_node = _parent_node->getParentNode();
-  // TODO: now hanlde struct specifically, but should also verify on other aggregate pointer types
-  if (grand_parent_node != nullptr && dbgutils::isStructType(*_parent_node->getDIType()) && dbgutils::isStructPointerType(*grand_parent_node->getDIType()))
-  {
+  auto *grand_parent_node = _parent_node->getParentNode();
+  // TODO: now hanlde struct specifically, but should also verify on other
+  // aggregate pointer types
+  if (grand_parent_node != nullptr &&
+      dbgutils::isStructType(*_parent_node->getDIType()) &&
+      dbgutils::isStructPointerType(*grand_parent_node->getDIType())) {
     base_node_addr_vars = grand_parent_node->getAddrVars();
-  }
-  else
+  } else
     base_node_addr_vars = _parent_node->getAddrVars();
 
   bool is_struct_field = false;
-  if (dbgutils::isStructType(*_parent_node->getDIType()) || dbgutils::isClassType(*_parent_node->getDIType()))
+  if (dbgutils::isStructType(*_parent_node->getDIType()) ||
+      dbgutils::isClassType(*_parent_node->getDIType()))
     is_struct_field = true;
 
-  for (auto* base_node_addr_var : base_node_addr_vars)
-  {
-    for (auto* user : base_node_addr_var->users())
-    {
-      // handle load instruction, field should not get the load inst from the sturct pointer.
-      if (LoadInst *li = dyn_cast<LoadInst>(user))
-      {
+  for (auto *base_node_addr_var : base_node_addr_vars) {
+    for (auto *user : base_node_addr_var->users()) {
+      // handle load instruction, field should not get the load inst from the
+      // sturct pointer.
+      if (LoadInst *li = dyn_cast<LoadInst>(user)) {
         if (!is_struct_field)
           _addr_vars.insert(li);
       }
       // handle gep instruction
-      if (GetElementPtrInst *gep = dyn_cast<GetElementPtrInst>(user))
-      {
+      if (GetElementPtrInst *gep = dyn_cast<GetElementPtrInst>(user)) {
         if (pdgutils::isGEPOffsetMatchDIOffset(*_node_di_type, *gep))
           _addr_vars.insert(gep);
       }
@@ -138,16 +138,14 @@ void pdg::TreeNode::computeDerivedAddrVarsFromParent()
 }
 
 //  ====== Tree =======
-pdg::Tree::Tree(const Tree &src_tree)
-{
+pdg::Tree::Tree(const Tree &src_tree) {
   TreeNode *src_tree_root_node = src_tree.getRootNode();
   TreeNode *new_root_node = new TreeNode(*src_tree_root_node);
   _root_node = new_root_node;
   _size = 0;
 }
 
-bool pdg::Tree::isShapeCompatible(const Tree &other) const
-{
+bool pdg::Tree::isShapeCompatible(const Tree &other) const {
   if (_size != other._size)
     return false;
   if (_root_node == nullptr || other._root_node == nullptr)
@@ -163,28 +161,27 @@ bool pdg::Tree::isShapeCompatible(const Tree &other) const
   return dbgutils::hasSameDIName(*lhs_stripped, *rhs_stripped);
 }
 
-void pdg::Tree::print()
-{
+void pdg::Tree::print() {
   std::queue<TreeNode *> node_queue;
   node_queue.push(_root_node);
-  while (!node_queue.empty())
-  {
+  while (!node_queue.empty()) {
     int queue_size = node_queue.size();
-    while (queue_size > 0)
-    {
+    while (queue_size > 0) {
       TreeNode *current_node = node_queue.front();
       node_queue.pop();
       queue_size--;
       if (current_node == _root_node)
-        errs() << dbgutils::getSourceLevelVariableName(*current_node->getDILocalVar()) << ", ";
-      else
-      {
+        errs() << dbgutils::getSourceLevelVariableName(
+                      *current_node->getDILocalVar())
+               << ", ";
+      else {
         if (current_node->getDIType() != nullptr)
-          errs() << dbgutils::getSourceLevelVariableName(*current_node->getDIType()) << "(" << current_node->getAddrVars().size() << ")"
+          errs() << dbgutils::getSourceLevelVariableName(
+                        *current_node->getDIType())
+                 << "(" << current_node->getAddrVars().size() << ")"
                  << ", ";
       }
-      for (auto* child : current_node->getChildNodes())
-      {
+      for (auto *child : current_node->getChildNodes()) {
         node_queue.push(child);
       }
     }
@@ -194,14 +191,13 @@ void pdg::Tree::print()
 
 /**
  * @brief Builds the tree up to a maximum depth.
- * 
+ *
  * Performs a BFS traversal to expand nodes and construct the tree structure,
  * creating a hierarchical representation of the data type.
- * 
+ *
  * @param max_tree_depth The maximum depth to expand the tree.
  */
-void pdg::Tree::build(int max_tree_depth)
-{
+void pdg::Tree::build(int max_tree_depth) {
   int current_tree_depth = 0;
   std::queue<TreeNode *> node_queue;
   node_queue.push(_root_node);
@@ -211,16 +207,13 @@ void pdg::Tree::build(int max_tree_depth)
     if (current_tree_depth > max_tree_depth)
       break;
     int queue_size = node_queue.size();
-    while (queue_size > 0)
-    {
+    while (queue_size > 0) {
       queue_size--;
       TreeNode *current_node = node_queue.front();
       node_queue.pop();
       _size++;
-      if (current_node->expandNode() > 0)
-      {
-        for (auto* child_node : current_node->getChildNodes())
-        {
+      if (current_node->expandNode() > 0) {
+        for (auto *child_node : current_node->getChildNodes()) {
           node_queue.push(child_node);
         }
       }
