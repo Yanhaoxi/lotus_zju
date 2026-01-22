@@ -7,28 +7,29 @@
 
 namespace wpds {
 
-// Initialize the static universe set
-std::set<Value*> DataFlowFacts::universe;
-
 DataFlowFacts::DataFlowFacts() = default;
 
 DataFlowFacts::DataFlowFacts(const std::set<Value*>& facts)
-    : facts(facts) {
-    universe.insert(facts.begin(), facts.end());
-}
+    : facts(facts) {}
 
 DataFlowFacts::DataFlowFacts(const DataFlowFacts& other)
-    : facts(other.facts) {
-}
+    : is_universe(other.is_universe), facts(other.facts) {}
 
 DataFlowFacts& DataFlowFacts::operator=(const DataFlowFacts& other) {
     if (this != &other) {
+        is_universe = other.is_universe;
         facts = other.facts;
     }
     return *this;
 }
 
 bool DataFlowFacts::operator==(const DataFlowFacts& other) const {
+    if (is_universe != other.is_universe) {
+        return false;
+    }
+    if (is_universe) {
+        return true;
+    }
     return facts == other.facts;
 }
 
@@ -37,16 +38,31 @@ DataFlowFacts DataFlowFacts::EmptySet() {
 }
 
 DataFlowFacts DataFlowFacts::UniverseSet() {
-    return DataFlowFacts(universe);
+    DataFlowFacts result;
+    result.is_universe = true;
+    return result;
+}
+
+void DataFlowFacts::ClearUniverse() {
+    // No-op: Universe is represented symbolically.
 }
 
 DataFlowFacts DataFlowFacts::Union(const DataFlowFacts& x, const DataFlowFacts& y) {
+    if (x.is_universe || y.is_universe) {
+        return UniverseSet();
+    }
     DataFlowFacts result = x;
     result.facts.insert(y.facts.begin(), y.facts.end());
     return result;
 }
 
 DataFlowFacts DataFlowFacts::Intersect(const DataFlowFacts& x, const DataFlowFacts& y) {
+    if (x.is_universe) {
+        return y;
+    }
+    if (y.is_universe) {
+        return x;
+    }
     DataFlowFacts result;
     std::set_intersection(
         x.facts.begin(), x.facts.end(),
@@ -57,6 +73,12 @@ DataFlowFacts DataFlowFacts::Intersect(const DataFlowFacts& x, const DataFlowFac
 }
 
 DataFlowFacts DataFlowFacts::Diff(const DataFlowFacts& x, const DataFlowFacts& y) {
+    if (y.is_universe) {
+        return EmptySet();
+    }
+    if (x.is_universe) {
+        return UniverseSet();
+    }
     DataFlowFacts result;
     std::set_difference(
         x.facts.begin(), x.facts.end(),
@@ -67,7 +89,7 @@ DataFlowFacts DataFlowFacts::Diff(const DataFlowFacts& x, const DataFlowFacts& y
 }
 
 bool DataFlowFacts::Eq(const DataFlowFacts& x, const DataFlowFacts& y) {
-    return x.facts == y.facts;
+    return x == y;
 }
 
 const std::set<Value*>& DataFlowFacts::getFacts() const {
@@ -75,28 +97,45 @@ const std::set<Value*>& DataFlowFacts::getFacts() const {
 }
 
 void DataFlowFacts::addFact(Value* val) {
+    if (is_universe) {
+        return;
+    }
     facts.insert(val);
-    // Also add to universe set
-    universe.insert(val);
 }
 
 void DataFlowFacts::removeFact(Value* val) {
+    if (is_universe) {
+        return;
+    }
     facts.erase(val);
 }
 
 bool DataFlowFacts::containsFact(Value* val) const {
+    if (is_universe) {
+        return true;
+    }
     return facts.find(val) != facts.end();
 }
 
 std::size_t DataFlowFacts::size() const {
+    if (is_universe) {
+        return 0;
+    }
     return facts.size();
 }
 
 bool DataFlowFacts::isEmpty() const {
+    if (is_universe) {
+        return false;
+    }
     return facts.empty();
 }
 
 std::ostream& DataFlowFacts::print(std::ostream& os) const {
+    if (is_universe) {
+        os << "DataFlowFacts{<universe>}";
+        return os;
+    }
     os << "DataFlowFacts{";
     bool first = true;
     for (auto* val : facts) {

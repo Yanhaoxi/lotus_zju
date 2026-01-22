@@ -56,6 +56,35 @@ llvm::Optional<long long> IDEConstantPropagation::asConst(const llvm::Value* v) 
     if (auto* ci = llvm::dyn_cast<llvm::ConstantInt>(v)) {
         return static_cast<long long>(ci->getSExtValue());
     }
+    if (auto* load = llvm::dyn_cast<llvm::LoadInst>(v)) {
+        const llvm::Value* ptrOp = load->getPointerOperand()->stripPointerCasts();
+        const auto* allocaInst = llvm::dyn_cast<llvm::AllocaInst>(ptrOp);
+        if (!allocaInst) {
+            return llvm::None;
+        }
+
+        const llvm::BasicBlock* parent = load->getParent();
+        if (!parent) {
+            return llvm::None;
+        }
+
+        auto it = load->getIterator();
+        while (it != parent->begin()) {
+            --it;
+            const llvm::Instruction& inst = *it;
+            auto* store = llvm::dyn_cast<llvm::StoreInst>(&inst);
+            if (!store) {
+                continue;
+            }
+
+            const llvm::Value* storePtr = store->getPointerOperand()->stripPointerCasts();
+            if (storePtr != allocaInst) {
+                continue;
+            }
+
+            return asConst(store->getValueOperand());
+        }
+    }
     return llvm::None;
 }
 
@@ -131,11 +160,12 @@ IDEConstantPropagation::FactSet IDEConstantPropagation::normal_flow(const llvm::
     }
 
     if (const llvm::Value* def = getDefinedValue(stmt)) {
-        if (!fact || fact == def) {
-            out.insert(def);
-        } else if (auto* bin = llvm::dyn_cast<llvm::BinaryOperator>(stmt)) {
+        if (auto* bin = llvm::dyn_cast<llvm::BinaryOperator>(stmt)) {
             const llvm::Value* op0 = bin->getOperand(0);
             const llvm::Value* op1 = bin->getOperand(1);
+            if (!fact && asConst(op0).hasValue() && asConst(op1).hasValue()) {
+                out.insert(def);
+            }
             if (fact == op0 || fact == op1) {
                 out.insert(def);
             }
@@ -198,7 +228,8 @@ IDEConstantPropagation::FactSet IDEConstantPropagation::call_to_return_flow(cons
 IDEConstantPropagation::EdgeFunction IDEConstantPropagation::normal_edge_function(const llvm::Instruction* stmt, const Fact& src_fact, const Fact& tgt_fact) {
     if (auto* allocaInst = llvm::dyn_cast<llvm::AllocaInst>(stmt)) {
         if (tgt_fact == allocaInst && !src_fact) {
-            return [](const Value& /*v*/) { return LCPValue::top(); };
+            // A freshly-allocated stack slot is "undefined" until written.
+            return [](const Value& /*v*/) { return LCPValue::bottom(); };
         }
     }
 

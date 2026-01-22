@@ -18,7 +18,7 @@ GenKillTransformer::GenKillTransformer(const DataFlowFacts& kill, const DataFlow
 }
 
 GenKillTransformer::GenKillTransformer(const DataFlowFacts& k, const DataFlowFacts& g, const std::map<Value*, DataFlowFacts>& f, int) 
-    : count(0), kill(k), gen(g), flow(f) {
+    : count(1), kill(k), gen(g), flow(f) {
 }
 
 GenKillTransformer* GenKillTransformer::makeGenKillTransformer(

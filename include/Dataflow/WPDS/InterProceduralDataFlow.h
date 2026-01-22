@@ -30,6 +30,7 @@ public:
     // Required set operations for WPDS
     static DataFlowFacts EmptySet();
     static DataFlowFacts UniverseSet();
+    static void ClearUniverse();
     static DataFlowFacts Union(const DataFlowFacts& x, const DataFlowFacts& y);
     static DataFlowFacts Intersect(const DataFlowFacts& x, const DataFlowFacts& y);
     static DataFlowFacts Diff(const DataFlowFacts& x, const DataFlowFacts& y);
@@ -47,8 +48,8 @@ public:
     std::ostream& print(std::ostream& os) const;
 
 private:
+    bool is_universe = false;
     std::set<Value*> facts;
-    static std::set<Value*> universe;  // Used for UniverseSet
 };
 
 // GenKillTransformer implements the semiring operations for gen/kill data flow problems

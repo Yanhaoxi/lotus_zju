@@ -146,7 +146,6 @@ protected:
   std::unique_ptr<llvm::Module> createModuleWithCall() {
     auto module = std::make_unique<llvm::Module>("call_module", *context);
     auto *i32 = llvm::Type::getInt32Ty(*context);
-    auto *voidTy = llvm::Type::getVoidTy(*context);
 
     auto *calleeTy = llvm::FunctionType::get(i32, {i32}, false);
     auto *callee = llvm::Function::Create(
@@ -159,8 +158,7 @@ protected:
     auto *entry = llvm::BasicBlock::Create(*context, "entry", main);
     llvm::IRBuilder<> builder(entry);
     auto *arg = llvm::ConstantInt::get(i32, 42);
-    llvm::ArrayRef<llvm::Value *> argsRef = {arg};
-    auto *callInst = builder.CreateCall(calleeTy, callee, argsRef);
+    auto *callInst = builder.CreateCall(callee, {arg});
     builder.CreateRet(callInst);
 
     auto *calleeEntry = llvm::BasicBlock::Create(*context, "entry", callee);

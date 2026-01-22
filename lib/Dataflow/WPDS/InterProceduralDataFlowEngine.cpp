@@ -430,12 +430,13 @@ void InterProceduralDataFlowEngine::extractResults(
             // Backward: OUT of inst is already computed from WPDS;
             // IN is transfer of local instruction on OUT.
             // Approximate IN as OUT of predecessors/successors relation.
-            std::set<Value*> outSet = result->OUT(inst);
+            // Ensure OUT set is initialized (creates empty set if not found in first loop)
+            std::set<Value*>& outSetRef = result->OUT(inst);
             // Apply local transformer if available (via modeling, the rule weight
             // to reach the successor includes local effect; thus IN can be
             // approximated by removing local GEN then adding local KILL inversely).
             // Keep simple: IN = OUT for summarized WPDS results.
-            result->IN(inst) = outSet;
+            result->IN(inst) = outSetRef;
         }
     }
 }
