@@ -11,6 +11,7 @@
  */
 
 #include "Alias/SparrowAA/Andersen.h"
+#include "Alias/AliasAnalysisWrapper/CLIUtils.h"
 #include "Alias/SparrowAA/AndersenAA.h"
 #include "Alias/SparrowAA/Log.h"
 #include "Alias/SparrowAA/ResultUtils.h"
@@ -22,17 +23,16 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Verifier.h>
-#include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/InitLLVM.h>
 #include <llvm/Support/Signals.h>
-#include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_ostream.h>
 
 #include <cstring>
 #include <memory>
 
 using namespace llvm;
+using namespace lotus::alias::tools;
 
 enum class LogLevel { TRACE, DEBUG, INFO, WARN, ERR, OFF };
 
@@ -107,8 +107,8 @@ int main(int argc, char **argv) {
 
     if (Verbose && !OnlyStatistics) errs() << "Loading: " << InputFilename << "\n";
     
-    std::unique_ptr<Module> M = parseIRFile(InputFilename, Err, Context);
-    if (!M) { Err.print(argv[0], errs()); return 1; }
+    auto M = loadIRModule(InputFilename, Context, Err, argv[0]);
+    if (!M) { return 1; }
     if (VerifyInput && verifyModule(*M, &errs())) {
         errs() << "Module verification failed\n";
         return 1;

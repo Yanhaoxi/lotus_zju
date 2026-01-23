@@ -1,13 +1,9 @@
 /******************************************************************************
- * Copyright (c) 2025 Fabian Schiebel.
- * All rights reserved. This program and the accompanying materials are made
- * available under the terms of LICENSE.txt.
- *
- * Contributors:
- *     Fabian Schiebel and others
+
  *****************************************************************************/
 
 #include "Alias/DyckAA/DyckAliasAnalysis.h"
+#include "Alias/AliasAnalysisWrapper/CLIUtils.h"
 #include "Alias/AserPTA/PointerAnalysis/Context/KCallSite.h"
 #include "Alias/AserPTA/PointerAnalysis/Context/NoCtx.h"
 #include "Alias/AserPTA/PointerAnalysis/Models/LanguageModel/DefaultLangModel/DefaultLangModel.h"
@@ -37,13 +33,11 @@
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Module.h"
-#include "llvm/IRReader/IRReader.h"
 #include "llvm/InitializePasses.h"
 #include "llvm/PassRegistry.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/InitLLVM.h"
-#include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/WithColor.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -319,9 +313,8 @@ int main(int Argc, char *Argv[]) {
   DiagTimer LoadingTm("Loading IR");
   llvm::LLVMContext Context;
   llvm::SMDiagnostic Err;
-  auto M = llvm::parseIRFile(IRFile, Err, Context);
+  auto M = lotus::alias::tools::loadIRModule(IRFile, Context, Err, Argv[0]);
   if (!M) {
-    Err.print(Argv[0], llvm::errs());
     return 1;
   }
   llvm::errs() << "Loaded IR (" << LoadingTm.elapsed() << "s)\n";

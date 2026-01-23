@@ -36,10 +36,12 @@ static bool parallel_tab_alg = false;
 static int parallel_threads = 0; // 0 means auto-detect
 static string indexing;
 
-static bool timeout = false;
+static volatile sig_atomic_t timeout = 0;
 
-static void alarm_handler(int param) {
-    timeout = true;
+extern "C" {
+void alarm_handler(int param) {
+    timeout = 1;
+}
 }
 
 static void usage() {
@@ -119,7 +121,7 @@ static void parse_arg(int argc, char *argv[]) {
 template<typename Src, typename Target>
 static double test_query(AbstractQuery *aq, vector<std::pair<int, int>> &queries, bool r, Src src, Target trg) {
     signal(SIGALRM, alarm_handler);
-    timeout = false;
+    timeout = 0;
     alarm(3600 * 6);
 
     int succ_num = 0;

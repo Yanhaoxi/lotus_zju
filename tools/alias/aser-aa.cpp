@@ -16,6 +16,7 @@
 #include <llvm/Transforms/IPO/AlwaysInliner.h>
 
 #include "Alias/AserPTA/PointerAnalysis/Context/KCallSite.h"
+#include "Alias/AliasAnalysisWrapper/CLIUtils.h"
 #include "Alias/AserPTA/PTADriver.h"
 #include "Alias/AserPTA/PointerAnalysis/Context/KOrigin.h"
 #include "Alias/AserPTA/PointerAnalysis/Context/NoCtx.h"
@@ -31,6 +32,7 @@ using namespace aser;
 using namespace llvm;
 using namespace std;
 using namespace lotus::alias;
+using namespace lotus::alias::tools;
 
 // Command-line options
 static cl::opt<std::string> InputFilename(cl::Positional, 
@@ -56,13 +58,7 @@ static cl::opt<std::string> OutputFile("o",
     cl::desc("Output file for results"),
     cl::value_desc("filename"));
 
-static cl::opt<std::string> ConfigFile("config",
-    cl::desc("Path to config spec file (e.g., ptr.spec). Can be specified multiple times or use comma-separated paths"),
-    cl::value_desc("filepath"));
-
-static cl::list<std::string> ConfigFiles("config-file",
-    cl::desc("Path to config spec file (alternative to -config)"),
-    cl::value_desc("filepath"));
+// Config file options are defined in CLIUtils.cpp
 
 // Type aliases for analysis configurations
 using Origin = KOrigin<1>;
@@ -99,10 +95,9 @@ int main(int argc, char** argv) {
     // Load IR module
     SMDiagnostic Err;
     LLVMContext Context;
-    auto module = parseIRFile(InputFilename, Err, Context);
+    auto module = loadIRModule(InputFilename, Context, Err, argv[0]);
 
     if (!module) {
-        Err.print(argv[0], errs());
         return 1;
     }
 
@@ -112,53 +107,11 @@ int main(int argc, char** argv) {
     errs() << "Field-sensitive: " << (FieldSensitive ? "yes" : "no") << "\n";
     
     // Initialize AliasSpecManager with config files
-    std::unique_ptr<AliasSpecManager> specManager;
-    std::vector<std::string> specFilePaths;
-    
-    // Collect config files from command-line options
-    if (!ConfigFile.empty()) {
-        // Parse comma-separated paths if provided
-        std::string config = ConfigFile;
-        size_t pos = 0;
-        while ((pos = config.find(',')) != std::string::npos) {
-            std::string path = config.substr(0, pos);
-            if (!path.empty()) {
-                specFilePaths.push_back(path);
-            }
-            config.erase(0, pos + 1);
-        }
-        if (!config.empty()) {
-            specFilePaths.push_back(config);
-        }
-    }
-    
-    // Add files from -config-file option
-    for (const auto &path : ConfigFiles) {
-        specFilePaths.push_back(path);
-    }
-    
-    // Create spec manager with specified files or use defaults
-    if (!specFilePaths.empty()) {
-        specManager = std::make_unique<AliasSpecManager>(specFilePaths);
-    } else {
-        specManager = std::make_unique<AliasSpecManager>();
-    }
-    
-    // Initialize with module for better name matching
-    specManager->initialize(*module);
+    auto specFilePaths = collectConfigFilePaths();
+    auto specManager = createAliasSpecManager(specFilePaths, module.get());
     
     // Display loaded config files
-    const auto &loadedFiles = specManager->getLoadedSpecFiles();
-    if (!loadedFiles.empty()) {
-        errs() << "Config files: ";
-        for (size_t i = 0; i < loadedFiles.size(); ++i) {
-            if (i > 0) errs() << ", ";
-            errs() << loadedFiles[i];
-        }
-        errs() << "\n";
-    } else {
-        errs() << "Config files: (none loaded)\n";
-    }
+    printLoadedConfigFiles(*specManager);
 
     // Setup origin rules for origin-sensitive analysis
     Origin::setOriginRules([](const Origin *, const llvm::Instruction *I) -> bool {

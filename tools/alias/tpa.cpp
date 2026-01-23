@@ -11,6 +11,7 @@ Cmd options:
 */
 
 #include "Alias/TPA/Context/KLimitContext.h"
+#include "Alias/AliasAnalysisWrapper/CLIUtils.h"
 #include "Alias/TPA/PointerAnalysis/Analysis/SemiSparsePointerAnalysis.h"
 #include "Alias/TPA/PointerAnalysis/FrontEnd/SemiSparseProgramBuilder.h"
 #include "Alias/TPA/Transforms/RunPrepass.h"
@@ -21,12 +22,10 @@ Cmd options:
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
-#include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/InitLLVM.h>
 #include <llvm/Support/Path.h>
-#include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_ostream.h>
 
 #include <cstdlib>
@@ -35,6 +34,7 @@ Cmd options:
 #include <unordered_set>
 
 using namespace llvm;
+using namespace lotus::alias::tools;
 
 // Command line options
 static cl::opt<std::string> InputFile(cl::Positional,
@@ -134,9 +134,8 @@ int main(int argc, char **argv) {
   LOG_INFO("Loading LLVM IR from: {}", InputFile);
   LLVMContext Context;
   SMDiagnostic Err;
-  std::unique_ptr<Module> M = parseIRFile(InputFile, Err, Context);
+  auto M = loadIRModule(InputFile, Context, Err, argv[0]);
   if (!M) {
-    Err.print(argv[0], errs());
     LOG_ERROR("Failed to parse input file: {}", InputFile);
     return 1;
   }

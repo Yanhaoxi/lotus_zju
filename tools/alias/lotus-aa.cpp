@@ -7,25 +7,25 @@
  */
 
 #include "Alias/LotusAA/Engine/InterProceduralPass.h"
+#include "Alias/AliasAnalysisWrapper/CLIUtils.h"
 
 #include <llvm/IR/Dominators.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Verifier.h>
-#include <llvm/IRReader/IRReader.h>
 #include <llvm/InitializePasses.h>
 #include <llvm/PassRegistry.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/InitLLVM.h>
 #include <llvm/Support/Signals.h>
-#include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/ToolOutputFile.h>
 #include <llvm/Support/raw_ostream.h>
 #include <memory>
 
 using namespace llvm;
+using namespace lotus::alias::tools;
 
 static cl::opt<std::string> InputFilename(cl::Positional, 
                                           cl::desc("<input bitcode file>"),
@@ -71,9 +71,8 @@ int main(int argc, char **argv) {
     SMDiagnostic Err;
 
     // Load the input module
-    std::unique_ptr<Module> M = parseIRFile(InputFilename, Err, Context);
+    auto M = loadIRModule(InputFilename, Context, Err, argv[0]);
     if (!M) {
-        Err.print(argv[0], errs());
         return 1;
     }
 

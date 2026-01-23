@@ -7,18 +7,17 @@
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
-#include "llvm/IRReader/IRReader.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/FileSystem.h"
 //#include "llvm/Support/ManagedStatic.h"
+#include "Alias/AliasAnalysisWrapper/CLIUtils.h"
 #include "llvm/IR/IRPrintingPasses.h"
 #include "llvm/InitializePasses.h"
 #include "llvm/PassRegistry.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/PrettyStackTrace.h"
 #include "llvm/Support/Signals.h"
-#include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -88,13 +87,12 @@ int main(int argc, char **argv) {
   llvm::PrettyStackTraceProgram X(argc, argv);
   llvm::EnableDebugBuffering = true;
 
-  llvm::SMDiagnostic err;
   llvm::LLVMContext context;
-  std::unique_ptr<llvm::Module> module;
+  llvm::SMDiagnostic err;
   std::unique_ptr<llvm::ToolOutputFile> asmOutput;
 
   // Load the input module
-  module = llvm::parseIRFile(InputFilename, err, context);
+  auto module = lotus::alias::tools::loadIRModule(InputFilename, context, err, argv[0]);
   if (!module) {
     if (llvm::errs().has_colors())
       llvm::errs().changeColor(llvm::raw_ostream::RED);

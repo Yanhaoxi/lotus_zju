@@ -2,14 +2,13 @@
 // Created by prophe cheng on 2024/6/25.
 //
 #include "llvm/IR/LLVMContext.h"
+#include "Alias/AliasAnalysisWrapper/CLIUtils.h"
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Module.h"
-#include "llvm/IRReader/IRReader.h"
 #include "llvm/Support/ManagedStatic.h"
 #include "llvm/Support/PrettyStackTrace.h"
 #include "llvm/Support/Signals.h"
-#include "llvm/Support/SourceMgr.h"
 
 #include <iostream>
 #include <memory>
@@ -23,6 +22,7 @@
 
 using namespace llvm;
 using namespace std;
+using namespace lotus::alias::tools;
 
 // Command line parameters.
 cl::list<string> InputFilenames(
@@ -122,9 +122,9 @@ int main(int argc, char** argv) {
 
     for (unsigned i = 0; i < InputFilenames.size(); ++i) {
         LLVMContext *LLVMCtx = new LLVMContext();
-        std::unique_ptr<Module> M = parseIRFile(InputFilenames[i], Err, *LLVMCtx);
+        auto M = loadIRModule(InputFilenames[i], *LLVMCtx, Err, argv[0]);
 
-        if (M == NULL) {
+        if (M == nullptr) {
             OP << argv[0] << ": error loading file '" << InputFilenames[i] << "'\n";
             continue;
         }

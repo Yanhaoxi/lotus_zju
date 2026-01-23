@@ -4,19 +4,19 @@
  */
 
 #include "Alias/DyckAA/DyckAliasAnalysis.h"
+#include "Alias/AliasAnalysisWrapper/CLIUtils.h"
 #include "Alias/DyckAA/DyckCallGraph.h"
 
 #include <llvm/ADT/Statistic.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Module.h>
-#include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/InitLLVM.h>
-#include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_ostream.h>
 
 using namespace llvm;
+using namespace lotus::alias::tools;
 
 static cl::opt<std::string> InputFilename(cl::Positional, 
                                           cl::desc("<input bitcode file>"),
@@ -36,9 +36,8 @@ int main(int argc, char **argv) {
     LLVMContext Context;
     SMDiagnostic Err;
     
-    std::unique_ptr<Module> M = parseIRFile(InputFilename, Err, Context);
+    auto M = loadIRModule(InputFilename, Context, Err, argv[0]);
     if (!M) {
-        Err.print(argv[0], errs());
         return 1;
     }
 

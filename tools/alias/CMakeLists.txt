@@ -11,7 +11,7 @@ llvm_map_components_to_libnames(LLVM_LINK_COMPONENTS
 add_executable(aser-aa aser-aa.cpp)
 target_link_libraries(aser-aa PRIVATE
   AserPTA
-  AliasSpecManager
+  CanaryAliasCLIUtils
   ${LLVM_LINK_COMPONENTS}
 )
 
@@ -19,18 +19,21 @@ target_link_libraries(aser-aa PRIVATE
 add_executable(sea-dsa-dg sea-dsa-dg.cpp)
 target_link_libraries(sea-dsa-dg PRIVATE
   SeaDsaAnalysis
+  CanaryAliasCLIUtils
 )
 
 # Sea-DSA Advanced Analysis Tool
 add_executable(seadsa-tool seadsa-tool.cpp)
 target_link_libraries(seadsa-tool PRIVATE
   SeaDsaAnalysis
+  CanaryAliasCLIUtils
 )
 
 # FPA (Function pointer analysis) Tool
 add_executable(fpa fpa.cpp)
 target_link_libraries(fpa PRIVATE
   CanaryFPA
+  CanaryAliasCLIUtils
   ${LLVM_LINK_COMPONENTS}
 )
 
@@ -38,6 +41,7 @@ target_link_libraries(fpa PRIVATE
 add_executable(lotus-aa lotus-aa.cpp)
 target_link_libraries(lotus-aa PRIVATE
   LotusAA
+  CanaryAliasCLIUtils
   ${LLVM_LINK_COMPONENTS}
 )
 
@@ -45,7 +49,7 @@ target_link_libraries(lotus-aa PRIVATE
 add_executable(sparrow-aa sparrow-aa.cpp)
 target_link_libraries(sparrow-aa PRIVATE
   Andersen
-  AliasSpecManager
+  CanaryAliasCLIUtils
   ${LLVM_LINK_COMPONENTS}
 )
 
@@ -53,6 +57,7 @@ target_link_libraries(sparrow-aa PRIVATE
 add_executable(dyck-aa dyck-aa.cpp)
 target_link_libraries(dyck-aa PRIVATE
   CanaryDyckAA
+  CanaryAliasCLIUtils
   ${LLVM_LINK_COMPONENTS}
 )
 
@@ -62,6 +67,7 @@ target_link_libraries(tpa PRIVATE
   FSCSPointerAnalysis
   TPATransforms
   TPAUtil
+  CanaryAliasCLIUtils
   ${LLVM_LINK_COMPONENTS}
 )
 
@@ -72,6 +78,7 @@ target_link_libraries(call-graph PRIVATE
   LotusAA
   CanaryFPA
   AserPTA
+  CanaryAliasCLIUtils
   ${LLVM_LINK_COMPONENTS}
 )
 

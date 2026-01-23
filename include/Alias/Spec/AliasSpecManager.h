@@ -9,8 +9,8 @@
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
 
-#include <memory>
 #include <llvm/ADT/Optional.h>
+#include <memory>
 #include <set>
 #include <string>
 #include <unordered_map>
