@@ -1,0 +1,308 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Constant-Time Cryptographic Analysis &mdash; Arlib Documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a74d790d"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="GVFA (Global Value Flow Analysis)" href="gvfa.html" />
+    <link rel="prev" title="Concurrency Analysis" href="concurrency.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Lotus
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/major_components.html">Major Components Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/architecture.html">Architecture Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/quickstart.html">Quick Start Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/tutorials.html">Tutorials and Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/bug_detection.html">Bug Detection with Lotus</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/pdg_query_language.html">PDG Query Language (Cypher)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/troubleshooting.html">Troubleshooting and FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Command-Line Tools</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core Components</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../alias/index.html">Alias Analysis</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Analysis Framework</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="index.html#overview">Overview</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="cfg.html">CFG Analysis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="concurrency.html">Concurrency Analysis</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Constant-Time Cryptographic Analysis</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#main-components">Main Components</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#configuration">Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#usage">Usage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#limitations">Limitations</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="gvfa.html">GVFA (Global Value Flow Analysis)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gvfa.html#command-line-tool-lotus-gvfa">Command-Line Tool: lotus-gvfa</a></li>
+<li class="toctree-l3"><a class="reference internal" href="null_pointer.html">Null Pointer Analysis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="spectre.html">Spectre Cache Analysis</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../annotation/index.html">Annotations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apps/index.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cfl/index.html">Context-Free Language Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dataflow/index.html">Data Flow Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ir/index.html">Intermediate Representations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../optimization/index.html">Optimization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../solvers/index.html">Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../transform/index.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../utils/index.html">Utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../verification/index.html">Verification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../checker/index.html">Checker Framework</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../developer/api_reference.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer/developer_guide.html">Developer Guide</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Lotus</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Analysis Framework</a></li>
+      <li class="breadcrumb-item active">Constant-Time Cryptographic Analysis</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/analysis/crypto.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="constant-time-cryptographic-analysis">
+<h1>Constant-Time Cryptographic Analysis<a class="headerlink" href="#constant-time-cryptographic-analysis" title="Link to this heading"></a></h1>
+<p>Static analysis for verifying constant-time programming in cryptographic code.</p>
+<p><strong>Headers</strong>: <code class="docutils literal notranslate"><span class="pre">include/Analysis/Crypto</span></code></p>
+<p><strong>Implementation</strong>: <code class="docutils literal notranslate"><span class="pre">lib/Analysis/Crypto</span></code></p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>The Crypto analysis module implements CT-LLVM, a static analysis tool for
+verifying constant-time programming properties in cryptographic implementations.
+Constant-time programming is essential for preventing timing-based side-channel
+attacks.</p>
+<p><strong>Related work</strong>:</p>
+<ul class="simple">
+<li><p>CT-LLVM: Automatic Large-Scale Constant-Time Analysis (2025)</p></li>
+<li><p>ECOOP 24: CtChecker: A Precise, Sound and Efficient Static Analysis for Constant-Time Programming</p></li>
+</ul>
+</section>
+<section id="main-components">
+<h2>Main Components<a class="headerlink" href="#main-components" title="Link to this heading"></a></h2>
+<section id="ctpass">
+<h3>CTPass<a class="headerlink" href="#ctpass" title="Link to this heading"></a></h3>
+<p><strong>File</strong>: <code class="docutils literal notranslate"><span class="pre">ctllvm.cpp</span></code>, <code class="docutils literal notranslate"><span class="pre">ctllvm.h</span></code></p>
+<p>The main pass that orchestrates constant-time analysis for an entire module.</p>
+<p><strong>Analysis Modes</strong>:</p>
+<ol class="arabic simple">
+<li><p><strong>Soundness Mode</strong> (<code class="docutils literal notranslate"><span class="pre">SOUNDNESS_MODE=1</span></code>):
+- Recursively inlines function calls
+- Attempts to prove constant-time properties
+- Reports “proved-CT” or “proved-NCT” for each function</p></li>
+<li><p><strong>Standard Mode</strong>:
+- Analyzes functions without full inlining
+- Faster but may miss some violations</p></li>
+</ol>
+<p><strong>Key Features</strong>:</p>
+<ul class="simple">
+<li><p>Taint tracking for secret data</p></li>
+<li><p>Leak detection through multiple channels:
+- Cache timing leaks
+- Branch timing leaks
+- Variable timing leaks</p></li>
+<li><p>Support for user-specified taint sources and declassified values</p></li>
+<li><p>Statistics collection for analysis coverage</p></li>
+</ul>
+</section>
+<section id="taint-analysis">
+<h3>Taint Analysis<a class="headerlink" href="#taint-analysis" title="Link to this heading"></a></h3>
+<p><strong>File</strong>: <code class="docutils literal notranslate"><span class="pre">ctllvm_analysis.cpp</span></code></p>
+<p>Performs taint propagation and leak detection within functions.</p>
+<p><strong>Leak Channels</strong>:</p>
+<ol class="arabic simple">
+<li><p><strong>Cache timing</strong>: Memory accesses that depend on secret data</p></li>
+<li><p><strong>Branch timing</strong>: Conditional branches that depend on secret data</p></li>
+<li><p><strong>Variable timing</strong>: Operations with execution time depending on secret data</p></li>
+</ol>
+<p><strong>Analysis Process</strong>:</p>
+<ol class="arabic simple">
+<li><p><strong>Taint Source Identification</strong>:
+- From user specifications (target values)
+- From function arguments
+- From debug information</p></li>
+<li><p><strong>Taint Propagation</strong>:
+- Tracks taint through def-use chains
+- Uses alias analysis for memory operations
+- Handles control flow dependencies</p></li>
+<li><p><strong>Leak Detection</strong>:
+- Must-leak analysis (proven leaks)
+- May-leak analysis (potential leaks, if enabled)</p></li>
+<li><p><strong>Reporting</strong>:
+- Reports violations with location information
+- Classifies leak types (cache/branch/variable timing)</p></li>
+</ol>
+</section>
+<section id="inlining-support">
+<h3>Inlining Support<a class="headerlink" href="#inlining-support" title="Link to this heading"></a></h3>
+<p><strong>File</strong>: <code class="docutils literal notranslate"><span class="pre">ctllvm_inlining.cpp</span></code></p>
+<p>Provides recursive inlining capabilities for soundness mode.</p>
+<p><strong>Features</strong>:</p>
+<ul class="simple">
+<li><p>Recursive function inlining</p></li>
+<li><p>Handles indirect calls and function pointers</p></li>
+<li><p>Inline threshold control</p></li>
+<li><p>Error handling for unsupported constructs</p></li>
+</ul>
+</section>
+</section>
+<section id="configuration">
+<h2>Configuration<a class="headerlink" href="#configuration" title="Link to this heading"></a></h2>
+<p>The analysis supports extensive configuration through preprocessor defines:</p>
+<p><strong>Analysis Modes</strong>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">SOUNDNESS_MODE</span></code>: Enable soundness mode with full inlining</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ENABLE_MAY_LEAK</span></code>: Enable may-leak analysis in addition to must-leak</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">USER_SPECIFY</span></code>: Enable user-specified taint sources</p></li>
+</ul>
+<p><strong>Limits and Thresholds</strong>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ALIAS_THRESHOLD</span></code>: Maximum number of memory operations to analyze</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">INLINE_THRESHOLD</span></code>: Maximum inlining depth/iterations</p></li>
+</ul>
+<p><strong>Debugging and Statistics</strong>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">DEBUG</span></code>: Enable debug output</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">REPORT_LEAKAGES</span></code>: Enable leak reporting</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TIME_ANALYSIS</span></code>: Enable timing statistics</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PRINT_FUNCTION</span></code>: Print IR of analyzed functions</p></li>
+</ul>
+</section>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading"></a></h2>
+<p><strong>Basic Usage</strong>:</p>
+<p>The CT-LLVM pass is typically invoked as part of an LLVM pass pipeline:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;Analysis/Crypto/ctllvm.h&gt;</span>
+
+<span class="n">ModulePassManager</span><span class="w"> </span><span class="n">MPM</span><span class="p">;</span>
+<span class="n">MPM</span><span class="p">.</span><span class="n">addPass</span><span class="p">(</span><span class="n">CTPass</span><span class="p">());</span>
+<span class="n">MPM</span><span class="p">.</span><span class="n">run</span><span class="p">(</span><span class="n">M</span><span class="p">,</span><span class="w"> </span><span class="n">MAM</span><span class="p">);</span>
+</pre></div>
+</div>
+<p><strong>User-Specified Taint Sources</strong>:</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">USER_SPECIFY=1</span></code>, users can specify which values to track as taint sources:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">target_value_info</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">StringRef</span><span class="w"> </span><span class="n">function_name</span><span class="p">;</span>
+<span class="w">  </span><span class="n">StringRef</span><span class="w"> </span><span class="n">value_name</span><span class="p">;</span>
+<span class="w">  </span><span class="n">StringRef</span><span class="w"> </span><span class="n">value_type</span><span class="p">;</span><span class="w">  </span><span class="c1">// Optional: for struct fields</span>
+<span class="w">  </span><span class="n">StringRef</span><span class="w"> </span><span class="n">field_name</span><span class="p">;</span><span class="w">  </span><span class="c1">// Optional: for struct fields</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+<p><strong>Output</strong>:</p>
+<p>The analysis outputs:</p>
+<ul class="simple">
+<li><p>Function-level results: “proved-CT” or “proved-NCT”</p></li>
+<li><p>Leak reports with location information</p></li>
+<li><p>Statistics about analyzed functions, violations, and analysis coverage</p></li>
+</ul>
+<p><strong>Typical use cases</strong>:</p>
+<ul class="simple">
+<li><p>Verifying cryptographic implementations are constant-time</p></li>
+<li><p>Security auditing of sensitive code</p></li>
+<li><p>CI/CD integration for security checks</p></li>
+<li><p>Research on constant-time programming</p></li>
+</ul>
+</section>
+<section id="limitations">
+<h2>Limitations<a class="headerlink" href="#limitations" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Requires debug information for precise variable tracking</p></li>
+<li><p>May have false positives in may-leak mode</p></li>
+<li><p>Soundness mode may fail on functions that cannot be fully inlined</p></li>
+<li><p>Analysis complexity grows with alias threshold</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="concurrency.html" class="btn btn-neutral float-left" title="Concurrency Analysis" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="gvfa.html" class="btn btn-neutral float-right" title="GVFA (Global Value Flow Analysis)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024-2025, ZJU Programming Languages and Automated Reasoning Group.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
